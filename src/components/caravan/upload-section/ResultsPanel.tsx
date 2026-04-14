@@ -1,16 +1,10 @@
-import { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  CircularProgress, 
+import { useState, useMemo } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
   Avatar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
   Tabs,
   Tab,
@@ -23,43 +17,87 @@ import {
   ArrowForward as ArrowForwardIcon,
   Check as CheckIcon,
   Warning as WarningIcon,
-  TableChart as TableChartIcon
-} from '@mui/icons-material';
-import { alpha } from '@mui/material/styles';
+  TableChart as TableChartIcon,
+  CloudUpload as CloudUploadIcon
+} from '@mui/icons-material';import { alpha } from '@mui/material/styles';
+import { MRT_ColumnDef } from 'material-react-table';
 import axiosInstance from '@/lib/axiosInstance';
-import { TableResult, ImportResult } from './types';
+import DataTable from 'src/components/data-table/DataTable';
+import { TableResult, ImportResult, DataValue } from './types';
 
 interface ResultsPanelProps {
   data: TableResult[];
   ocrProvider: 'azure' | 'google';
+  onReset: () => void;
 }
 
 /**
  * ResultsPanel Component
- * Handles data visualization of OCR results and massive DB import.
+ * Handles data visualization of OCR results using Material React Table
+ * and massive DB import.
  */
-const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
+const ResultsPanel = ({ data, ocrProvider, onReset }: ResultsPanelProps) => {
   const [activeTab, setActiveTab] = useState(0);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'done' | 'error'>('idle');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState('');
-  const table = data[activeTab];
+  const tableData = data[activeTab];
 
-  if (!table) return null;
+  if (!tableData) return null;
 
-  const mappedHeaders = Object.values(table.field_mapping);
+  const mappedHeaders = Object.values(tableData.field_mapping);
   const allDbFields = [...new Set(mappedHeaders)];
+
+  // ─── Column Definitions ───
+  const columns = useMemo<MRT_ColumnDef<Record<string, DataValue>>[]>(
+    () => allDbFields.map(field => ({
+      accessorKey: field,
+      header: field.toUpperCase(),
+      Cell: ({ cell }) => {
+        const cellData = cell.getValue<DataValue>();
+        if (!cellData) return '—';
+
+        const hasWarning = cellData.confidence < 0.85;
+        const hasCritical = cellData.confidence < 0.60;
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: '0.75rem',
+                color: hasCritical ? 'error.main' : hasWarning ? 'warning.main' : 'inherit',
+                fontWeight: (hasWarning || hasCritical) ? 'bold' : 'normal'
+              }}
+            >
+              {cellData.value || '—'}
+            </Typography>
+            {cellData.confidence < 0.95 && (
+              <Tooltip title={`Confidence: ${(cellData.confidence * 100).toFixed(1)}%`}>
+                {hasCritical ? (
+                  <ErrorIcon sx={{ fontSize: 12 }} color="error" />
+                ) : (
+                  <WarningIcon sx={{ fontSize: 12 }} color="warning" />
+                )}
+              </Tooltip>
+            )}
+          </Box>
+        );
+      }
+    })),
+    [allDbFields]
+  );
 
   const handleImport = async () => {
     setImportStatus('importing');
     setImportError('');
 
     try {
-      const cleanedRows = table.mapped_rows
+      const cleanedRows = tableData.mapped_rows
         .map(row => {
           const cleaned: Record<string, string> = {};
           Object.entries(row).forEach(([alias, dataValue]) => {
-            const targetField = table.field_mapping[alias] || alias;
+            const targetField = tableData.field_mapping[alias] || alias;
             cleaned[targetField] = dataValue.value;
           });
           return cleaned;
@@ -85,9 +123,9 @@ const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
   };
 
   return (
-    <Box sx={{ width: '100%', overflow: 'hidden' }}>
+    <Box className='border'>
       {/* Header */}
-      <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar sx={{ bgcolor: alpha('#1a73e8', 0.1), color: 'primary.main', width: 32, height: 32 }}>
             <TableChartIcon sx={{ fontSize: 18 }} />
@@ -95,11 +133,11 @@ const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Extracted Data</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="caption" color="text.secondary">{table.mapped_rows.length} rows</Typography>
-              <Chip 
-                label={ocrProvider === 'azure' ? 'Azure Engine' : 'Google AI Engine'} 
-                size="small" 
-                sx={{ height: 16, fontSize: '0.6rem', bgcolor: alpha(ocrProvider === 'azure' ? '#0078d4' : '#4285f4', 0.1), color: ocrProvider === 'azure' ? '#0078d4' : '#4285f4', borderColor: 'transparent' }} 
+              <Typography variant="caption" color="text.secondary">{tableData.mapped_rows.length} rows</Typography>
+              <Chip
+                label={ocrProvider === 'azure' ? 'Azure Engine' : 'Google AI Engine'}
+                size="small"
+                sx={{ height: 16, fontSize: '0.6rem', bgcolor: alpha(ocrProvider === 'azure' ? '#0078d4' : '#4285f4', 0.1), color: ocrProvider === 'azure' ? '#0078d4' : '#4285f4', borderColor: 'transparent' }}
               />
             </Box>
           </Box>
@@ -112,10 +150,19 @@ const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
               <Typography variant="caption" fontWeight="bold">{importResult.imported} imported</Typography>
             </Box>
           )}
-          
+
           <Button
-            variant="contained"
-            disableElevation
+            variant="outlined"
+            onClick={onReset}
+            size="small"
+            sx={{ borderRadius: 2, textTransform: 'none', fontSize: '0.75rem' }}
+            startIcon={<CloudUploadIcon />}
+          >
+            Nuevo Documento
+          </Button>
+
+          <Button
+            variant="contained"            disableElevation
             onClick={handleImport}
             disabled={importStatus === 'importing' || importStatus === 'done'}
             startIcon={importStatus === 'importing' ? <CircularProgress size={14} color="inherit" /> : importStatus === 'done' ? <CheckIcon /> : <StorageIcon />}
@@ -127,8 +174,8 @@ const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
           </Button>
 
           {data.length > 1 && (
-            <Tabs 
-              value={activeTab} 
+            <Tabs
+              value={activeTab}
               onChange={(_, v) => setActiveTab(v)}
               sx={{ minHeight: 32, '& .MuiTab-root': { minHeight: 32, py: 0, textTransform: 'none', fontSize: '0.75rem' } }}
             >
@@ -141,13 +188,13 @@ const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
       </Box>
 
       {/* Field Mapping Summary */}
-      <Box sx={{ px: 2, mb: 3 }}>
+      <Box sx={{ px: 2, mb: 2 }}>
         <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ textTransform: 'uppercase', display: 'block', mb: 1, letterSpacing: 0.5 }}>
           Auto-Detected Mapping
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {Object.entries(table.field_mapping).map(([alias, field]) => (
-            <Chip 
+          {Object.entries(tableData.field_mapping).map(([alias, field]) => (
+            <Chip
               key={alias}
               variant="outlined"
               size="small"
@@ -164,63 +211,33 @@ const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
         </Box>
       </Box>
 
-      {/* Data Table */}
-      <TableContainer sx={{ maxHeight: 500, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-        <Table stickyHeader size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.default', width: 40, fontSize: '0.75rem' }}>#</TableCell>
-              {allDbFields.map((field) => (
-                <TableCell key={field} sx={{ fontWeight: 'bold', color: 'text.primary', bgcolor: 'background.default', fontSize: '0.75rem' }}>
-                  {field.toUpperCase()}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {table.mapped_rows.map((row, rowIdx) => (
-              <TableRow key={rowIdx} hover>
-                <TableCell sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.7rem' }}>{rowIdx + 1}</TableCell>
-                {allDbFields.map((field) => {
-                  const cellData = row[field];
-                  const hasWarning = cellData && cellData.confidence < 0.85;
-                  const hasCritical = cellData && cellData.confidence < 0.60;
-
-                  return (
-                    <TableCell 
-                      key={field} 
-                      sx={{ 
-                        fontSize: '0.75rem',
-                        color: hasCritical ? 'error.main' : hasWarning ? 'warning.main' : 'inherit',
-                        fontWeight: (hasWarning || hasCritical) ? 'bold' : 'normal',
-                        bgcolor: hasCritical ? alpha('#d32f2f', 0.02) : hasWarning ? alpha('#ed6c02', 0.02) : 'transparent',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        {cellData?.value || '—'}
-                        {cellData && cellData.confidence < 0.95 && (
-                          <Tooltip title={`Confidence: ${(cellData.confidence * 100).toFixed(1)}%`}>
-                            {hasCritical ? (
-                              <ErrorIcon sx={{ fontSize: 12 }} color="error" />
-                            ) : (
-                              <WarningIcon sx={{ fontSize: 12 }} color="warning" />
-                            )}
-                          </Tooltip>
-                        )}
-                      </Box>
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {/* Material React Table */}
+      <Box sx={{ flex: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', borderRadius: 2, mx: 2 }}>
+        <DataTable
+          columns={columns}
+          data={tableData.mapped_rows}
+          enableRowSelection={true}
+          enableColumnOrdering={true}
+          enableGlobalFilter={true}
+          enableRowActions={false}
+          initialState={{
+            density: 'compact',
+            pagination: { pageSize: 10, pageIndex: 0 },
+            showGlobalFilter: true
+          }}
+          muiTablePaperProps={{
+            sx: { height: '100%', boxShadow: 'none' }
+          }}
+          muiTableContainerProps={{
+            sx: { maxHeight: 450 }
+          }}
+        />
+      </Box>
 
       {importError && (
         <Box sx={{ px: 2, mt: 2 }}>
           <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
-             Error: {importError}
+            Error: {importError}
           </Typography>
         </Box>
       )}
@@ -228,7 +245,7 @@ const ResultsPanel = ({ data, ocrProvider }: ResultsPanelProps) => {
       {/* Footer */}
       <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="caption" color="text.secondary">
-          {allDbFields.length} fields mapped • {table.column_count} source columns
+          {allDbFields.length} fields mapped • {tableData.column_count} source columns
         </Typography>
       </Box>
     </Box>
