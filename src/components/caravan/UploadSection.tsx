@@ -31,6 +31,7 @@ import { MOCK_AZURE_RESPONSE } from './upload-section/MockAzureData';
 import { UploadResponse, UploadStatus } from './upload-section/types';
 import ResultsPanel from './upload-section/ResultsPanel';
 import IntegrationCards from './upload-section/IntegrationCards';
+import AnalysisSidebar from './upload-section/AnalysisSidebar';
 
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/tiff', 'application/pdf'];
 const ACCEPTED_EXTENSIONS = '.pdf,.png,.jpg,.jpeg,.tiff';
@@ -141,14 +142,39 @@ const UploadSection = () => {
   return (
     <Box sx={{ width: '100%', mb: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-      {/* ─── Success Mode: Full Width DataTable ─── */}
+      {/* ─── Success Mode: Analysis View (Sidebar + Table) ─── */}
       {status === 'success' && result ? (
-        <Box sx={{ width: '100%', maxWidth: '1400px', mx: 'auto' }}>
-          <ResultsPanel 
-            data={result.data} 
-            ocrProvider={ocrProvider} 
-            onReset={resetState} 
-          />
+        <Box 
+          sx={{ 
+            width: '100%', 
+            maxWidth: '1600px', 
+            mx: 'auto', 
+            display: 'flex', 
+            flexDirection: { xs: 'column', lg: 'row' },
+            gap: 2
+          }}
+        >
+          {/* Metadata Sidebar (25%) */}
+          <Box 
+            sx={{ 
+              flex: '1 1 25%', 
+              borderRight: { lg: '1px solid' }, 
+              borderColor: { lg: 'divider' },
+              mb: { xs: 4, lg: 0 },
+              order: { xs: 2, lg: 1 }
+            }}
+          >
+            <AnalysisSidebar />
+          </Box>
+
+          {/* Main Table Area (75%) */}
+          <Box sx={{ flex: '1 1 75%', minWidth: 0, order: { xs: 1, lg: 2 } }}>
+            <ResultsPanel 
+              data={result.data} 
+              ocrProvider={ocrProvider} 
+              onReset={resetState} 
+            />
+          </Box>
         </Box>
       ) : (
         /* ─── Idle/Uploading/Error Mode: Two Column Layout ─── */
