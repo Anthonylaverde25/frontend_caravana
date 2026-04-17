@@ -21,6 +21,14 @@ const navigationConfig: FuseNavItemType[] = [
 		url: 'example'
 	},
 	{
+		id: 'suppliers',
+		title: 'Proveedores',
+		translate: 'SUPPLIERS',
+		type: 'item',
+		icon: 'lucide:star',
+		url: 'suppliers'
+	},
+	{
 		id: 'livestock-app',
 		title: 'Cuadro de Mando Ganadero',
 		type: 'item',

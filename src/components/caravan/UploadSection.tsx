@@ -74,6 +74,7 @@ const UploadSection = () => {
   const [result, setResult] = useState<UploadResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [ocrProvider, setOcrProvider] = useState<'azure' | 'google'>('azure');
+  const [workdayType, setWorkdayType] = useState('entry');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { openPicker, disconnect, isConnected, isDriveLoading, driveError } = useGoogleDrive((file) => {
@@ -86,6 +87,7 @@ const UploadSection = () => {
     setProgress(0);
     setResult(null);
     setErrorMessage('');
+    setWorkdayType('entry');
   };
 
   const handleMockTest = () => {
@@ -164,7 +166,11 @@ const UploadSection = () => {
               order: { xs: 2, lg: 1 }
             }}
           >
-            <AnalysisSidebar />
+            <AnalysisSidebar 
+              suggestedWorkdayCode={result.suggested_workday_code} 
+              workdayType={workdayType}
+              setWorkdayType={setWorkdayType}
+            />
           </Box>
 
           {/* Main Table Area (75%) */}
@@ -172,6 +178,7 @@ const UploadSection = () => {
             <ResultsPanel 
               data={result.data} 
               ocrProvider={ocrProvider} 
+              workdayType={workdayType}
               onReset={resetState} 
             />
           </Box>

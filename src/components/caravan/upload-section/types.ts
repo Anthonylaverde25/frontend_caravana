@@ -20,6 +20,7 @@ export interface TableResult {
 
 export interface UploadResponse {
   status: string;
+  suggested_workday_code?: string;
   document_info: {
     pages: number;
     model_id: string;

@@ -30,6 +30,7 @@ import { TableResult, ImportResult, DataValue } from './types';
 interface ResultsPanelProps {
   data: TableResult[];
   ocrProvider: 'azure' | 'google';
+  workdayType: string;
   onReset: () => void;
 }
 
@@ -38,7 +39,7 @@ interface ResultsPanelProps {
  * Handles data visualization of OCR results using Material React Table
  * and massive DB import. Now supports inline editing.
  */
-const ResultsPanel = ({ data, ocrProvider, onReset }: ResultsPanelProps) => {
+const ResultsPanel = ({ data, ocrProvider, workdayType, onReset }: ResultsPanelProps) => {
   const [activeTab, setActiveTab] = useState(0);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'done' | 'error'>('idle');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -152,7 +153,10 @@ const ResultsPanel = ({ data, ocrProvider, onReset }: ResultsPanelProps) => {
           return hasId && hasAnyValue;
         });
 
-      const response = await axiosInstance.post('/caravans/import', { rows: cleanedRows });
+      const response = await axiosInstance.post('/caravans/import', { 
+        rows: cleanedRows,
+        work_type: workdayType 
+      });
 
       if (response.status === 200 || response.status === 201) {
         setImportResult(response.data.data);

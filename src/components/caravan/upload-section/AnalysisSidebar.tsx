@@ -1,16 +1,23 @@
-import { Box, Typography, TextField, Divider, Stack } from '@mui/material';
+import { Box, Typography, TextField, Divider, Stack, Select, MenuItem, FormControl } from '@mui/material';
 import { 
   DescriptionOutlined as NotesIcon, 
   FormatListNumberedOutlined as SectionIcon,
-  InfoOutlined as InfoIcon
+  InfoOutlined as InfoIcon,
+  EventOutlined as EventIcon
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
+
+interface AnalysisSidebarProps {
+  suggestedWorkdayCode?: string;
+  workdayType: string;
+  setWorkdayType: (type: string) => void;
+}
 
 /**
  * AnalysisSidebar Component
  * Provides a minimal area for manual metadata input during OCR verification.
  */
-const AnalysisSidebar = () => {
+const AnalysisSidebar = ({ suggestedWorkdayCode, workdayType, setWorkdayType }: AnalysisSidebarProps) => {
   return (
     <Box 
       sx={{ 
@@ -36,17 +43,42 @@ const AnalysisSidebar = () => {
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
             <SectionIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-            Número de Sección
+            Jornada Sugerida
           </Typography>
           <TextField
             fullWidth
-            placeholder="Ej: Lote A-12"
+            value={suggestedWorkdayCode || 'Calculando...'}
             variant="outlined"
             size="small"
             InputProps={{
-              sx: { borderRadius: 2, bgcolor: (theme) => alpha(theme.palette.action.active, 0.02) }
+              readOnly: true,
+              sx: { 
+                borderRadius: 2, 
+                bgcolor: (theme) => alpha(theme.palette.action.active, 0.05),
+                color: 'text.secondary',
+                fontWeight: 600
+              }
             }}
           />
+        </Box>
+        
+        {/* Workday Type Selector */}
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
+            <EventIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+            Tipo de Jornada
+          </Typography>
+          <FormControl fullWidth size="small">
+            <Select
+              value={workdayType}
+              onChange={(e) => setWorkdayType(e.target.value)}
+              sx={{ borderRadius: 2 }}
+            >
+              <MenuItem value="entry">Entrada</MenuItem>
+              <MenuItem value="update">Actualización (Revisión)</MenuItem>
+              <MenuItem value="exit">Salida</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
 
         <Divider />

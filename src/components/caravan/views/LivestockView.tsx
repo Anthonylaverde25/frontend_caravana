@@ -3,10 +3,12 @@ import { useState } from 'react';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import GridOnIcon from '@mui/icons-material/GridOn';
 import StorageIcon from '@mui/icons-material/Storage';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 import ViewHeader from 'src/components/ViewHeader';
 import UploadSection from '../UploadSection';
 import TemplateGenerator from '../TemplateGenerator';
 import CaravanDataTable from '../CaravanDataTable';
+import MockWorkdayLedger from './MockWorkdayLedger';
 
 function LivestockView() {
 	const [activeTab, setActiveTab] = useState(0);
@@ -15,12 +17,13 @@ function LivestockView() {
 		setActiveTab(newValue);
 	};
 
-	const titles = ['Analizador Documental AI', 'Generador de Planillas', 'Base de Datos Ganadera'];
+	const titles = ['Analizador Documental AI', 'Historial de Jornadas', 'Base de Datos Ganadera', 'Generador de Planillas'];
 
 	const descriptions = [
 		'Importa tus planillas de campo, archivos locales o almacenamiento en la nube para procesamiento automático con Azure y Google AI.',
-		'Configura y genera planillas en blanco profesionales listas para imprimir y llevar al campo.',
-		'Visualiza y gestiona todos tus registros de animales procesados y guardados en el sistema.'
+		'Audita y consulta el registro histórico de todas las sesiones de trabajo y los animales procesados en ellas.',
+		'Visualiza y gestiona todos tus registros de animales procesados y guardados en el sistema.',
+		'Configura y genera planillas en blanco profesionales listas para imprimir y llevar al campo.'
 	];
 
 	return (
@@ -57,14 +60,19 @@ function LivestockView() {
 							label="Analizador OCR"
 						/>
 						<Tab
-							icon={<GridOnIcon />}
+							icon={<EventNoteIcon />}
 							iconPosition="start"
-							label="Generador de Planillas"
+							label="Historial de Jornadas"
 						/>
 						<Tab
 							icon={<StorageIcon />}
 							iconPosition="start"
 							label="Registros"
+						/>
+						<Tab
+							icon={<GridOnIcon />}
+							iconPosition="start"
+							label="Generador de Planillas"
 						/>
 					</Tabs>
 				</Box>
@@ -72,8 +80,9 @@ function LivestockView() {
 
 			<Box sx={{ mt: 2 }}>
 				{activeTab === 0 && <UploadSection />}
-				{activeTab === 1 && <TemplateGenerator />}
+				{activeTab === 1 && <MockWorkdayLedger />}
 				{activeTab === 2 && <CaravanDataTable />}
+				{activeTab === 3 && <TemplateGenerator />}
 			</Box>
 		</Container>
 	);
