@@ -1,6 +1,6 @@
 import { Container, Box } from '@mui/material';
 import ViewHeader from 'src/components/ViewHeader';
-import TemplateGenerator from 'src/components/caravan/TemplateGenerator';
+import TemplateGenerator from '@/ui/livestock/template/TemplateGenerator';
 
 /**
  * TemplateView Component
@@ -10,12 +10,12 @@ function TemplateView() {
 	return (
 		<Container
 			maxWidth="xl"
-			sx={{ 
-				py: 4, 
-				display: 'flex', 
-				flexDirection: 'column', 
-				width: '100%', 
-				px: { xs: 2, md: 6 } 
+			sx={{
+				// py: 4, 
+				display: 'flex',
+				flexDirection: 'column',
+				width: '100%',
+				// px: { xs: 2, md: 6 } 
 			}}
 		>
 			<ViewHeader

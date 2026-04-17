@@ -19,16 +19,16 @@ function ViewHeader(props: ViewHeaderProps) {
 	const { title, subtitle, actions, showBreadcrumb = true, className = '' } = props;
 
 	return (
-		<Box 
-			component="header" 
-			className={`flex flex-col mb-8 w-full ${className}`}
+		<Box
+			component="header"
+			className={`mt-5  border flex flex-col mb-8 w-full ${className}`}
 		>
 			{showBreadcrumb && (
 				<Box className="mb-4">
-					<PageBreadcrumb 
-                        className="border-0 px-0" 
-                        borderColor="transparent"
-                    />
+					<PageBreadcrumb
+						className="border-0 px-0"
+						borderColor="transparent"
+					/>
 				</Box>
 			)}
 

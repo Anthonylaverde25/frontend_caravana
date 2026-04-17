@@ -53,7 +53,7 @@ function Layout1(props: Layout1Props) {
 		<Root
 			id="fuse-layout"
 			config={config}
-			className="flex w-full flex-auto"
+			className="flex w-full flex-auto "
 		>
 			{config.leftSidePanel.display && <LeftSideLayout1 />}
 

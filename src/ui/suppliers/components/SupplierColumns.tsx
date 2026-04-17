@@ -1,6 +1,12 @@
-import { MRT_ColumnDef } from 'material-react-table';
-import { Typography, Chip } from '@mui/material';
+import { Typography, Chip, Avatar, Stack } from '@mui/material';
 import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
+
+/**
+ * Helper to get initials from a name.
+ */
+const getInitials = (name: string) => {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+};
 
 /**
  * Column definitions for the Supplier Data Table.
@@ -9,11 +15,24 @@ export const getSupplierColumns = (): MRT_ColumnDef<Supplier>[] => [
   {
     accessorKey: 'name',
     header: 'Nombre / Razón Social',
-    size: 250,
-    Cell: ({ cell }) => (
-      <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
-        {cell.getValue<string>()}
-      </Typography>
+    size: 280,
+    Cell: ({ row, cell }) => (
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Avatar 
+          sx={{ 
+            bgcolor: 'primary.main', 
+            fontSize: '0.875rem', 
+            fontWeight: 600,
+            width: 32,
+            height: 32
+          }}
+        >
+          {getInitials(cell.getValue<string>())}
+        </Avatar>
+        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+          {cell.getValue<string>()}
+        </Typography>
+      </Stack>
     ),
   },
   {

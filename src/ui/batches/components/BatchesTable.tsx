@@ -1,17 +1,22 @@
 import { useMemo } from 'react';
-import { Box, Typography, Button, Stack, CircularProgress, Paper, Chip, IconButton } from '@mui/material';
+import { Box, Typography, CircularProgress, IconButton, Paper, Stack, Chip } from '@mui/material';
 import DataTable from '@/components/data-table/DataTable';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { getSupplierColumns } from './SupplierColumns';
+import { getSupplierColumns } from '../../suppliers/components/SupplierColumns';
 
 /**
- * SuppliersTable Component
- * Displays the list of providers using Material React Table.
+ * BatchesTable Component
+ * Displays the list of providers and their associated batches in a detail panel.
  */
-export function SuppliersTable() {
-  const { data: suppliers = [], isLoading, isError } = useSuppliers();
+export function BatchesTable() {
+  const { data: suppliers = [], isLoading: isLoadingSuppliers, isError: isErrorSuppliers } = useSuppliers();
+  const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
+  
   const columns = useMemo(() => getSupplierColumns(), []);
+
+  const isLoading = isLoadingSuppliers || isLoadingBatches;
 
   if (isLoading) {
     return (
@@ -21,10 +26,10 @@ export function SuppliersTable() {
     );
   }
 
-  if (isError) {
+  if (isErrorSuppliers) {
     return (
       <Box className="p-32 text-center text-error border border-error rounded-8 bg-error-50 overflow-hidden">
-        <Typography variant="h6">Error al cargar la lista de proveedores</Typography>
+        <Typography variant="h6">Error al cargar el panel de lotes</Typography>
         <Typography variant="body2">Por favor, intente nuevamente más tarde.</Typography>
       </Box>
     );
@@ -42,7 +47,7 @@ export function SuppliersTable() {
         enableExpanding={true}
         positionActionsColumn="last"
         renderDetailPanel={({ row }) => {
-          const farms = row.original.farms || [];
+          const providerBatches = batches.filter(b => b.provider_id === row.original.id);
 
           return (
             <Box
@@ -56,14 +61,14 @@ export function SuppliersTable() {
               }}
             >
               <Typography variant="overline" sx={{ color: '#6a6d70', fontWeight: 700, mb: 2, display: 'block' }}>
-                Detalle de Establecimientos / Granjas ({farms.length})
+                Lotes asociados a este Proveedor ({providerBatches.length})
               </Typography>
 
-              {farms.length > 0 ? (
+              {providerBatches.length > 0 ? (
                 <Stack spacing={1.5}>
-                  {farms.map((farm) => (
+                  {providerBatches.map((batch) => (
                     <Paper
-                      key={farm.id}
+                      key={batch.id}
                       elevation={0}
                       sx={{
                         p: 2,
@@ -79,18 +84,39 @@ export function SuppliersTable() {
                       <Stack direction="row" spacing={3} alignItems="center">
                         <Box>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {farm.name}
+                            {batch.name}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {farm.location || 'Sin ubicación especificada'}
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                            Establecimiento: {batch.farm_name || 'No asignado'}
                           </Typography>
+                          
+                          <Stack direction="row" spacing={2}>
+                            <Stack direction="row" spacing={0.5} alignItems="center">
+                              <FuseSvgIcon size={16} sx={{ color: '#6a6d70' }}>heroicons-outline:users</FuseSvgIcon>
+                              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                120 Cabezas
+                              </Typography>
+                            </Stack>
+                            <Chip 
+                              label="NOVILLOS" 
+                              size="small" 
+                              sx={{ 
+                                height: 20, 
+                                fontSize: '0.65rem', 
+                                fontWeight: 700, 
+                                bgcolor: '#e8f0fe', 
+                                color: '#1967d2',
+                                border: 'none'
+                              }} 
+                            />
+                          </Stack>
                         </Box>
                       </Stack>
 
                       <Chip
-                        label={farm.is_active ? 'Activa' : 'Inactiva'}
+                        label={batch.is_active ? 'Activo' : 'Inactivo'}
                         size="small"
-                        color={farm.is_active ? 'success' : 'default'}
+                        color={batch.is_active ? 'success' : 'default'}
                         variant="outlined"
                         sx={{ fontWeight: 600, fontSize: '0.7rem' }}
                       />
@@ -99,7 +125,7 @@ export function SuppliersTable() {
                 </Stack>
               ) : (
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                  Este proveedor no tiene granjas asociadas registradas.
+                  Este proveedor no tiene lotes registrados.
                 </Typography>
               )}
             </Box>
@@ -125,35 +151,10 @@ export function SuppliersTable() {
             </IconButton>
           </Box>
         )}
-        renderTopToolbarCustomActions={() => (
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <IconButton
-              size="small"
-              sx={{ color: '#6a6d70' }}
-              onClick={() => console.log('Opciones de tabla')}
-            >
-              <FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
-            </IconButton>
-            <Button
-              variant="text"
-              color="inherit"
-              startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
-              sx={{ fontWeight: 600, textTransform: 'none', color: '#6a6d70' }}
-              onClick={() => console.log('Exportar a Excel')}
-            >
-              Exportar
-            </Button>
-          </Box>
-        )}
-        muiTopToolbarProps={{
-          sx: {
-            p: '5px',
-          }
-        }}
         initialState={{
           density: 'compact',
           showGlobalFilter: true,
-          pagination: { pageSize: 15, pageIndex: 0 }
+          pagination: { pageSize: 15, pageIndex: 0 },
         }}
       />
     </Box>

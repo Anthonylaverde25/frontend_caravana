@@ -69,6 +69,7 @@
     "react-popper": "2.3.0",
     "react-router": "7.5.2",
     "react-swipeable": "7.0.2",
+    "react-to-print": "^3.3.0",
     "styled-components": "6.1.17",
     "stylis": "4.3.6",
     "stylis-plugin-rtl": "2.1.1",

@@ -1,3 +1,5 @@
+import { Farm } from './Farm';
+
 export interface Supplier {
   id: number;
   name: string;
@@ -7,5 +9,6 @@ export interface Supplier {
   email: string | null;
   phone: string | null;
   is_active: boolean;
+  farms?: Farm[];
   created_at?: string;
 }

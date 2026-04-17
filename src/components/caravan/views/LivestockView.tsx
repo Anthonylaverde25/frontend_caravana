@@ -6,7 +6,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import ViewHeader from 'src/components/ViewHeader';
 import UploadSection from '../UploadSection';
-import TemplateGenerator from '../TemplateGenerator';
+import TemplateGenerator from '@/ui/livestock/template/TemplateGenerator';
 import CaravanDataTable from '../CaravanDataTable';
 import MockWorkdayLedger from './MockWorkdayLedger';
 
@@ -17,24 +17,23 @@ function LivestockView() {
 		setActiveTab(newValue);
 	};
 
-	const titles = ['Analizador Documental AI', 'Historial de Jornadas', 'Base de Datos Ganadera', 'Generador de Planillas'];
+	const titles = ['Analizador Documental AI', 'Historial de Jornadas', 'Base de Datos Ganadera'];
 
 	const descriptions = [
 		'Importa tus planillas de campo, archivos locales o almacenamiento en la nube para procesamiento automático con Azure y Google AI.',
 		'Audita y consulta el registro histórico de todas las sesiones de trabajo y los animales procesados en ellas.',
-		'Visualiza y gestiona todos tus registros de animales procesados y guardados en el sistema.',
-		'Configura y genera planillas en blanco profesionales listas para imprimir y llevar al campo.'
+		'Visualiza y gestiona todos tus registros de animales procesados y guardados en el sistema.'
 	];
 
 	return (
 		<Container
 			maxWidth="xl"
-			sx={{ 
-				py: 4, 
-				display: 'flex', 
-				flexDirection: 'column', 
-				width: '100%', 
-				px: { xs: 2, md: 6 } 
+			sx={{
+				// py: 4, 
+				display: 'flex',
+				flexDirection: 'column',
+				width: '100%',
+				// px: { xs: 2, md: 6 } 
 			}}
 		>
 			<ViewHeader
@@ -69,11 +68,6 @@ function LivestockView() {
 							iconPosition="start"
 							label="Registros"
 						/>
-						<Tab
-							icon={<GridOnIcon />}
-							iconPosition="start"
-							label="Generador de Planillas"
-						/>
 					</Tabs>
 				</Box>
 			</Box>
@@ -82,7 +76,6 @@ function LivestockView() {
 				{activeTab === 0 && <UploadSection />}
 				{activeTab === 1 && <MockWorkdayLedger />}
 				{activeTab === 2 && <CaravanDataTable />}
-				{activeTab === 3 && <TemplateGenerator />}
 			</Box>
 		</Container>
 	);
