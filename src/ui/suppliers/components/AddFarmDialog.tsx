@@ -72,6 +72,16 @@ function AddFarmDialog({ open, onClose, onAdd }: AddFarmDialogProps) {
               helperText={errors.name?.message}
               sx={{ bgcolor: '#f7f7f7' }}
             />
+            <TextField
+              {...register('renspa')}
+              label="RENSPA"
+              fullWidth
+              variant="filled"
+              error={!!errors.renspa}
+              helperText={errors.renspa?.message}
+              placeholder="XX.XXX.X.XXXXX/XX"
+              sx={{ bgcolor: '#f7f7f7' }}
+            />
             <div className="flex gap-16">
               <TextField
                 {...register('city')}

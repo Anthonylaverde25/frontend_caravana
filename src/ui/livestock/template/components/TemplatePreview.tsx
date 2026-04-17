@@ -15,6 +15,7 @@ import PrintHeader from './PrintHeader';
 interface TemplatePreviewProps {
   establishment: string;
   cuit: string;
+  renspa: string;
   selectedFields: Field[];
   rowCount: number;
 }
@@ -22,6 +23,7 @@ interface TemplatePreviewProps {
 const TemplatePreview = forwardRef<HTMLDivElement, TemplatePreviewProps>(({
   establishment,
   cuit,
+  renspa,
   selectedFields,
   rowCount
 }, ref) => {
@@ -45,7 +47,7 @@ const TemplatePreview = forwardRef<HTMLDivElement, TemplatePreviewProps>(({
         className="print-area"
         elevation={0}
         sx={{
-          p: { xs: 4, md: 8 },
+          p: { xs: 2, md: 4 },
           width: '100%',
           maxWidth: '250mm',
           minHeight: '297mm',
@@ -56,7 +58,7 @@ const TemplatePreview = forwardRef<HTMLDivElement, TemplatePreviewProps>(({
         }}
       >
         {/* Print Header */}
-        <PrintHeader establishment={establishment} cuit={cuit} />
+        <PrintHeader establishment={establishment} cuit={cuit} renspa={renspa} />
 
         <Table sx={{
           '& .MuiTableCell-root': {

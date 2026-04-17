@@ -4,9 +4,10 @@ import { Box, Typography } from '@mui/material';
 interface PrintHeaderProps {
   establishment: string;
   cuit: string;
+  renspa: string;
 }
 
-const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit }) => {
+const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa }) => {
   return (
     <>
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -42,7 +43,7 @@ const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit }) => {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
           <Typography variant="caption" sx={{ fontWeight: 700, color: '#999' }}>RENSPA:</Typography>
           <Typography variant="body2" sx={{ borderBottom: '1px solid #000', minWidth: 150, fontWeight: 600 }}>
-            {/* Vacío de momento */}
+            {renspa}
           </Typography>
         </Box>
       </Box>

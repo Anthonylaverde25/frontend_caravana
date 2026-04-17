@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Button } from '@mui/material';
+import PrintIcon from '@mui/icons-material/Print';
+import DownloadIcon from '@mui/icons-material/Download';
 import axiosInstance from '@/lib/axiosInstance';
 import { useReactToPrint } from 'react-to-print';
+// @ts-ignore - html2pdf handles its own loading or requires manual type declaration
+import html2pdf from 'html2pdf.js';
 import { Field, Mapping } from './types/template.types';
 import TemplateConfigSidebar from './components/TemplateConfigSidebar';
 import TemplatePreview from './components/TemplatePreview';
@@ -25,6 +29,7 @@ const TemplateGenerator: React.FC = () => {
   const [rowCount, setRowCount] = useState(25);
   const [establishment, setEstablishment] = useState('');
   const [cuit, setCuit] = useState('');
+  const [renspa, setRenspa] = useState('');
   const [selectedProviderId, setSelectedProviderId] = useState<number | undefined>();
   const [selectedFarmId, setSelectedFarmId] = useState<number | undefined>();
 
@@ -72,12 +77,35 @@ const TemplateGenerator: React.FC = () => {
     contentRef: componentRef,
     documentTitle: 'Planilla_De_Campo_Jhoangel',
     pageStyle: `
-      @page { size: portrait; margin: 10mm; }
+      @page { size: portrait; margin: 5mm; }
       @media print {
         body { -webkit-print-color-adjust: exact; }
       }
     `
   });
+
+  // Función para descarga automática de PDF (Sin diálogo de impresión)
+  const handleDownload = () => {
+    const element = componentRef.current;
+    if (!element) return;
+
+    // Configuración de alta fidelidad para el PDF
+    const opt = {
+      margin:       [5, 5, 5, 5], // 5mm de márgenes
+      filename:     `Planilla_${establishment.replace(/\s+/g, '_') || 'Campo'}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { 
+        scale: 3, 
+        useCORS: true, 
+        letterRendering: true,
+        logging: false
+      },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Ejecutar generación y descarga
+    html2pdf().set(opt).from(element).save();
+  };
 
   const selectedFields = fields.filter(f => f.checked);
 
@@ -105,11 +133,56 @@ const TemplateGenerator: React.FC = () => {
           setSelectedProviderId(id);
           setCuit(val);
         }}
-        onFarmChange={(id, name) => {
+        onFarmChange={(id, name, rs) => {
           setSelectedFarmId(id);
           setEstablishment(name);
+          setRenspa(rs);
         }}
       />
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }} className="no-print">
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownload}
+          disabled={selectedFields.length === 0}
+          sx={{
+            borderColor: '#0a6ed1',
+            color: '#0a6ed1',
+            fontWeight: 700,
+            textTransform: 'none',
+            px: 3,
+            '&:hover': {
+              borderColor: '#0854a1',
+              bgcolor: '#eff4f9',
+            }
+          }}
+        >
+          Descargar PDF
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<PrintIcon />}
+          onClick={handlePrint}
+          disabled={selectedFields.length === 0}
+          sx={{
+            bgcolor: '#0a6ed1',
+            color: '#fff',
+            fontWeight: 700,
+            textTransform: 'none',
+            px: 3,
+            '&:hover': {
+              bgcolor: '#0854a1',
+            },
+            '&.Mui-disabled': {
+              bgcolor: '#d8dde6',
+              color: '#999'
+            }
+          }}
+        >
+          Imprimir Planilla
+        </Button>
+      </Box>
 
       <Box sx={{
         display: 'flex',
@@ -134,6 +207,7 @@ const TemplateGenerator: React.FC = () => {
           ref={componentRef}
           establishment={establishment}
           cuit={cuit}
+          renspa={renspa}
           selectedFields={selectedFields}
           rowCount={rowCount}
         />

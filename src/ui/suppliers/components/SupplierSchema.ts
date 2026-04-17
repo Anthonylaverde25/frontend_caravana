@@ -5,6 +5,7 @@ import { z } from 'zod';
  */
 export const farmSchema = z.object({
   name: z.string().min(1, 'El nombre del establecimiento es requerido'),
+  renspa: z.string().min(1, 'El RENSPA es requerido'),
   country: z.string().min(1, 'El país es requerido'),
   province: z.string().optional(),
   city: z.string().min(1, 'La ciudad es requerida'),

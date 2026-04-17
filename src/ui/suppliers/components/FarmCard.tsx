@@ -30,8 +30,11 @@ function FarmCard({ farm, onRemove }: FarmCardProps) {
         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
           {farm.name}
         </Typography>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
           {farm.city}{farm.province ? `, ${farm.province}` : ''}
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#0a6ed1', fontWeight: 600 }}>
+          RENSPA: {farm.renspa}
         </Typography>
       </Box>
       <IconButton 

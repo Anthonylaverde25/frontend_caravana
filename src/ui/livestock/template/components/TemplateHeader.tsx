@@ -17,7 +17,7 @@ interface TemplateHeaderProps {
   selectedProviderId: number | undefined;
   selectedFarmId: number | undefined;
   onProviderChange: (id: number | undefined, cuit: string) => void;
-  onFarmChange: (id: number | undefined, name: string) => void;
+  onFarmChange: (id: number | undefined, name: string, renspa: string) => void;
 }
 
 const TemplateHeader: React.FC<TemplateHeaderProps> = ({
@@ -39,13 +39,13 @@ const TemplateHeader: React.FC<TemplateHeaderProps> = ({
   const handleProviderChange = (providerId: number) => {
     const provider = providers.find(p => p.id === providerId);
     onProviderChange(providerId, provider?.cuit || '');
-    onFarmChange(undefined, ''); // Reset farm selection
+    onFarmChange(undefined, '', ''); // Reset farm selection
   };
 
   // Handle farm change
   const handleFarmChange = (farmId: number) => {
     const farm = allFarms.find(f => f.id === farmId);
-    onFarmChange(farmId, farm?.name || '');
+    onFarmChange(farmId, farm?.name || '', farm?.renspa || '');
   };
 
   return (

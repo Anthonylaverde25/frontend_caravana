@@ -146,7 +146,7 @@ const TemplateConfigSidebar: React.FC<TemplateConfigSidebarProps> = ({
           </Box>
 
           <Box sx={{ mt: 4 }}>
-            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <FormControl fullWidth size="small">
               <InputLabel sx={{ fontSize: '0.85rem' }}>Filas a Imprimir</InputLabel>
               <Select
                 value={rowCount}
@@ -164,34 +164,6 @@ const TemplateConfigSidebar: React.FC<TemplateConfigSidebarProps> = ({
                 ))}
               </Select>
             </FormControl>
-
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<PrintIcon />}
-              onClick={onPrint}
-              disabled={isPrintDisabled}
-              sx={{ 
-                py: 1.5,
-                bgcolor: '#0a6ed1',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                borderRadius: '6px',
-                textTransform: 'none',
-                boxShadow: 'none',
-                '&:hover': {
-                  bgcolor: '#0854a1',
-                  boxShadow: '0 4px 12px rgba(10, 110, 209, 0.3)'
-                },
-                '&.Mui-disabled': {
-                  bgcolor: '#d8dde6',
-                  color: '#999'
-                }
-              }}
-            >
-              Imprimir Planilla
-            </Button>
           </Box>
         </CardContent>
       </Card>
