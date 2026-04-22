@@ -8,4 +8,9 @@ export class ApiFarmRepository implements IFarmRepository {
     const response = await axiosInstance.get<Farm[]>('/farms', { params });
     return response.data;
   }
+
+  async create(farm: Partial<Farm>): Promise<Farm> {
+    const response = await axiosInstance.post<Farm>('/farms', farm);
+    return response.data;
+  }
 }

@@ -25,10 +25,11 @@ import { alpha } from '@mui/material/styles';
 import { MRT_ColumnDef } from 'material-react-table';
 import axiosInstance from '@/lib/axiosInstance';
 import DataTable from 'src/components/data-table/DataTable';
-import { TableResult, ImportResult, DataValue } from './types';
+import { TableResult, ImportResult, DataValue, DocumentContext } from './types';
 
 interface ResultsPanelProps {
   data: TableResult[];
+  context?: DocumentContext;
   ocrProvider: 'azure' | 'google';
   workdayType: string;
   onReset: () => void;
@@ -39,7 +40,7 @@ interface ResultsPanelProps {
  * Handles data visualization of OCR results using Material React Table
  * and massive DB import. Now supports inline editing.
  */
-const ResultsPanel = ({ data, ocrProvider, workdayType, onReset }: ResultsPanelProps) => {
+const ResultsPanel = ({ data, context, ocrProvider, workdayType, onReset }: ResultsPanelProps) => {
   const [activeTab, setActiveTab] = useState(0);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'done' | 'error'>('idle');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -155,7 +156,10 @@ const ResultsPanel = ({ data, ocrProvider, workdayType, onReset }: ResultsPanelP
 
       const response = await axiosInstance.post('/caravans/import', { 
         rows: cleanedRows,
-        work_type: workdayType 
+        work_type: workdayType,
+        batch_id: context?.batch_id || null,
+        farm_id: context?.farm_id || null,
+        batch_name: context?.lote || null,
       });
 
       if (response.status === 200 || response.status === 201) {

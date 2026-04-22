@@ -170,6 +170,7 @@ const UploadSection = () => {
               suggestedWorkdayCode={result.suggested_workday_code} 
               workdayType={workdayType}
               setWorkdayType={setWorkdayType}
+              context={result.context}
             />
           </Box>
 
@@ -177,6 +178,7 @@ const UploadSection = () => {
           <Box sx={{ flex: '1 1 75%', minWidth: 0, order: { xs: 1, lg: 2 } }}>
             <ResultsPanel 
               data={result.data} 
+              context={result.context}
               ocrProvider={ocrProvider} 
               workdayType={workdayType}
               onReset={resetState} 

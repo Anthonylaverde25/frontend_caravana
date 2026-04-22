@@ -1,23 +1,26 @@
-import { Box, Typography, TextField, Divider, Stack, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, Typography, TextField, Divider, Stack, Select, MenuItem, FormControl, Chip } from '@mui/material';
 import { 
   DescriptionOutlined as NotesIcon, 
   FormatListNumberedOutlined as SectionIcon,
   InfoOutlined as InfoIcon,
-  EventOutlined as EventIcon
+  EventOutlined as EventIcon,
+  Inventory2Outlined as BatchIcon
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
+import { DocumentContext } from './types';
 
 interface AnalysisSidebarProps {
   suggestedWorkdayCode?: string;
   workdayType: string;
   setWorkdayType: (type: string) => void;
+  context?: DocumentContext;
 }
 
 /**
  * AnalysisSidebar Component
  * Provides a minimal area for manual metadata input during OCR verification.
  */
-const AnalysisSidebar = ({ suggestedWorkdayCode, workdayType, setWorkdayType }: AnalysisSidebarProps) => {
+const AnalysisSidebar = ({ suggestedWorkdayCode, workdayType, setWorkdayType, context }: AnalysisSidebarProps) => {
   return (
     <Box 
       sx={{ 
@@ -38,6 +41,41 @@ const AnalysisSidebar = ({ suggestedWorkdayCode, workdayType, setWorkdayType }: 
             Información contextual para organizar este lote de registros.
           </Typography>
         </Box>
+
+        {/* Document Context (from Azure) */}
+        {context && (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
+              <BatchIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+              Contexto del Documento
+            </Typography>
+            <Stack spacing={1}>
+              <Chip
+                variant="outlined"
+                size="small"
+                color={context.provider_id ? 'success' : 'default'}
+                label={`CUIT: ${context.cuit || 'N/A'} ${context.provider_id ? '✓' : ''}`}
+                sx={{ justifyContent: 'flex-start', fontSize: '0.7rem', height: 28 }}
+              />
+              <Chip
+                variant="outlined"
+                size="small"
+                color={context.farm_id ? 'success' : 'default'}
+                label={`RENSPA: ${context.renspa || 'N/A'} ${context.farm_id ? '✓' : ''}`}
+                sx={{ justifyContent: 'flex-start', fontSize: '0.7rem', height: 28 }}
+              />
+              <Chip
+                variant="outlined"
+                size="small"
+                color={context.batch_id ? 'success' : 'warning'}
+                label={`Lote: ${context.lote || 'N/A'} ${context.batch_id ? '✓' : '(se creará)'}`}
+                sx={{ justifyContent: 'flex-start', fontSize: '0.7rem', height: 28 }}
+              />
+            </Stack>
+          </Box>
+        )}
+
+        <Divider />
 
         {/* Section Number Field */}
         <Box>

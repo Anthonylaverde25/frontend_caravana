@@ -18,6 +18,15 @@ export interface TableResult {
   mapped_rows: Record<string, DataValue>[];
 }
 
+export interface DocumentContext {
+  cuit: string | null;
+  renspa: string | null;
+  lote: string | null;
+  provider_id: number | null;
+  farm_id: number | null;
+  batch_id: number | null;
+}
+
 export interface UploadResponse {
   status: string;
   suggested_workday_code?: string;
@@ -25,6 +34,7 @@ export interface UploadResponse {
     pages: number;
     model_id: string;
   };
+  context?: DocumentContext;
   data: TableResult[];
 }
 

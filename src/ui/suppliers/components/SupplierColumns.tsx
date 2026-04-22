@@ -1,4 +1,4 @@
-import { Typography, Chip, Avatar, Stack } from '@mui/material';
+import { Typography, Chip, Avatar, Stack, Box } from '@mui/material';
 import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
 
 /**
@@ -18,20 +18,25 @@ export const getSupplierColumns = (): MRT_ColumnDef<Supplier>[] => [
     size: 280,
     Cell: ({ row, cell }) => (
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar 
-          sx={{ 
-            bgcolor: 'primary.main', 
-            fontSize: '0.875rem', 
-            fontWeight: 600,
+        <Avatar
+          sx={{
+            bgcolor: '#0a6ed1',
+            fontSize: '0.75rem',
+            fontWeight: 700,
             width: 32,
             height: 32
           }}
         >
           {getInitials(cell.getValue<string>())}
         </Avatar>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-          {cell.getValue<string>()}
-        </Typography>
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+            {cell.getValue<string>()}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontWeight: 500 }}>
+            CUIT: {row.original.cuit}
+          </Typography>
+        </Box>
       </Stack>
     ),
   },

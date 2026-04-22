@@ -8,6 +8,14 @@ export const MOCK_AZURE_RESPONSE = {
         "pages": 1,
         "model_id": "mock-azure-model-v1"
     },
+    "context": {
+        "cuit": "30-98765432-1",
+        "renspa": "01.02.0.00002/01",
+        "lote": "mock-lote-test",
+        "provider_id": 2,
+        "farm_id": 4,
+        "batch_id": null
+    },
     "data": [
         {
             "table_id": 0,

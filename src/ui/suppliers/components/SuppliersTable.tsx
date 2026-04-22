@@ -1,9 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Box, Typography, Button, Stack, CircularProgress, Paper, Chip, IconButton } from '@mui/material';
 import DataTable from '@/components/data-table/DataTable';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
+import { useCreateFarm } from '@/features/suppliers/hooks/useCreateFarm';
 import { getSupplierColumns } from './SupplierColumns';
+import AddFarmDialog from './AddFarmDialog';
+import { FarmFormValues } from './SupplierSchema';
+import { useSnackbar } from 'notistack';
 
 /**
  * SuppliersTable Component
@@ -11,7 +15,35 @@ import { getSupplierColumns } from './SupplierColumns';
  */
 export function SuppliersTable() {
   const { data: suppliers = [], isLoading, isError } = useSuppliers();
+  const { mutate: createFarm } = useCreateFarm();
+  const { enqueueSnackbar } = useSnackbar();
+  
+  const [isAddFarmDialogOpen, setIsAddFarmDialogOpen] = useState(false);
+  const [activeSupplierId, setActiveSupplierId] = useState<number | undefined>();
+
   const columns = useMemo(() => getSupplierColumns(), []);
+
+  const handleOpenAddFarm = (supplierId: number) => {
+    setActiveSupplierId(supplierId);
+    setIsAddFarmDialogOpen(true);
+  };
+
+  const handleAddFarm = (farmData: FarmFormValues) => {
+    if (!activeSupplierId) return;
+
+    createFarm({
+      ...farmData,
+      provider_id: activeSupplierId
+    }, {
+      onSuccess: () => {
+        enqueueSnackbar('Establecimiento añadido correctamente', { variant: 'success' });
+      },
+      onError: (error: any) => {
+        const msg = error.response?.data?.message || 'Error al añadir el establecimiento';
+        enqueueSnackbar(msg, { variant: 'error' });
+      }
+    });
+  };
 
   if (isLoading) {
     return (
@@ -55,9 +87,19 @@ export function SuppliersTable() {
                 borderBottom: '1px solid #e5e5e5'
               }}
             >
-              <Typography variant="overline" sx={{ color: '#6a6d70', fontWeight: 700, mb: 2, display: 'block' }}>
-                Detalle de Establecimientos / Granjas ({farms.length})
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="overline" sx={{ color: '#6a6d70', fontWeight: 700, display: 'block' }}>
+                  Detalle de Establecimientos / Granjas ({farms.length})
+                </Typography>
+                <Button
+                  size="small"
+                  startIcon={<FuseSvgIcon size={18}>heroicons-outline:plus-circle</FuseSvgIcon>}
+                  onClick={() => handleOpenAddFarm(row.original.id)}
+                  sx={{ textTransform: 'none', fontWeight: 700, color: '#0a6ed1' }}
+                >
+                  Nuevo Establecimiento
+                </Button>
+              </Box>
 
               {farms.length > 0 ? (
                 <Stack spacing={1.5}>
@@ -81,9 +123,14 @@ export function SuppliersTable() {
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                             {farm.name}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                             {farm.location || 'Sin ubicación especificada'}
                           </Typography>
+                          {farm.renspa && (
+                            <Typography variant="caption" sx={{ color: '#0a6ed1', fontWeight: 600 }}>
+                              RENSPA: {farm.renspa}
+                            </Typography>
+                          )}
                         </Box>
                       </Stack>
 
@@ -155,6 +202,12 @@ export function SuppliersTable() {
           showGlobalFilter: true,
           pagination: { pageSize: 15, pageIndex: 0 }
         }}
+      />
+
+      <AddFarmDialog
+        open={isAddFarmDialogOpen}
+        onClose={() => setIsAddFarmDialogOpen(false)}
+        onAdd={handleAddFarm}
       />
     </Box>
   );
