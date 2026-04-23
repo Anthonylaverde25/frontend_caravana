@@ -30,21 +30,29 @@ src/
 ## 2. The SAP Fiori Design Pattern
 All control panel views must adhere to the **SAP Fiori refined aesthetic** to ensure an enterprise-grade, clean, and consistent look.
 
-### **Visual Standards**
+### **Visual Standards (Theming)**
+All components must support **Dark/Light Mode** by using MUI Theme Tokens instead of hardcoded hex values.
+
 - **Page Layout**:
-  - Background color: `#f2f2f2` (Light grey).
-  - Main cards: White background, `8px` border radius, and `1px solid #d8dde6` border.
+  - Background color: `theme.palette.background.default`.
+  - Main Container: `maxWidth="xl"`.
+- **Main Cards & Papers**:
+  - Background: `theme.palette.background.paper`.
+  - Border: `1px solid {theme.palette.divider}`.
+  - Border Radius: `8px`.
 - **Section Headers**:
-  - Use `Typography variant="overline"`.
-  - Color: `#6a6d70`.
-  - Left Accent: `border-left: 3px solid #0a6ed1` (SAP Blue).
+  - Variant: `Typography variant="overline"`.
+  - Color: `theme.palette.text.secondary`.
+  - Left Accent: `border-left: 3px solid {theme.palette.primary.main}`.
 - **Inputs & Fields**:
   - Mandatory: `variant="filled"`.
-  - Background: `#f7f7f7`.
-- **Action Toolbar (Sticky Footer)**:
-  - Background: `#eff4f9` (Pale blue toolbar).
-  - Border: `1px solid #d8dde6`.
-  - Primary Action: SAP Blue (`#0a6ed1`), border radius `6px`, no heavy shadows.
+  - Background: `theme.palette.action.hover` or `theme.palette.background.default`.
+- **Action Toolbar / Dialog Actions**:
+  - Background: `theme.palette.background.default`.
+  - Border Top: `1px solid {theme.palette.divider}`.
+  - Primary Action: `theme.palette.primary.main` (SAP Blue), border radius `6px`.
+- **Icons**:
+  - Use `FuseSvgIcon` with appropriate color from `text.secondary` or `primary.main`.
 
 ---
 

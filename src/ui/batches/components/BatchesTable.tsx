@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
-import { Box, Typography, CircularProgress, IconButton, Paper, Stack, Chip } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { Box, Typography, CircularProgress, IconButton, Paper, Stack, Chip, Tooltip } from '@mui/material';
 import DataTable from '@/components/data-table/DataTable';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import { getSupplierColumns } from '../../suppliers/components/SupplierColumns';
+import AddCaravansDialog from './AddCaravansDialog';
 
 /**
  * BatchesTable Component
@@ -14,6 +15,14 @@ export function BatchesTable() {
   const { data: suppliers = [], isLoading: isLoadingSuppliers, isError: isErrorSuppliers } = useSuppliers();
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
   
+  const [addCaravansDialogOpen, setAddCaravansDialogOpen] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<any>(null);
+
+  const handleAddCaravans = (batch: any) => {
+    setSelectedBatch(batch);
+    setAddCaravansDialogOpen(true);
+  };
+
   const columns = useMemo(() => getSupplierColumns(), []);
 
   const isLoading = isLoadingSuppliers || isLoadingBatches;
@@ -55,12 +64,13 @@ export function BatchesTable() {
                 display: 'grid',
                 width: '100%',
                 p: 3,
-                bgcolor: '#fafafa',
-                borderTop: '1px solid #e5e5e5',
-                borderBottom: '1px solid #e5e5e5'
+                bgcolor: 'background.default',
+                borderTop: 1,
+                borderBottom: 1,
+                borderColor: 'divider'
               }}
             >
-              <Typography variant="overline" sx={{ color: '#6a6d70', fontWeight: 700, mb: 2, display: 'block' }}>
+              <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, mb: 2, display: 'block' }}>
                 Lotes asociados a este Proveedor ({providerBatches.length})
               </Typography>
 
@@ -74,11 +84,12 @@ export function BatchesTable() {
                         p: 2,
                         px: 3,
                         borderRadius: '6px',
-                        border: '1px solid #d8dde6',
+                        border: 1,
+                        borderColor: 'divider',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        bgcolor: '#ffffff'
+                        bgcolor: 'background.paper'
                       }}
                     >
                       <Stack direction="row" spacing={3} alignItems="center">
@@ -92,10 +103,10 @@ export function BatchesTable() {
                           
                           <Stack direction="row" spacing={2}>
                             <Stack direction="row" spacing={0.5} alignItems="center">
-                              <FuseSvgIcon size={16} sx={{ color: '#6a6d70' }}>heroicons-outline:users</FuseSvgIcon>
-                              <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                                120 Cabezas
-                              </Typography>
+                            <FuseSvgIcon size={16} sx={{ color: 'text.secondary' }}>heroicons-outline:users</FuseSvgIcon>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                              120 Cabezas
+                            </Typography>
                             </Stack>
                             <Chip 
                               label="NOVILLOS" 
@@ -104,8 +115,8 @@ export function BatchesTable() {
                                 height: 20, 
                                 fontSize: '0.65rem', 
                                 fontWeight: 700, 
-                                bgcolor: '#e8f0fe', 
-                                color: '#1967d2',
+                                bgcolor: 'primary.light', 
+                                color: 'primary.contrastText',
                                 border: 'none'
                               }} 
                             />
@@ -113,13 +124,29 @@ export function BatchesTable() {
                         </Box>
                       </Stack>
 
-                      <Chip
-                        label={batch.is_active ? 'Activo' : 'Inactivo'}
-                        size="small"
-                        color={batch.is_active ? 'success' : 'default'}
-                        variant="outlined"
-                        sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-                      />
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Tooltip title="Añadir Caravanas">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleAddCaravans(batch)}
+                            sx={{
+                              color: (theme) => theme.palette.mode === 'dark' ? '#ffffff' : 'primary.main',
+                              bgcolor: 'action.hover',
+                              '&:hover': { bgcolor: 'action.selected' }
+                            }}
+                          >
+                            <FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>
+                          </IconButton>
+                        </Tooltip>
+
+                        <Chip
+                          label={batch.is_active ? 'Activo' : 'Inactivo'}
+                          size="small"
+                          color={batch.is_active ? 'success' : 'default'}
+                          variant="outlined"
+                          sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                        />
+                      </Stack>
                     </Paper>
                   ))}
                 </Stack>
@@ -136,7 +163,7 @@ export function BatchesTable() {
             <IconButton
               size="small"
               title="Ver detalle"
-              sx={{ color: '#0a6ed1' }}
+              sx={{ color: 'primary.main' }}
               onClick={() => console.log('Ver proveedor', row.original.id)}
             >
               <FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
@@ -156,6 +183,11 @@ export function BatchesTable() {
           showGlobalFilter: true,
           pagination: { pageSize: 15, pageIndex: 0 },
         }}
+      />
+      <AddCaravansDialog
+        open={addCaravansDialogOpen}
+        onClose={() => setAddCaravansDialogOpen(false)}
+        batch={selectedBatch}
       />
     </Box>
   );

@@ -18,7 +18,7 @@ function BatchesView() {
       sx={{
         // py: { xs: 2, md: 4 },
         // px: { xs: 2, md: 6 },
-        bgcolor: '#f2f2f2',
+        bgcolor: 'background.default',
         minHeight: '100vh',
       }}
     >
@@ -30,7 +30,7 @@ function BatchesView() {
             <Button
               variant="text"
               startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
-              sx={{ fontWeight: 600, color: '#0a6ed1', textTransform: 'none' }}
+              sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
             >
               Exportar
             </Button>
@@ -39,7 +39,7 @@ function BatchesView() {
               startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
               onClick={() => setIsDialogOpen(true)}
               sx={{
-                bgcolor: '#0a6ed1',
+                bgcolor: 'primary.main',
                 borderRadius: '6px',
                 px: 3,
                 fontWeight: 700,
@@ -57,7 +57,8 @@ function BatchesView() {
           elevation={0}
           sx={{
             borderRadius: '8px',
-            border: '1px solid #d8dde6',
+            border: 1,
+            borderColor: 'divider',
             overflow: 'hidden',
           }}
         >

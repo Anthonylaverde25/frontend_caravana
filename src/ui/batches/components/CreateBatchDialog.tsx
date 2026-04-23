@@ -105,7 +105,8 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
       PaperProps={{
         sx: {
           borderRadius: '8px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+          boxShadow: 1,
+          bgcolor: 'background.paper'
         }
       }}
     >
@@ -116,20 +117,21 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid #e5e5e5',
-          bgcolor: '#ffffff'
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper'
         }}
       >
-        <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: '#32363a' }}>
+        <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: 'text.primary' }}>
           Alta Rápida de Lote
         </Typography>
-        <IconButton onClick={handleClose} size="small" sx={{ color: '#0a6ed1' }}>
+        <IconButton onClick={handleClose} size="small" sx={{ color: 'primary.main' }}>
           <FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon>
         </IconButton>
       </Box>
 
       <form onSubmit={handleSubmit(handleOnSuccess)}>
-        <DialogContent sx={{ p: 3, bgcolor: '#ffffff' }}>
+        <DialogContent sx={{ p: 3, bgcolor: 'background.paper' }}>
           <Stack spacing={3}>
             <TextField
               {...register('name')}
@@ -139,7 +141,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               required
               error={!!errors.name}
               helperText={errors.name?.message}
-              sx={{ bgcolor: '#f7f7f7' }}
+              sx={{ bgcolor: 'action.hover' }}
             />
 
             <TextField
@@ -152,7 +154,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               required
               error={!!errors.provider_id}
               helperText={errors.provider_id?.message || (isLoadingProviders ? 'Cargando proveedores...' : '')}
-              sx={{ bgcolor: '#f7f7f7' }}
+              sx={{ bgcolor: 'action.hover' }}
             >
               {providers.map((provider) => (
                 <MenuItem key={provider.id} value={provider.id}>
@@ -172,7 +174,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               disabled={!selectedProviderId}
               error={!!errors.farm_id}
               helperText={errors.farm_id?.message || (!selectedProviderId ? 'Seleccione primero un proveedor' : isLoadingFarms ? 'Cargando establecimientos...' : '')}
-              sx={{ bgcolor: '#f7f7f7', opacity: !selectedProviderId ? 0.6 : 1 }}
+              sx={{ bgcolor: 'action.hover', opacity: !selectedProviderId ? 0.6 : 1 }}
             >
               {filteredFarms.map((farm) => (
                 <MenuItem key={farm.id} value={farm.id}>
@@ -188,7 +190,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               fullWidth
               multiline
               rows={3}
-              sx={{ bgcolor: '#f7f7f7' }}
+              sx={{ bgcolor: 'action.hover' }}
             />
           </Stack>
         </DialogContent>
@@ -197,15 +199,16 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
           sx={{
             p: 2,
             px: 3,
-            bgcolor: '#eff4f9',
-            borderTop: '1px solid #d8dde6',
+            bgcolor: 'background.default',
+            borderTop: 1,
+            borderColor: 'divider',
             gap: 1.5
           }}
         >
           <Button
             onClick={handleClose}
             variant="text"
-            sx={{ fontWeight: 600, color: '#0a6ed1', textTransform: 'none' }}
+            sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
           >
             Cancelar
           </Button>
@@ -214,14 +217,14 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
             variant="contained"
             disabled={isPending}
             sx={{
-              bgcolor: '#0a6ed1',
-              color: '#ffffff',
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
               px: 4,
               fontWeight: 700,
               borderRadius: '6px',
               textTransform: 'none',
               boxShadow: 'none',
-              '&:hover': { bgcolor: '#0854a1' }
+              '&:hover': { bgcolor: 'primary.dark' }
             }}
           >
             {isPending ? 'Guardando...' : 'Crear'}
