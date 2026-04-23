@@ -6,15 +6,17 @@ import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import { getSupplierColumns } from '../../suppliers/components/SupplierColumns';
 import AddCaravansDialog from './AddCaravansDialog';
+import { useNavigate } from 'react-router';
 
 /**
  * BatchesTable Component
  * Displays the list of providers and their associated batches in a detail panel.
  */
 export function BatchesTable() {
+  const navigate = useNavigate();
   const { data: suppliers = [], isLoading: isLoadingSuppliers, isError: isErrorSuppliers } = useSuppliers();
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
-  
+
   const [addCaravansDialogOpen, setAddCaravansDialogOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
 
@@ -100,32 +102,46 @@ export function BatchesTable() {
                           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
                             Establecimiento: {batch.farm_name || 'No asignado'}
                           </Typography>
-                          
+
                           <Stack direction="row" spacing={2}>
                             <Stack direction="row" spacing={0.5} alignItems="center">
-                            <FuseSvgIcon size={16} sx={{ color: 'text.secondary' }}>heroicons-outline:users</FuseSvgIcon>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                              120 Cabezas
-                            </Typography>
+                              <FuseSvgIcon size={16} sx={{ color: 'text.secondary' }}>heroicons-outline:users</FuseSvgIcon>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                                120 Cabezas
+                              </Typography>
                             </Stack>
-                            <Chip 
-                              label="NOVILLOS" 
-                              size="small" 
-                              sx={{ 
-                                height: 20, 
-                                fontSize: '0.65rem', 
-                                fontWeight: 700, 
-                                bgcolor: 'primary.light', 
+                            <Chip
+                              label="NOVILLOS"
+                              size="small"
+                              sx={{
+                                height: 20,
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                bgcolor: 'primary.light',
                                 color: 'primary.contrastText',
                                 border: 'none'
-                              }} 
+                              }}
                             />
                           </Stack>
                         </Box>
                       </Stack>
 
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Tooltip title="Añadir Caravanas">
+                        <Tooltip title="Ingreso Múltiple (Manual)">
+                          <IconButton
+                            size="small"
+                            onClick={() => navigate(`/batches/${batch.id}/bulk-entry`)}
+                            sx={{
+                              color: 'secondary.main',
+                              bgcolor: 'action.hover',
+                              '&:hover': { bgcolor: 'action.selected' }
+                            }}
+                          >
+                            <FuseSvgIcon size={20}>heroicons-outline:table-cells</FuseSvgIcon>
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Añadir Caravana">
                           <IconButton
                             size="small"
                             onClick={() => handleAddCaravans(batch)}
