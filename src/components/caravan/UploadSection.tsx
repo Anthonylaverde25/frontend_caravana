@@ -181,6 +181,7 @@ const UploadSection = () => {
               context={result.context}
               ocrProvider={ocrProvider} 
               workdayType={workdayType}
+              suggestedWorkdayCode={result.suggested_workday_code}
               onReset={resetState} 
             />
           </Box>

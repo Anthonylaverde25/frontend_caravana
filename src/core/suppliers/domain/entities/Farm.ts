@@ -1,3 +1,5 @@
+import { Batch } from '@/core/batches/domain/entities/Batch';
+
 export interface Farm {
   id: number;
   name: string;
@@ -6,5 +8,6 @@ export interface Farm {
   provider_id: number;
   is_active: boolean;
   caravans_count?: number;
+  batches?: Batch[];
   created_at?: string;
 }
