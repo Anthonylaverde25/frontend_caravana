@@ -4,7 +4,10 @@ import { Supplier } from '../../domain/entities/Supplier';
 export class CreateSupplierUseCase {
   constructor(private repository: ISupplierRepository) {}
 
-  async execute(supplierData: Partial<Supplier>): Promise<Supplier> {
-    return this.repository.save(supplierData);
+  async execute(supplierData: any): Promise<Supplier> {
+    // Domain Validation & Encapsulation
+    const supplier = Supplier.create(supplierData);
+    
+    return this.repository.save(supplier);
   }
 }

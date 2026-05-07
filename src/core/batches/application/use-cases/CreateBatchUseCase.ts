@@ -4,7 +4,10 @@ import { Batch, CreateBatchRequest } from '../../domain/entities/Batch';
 export class CreateBatchUseCase {
   constructor(private batchRepository: IBatchRepository) {}
 
-  async execute(request: CreateBatchRequest): Promise<Batch> {
-    return this.batchRepository.create(request);
+  async execute(request: any): Promise<Batch> {
+    // Domain Validation
+    const batchEntity = Batch.create(request);
+    
+    return this.batchRepository.create(batchEntity);
   }
 }
