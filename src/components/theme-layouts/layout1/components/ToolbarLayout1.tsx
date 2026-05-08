@@ -14,8 +14,11 @@ import NavigationSearch from '../../components/navigation/NavigationSearch';
 import QuickPanelToggleButton from '../../components/quickPanel/QuickPanelToggleButton';
 import { Layout1ConfigDefaultsType } from '@/components/theme-layouts/layout1/Layout1Config';
 import useThemeMediaQuery from '../../../../@fuse/hooks/useThemeMediaQuery';
-import { AppBar, Divider } from '@mui/material';
+import { AppBar, Divider, IconButton } from '@mui/material';
 import ToolbarTheme from 'src/contexts/ToolbarTheme';
+import CompanySelector from '../../components/CompanySelector';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { useNavigate } from 'react-router';
 
 type ToolbarLayout1Props = {
 	className?: string;
@@ -30,6 +33,7 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
 	const settings = useFuseLayoutSettings();
 	const config = settings.config as Layout1ConfigDefaultsType;
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
+	const navigate = useNavigate();
 
 	return (
 		<ToolbarTheme>
@@ -38,7 +42,8 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
 				className={clsx('relative z-20 flex', className)}
 				sx={(theme) => ({
 					backgroundColor: theme.vars.palette.background.default,
-					color: theme.vars.palette.text.primary
+					color: theme.vars.palette.text.primary,
+					borderBottom: `2px solid ${theme.vars.palette.divider}`
 				})}
 			>
 				<Toolbar className="min-h-12 p-0 md:min-h-16">
@@ -59,6 +64,7 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
 					</div>
 
 					<div className="flex items-center overflow-x-auto px-2 py-2 md:px-4">
+						<CompanySelector />
 						<LanguageSwitcher />
 						<AdjustFontSize />
 						<FullScreenToggle />
@@ -68,6 +74,14 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
 						/>
 						<NavigationSearch />
 						<QuickPanelToggleButton />
+
+						<IconButton
+							onClick={() => navigate('/settings')}
+							className="h-10 w-10 p-0"
+							size="large"
+						>
+							<FuseSvgIcon>heroicons-outline:cog</FuseSvgIcon>
+						</IconButton>
 					</div>
 
 					{config.navbar.display && config.navbar.position === 'right' && (

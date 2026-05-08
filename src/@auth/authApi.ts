@@ -1,40 +1,45 @@
 import { User } from '@auth/user';
 import UserModel from '@auth/user/models/UserModel';
 import { PartialDeep } from 'type-fest';
-import api from '@/utils/api';
+import axiosInstance from '@/utils/axios';
+import { Company } from '@auth/user';
 
 type AuthResponse = {
 	user: User;
 	access_token: string;
+	companies: Company[];
 };
 
 /**
  * Refreshes the access token
  */
-export async function authRefreshToken(): Promise<Response> {
-	return api.post('mock/auth/refresh', {
-		retry: 0 // Don't retry refresh token requests
-	});
+export async function authRefreshToken(): Promise<any> {
+	const response = await axiosInstance.post('refresh');
+	return response.data;
 }
 
 /**
  * Sign in with token
  */
-export async function authSignInWithToken(accessToken: string): Promise<Response> {
-	return api.get('mock/auth/sign-in-with-token', {
+export async function authSignInWithToken(accessToken: string): Promise<User> {
+	const response = await axiosInstance.get('me', {
 		headers: { Authorization: `Bearer ${accessToken}` }
 	});
+	const { user, companies } = response.data as { user: User; companies: Company[] };
+	return { ...user, companies } as User;
 }
 
 /**
  * Sign in
  */
 export async function authSignIn(credentials: { email: string; password: string }): Promise<AuthResponse> {
-	return api
-		.post('mock/auth/sign-in', {
-			json: credentials
-		})
-		.json();
+	const response = await axiosInstance.post('login', credentials);
+	const { user, access_token, companies } = response.data as AuthResponse;
+	return {
+		user: { ...user, companies },
+		access_token,
+		companies
+	} as AuthResponse;
 }
 
 /**
@@ -45,43 +50,38 @@ export async function authSignUp(data: {
 	email: string;
 	password: string;
 }): Promise<AuthResponse> {
-	return api
-		.post('mock/auth/sign-up', {
-			json: data
-		})
-		.json();
+	const response = await axiosInstance.post('register', data);
+	return response.data as AuthResponse;
 }
 
 /**
  * Get user by id
  */
 export async function authGetDbUser(userId: string): Promise<User> {
-	return api.get(`mock/auth/user/${userId}`).json();
+	const response = await axiosInstance.get(`user/${userId}`);
+    return response.data as User;
 }
 
 /**
  * Get user by email
  */
 export async function authGetDbUserByEmail(email: string): Promise<User> {
-	return api.get(`mock/auth/user-by-email/${email}`).json();
+	const response = await axiosInstance.get(`user-by-email/${email}`);
+    return response.data as User;
 }
 
 /**
  * Update user
  */
-export function authUpdateDbUser(user: PartialDeep<User>): Promise<Response> {
-	return api.put(`mock/auth/user/${user.id}`, {
-		json: UserModel(user)
-	});
+export async function authUpdateDbUser(user: PartialDeep<User>): Promise<any> {
+	const response = await axiosInstance.put(`user/${user.id}`, UserModel(user));
+    return response.data;
 }
 
 /**
  * Create user
  */
 export async function authCreateDbUser(user: PartialDeep<User>): Promise<User> {
-	return api
-		.post('mock/users', {
-			json: UserModel(user)
-		})
-		.json();
+	const response = await axiosInstance.post('users', UserModel(user));
+    return response.data as User;
 }

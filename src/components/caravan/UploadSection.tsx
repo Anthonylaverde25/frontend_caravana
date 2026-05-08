@@ -23,7 +23,7 @@ import {
   Check as CheckIcon
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
-import axiosInstance from '@/lib/axiosInstance';
+import axiosInstance from '@/utils/axios';
 import { useGoogleDrive } from 'src/app/(control-panel)/livestock/hooks/useGoogleDrive';
 import { MOCK_AZURE_RESPONSE } from './upload-section/MockAzureData';
 

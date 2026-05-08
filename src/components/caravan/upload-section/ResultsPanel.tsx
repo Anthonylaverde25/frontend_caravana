@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Alert, Snackbar } from '@mui/material';
 import { Edit as EditIcon } from '@mui/icons-material';
-import axiosInstance from '@/lib/axiosInstance';
+import axiosInstance from '@/utils/axios';
 import DataTable from 'src/components/data-table/DataTable';
 import { TableResult, ImportResult, DocumentContext } from './types';
 

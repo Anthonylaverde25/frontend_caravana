@@ -3,11 +3,12 @@ import { FuseAuthProviderComponentProps, FuseAuthProviderState } from '@fuse/cor
 import useLocalStorage from '@fuse/hooks/useLocalStorage';
 import { authRefreshToken, authSignIn, authSignInWithToken, authSignUp, authUpdateDbUser } from '@auth/authApi';
 import { User } from '../../user';
-import { removeGlobalHeaders, setGlobalHeaders } from '@/utils/api';
+import { removeGlobalHeaders, setGlobalHeaders } from '@/utils/axios';
 import { isTokenValid } from './utils/jwtUtils';
 import JwtAuthContext from '@auth/services/jwt/JwtAuthContext';
 import { JwtAuthContextType } from '@auth/services/jwt/JwtAuthContext';
-import { HTTPError } from 'ky';
+import axios from 'axios';
+import axiosInstance from '@/utils/axios';
 
 export type JwtSignInPayload = {
 	email: string;
@@ -57,12 +58,11 @@ function JwtAuthProvider(props: FuseAuthProviderComponentProps) {
 
 			if (isTokenValid(accessToken)) {
 				try {
-					const response = await authSignInWithToken(accessToken);
-					const userData = (await response.json()) as User;
+					const userData = await authSignInWithToken(accessToken);
 					return userData;
 				} catch (error) {
-					if (error instanceof HTTPError) {
-						console.error('Auto login failed:', error.response.status);
+					if (axios.isAxiosError(error)) {
+						console.error('Auto login failed:', error.response?.status);
 					}
 
 					return false;
@@ -110,8 +110,8 @@ function JwtAuthProvider(props: FuseAuthProviderComponentProps) {
 				setGlobalHeaders({ Authorization: `Bearer ${session.access_token}` });
 				return session;
 			} catch (error) {
-				if (error instanceof HTTPError) {
-					console.error('Sign in failed:', error.response.status);
+				if (axios.isAxiosError(error)) {
+					console.error('Sign in failed:', error.response?.status);
 				}
 
 				throw error;
@@ -136,8 +136,8 @@ function JwtAuthProvider(props: FuseAuthProviderComponentProps) {
 				setGlobalHeaders({ Authorization: `Bearer ${session.access_token}` });
 				return session;
 			} catch (error) {
-				if (error instanceof HTTPError) {
-					console.error('Sign up failed:', error.response.status);
+				if (axios.isAxiosError(error)) {
+					console.error('Sign up failed:', error.response?.status);
 				}
 
 				throw error;
@@ -167,8 +167,8 @@ function JwtAuthProvider(props: FuseAuthProviderComponentProps) {
 			const response = await authUpdateDbUser(_user);
 			return response;
 		} catch (error) {
-			if (error instanceof HTTPError) {
-				console.error('Update user failed:', error.response.status);
+			if (axios.isAxiosError(error)) {
+				console.error('Update user failed:', error.response?.status);
 			}
 
 			throw error;
@@ -183,8 +183,8 @@ function JwtAuthProvider(props: FuseAuthProviderComponentProps) {
 			const response = await authRefreshToken();
 			return response;
 		} catch (error) {
-			if (error instanceof HTTPError) {
-				console.error('Token refresh failed:', error.response.status);
+			if (axios.isAxiosError(error)) {
+				console.error('Token refresh failed:', error.response?.status);
 			}
 
 			throw error;
@@ -216,44 +216,40 @@ function JwtAuthProvider(props: FuseAuthProviderComponentProps) {
 	}));
 
 	/**
-	 * Intercept fetch requests to refresh the access token
+	 * Intercept axios requests to refresh the access token
 	 */
-	const interceptFetch = useCallback(() => {
-		const { fetch: originalFetch } = window;
-
-		window.fetch = async (...args) => {
-			const [resource, config] = args;
-			try {
-				const response = await originalFetch(resource, config);
-				const newAccessToken = response.headers.get('New-Access-Token');
+	const setupAxiosInterceptors = useCallback(() => {
+		const interceptor = axiosInstance.interceptors.response.use(
+			(response) => {
+				const newAccessToken = response.headers['new-access-token'];
 
 				if (newAccessToken) {
 					setGlobalHeaders({ Authorization: `Bearer ${newAccessToken}` });
 					setTokenStorageValue(newAccessToken);
 				}
 
-				if (response.status === 401) {
-					signOut();
-					console.error('Unauthorized request. User was signed out.');
-				}
-
 				return response;
-			} catch (error) {
-				if (error instanceof HTTPError && error.response.status === 401) {
+			},
+			(error) => {
+				if (axios.isAxiosError(error) && error.response?.status === 401) {
 					signOut();
 					console.error('Unauthorized request. User was signed out.');
 				}
-
-				throw error;
+				return Promise.reject(error);
 			}
+		);
+
+		return () => {
+			axiosInstance.interceptors.response.eject(interceptor);
 		};
 	}, [setTokenStorageValue, signOut]);
 
 	useEffect(() => {
 		if (authState.isAuthenticated) {
-			interceptFetch();
+			const cleanup = setupAxiosInterceptors();
+			return cleanup;
 		}
-	}, [authState.isAuthenticated, interceptFetch]);
+	}, [authState.isAuthenticated, setupAxiosInterceptors]);
 
 	return <JwtAuthContext value={authContextValue}>{children}</JwtAuthContext>;
 }

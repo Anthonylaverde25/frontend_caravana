@@ -18,7 +18,7 @@ import {
   Typography
 } from '@mui/material';
 import DataTable from 'src/components/data-table/DataTable';
-import axiosInstance from '@/lib/axiosInstance';
+import axiosInstance from '@/utils/axios';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan, getCaravanColumns } from './columns/CaravanColumns';
 

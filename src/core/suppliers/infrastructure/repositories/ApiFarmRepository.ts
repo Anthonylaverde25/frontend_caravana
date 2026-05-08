@@ -1,4 +1,4 @@
-import axiosInstance from '@/lib/axiosInstance';
+import axiosInstance from '@/utils/axios';
 import { Farm } from '../../domain/entities/Farm';
 import { IFarmRepository } from '../../domain/repositories/IFarmRepository';
 import { FarmMapper } from '../mappers/FarmMapper';

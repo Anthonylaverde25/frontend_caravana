@@ -1,4 +1,4 @@
-import axiosInstance from '@/lib/axiosInstance';
+import axiosInstance from '@/utils/axios';
 import { Supplier } from '../../domain/entities/Supplier';
 import { ISupplierRepository } from '../../domain/repositories/ISupplierRepository';
 import { SupplierMapper } from '../mappers/SupplierMapper';

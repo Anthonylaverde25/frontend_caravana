@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, CircularProgress, Button } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
 import DownloadIcon from '@mui/icons-material/Download';
-import axiosInstance from '@/lib/axiosInstance';
+import axiosInstance from '@/utils/axios';
 import { useReactToPrint } from 'react-to-print';
 // @ts-ignore - html2pdf handles its own loading or requires manual type declaration
 import html2pdf from 'html2pdf.js';

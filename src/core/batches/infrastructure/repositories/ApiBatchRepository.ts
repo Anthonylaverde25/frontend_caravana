@@ -1,4 +1,4 @@
-import axiosInstance from '@/lib/axiosInstance';
+import axiosInstance from '@/utils/axios';
 import { Batch, CreateBatchRequest } from '../../domain/entities/Batch';
 import { IBatchRepository } from '../../domain/repositories/IBatchRepository';
 import { BatchMapper } from '../mappers/BatchMapper';
