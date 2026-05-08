@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   CircularProgress,
@@ -18,9 +18,13 @@ import {
   Typography
 } from '@mui/material';
 import DataTable from 'src/components/data-table/DataTable';
-import axiosInstance from '@/utils/axios';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { Caravan, getCaravanColumns } from './columns/CaravanColumns';
+import { getCaravanColumns } from './columns/CaravanColumns';
+import { useCompany } from '@/contexts/CompanyContext';
+import { useCaravans } from '@/features/caravans/hooks/useCaravans';
+import { useUpsertCaravan } from '@/features/caravans/hooks/useUpsertCaravan';
+import { useQueryClient } from '@tanstack/react-query';
+import { Caravan as CaravanEntity } from '@/core/caravans/domain/entities/Caravan';
 
 export interface CaravanDataTableRef {
   openAddDialog: () => void;
@@ -32,14 +36,18 @@ type ActionMode = 'create' | 'edit' | 'view';
 /**
  * CaravanDataTable Component
  * High-level orchestration of the cattle inventory table.
- * Now modularized with external column definitions.
+ * Now modularized with Domain-Driven Design and React Query.
  */
 const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
   const theme = useTheme();
-  const [caravans, setCaravans] = useState<Caravan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { activeCompanyId } = useCompany();
+  
+  // Data Fetching via React Query (Auto-reacts to activeCompanyId change)
+  const { data: caravans = [], isLoading } = useCaravans(activeCompanyId);
+  const upsertMutation = useUpsertCaravan();
+
   const [openDialog, setOpenDialog] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [actionMode, setActionMode] = useState<ActionMode>('create');
 
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
@@ -56,31 +64,15 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
     entry_date: new Date().toISOString().split('T')[0]
   });
 
-  const fetchCaravans = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await axiosInstance.get('/caravans');
-      setCaravans(response.data);
-    } catch (err) {
-      console.error('Error fetching caravans:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useImperativeHandle(ref, () => ({
     openAddDialog: () => {
       setActionMode('create');
       setOpenDialog(true);
     },
-    refresh: fetchCaravans
+    refresh: () => queryClient.invalidateQueries({ queryKey: ['caravans'] })
   }));
 
-  useEffect(() => {
-    fetchCaravans();
-  }, [fetchCaravans]);
-
-  const handleExportTxt = (selectedRows: Caravan[] = []) => {
+  const handleExportTxt = (selectedRows: any[] = []) => {
     const dataToExport = selectedRows.length > 0 ? selectedRows : caravans;
     if (dataToExport.length === 0) return;
 
@@ -99,7 +91,7 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleOpenDialog = (mode: ActionMode, rowData?: Caravan) => {
+  const handleOpenDialog = (mode: ActionMode, rowData?: any) => {
     setActionMode(mode);
     if (rowData) {
       setFormData({
@@ -139,32 +131,23 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
     e.preventDefault();
     if (actionMode === 'view') return;
 
-    setSubmitting(true);
-    try {
-      const payload = {
-        ...formData,
-        entry_weight: formData.entry_weight ? parseFloat(formData.entry_weight) : null
-      };
+    const payload = {
+      ...formData,
+      entry_weight: formData.entry_weight ? parseFloat(formData.entry_weight) : null,
+      teeth: Number(formData.teeth)
+    };
 
-      if (actionMode === 'create') {
-        await axiosInstance.post('/caravans', payload);
-      } else {
-        await axiosInstance.put(`/caravans/${formData.id}`, payload);
+    upsertMutation.mutate(payload, {
+      onSuccess: () => {
+        handleCloseDialog();
       }
-
-      await fetchCaravans();
-      handleCloseDialog();
-    } catch (err) {
-      console.error('Error saving caravan:', err);
-    } finally {
-      setSubmitting(false);
-    }
+    });
   };
 
   // ─── Injection of external column definitions ───
   const columns = useMemo(() => getCaravanColumns(), []);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
         <CircularProgress />
@@ -276,7 +259,7 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={handleCloseDialog} color="inherit" sx={{ fontWeight: 600 }}>{actionMode === 'view' ? 'Cerrar' : 'Cancelar'}</Button>
             {actionMode !== 'view' && (
-              <Button type="submit" variant="contained" color="primary" disabled={submitting} sx={{ px: 4, fontWeight: 700, borderRadius: '8px' }} startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}>
+              <Button type="submit" variant="contained" color="primary" disabled={upsertMutation.isPending} sx={{ px: 4, fontWeight: 700, borderRadius: '8px' }} startIcon={upsertMutation.isPending ? <CircularProgress size={20} color="inherit" /> : null}>
                 {actionMode === 'create' ? 'Guardar Registro' : 'Actualizar Cambios'}
               </Button>
             )}

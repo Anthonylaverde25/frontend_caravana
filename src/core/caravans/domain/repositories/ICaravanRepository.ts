@@ -1,0 +1,19 @@
+import { Caravan, CreateCaravanRequest } from '../entities/Caravan';
+
+/**
+ * ICaravanRepository
+ * Domain contract — no dependency on HTTP or Eloquent.
+ */
+export interface ICaravanRepository {
+  /** Retrieves all caravans for the active company (filtered by X-Company-ID header). */
+  findAll(companyId?: number): Promise<Caravan[]>;
+
+  /**
+   * Creates or updates a caravan based on the identification field.
+   * Mirrors the backend's Upsert strategy.
+   */
+  upsert(data: CreateCaravanRequest): Promise<{ action: string; id: number }>;
+
+  /** Removes a caravan record by its ID. */
+  delete(id: number): Promise<void>;
+}

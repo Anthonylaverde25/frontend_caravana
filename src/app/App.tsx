@@ -1,5 +1,6 @@
 import FuseLayout from '@fuse/core/FuseLayout';
 import { SnackbarProvider } from 'notistack';
+import { Toaster } from 'sonner';
 import themeLayouts from 'src/components/theme-layouts/themeLayouts';
 import FuseSettingsProvider from '@fuse/core/FuseSettings/FuseSettingsProvider';
 import { I18nProvider } from '@i18n/I18nProvider';
@@ -81,6 +82,7 @@ function App() {
 								</FuseSettingsProvider>
 							</CompanyProvider>
 						</Authentication>
+						<Toaster position="top-right" richColors closeButton />
 						<ReactQueryDevtools initialIsOpen={false} />
 					</QueryClientProvider>
 				</LocalizationProvider>
