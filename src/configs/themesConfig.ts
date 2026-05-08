@@ -81,7 +81,7 @@ export const themesConfig: FuseThemesType = {
 	default: {
 		palette: {
 			mode: 'light',
-			primary: { main: '#1F232B', light: '#363B44', dark: '#0F1115', contrastText: '#FFFFFF' },
+			primary: { main: '#0D47A1', light: '#5472D3', dark: '#002171', contrastText: '#FFFFFF' },
 			secondary: { main: '#1565C0', light: '#3C83D6', dark: '#0E4B90', contrastText: '#FFFFFF' },
 			...neutralsLightTheme,
 			text: { primary: '#1F232B', secondary: '#4B5563', disabled: '#9CA3AF' },

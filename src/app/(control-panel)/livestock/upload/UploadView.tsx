@@ -11,11 +11,9 @@ function UploadView() {
 		<Container
 			maxWidth="xl"
 			sx={{ 
-				py: 4, 
 				display: 'flex', 
 				flexDirection: 'column', 
 				width: '100%', 
-				px: { xs: 2, md: 6 } 
 			}}
 		>
 			<ViewHeader

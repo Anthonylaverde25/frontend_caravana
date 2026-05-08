@@ -1,0 +1,16 @@
+// Design Tokens for Industrial/Livestock Module
+$primary-industrial: #0D47A1;
+$primary-industrial-dark: #0A3B82;
+$radius-industrial: 8px;
+$grid-line-color: rgba(224, 224, 224, 1);
+$header-bg-industrial: rgba(13, 71, 161, 0.04);
+
+// Typography
+$font-weight-bold: 700;
+$font-weight-semibold: 600;
+
+:root {
+  --primary-industrial: #{$primary-industrial};
+  --primary-industrial-dark: #{$primary-industrial-dark};
+  --radius-industrial: #{$radius-industrial};
+}

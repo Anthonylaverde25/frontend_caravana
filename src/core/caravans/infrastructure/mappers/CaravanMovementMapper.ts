@@ -4,6 +4,7 @@ export class CaravanMovementMapper {
   static toDomain(dto: any): CaravanMovement {
     return {
       id: dto.id,
+      identification: dto.identification,
       renspa: dto.renspa,
       type: dto.type,
       movementDate: dto.movement_date,

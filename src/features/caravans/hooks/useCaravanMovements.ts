@@ -16,3 +16,14 @@ export function useCaravanMovements(caravanId: number | null) {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
+
+/**
+ * Hook to fetch the entire movement history for all caravans (Audit view).
+ */
+export function useAllCaravanMovements() {
+  return useQuery({
+    queryKey: ['caravans', 'movements', 'all'],
+    queryFn: () => movementRepository.findAll(),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}

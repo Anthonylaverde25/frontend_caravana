@@ -8,4 +8,9 @@ export class ApiCaravanMovementRepository implements ICaravanMovementRepository 
     const response = await axiosInstance.get<any[]>(`/caravans/${caravanId}/movements`);
     return response.data.map(CaravanMovementMapper.toDomain);
   }
+
+  async findAll(): Promise<CaravanMovement[]> {
+    const response = await axiosInstance.get<any[]>(`/caravans/movements`);
+    return response.data.map(CaravanMovementMapper.toDomain);
+  }
 }

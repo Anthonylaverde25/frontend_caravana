@@ -17,7 +17,7 @@ function LivestockView() {
 		setActiveTab(newValue);
 	};
 
-	const titles = ['Analizador Documental AI', 'Historial de Jornadas', 'Base de Datos Ganadera'];
+	const titles = ['Analizador Documental AI', 'Historial de Jornadas', 'Base de Datos Ganadera || Caravanas en posesión'];
 
 	const descriptions = [
 		'Importa tus planillas de campo, archivos locales o almacenamiento en la nube para procesamiento automático con Azure y Google AI.',

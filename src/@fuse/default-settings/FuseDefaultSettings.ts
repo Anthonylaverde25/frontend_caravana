@@ -89,14 +89,11 @@ export function getParsedQuerySettings(): FuseSettingsConfigType | object {
  */
 function generateContainedButtonStyles(color: string) {
 	return {
-		background: `linear-gradient(180deg, rgba(48,48,48,0) 63.53%, hsla(0,0%,100%,.15)), var(--mui-palette-${color}-main)`,
-		boxShadow: `0rem -0.0625rem 0rem 0.0625rem var(--mui-palette-${color}-main) inset, 0rem 0rem 0rem 0.0625rem var(--mui-palette-${color}-light) inset, 0rem 0.03125rem 0rem 0.09375rem hsla(0,0%,100%,.349) inset`,
+		background: `var(--mui-palette-${color}-main)`,
+		boxShadow: 'none',
 		'&:hover, &:active, &.Mui-focusVisible': {
-			boxShadow: `0rem -0.0625rem 0rem 0.0625rem var(--mui-palette-${color}-main) inset, 0rem 0rem 0rem 0.0625rem var(--mui-palette-${color}-main) inset, 0rem 0.03125rem 0rem 0.09375rem hsla(0,0%,100%,.349) inset`,
-			background:
-				color === 'primary' || color === 'secondary'
-					? `var(--mui-palette-${color}-dark)`
-					: `linear-gradient(180deg, rgba(48,48,48,0) 63.53%, hsla(0,0%,100%,.15)), var(--mui-palette-${color}-dark)`
+			boxShadow: 'none',
+			background: `var(--mui-palette-${color}-dark)`
 		}
 	};
 }

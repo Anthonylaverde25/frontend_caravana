@@ -8,6 +8,8 @@ export type ViewHeaderProps = {
 	subtitle?: string;
 	actions?: ReactNode;
 	showBreadcrumb?: boolean;
+	backUrl?: string;
+	backTitle?: string;
 	className?: string;
 };
 
@@ -16,7 +18,7 @@ export type ViewHeaderProps = {
  * A standardized minimalist header for views.
  */
 function ViewHeader(props: ViewHeaderProps) {
-	const { title, subtitle, actions, showBreadcrumb = true, className = '' } = props;
+	const { title, subtitle, actions, showBreadcrumb = true, backUrl, backTitle, className = '' } = props;
 
 	return (
 		<Box
@@ -42,6 +44,8 @@ function ViewHeader(props: ViewHeaderProps) {
 				<PageTitle
 					title={title}
 					subtitle={subtitle}
+					backUrl={backUrl}
+					backTitle={backTitle}
 				/>
 
 				{actions && (

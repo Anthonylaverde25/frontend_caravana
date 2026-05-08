@@ -61,7 +61,8 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Lista de Caravanas',
 						type: 'item',
 						icon: 'heroicons-outline:table',
-						url: 'livestock/records',
+						url: '/caravans',
+						end: true,
 					},
 					{
 						id: 'livestock.upload',
@@ -77,6 +78,13 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:document-text',
 						url: 'livestock/generator',
 					},
+					{
+						id: 'livestock.movements',
+						title: 'Movimientos',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-path',
+						url: '/caravans/movements',
+					}
 				]
 			},
 		]

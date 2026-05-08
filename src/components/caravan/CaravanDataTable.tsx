@@ -42,7 +42,7 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { activeCompanyId } = useCompany();
-  
+
   // Data Fetching via React Query (Auto-reacts to activeCompanyId change)
   const { data: caravans = [], isLoading } = useCaravans(activeCompanyId);
   const upsertMutation = useUpsertCaravan();
@@ -170,33 +170,50 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
           showGlobalFilter: true,
           pagination: { pageSize: 15, pageIndex: 0 }
         }}
+        muiTableProps={{
+          sx: {
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            '& .MuiTable-root': {
+              border: (theme) => `1px solid ${theme.palette.divider}`,
+            },
+          },
+        }}
+        muiTableHeadCellProps={{
+          sx: {
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.04),
+            fontWeight: 700,
+            color: 'primary.main',
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            py: 1,
+          },
+        }}
+        muiTableBodyCellProps={{
+          sx: {
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            fontSize: '0.875rem',
+            py: 0.5,
+          },
+        }}
         renderRowActions={({ row }) => (
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
             <Tooltip title="Ver Detalles">
               <IconButton size="small" color="primary" onClick={() => handleOpenDialog('view', row.original)}>
-                <FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
+                <FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
               </IconButton>
             </Tooltip>
             <Tooltip title="Editar">
               <IconButton size="small" color="secondary" onClick={() => handleOpenDialog('edit', row.original)}>
-                <FuseSvgIcon size={20}>heroicons-outline:pencil-alt</FuseSvgIcon>
+                <FuseSvgIcon size={18}>heroicons-outline:pencil-alt</FuseSvgIcon>
               </IconButton>
             </Tooltip>
           </Box>
         )}
         renderTopToolbarCustomActions={({ table }) => (
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ ml: 1 }}>
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              sx={{ fontWeight: 600, textTransform: 'none', borderRadius: '8px', px: 2 }}
-              startIcon={<FuseSvgIcon size={18}>heroicons-outline:document-text</FuseSvgIcon>}
-              onClick={() => handleExportTxt(table.getSelectedRowModel().rows.map(row => row.original))}
-            >
-              Exportar TXT {table.getSelectedRowModel().rows.length > 0 ? `(${table.getSelectedRowModel().rows.length})` : ''}
-            </Button>
-
             <IconButton
               size="small"
               onClick={(e) => setExportAnchorEl(e.currentTarget)}
@@ -206,8 +223,26 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
                 '&:hover': { bgcolor: alpha(theme.palette.action.active, 0.1) }
               }}
             >
-              <FuseSvgIcon size={20}>heroicons-outline:dots-vertical</FuseSvgIcon>
+              <FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
             </IconButton>
+            <Button
+              size="small"
+              color="inherit"
+              sx={{
+                fontWeight: 600,
+                textTransform: 'none',
+                borderRadius: '8px',
+                px: 2,
+                bgcolor: (theme) => alpha(theme.palette.action.active, 0.05),
+                '&:hover': { bgcolor: (theme) => alpha(theme.palette.action.active, 0.1) }
+              }}
+              startIcon={<FuseSvgIcon size={18}>heroicons-outline:document-text</FuseSvgIcon>}
+              onClick={() => handleExportTxt(table.getSelectedRowModel().rows.map(row => row.original))}
+            >
+              Exportar TXT {table.getSelectedRowModel().rows.length > 0 ? `(${table.getSelectedRowModel().rows.length})` : ''}
+            </Button>
+
+
 
             <Menu
               anchorEl={exportAnchorEl}
@@ -259,7 +294,17 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={handleCloseDialog} color="inherit" sx={{ fontWeight: 600 }}>{actionMode === 'view' ? 'Cerrar' : 'Cancelar'}</Button>
             {actionMode !== 'view' && (
-              <Button type="submit" variant="contained" color="primary" disabled={upsertMutation.isPending} sx={{ px: 4, fontWeight: 700, borderRadius: '8px' }} startIcon={upsertMutation.isPending ? <CircularProgress size={20} color="inherit" /> : null}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={upsertMutation.isPending}
+                sx={{
+                  px: 4,
+                  fontWeight: 700,
+                }}
+                startIcon={upsertMutation.isPending ? <CircularProgress size={20} color="inherit" /> : null}
+              >
                 {actionMode === 'create' ? 'Guardar Registro' : 'Actualizar Cambios'}
               </Button>
             )}

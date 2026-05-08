@@ -20,15 +20,13 @@ function RecordsView() {
 		<Container
 			maxWidth="xl"
 			sx={{
-				py: 4,
 				display: 'flex',
 				flexDirection: 'column',
 				width: '100%',
-				px: { xs: 2, md: 6 }
 			}}
 		>
 			<ViewHeader
-				title="Base de Datos Ganadera"
+				title="Caravanas en Posesión"
 				subtitle="Visualiza y gestiona todos tus registros de animales procesados y guardados en el sistema."
 				actions={
 					<Button
@@ -36,6 +34,7 @@ function RecordsView() {
 						color="primary"
 						startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus</FuseSvgIcon>}
 						onClick={handleAddClick}
+						sx={{ fontWeight: 700 }}
 					>
 						Insertar Caravana
 					</Button>

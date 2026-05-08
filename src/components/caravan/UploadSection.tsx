@@ -26,6 +26,7 @@ import { styled, alpha } from '@mui/material/styles';
 import axiosInstance from '@/utils/axios';
 import { useGoogleDrive } from 'src/app/(control-panel)/livestock/hooks/useGoogleDrive';
 import { MOCK_AZURE_RESPONSE } from './upload-section/MockAzureData';
+import { REALISTIC_CARAVAN_MOCK, UPDATE_CARAVANS_MOCK } from './upload-section/RealisticMockData';
 
 // Atomized Components & Types
 import { UploadResponse, UploadStatus } from './upload-section/types';
@@ -95,6 +96,20 @@ const UploadSection = () => {
     setStatus('success');
     setResult(MOCK_AZURE_RESPONSE as any);
     setSelectedFile({ name: 'mock_azure_test_data.json', size: 0 } as File);
+  };
+
+  const handleRealisticMockTest = () => {
+    resetState();
+    setStatus('success');
+    setResult(REALISTIC_CARAVAN_MOCK as any);
+    setSelectedFile({ name: 'realistic_caravans.json', size: 0 } as File);
+  };
+
+  const handleUpdateMockTest = () => {
+    resetState();
+    setStatus('success');
+    setResult(UPDATE_CARAVANS_MOCK as any);
+    setSelectedFile({ name: 'update_weights_mock.json', size: 0 } as File);
   };
 
   const handleFile = useCallback((file: File) => {
@@ -237,9 +252,17 @@ const UploadSection = () => {
                   <Button variant="contained" disableElevation onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} sx={{ py: 1.5, px: 5 }}>Browse Files</Button>
 
                   {import.meta.env.DEV && (
-                    <Button variant="outlined" color="secondary" onClick={(e) => { e.stopPropagation(); handleMockTest(); }} sx={{ mt: 2, textTransform: 'none' }} startIcon={<InfoIcon />}>
-                      Load Mock OCR Data (Test)
-                    </Button>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
+                      <Button variant="outlined" color="secondary" onClick={(e) => { e.stopPropagation(); handleMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<InfoIcon />}>
+                        Load Mock OCR Data (Test)
+                      </Button>
+                      <Button variant="outlined" color="primary" onClick={(e) => { e.stopPropagation(); handleRealisticMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CheckCircleIcon />}>
+                        Load Realistic Caravan Data
+                      </Button>
+                      <Button variant="outlined" color="warning" onClick={(e) => { e.stopPropagation(); handleUpdateMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CloudUploadIcon />}>
+                        Load Update (Exit Weights)
+                      </Button>
+                    </Box>
                   )}
                 </>
               )}
