@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ApiCaravanMovementRepository } from '@/core/caravans/infrastructure/repositories/ApiCaravanMovementRepository';
+import useSession from '@/hooks/useSession';
 
 const movementRepository = new ApiCaravanMovementRepository();
 
@@ -9,10 +10,12 @@ const movementRepository = new ApiCaravanMovementRepository();
  * @param caravanId - The ID of the caravan.
  */
 export function useCaravanMovements(caravanId: number | null) {
+  const { activeCompanyId } = useSession();
+
   return useQuery({
-    queryKey: ['caravans', caravanId, 'movements'],
+    queryKey: ['caravans', activeCompanyId, caravanId, 'movements'],
     queryFn: () => caravanId ? movementRepository.findByCaravanId(caravanId) : Promise.resolve([]),
-    enabled: !!caravanId,
+    enabled: !!caravanId && !!activeCompanyId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -21,9 +24,12 @@ export function useCaravanMovements(caravanId: number | null) {
  * Hook to fetch the entire movement history for all caravans (Audit view).
  */
 export function useAllCaravanMovements() {
+  const { activeCompanyId } = useSession();
+
   return useQuery({
-    queryKey: ['caravans', 'movements', 'all'],
+    queryKey: ['caravans', activeCompanyId, 'movements', 'all'],
     queryFn: () => movementRepository.findAll(),
+    enabled: !!activeCompanyId,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }

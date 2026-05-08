@@ -51,6 +51,38 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:collection',
 		children: [
 			{
+				id: 'gestion.providers',
+				title: 'Proveedores',
+				subtitle: 'Gestión de Orígenes',
+				type: 'item',
+				icon: 'heroicons-outline:user-group',
+				url: '/providers'
+			},
+			{
+				id: 'gestion.farms',
+				title: 'Establecimientos',
+				subtitle: 'Sedes y Campos',
+				type: 'item',
+				icon: 'heroicons-outline:home-modern',
+				url: '/farms'
+			},
+			{
+				id: 'gestion.batches',
+				title: 'Lotes',
+				subtitle: 'Tropas y Grupos',
+				type: 'item',
+				icon: 'heroicons-outline:view-columns',
+				url: '/batches'
+			},
+			{
+				id: 'gestion.breeds',
+				title: 'Razas',
+				subtitle: 'Genética',
+				type: 'item',
+				icon: 'heroicons-outline:collection',
+				url: '/breeds'
+			},
+			{
 				id: 'livestock-operations',
 				title: 'Operaciones',
 				type: 'collapse',
@@ -87,6 +119,7 @@ const navigationConfig: FuseNavItemType[] = [
 					}
 				]
 			},
+
 		]
 	},
 ];

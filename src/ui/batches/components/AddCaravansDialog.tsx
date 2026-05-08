@@ -18,7 +18,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useSnackbar } from 'notistack';
 import { caravanSchema, CaravanFormValues } from './CaravanSchema';
 import { Batch } from '@/core/batches/domain/entities/Batch';
-import { useBreeds } from '../hooks/useBreeds';
+import { useBreeds } from '@/features/breeds/hooks/useBreeds';
+import { useFarm } from '@/features/suppliers/hooks/useFarms';
+import { useSupplier } from '@/features/suppliers/hooks/useSuppliers';
 
 interface AddCaravansDialogProps {
   open: boolean;
@@ -56,6 +58,9 @@ const TEETH_OPTIONS = [
  */
 function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
   const { enqueueSnackbar } = useSnackbar();
+
+  const { data: farmData } = useFarm(batch?.farm_id);
+  const { data: providerData } = useSupplier(batch?.provider_id);
 
   const {
     register,
@@ -162,6 +167,31 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
       <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
         <DialogContent sx={{ p: 4, bgcolor: 'background.paper' }}>
           <Stack spacing={3}>
+            {/* Context Info - Read Only Fields */}
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+              <TextField
+                label="RENSPA (Establecimiento)"
+                value={farmData?.renspa || 'Cargando...'}
+                variant="filled"
+                fullWidth
+                InputProps={{ 
+                  readOnly: true, 
+                  disableUnderline: true, 
+                  sx: { borderRadius: 1, bgcolor: 'action.disabledBackground' } 
+                }}
+              />
+              <TextField
+                label="CUIT (Proveedor)"
+                value={providerData?.cuit || 'Cargando...'}
+                variant="filled"
+                fullWidth
+                InputProps={{ 
+                  readOnly: true, 
+                  disableUnderline: true, 
+                  sx: { borderRadius: 1, bgcolor: 'action.disabledBackground' } 
+                }}
+              />
+            </Stack>
             {/* Fila 1: Identificación y Fecha */}
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <TextField

@@ -21,7 +21,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router';
 import { caravanSchema, CaravanFormValues } from './CaravanSchema';
-import { useBreeds } from '../hooks/useBreeds';
+import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import { z } from 'zod';
 
 const bulkSchema = z.object({

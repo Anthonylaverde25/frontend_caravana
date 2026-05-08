@@ -17,3 +17,14 @@ export const useSuppliers = () => {
     staleTime: 1000 * 60 * 5, // 5 minutos de validez de caché
   });
 };
+
+export const useSupplier = (id: number | null | undefined) => {
+  const repository = new ApiSupplierRepository();
+
+  return useQuery<Supplier | null>({
+    queryKey: ['suppliers', id],
+    queryFn: () => (id ? repository.findById(id) : Promise.resolve(null)),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 10, // 10 minutos
+  });
+};

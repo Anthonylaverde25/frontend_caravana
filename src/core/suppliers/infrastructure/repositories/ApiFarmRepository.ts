@@ -10,6 +10,11 @@ export class ApiFarmRepository implements IFarmRepository {
     return response.data.map(FarmMapper.toDomain);
   }
 
+  async findById(id: number): Promise<Farm | null> {
+    const response = await axiosInstance.get<any>(`/farms/${id}`);
+    return FarmMapper.toDomain(response.data);
+  }
+
   async create(farm: Farm): Promise<Farm> {
     const dto = FarmMapper.toDTO(farm);
     const response = await axiosInstance.post<any>('/farms', dto);

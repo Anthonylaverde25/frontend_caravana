@@ -7,7 +7,7 @@ const SuppliersView = lazy(() => import('src/ui/suppliers/views/SuppliersView'))
  * The Suppliers page route.
  */
 const route: FuseRouteItemType = {
-    path: 'suppliers',
+    path: 'providers',
     element: <SuppliersView />
 };
 

@@ -52,19 +52,26 @@ export const CompanyProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [user]);
 
+  const handleSelectCompany = (id: number | null) => {
+    if (id) {
+      localStorage.setItem('activeCompanyId', id.toString());
+    } else {
+      localStorage.removeItem('activeCompanyId');
+    }
+    setActiveCompanyId(id);
+  };
+
   // Save to localStorage when it changes and set global header
   useEffect(() => {
     if (activeCompanyId) {
-      localStorage.setItem('activeCompanyId', activeCompanyId.toString());
       setGlobalHeaders({ 'X-Company-ID': activeCompanyId.toString() });
     } else {
-      localStorage.removeItem('activeCompanyId');
       removeGlobalHeaders(['X-Company-ID']);
     }
   }, [activeCompanyId]);
 
   return (
-    <CompanyContext.Provider value={{ activeCompanyId, setActiveCompanyId, companies, loading, error }}>
+    <CompanyContext.Provider value={{ activeCompanyId, setActiveCompanyId: handleSelectCompany, companies, loading, error }}>
       {children}
     </CompanyContext.Provider>
   );

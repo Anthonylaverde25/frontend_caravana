@@ -9,3 +9,12 @@ export function useFarms(providerId?: number) {
     queryFn: () => farmRepository.findAll(providerId),
   });
 }
+
+export function useFarm(id: number | null | undefined) {
+  return useQuery({
+    queryKey: ['farms', id],
+    queryFn: () => (id ? farmRepository.findById(id) : Promise.resolve(null)),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 10, // 10 minutos
+  });
+}

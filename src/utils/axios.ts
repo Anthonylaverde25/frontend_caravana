@@ -14,9 +14,15 @@ const axiosInstance = axios.create({
 // Request interceptor for API calls
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Add Company ID header from localStorage for multi-tenancy
+    const activeCompanyId = localStorage.getItem('activeCompanyId');
+    if (activeCompanyId) {
+      config.headers['X-Company-ID'] = activeCompanyId;
+    }
+
     // Log requests during development
     if (import.meta.env.DEV) {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url} [Company: ${activeCompanyId || 'NONE'}]`);
     }
     return config;
   },
