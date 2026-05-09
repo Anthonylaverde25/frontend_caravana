@@ -30,7 +30,7 @@ export class Batch {
     public readonly provider_name?: string,
     public readonly observaciones?: string,
     public readonly created_at?: string,
-  ) {}
+  ) { }
 
   public static create(dto: BatchDTO): Batch {
     if (!dto.name || dto.name.trim() === '') {
@@ -60,5 +60,13 @@ export class Batch {
 
   public isActive(): boolean {
     return this.is_active;
+  }
+
+  public getFarm() {
+    return {
+      id: this.farm_id,
+      name: this.farm_name,
+
+    }
   }
 }

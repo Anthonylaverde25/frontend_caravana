@@ -14,6 +14,11 @@ export interface ICaravanRepository {
    */
   upsert(data: CreateCaravanRequest): Promise<{ action: string; id: number }>;
 
+  /**
+   * Mass upsert of multiple caravans.
+   */
+  bulkUpsert(data: CreateCaravanRequest[]): Promise<void>;
+
   /** Removes a caravan record by its ID. */
   delete(id: number): Promise<void>;
 }

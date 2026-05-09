@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router';
 import { caravanSchema, CaravanFormValues } from './CaravanSchema';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import { z } from 'zod';
+import { Batch } from '@/core/batches/domain/entities/Batch';
 
 const bulkSchema = z.object({
   caravans: z.array(caravanSchema)
@@ -54,20 +55,24 @@ const TEETH_OPTIONS = [
   { value: 8, label: '8 (Boca Llena)' },
 ];
 
-interface BulkCaravanEntryTableProps {
-  batchId: number;
-}
+
+
+
+
+import { useBulkCreateCaravans } from '@/features/caravans/hooks/useBulkCreateCaravans';
+import { CreateCaravanRequest } from '@/core/caravans/domain/entities/Caravan';
 
 /**
  * BulkCaravanEntryTable Component
  * Spreadsheet-style editable grid compatible with Light and Dark modes.
  */
-function BulkCaravanEntryTable({ batchId }: BulkCaravanEntryTableProps) {
+function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const { data: breeds = [], isLoading: isLoadingBreeds } = useBreeds();
+  const { mutateAsync: bulkCreate, isPending: isSaving } = useBulkCreateCaravans();
 
   const {
     control,
@@ -85,7 +90,8 @@ function BulkCaravanEntryTable({ batchId }: BulkCaravanEntryTableProps) {
         breed_id: undefined,
         teeth: 0,
         entry_weight: undefined,
-        entry_date: new Date().toISOString().split('T')[0]
+        entry_date: new Date().toISOString().split('T')[0],
+        farm_id: batch.getFarm().id
       })
     }
   });
@@ -95,9 +101,20 @@ function BulkCaravanEntryTable({ batchId }: BulkCaravanEntryTableProps) {
     name: 'caravans'
   });
 
-  const onSubmit = (data: BulkFormValues) => {
-    console.log('Enviando carga masiva:', { batchId, data });
-    enqueueSnackbar(`${data.caravans.length} registros listos para procesar`, { variant: 'success' });
+  const onSubmit = async (data: BulkFormValues) => {
+    try {
+      const payload: CreateCaravanRequest[] = data.caravans.map(c => ({
+        ...c,
+        batch_id: batch.id,
+      }));
+
+      await bulkCreate(payload);
+      
+      enqueueSnackbar(`${data.caravans.length} caravanas registradas con éxito`, { variant: 'success' });
+      navigate('/caravans');
+    } catch (error) {
+      enqueueSnackbar('Error al registrar las caravanas', { variant: 'error' });
+    }
   };
 
   const addRow = () => {
@@ -117,7 +134,7 @@ function BulkCaravanEntryTable({ batchId }: BulkCaravanEntryTableProps) {
   const headerBg = isDark ? theme.palette.background.default : '#f8f9fa';
   const zebraBg = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.015)';
   const focusBorder = theme.palette.primary.main;
-  
+
   const cellStyle = {
     p: 0,
     borderRight: 1,
@@ -187,7 +204,7 @@ function BulkCaravanEntryTable({ batchId }: BulkCaravanEntryTableProps) {
                     <TableCell align="center" sx={{ ...cellStyle, bgcolor: headerBg, color: theme.palette.text.disabled, fontSize: '0.75rem' }}>
                       {index + 1}
                     </TableCell>
-                    
+
                     <TableCell sx={cellStyle}>
                       <TextField
                         {...register(`caravans.${index}.identification` as const)}

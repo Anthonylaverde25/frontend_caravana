@@ -2,8 +2,9 @@ import { Container, Box, Button, Stack, Paper, Typography, Divider } from '@mui/
 import ViewHeader from 'src/components/ViewHeader';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useParams, useNavigate } from 'react-router';
-import { useBatches } from '@/features/batches/hooks/useBatches';
+import { useBatch } from '@/features/batches/hooks/useBatch';
 import BulkCaravanEntryTable from '@/ui/batches/components/BulkCaravanEntryTable';
+
 
 /**
  * BulkCaravanEntryView Component
@@ -12,15 +13,17 @@ import BulkCaravanEntryTable from '@/ui/batches/components/BulkCaravanEntryTable
 function BulkCaravanEntryView() {
   const { batchId } = useParams<{ batchId: string }>();
   const navigate = useNavigate();
-  const { data: batches = [] } = useBatches();
-  
-  const batch = batches.find(b => b.id === Number(batchId));
+  const { data: batch, isLoading } = useBatch(Number(batchId));
 
   const handleBack = () => {
     navigate(-1);
   };
 
-  if (!batchId) return null;
+  if (!batchId || isLoading || !batch) return null;
+
+  const { name, farm_name, farm_id, } = batch;
+  const e = batch.getFarm()
+  console.log('eeeee', e)
 
   return (
     <Container
@@ -47,13 +50,13 @@ function BulkCaravanEntryView() {
 
       <Box component="main" sx={{ mt: 3 }}>
         {/* Context Bar - Batch & Farm Info */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 2, 
-            mb: 3, 
-            border: 1, 
-            borderColor: 'divider', 
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 3,
+            border: 1,
+            borderColor: 'divider',
             borderRadius: '8px',
             bgcolor: 'background.paper',
             display: 'flex',
@@ -68,7 +71,7 @@ function BulkCaravanEntryView() {
                 Establecimiento
               </Typography>
               <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                {batch?.farm_name || '...'}
+                {batch.getFarm().name}
               </Typography>
             </Box>
           </Stack>
@@ -82,13 +85,13 @@ function BulkCaravanEntryView() {
                 Lote Seleccionado
               </Typography>
               <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                {batch?.name || '...'}
+                {name}
               </Typography>
             </Box>
           </Stack>
         </Paper>
 
-        <BulkCaravanEntryTable batchId={Number(batchId)} />
+        <BulkCaravanEntryTable batch={batch} />
       </Box>
     </Container>
   );

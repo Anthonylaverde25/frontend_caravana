@@ -10,7 +10,8 @@ import {
   IconButton,
   MenuItem,
   Grid,
-  InputAdornment
+  InputAdornment,
+  CircularProgress
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useForm } from 'react-hook-form';
@@ -21,6 +22,7 @@ import { Batch } from '@/core/batches/domain/entities/Batch';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import { useFarm } from '@/features/suppliers/hooks/useFarms';
 import { useSupplier } from '@/features/suppliers/hooks/useSuppliers';
+import { useUpsertCaravan } from '@/features/caravans/hooks/useUpsertCaravan';
 
 interface AddCaravansDialogProps {
   open: boolean;
@@ -58,6 +60,8 @@ const TEETH_OPTIONS = [
  */
 function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
   const { enqueueSnackbar } = useSnackbar();
+  const { mutateAsync: upsertCaravan, isPending } = useUpsertCaravan();
+  console.log('batch', batch)
 
   const { data: farmData } = useFarm(batch?.farm_id);
   const { data: providerData } = useSupplier(batch?.provider_id);
@@ -78,7 +82,6 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
       breed_id: undefined,
       teeth: 0,
       entry_weight: undefined,
-      exit_weight: undefined,
       entry_date: new Date().toISOString().split('T')[0]
     }
   });
@@ -90,13 +93,17 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
 
 
 
-  const onSubmit = (data: CaravanFormValues, keepOpen = false) => {
-    // Backend implementation pending
-    console.log('Guardando caravana:', { ...data, batch_id: batch?.id });
+  const onSubmit = async (data: CaravanFormValues, keepOpen = false) => {
+    try {
+      const payload = {
+        ...data,
+        batch_id: batch?.id,
+        farm_id: batch?.farm_id
+      };
+      
+      await upsertCaravan(payload);
 
-    enqueueSnackbar('Funcionalidad de guardado pendiente de backend', { variant: 'info' });
-
-    if (keepOpen) {
+      if (keepOpen) {
       // Clear specific fields but keep others for faster entry
       const currentEntryDate = data.entry_date;
       const currentBreedId = data.breed_id;
@@ -110,12 +117,15 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
         breed_id: currentBreedId,
         teeth: 0,
         entry_weight: undefined,
-        exit_weight: undefined,
         entry_date: currentEntryDate
       });
-    } else {
-      onClose();
-      reset();
+      } else {
+        onClose();
+        reset();
+      }
+    } catch (error) {
+      // Error handling is managed by the hook (toast)
+      console.error('Error submitting caravan:', error);
     }
   };
 
@@ -174,10 +184,10 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 value={farmData?.renspa || 'Cargando...'}
                 variant="filled"
                 fullWidth
-                InputProps={{ 
-                  readOnly: true, 
-                  disableUnderline: true, 
-                  sx: { borderRadius: 1, bgcolor: 'action.disabledBackground' } 
+                InputProps={{
+                  readOnly: true,
+                  disableUnderline: true,
+                  sx: { borderRadius: 1, bgcolor: 'action.disabledBackground' }
                 }}
               />
               <TextField
@@ -185,10 +195,10 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 value={providerData?.cuit || 'Cargando...'}
                 variant="filled"
                 fullWidth
-                InputProps={{ 
-                  readOnly: true, 
-                  disableUnderline: true, 
-                  sx: { borderRadius: 1, bgcolor: 'action.disabledBackground' } 
+                InputProps={{
+                  readOnly: true,
+                  disableUnderline: true,
+                  sx: { borderRadius: 1, bgcolor: 'action.disabledBackground' }
                 }}
               />
             </Stack>
@@ -297,15 +307,29 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 fullWidth
                 sx={{ flex: { md: 2 } }}
                 error={!!errors.breed_id}
-                helperText={errors.breed_id?.message || (isLoadingBreeds ? 'Cargando razas...' : '')}
+                helperText={errors.breed_id?.message || (isLoadingBreeds ? 'Cargando catálogo de razas...' : '')}
                 defaultValue=""
-                InputProps={{ disableUnderline: true, sx: { borderRadius: 1 } }}
+                InputProps={{
+                  disableUnderline: true,
+                  sx: { borderRadius: 1 },
+                  startAdornment: isLoadingBreeds ? (
+                    <InputAdornment position="start">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : null
+                }}
               >
-                {breeds.map((breed) => (
-                  <MenuItem key={breed.id} value={breed.id}>
-                    {breed.name}
+                {breeds.length > 0 ? (
+                  breeds.map((breed) => (
+                    <MenuItem key={breed.id} value={breed.id}>
+                      {breed.name}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled value="">
+                    {isLoadingBreeds ? 'Cargando...' : 'No hay razas registradas'}
                   </MenuItem>
-                ))}
+                )}
               </TextField>
 
               <TextField
@@ -322,22 +346,6 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 }}
                 error={!!errors.entry_weight}
                 helperText={errors.entry_weight?.message}
-              />
-
-              <TextField
-                {...register('exit_weight', { valueAsNumber: true })}
-                label="Peso Salida"
-                type="number"
-                variant="filled"
-                fullWidth
-                sx={{ flex: { md: 1 } }}
-                InputProps={{
-                  endAdornment: <InputAdornment position="end">kg</InputAdornment>,
-                  disableUnderline: true,
-                  sx: { borderRadius: 1 }
-                }}
-                error={!!errors.exit_weight}
-                helperText={errors.exit_weight?.message}
               />
             </Stack>
           </Stack>
@@ -367,6 +375,7 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
             <Button
               onClick={handleSubmit((data) => onSubmit(data, true))}
               variant="outlined"
+              disabled={isPending}
               sx={{
                 borderColor: 'primary.main',
                 color: 'primary.main',
@@ -375,11 +384,13 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 '&:hover': { bgcolor: 'action.hover' }
               }}
             >
+              {isPending ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
               Guardar y añadir otra
             </Button>
             <Button
               type="submit"
               variant="contained"
+              disabled={isPending}
               sx={{
                 bgcolor: 'primary.main',
                 color: '#ffffff', // Aseguramos blanco siempre en el botón principal
@@ -391,6 +402,7 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 '&:hover': { bgcolor: 'primary.dark', boxShadow: '0 4px 12px rgba(10, 110, 209, 0.25)' }
               }}
             >
+              {isPending ? <CircularProgress size={20} sx={{ mr: 1, color: 'inherit' }} /> : null}
               Guardar
             </Button>
           </Stack>

@@ -11,6 +11,11 @@ export class ApiBatchRepository implements IBatchRepository {
     return response.data.map(BatchMapper.toDomain);
   }
 
+  async findById(id: number): Promise<Batch> {
+    const response = await axiosInstance.get<any>(`/batches/${id}`);
+    return BatchMapper.toDomain(response.data);
+  }
+
   async create(batch: Batch): Promise<Batch> {
     const dto = BatchMapper.toDTO(batch);
     const response = await axiosInstance.post<any>('/batches', dto);

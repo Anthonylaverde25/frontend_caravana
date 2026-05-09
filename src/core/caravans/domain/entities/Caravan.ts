@@ -28,6 +28,7 @@ export interface CreateCaravanRequest {
   breed_id?: number | null;
   sex?: string | null;
   batch_id?: number | null;
+  farm_id?: number | null;
 }
 
 /**

@@ -29,6 +29,10 @@ export class ApiCaravanRepository implements ICaravanRepository {
     return response.data;
   }
 
+  async bulkUpsert(data: CreateCaravanRequest[]): Promise<void> {
+    await axiosInstance.post('/caravans/bulk', { caravans: data });
+  }
+
   async delete(id: number): Promise<void> {
     await axiosInstance.delete(`/caravans/${id}`);
   }
