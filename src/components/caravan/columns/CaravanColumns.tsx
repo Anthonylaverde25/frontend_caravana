@@ -10,6 +10,7 @@ export interface Caravan {
   entry_weight: number | null;
   sex: string | null;
   entry_date: string | null;
+  batch_name: string | null;
 }
 
 /**
@@ -17,6 +18,45 @@ export interface Caravan {
  * Separated to improve maintainability and component cleanliness.
  */
 export const getCaravanColumns = (): MRT_ColumnDef<Caravan>[] => [
+  {
+    accessorKey: 'batch_name',
+    header: 'Lote',
+    size: 140,
+    enableGrouping: true,
+    enableColumnFilter: false,
+    enableColumnActions: false,
+    GroupedCell: ({ cell, row }) => (
+      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Chip 
+          label={`LOTE: ${cell.getValue<string>() || 'SIN ASIGNAR'}`}
+          color="primary"
+          size="small"
+          sx={{ fontWeight: 800, borderRadius: '4px' }}
+        />
+        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+          ({row.subRows?.length || 0} animales)
+        </Typography>
+      </Typography>
+    ),
+    Cell: ({ cell }) => {
+      const val = cell.getValue<string>();
+      return (
+        <Chip
+          label={val || 'SIN LOTE'}
+          size="small"
+          variant="outlined"
+          sx={{ 
+            fontWeight: 700, 
+            fontSize: '0.65rem',
+            height: 20,
+            color: val ? 'primary.main' : 'text.disabled',
+            borderColor: val ? 'primary.main' : 'divider',
+            bgcolor: val ? (theme) => (theme.palette.mode === 'dark' ? 'rgba(30, 136, 229, 0.08)' : 'rgba(30, 136, 229, 0.04)') : 'transparent'
+          }}
+        />
+      );
+    },
+  },
   {
     accessorKey: 'identification',
     header: 'Caravana',

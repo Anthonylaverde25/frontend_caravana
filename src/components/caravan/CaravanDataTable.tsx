@@ -8,14 +8,16 @@ import {
   DialogActions,
   Button,
   TextField,
-  MenuItem,
   Stack,
   alpha,
   useTheme,
   Menu,
+  MenuItem,
   IconButton,
   Tooltip,
-  Typography
+  Typography,
+  Avatar,
+  Chip
 } from '@mui/material';
 import DataTable from 'src/components/data-table/DataTable';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -63,6 +65,36 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
     sex: 'M',
     entry_date: new Date().toISOString().split('T')[0]
   });
+
+  // --- Transfer Flow State ---
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [selectedCaravan, setSelectedCaravan] = useState<any>(null);
+  const [targetCompanyId, setTargetCompanyId] = useState<number | string>('');
+
+  const { companies } = useCompany();
+  const availableCompanies = companies.filter(c => c.id !== activeCompanyId);
+
+  const handleOpenTransfer = (caravans: any | any[]) => {
+    const data = Array.isArray(caravans) ? caravans : [caravans];
+    setSelectedCaravan(data);
+    setTransferDialogOpen(true);
+  };
+
+  const handleCloseTransfer = () => {
+    setTransferDialogOpen(false);
+    setSelectedCaravan(null);
+    setTargetCompanyId('');
+  };
+
+  const handleConfirmTransfer = () => {
+    const count = Array.isArray(selectedCaravan) ? selectedCaravan.length : 1;
+    const ids = Array.isArray(selectedCaravan) ? selectedCaravan.map(c => c.identification).join(', ') : selectedCaravan?.identification;
+    
+    console.log(`Iniciando transferencia masiva (${count} animales): ${ids} a empresa ID: ${targetCompanyId}`);
+    
+    enqueueSnackbar(`${count} caravanas preparadas para transferencia`, { variant: 'info' });
+    handleCloseTransfer();
+  };
 
   useImperativeHandle(ref, () => ({
     openAddDialog: () => {
@@ -144,8 +176,87 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
     });
   };
 
-  // ─── Injection of external column definitions ───
-  const columns = useMemo(() => getCaravanColumns(), []);
+  // ─── Data Transformation: Group Caravans by Batch ───
+  const groupedBatches = useMemo(() => {
+    const batchesMap: Record<number, any> = {};
+    
+    caravans.forEach(caravan => {
+      const bId = caravan.batch_id || 0;
+      if (!batchesMap[bId]) {
+        batchesMap[bId] = {
+          id: bId,
+          name: caravan.batch_name || 'SIN LOTE ASIGNADO',
+          caravans: []
+        };
+      }
+      batchesMap[bId].caravans.push(caravan);
+    });
+    
+    return Object.values(batchesMap);
+  }, [caravans]);
+
+  // ─── Columns for the Batch Rows (Top Level) ───
+  const batchColumns = useMemo(() => [
+    {
+      accessorKey: 'name',
+      header: 'Lote / Grupo',
+      size: 300,
+      Cell: ({ cell, row }: any) => (
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Avatar 
+            sx={{ 
+              bgcolor: (theme) => theme.palette.primary.main, 
+              width: 36, 
+              height: 36, 
+              fontSize: '0.875rem', 
+              fontWeight: 800,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            {cell.getValue<string>().substring(0, 2).toUpperCase()}
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.2 }}>
+              {cell.getValue<string>()}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
+              {row.original.caravans.length} Animales en inventario
+            </Typography>
+          </Box>
+        </Stack>
+      )
+    },
+    {
+      header: 'Categoría Predominante',
+      size: 200,
+      accessorFn: (row: any) => row.caravans[0]?.category || '-',
+      Cell: ({ cell }: any) => (
+        <Chip 
+          label={cell.getValue() || '-'} 
+          size="small" 
+          variant="outlined"
+          sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase' }}
+        />
+      )
+    },
+    {
+      header: 'Peso Promedio',
+      size: 150,
+      accessorFn: (row: any) => {
+        const weights = row.caravans.filter((c: any) => c.entry_weight).map((c: any) => c.entry_weight);
+        if (weights.length === 0) return 0;
+        return weights.reduce((a: number, b: number) => a + b, 0) / weights.length;
+      },
+      Cell: ({ cell }: any) => (
+        <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
+          {cell.getValue() > 0 ? `${Math.round(cell.getValue())} kg` : '-'}
+        </Typography>
+      )
+    }
+  ], []);
+
+  // ─── Columns for the Caravans (Detail Level) ───
+  const caravanColumns = useMemo(() => getCaravanColumns().filter(col => col.accessorKey !== 'batch_name'), []);
 
   if (isLoading) {
     return (
@@ -158,73 +269,89 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
   return (
     <Box className="w-full">
       <DataTable
-        columns={columns}
-        data={caravans}
+        columns={batchColumns}
+        data={groupedBatches}
         enableRowSelection={true}
         enableColumnOrdering={true}
         enableGlobalFilter={true}
         enableRowActions={true}
+        enableExpanding={true}
         positionActionsColumn="last"
-        initialState={{
-          density: 'compact',
-          showGlobalFilter: true,
-          pagination: { pageSize: 15, pageIndex: 0 }
-        }}
-        muiTableProps={{
-          sx: {
-            borderCollapse: 'separate',
-            borderSpacing: 0,
-            '& .MuiTable-root': {
-              border: (theme) => `1px solid ${theme.palette.divider}`,
-            },
-          },
-        }}
-        muiTableHeadCellProps={{
-          sx: {
-            border: (theme) => `1px solid ${theme.palette.divider}`,
-            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.04),
-            fontWeight: 700,
-            color: 'primary.main',
-            fontSize: '0.75rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            py: 1,
-          },
-        }}
-        muiTableBodyCellProps={{
-          sx: {
-            border: (theme) => `1px solid ${theme.palette.divider}`,
-            fontSize: '0.875rem',
-            py: 0.5,
-          },
-        }}
+        renderDetailPanel={({ row }) => (
+          <Box
+            sx={{
+              display: 'grid',
+              width: '100%',
+              p: 3,
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+              borderTop: '1px solid',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, display: 'block' }}>
+                Detalle de Animales en {row.original.name} ({row.original.caravans.length})
+              </Typography>
+              <Button
+                size="small"
+                variant="text"
+                startIcon={<FuseSvgIcon size={18}>heroicons-outline:plus-circle</FuseSvgIcon>}
+                onClick={() => handleOpenDialog('create')}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                Añadir Caravana
+              </Button>
+            </Box>
+
+            <DataTable
+              columns={caravanColumns}
+              data={row.original.caravans}
+              enableTopToolbar={false}
+              enableBottomToolbar={false}
+              enableRowActions={true}
+              renderRowActions={({ row: caravanRow }) => (
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <IconButton size="small" onClick={() => handleOpenDialog('view', caravanRow.original)}>
+                    <FuseSvgIcon size={16}>heroicons-outline:eye</FuseSvgIcon>
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleOpenDialog('edit', caravanRow.original)}>
+                    <FuseSvgIcon size={16}>heroicons-outline:pencil-alt</FuseSvgIcon>
+                  </IconButton>
+                  <IconButton size="small" color="primary" onClick={() => handleOpenTransfer(caravanRow.original)}>
+                    <FuseSvgIcon size={16}>heroicons-outline:arrows-right-left</FuseSvgIcon>
+                  </IconButton>
+                </Box>
+              )}
+              muiTableProps={{
+                sx: {
+                  bgcolor: 'background.paper',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }
+              }}
+              initialState={{ density: 'compact' }}
+            />
+          </Box>
+        )}
         renderRowActions={({ row }) => (
           <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-            <Tooltip title="Ver Detalles">
-              <IconButton size="small" color="primary" onClick={() => handleOpenDialog('view', row.original)}>
-                <FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
+            <Tooltip title="Gestionar Lote">
+              <IconButton size="small" color="primary">
+                <FuseSvgIcon size={18}>heroicons-outline:folder-open</FuseSvgIcon>
               </IconButton>
             </Tooltip>
-            <Tooltip title="Editar">
-              <IconButton size="small" color="secondary" onClick={() => handleOpenDialog('edit', row.original)}>
-                <FuseSvgIcon size={18}>heroicons-outline:pencil-alt</FuseSvgIcon>
+            <Tooltip title="Más opciones">
+              <IconButton size="small">
+                <FuseSvgIcon size={18}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
               </IconButton>
             </Tooltip>
           </Box>
         )}
         renderTopToolbarCustomActions={({ table }) => (
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ ml: 1 }}>
-            <IconButton
-              size="small"
-              onClick={(e) => setExportAnchorEl(e.currentTarget)}
-              sx={{
-                bgcolor: alpha(theme.palette.action.active, 0.05),
-                borderRadius: '8px',
-                '&:hover': { bgcolor: alpha(theme.palette.action.active, 0.1) }
-              }}
-            >
-              <FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
-            </IconButton>
             <Button
               size="small"
               color="inherit"
@@ -237,13 +364,11 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
                 '&:hover': { bgcolor: (theme) => alpha(theme.palette.action.active, 0.1) }
               }}
               startIcon={<FuseSvgIcon size={18}>heroicons-outline:document-text</FuseSvgIcon>}
-              onClick={() => handleExportTxt(table.getSelectedRowModel().rows.map(row => row.original))}
+              onClick={() => handleExportTxt()}
             >
-              Exportar TXT {table.getSelectedRowModel().rows.length > 0 ? `(${table.getSelectedRowModel().rows.length})` : ''}
+              Exportar Inventario
             </Button>
-
-
-
+            
             <Menu
               anchorEl={exportAnchorEl}
               open={openExportMenu}
@@ -255,13 +380,14 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
                 <FuseSvgIcon size={20} className="mr-3" color="action">heroicons-outline:table</FuseSvgIcon>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>Exportar CSV</Typography>
               </MenuItem>
-              <MenuItem onClick={() => { console.log('Export PDF'); setExportAnchorEl(null); }} sx={{ color: 'error.main' }}>
-                <FuseSvgIcon size={20} className="mr-3" color="error">heroicons-outline:document-arrow-down</FuseSvgIcon>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>Exportar PDF</Typography>
-              </MenuItem>
             </Menu>
           </Stack>
         )}
+        initialState={{
+          density: 'compact',
+          showGlobalFilter: true,
+          pagination: { pageSize: 15, pageIndex: 0 }
+        }}
       />
 
       {/* Reusable Dialog for Create/Edit/View */}
@@ -310,6 +436,72 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
             )}
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* --- Transfer Dialog --- */}
+      <Dialog 
+        open={transferDialogOpen} 
+        onClose={handleCloseTransfer} 
+        maxWidth="sm" 
+        fullWidth 
+        PaperProps={{ sx: { borderRadius: '20px', p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
+          <Box sx={{ p: 1, bgcolor: alpha(theme.palette.primary.main, 0.1), borderRadius: '12px', display: 'flex' }}>
+            <FuseSvgIcon color="primary" size={24}>heroicons-outline:arrows-right-left</FuseSvgIcon>
+          </Box>
+          Transferencia {Array.isArray(selectedCaravan) && selectedCaravan.length > 1 ? `Masiva de ${selectedCaravan.length} Animales` : 'de Animal'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
+            {Array.isArray(selectedCaravan) && selectedCaravan.length > 1 
+              ? `Estás por transferir un lote de ${selectedCaravan.length} animales.` 
+              : `Estás por transferir la caravana ${selectedCaravan?.[0]?.identification}.`
+            }
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Esta acción registrará un movimiento de salida en la empresa actual y una entrada automática en la empresa destino para cada animal seleccionado.
+          </Typography>
+          
+          <Box sx={{ p: 2, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04), borderRadius: '12px', mb: 3, border: 1, borderColor: 'divider' }}>
+            <TextField
+              select
+              fullWidth
+              label="Empresa Destino"
+              value={targetCompanyId}
+              onChange={(e) => setTargetCompanyId(e.target.value)}
+              variant="outlined"
+              helperText={availableCompanies.length === 0 ? "No tienes otras empresas registradas" : "Selecciona la empresa que recibirá los animales"}
+            >
+              {availableCompanies.map((company) => (
+                <MenuItem key={company.id} value={company.id}>
+                  {company.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, pt: 1.5 }}>
+          <Button onClick={handleCloseTransfer} color="inherit" sx={{ fontWeight: 600, textTransform: 'none' }}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleConfirmTransfer} 
+            variant="contained" 
+            color="primary" 
+            disabled={!targetCompanyId}
+            sx={{ 
+              fontWeight: 700, 
+              textTransform: 'none', 
+              px: 4, 
+              borderRadius: '8px',
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none' }
+            }}
+          >
+            Confirmar Transferencia
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

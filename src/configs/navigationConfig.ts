@@ -83,6 +83,14 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/breeds'
 			},
 			{
+				id: 'gestion.activities',
+				title: 'Actividades',
+				subtitle: 'Actividades Ganaderas',
+				type: 'item',
+				icon: 'heroicons-outline:clipboard-document-list',
+				url: '/activities'
+			},
+			{
 				id: 'livestock-operations',
 				title: 'Operaciones',
 				type: 'collapse',

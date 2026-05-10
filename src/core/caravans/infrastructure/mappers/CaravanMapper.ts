@@ -19,7 +19,11 @@ export class CaravanMapper {
       breed: raw.breed ?? null,
       sex: raw.sex ?? null,
       entry_date: raw.entry_date ?? null,
-      batch_id: raw.batch_id != null ? Number(raw.batch_id) : null,
+      batch_id: raw.batch?.id != null ? Number(raw.batch.id) : (raw.batch_id != null ? Number(raw.batch_id) : null),
+      batch: raw.batch ? {
+        id: Number(raw.batch.id),
+        name: raw.batch.name
+      } : null,
     };
 
     return Caravan.create(dto);
