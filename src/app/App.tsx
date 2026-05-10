@@ -82,7 +82,7 @@ function App() {
 								</FuseSettingsProvider>
 							</CompanyProvider>
 						</Authentication>
-						<Toaster position="top-right" richColors closeButton />
+						<Toaster position="bottom-right" richColors closeButton />
 						<ReactQueryDevtools initialIsOpen={false} />
 					</QueryClientProvider>
 				</LocalizationProvider>
