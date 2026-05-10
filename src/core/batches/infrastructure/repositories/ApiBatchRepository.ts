@@ -22,8 +22,16 @@ export class ApiBatchRepository implements IBatchRepository {
     return BatchMapper.toDomain(response.data);
   }
 
-  async changeActivity(id: number, activityId: number): Promise<Batch> {
-    const response = await axiosInstance.patch<any>(`/batches/${id}/activity`, { activity_id: activityId });
+  async changeActivity(id: number, activityId: number, weight?: number): Promise<Batch> {
+    const response = await axiosInstance.patch<any>(`/batches/${id}/activity`, { 
+      activity_id: activityId,
+      weight: weight
+    });
     return BatchMapper.toDomain(response.data);
+  }
+
+  async getWeightHistory(id: number): Promise<any[]> {
+    const response = await axiosInstance.get<any[]>(`/batches/${id}/weights`);
+    return response.data;
   }
 }

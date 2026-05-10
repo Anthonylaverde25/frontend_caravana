@@ -7,6 +7,7 @@ import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import { getSupplierColumns } from '../../suppliers/components/SupplierColumns';
 import AddCaravansDialog from './AddCaravansDialog';
 import { useNavigate } from 'react-router';
+import { BatchDetailsDialog } from './BatchDetailsDialog';
 
 /**
  * BatchesTable Component
@@ -18,11 +19,17 @@ export function BatchesTable() {
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
 
   const [addCaravansDialogOpen, setAddCaravansDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
 
   const handleAddCaravans = (batch: any) => {
     setSelectedBatch(batch);
     setAddCaravansDialogOpen(true);
+  };
+
+  const handleViewDetails = (batch: any) => {
+    setSelectedBatch(batch);
+    setDetailsDialogOpen(true);
   };
 
   const columns = useMemo(() => getSupplierColumns(), []);
@@ -127,6 +134,20 @@ export function BatchesTable() {
                       </Stack>
 
                       <Stack direction="row" spacing={1} alignItems="center">
+                        <Tooltip title="Ver Detalles y Evolución">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewDetails(batch)}
+                            sx={{
+                              color: 'primary.main',
+                              bgcolor: 'action.hover',
+                              '&:hover': { bgcolor: 'action.selected' }
+                            }}
+                          >
+                            <FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
+                          </IconButton>
+                        </Tooltip>
+
                         <Tooltip title="Ingreso Múltiple (Manual)">
                           <IconButton
                             size="small"
@@ -203,6 +224,11 @@ export function BatchesTable() {
       <AddCaravansDialog
         open={addCaravansDialogOpen}
         onClose={() => setAddCaravansDialogOpen(false)}
+        batch={selectedBatch}
+      />
+      <BatchDetailsDialog
+        open={detailsDialogOpen}
+        onClose={() => setDetailsDialogOpen(false)}
         batch={selectedBatch}
       />
     </Box>
