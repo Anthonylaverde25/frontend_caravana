@@ -3,18 +3,14 @@ import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import { motion } from "framer-motion";
 import ViewHeader from "@/components/ViewHeader";
 
-const STAGES = [
-    { id: 'cria', name: 'Cría', icon: 'heroicons-outline:home', color: '#4CAF50' },
-    { id: 'recria', name: 'Recría', icon: 'heroicons-outline:trending-up', color: '#2196F3' },
-    { id: 'invernada', name: 'Invernada', icon: 'heroicons-outline:sun', color: '#FF9800', tag: 'Etapa Final' },
-];
+import { useCompany } from "@/contexts/CompanyContext";
+import { useActivities } from "@/features/activities/hooks/useActivities";
 
-const MOCK_BATCHES = [
-    { id: '1', name: 'Lote A1 - Angus', farm: 'La Estancia', count: 45, activity: 'cria', weight: '180kg avg' },
-    { id: '2', name: 'Lote B2 - Hereford', farm: 'El Trébol', count: 32, activity: 'cria', weight: '175kg avg' },
-    { id: '3', name: 'Lote C3 - Brangus', farm: 'San José', count: 28, activity: 'recria', weight: '240kg avg' },
-    { id: '4', name: 'Lote D4 - Braford', farm: 'La Paz', count: 50, activity: 'invernada', weight: '380kg avg' },
-];
+const STAGE_UI_CONFIG = {
+    'CRIA': { icon: 'heroicons-outline:home', color: '#4CAF50' },
+    'RECRIA': { icon: 'heroicons-outline:trending-up', color: '#2196F3' },
+    'INVERNADA': { icon: 'heroicons-outline:sun', color: '#FF9800' },
+};
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -31,6 +27,20 @@ const itemVariants = {
 
 export default function ActivitiesView() {
     const theme = useTheme();
+    const { activeCompanyId } = useCompany();
+    const { data: activities, isLoading } = useActivities(activeCompanyId);
+
+    // Filter only enabled activities and sort by ID or predefined order
+    const stages = activities?.filter(a => a.isEnabled).map(a => ({
+        ...a,
+        icon: STAGE_UI_CONFIG[a.code]?.icon || 'heroicons-outline:collection',
+        color: STAGE_UI_CONFIG[a.code]?.color || '#999',
+        tag: a.isFinal ? 'Etapa Final' : null
+    })) || [];
+
+    if (isLoading) {
+        return <Typography sx={{ p: 4 }}>Cargando actividades...</Typography>;
+    }
 
     return (
         <Container
@@ -97,7 +107,7 @@ export default function ActivitiesView() {
                 initial="hidden"
                 animate="show"
             >
-                {STAGES.map((stage) => (
+                {stages.map((stage) => (
                     <Box
                         key={stage.id}
                         component={motion.div}
@@ -199,7 +209,7 @@ export default function ActivitiesView() {
                                 </Box>
 
                                 {/* Rows */}
-                                {MOCK_BATCHES.filter(b => b.activity === stage.id).map((batch) => (
+                                {(stage.batches || []).map((batch) => (
                                     <Box
                                         key={batch.id}
                                         sx={{
@@ -218,7 +228,7 @@ export default function ActivitiesView() {
                                                 {batch.name}
                                             </Typography>
                                             <Typography variant="caption" sx={{ fontSize: '0.6rem', color: '#888' }}>
-                                                {batch.farm}
+                                                {batch.farmName}
                                             </Typography>
                                         </Box>
                                         <Box sx={{ p: 1, borderRight: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -228,14 +238,14 @@ export default function ActivitiesView() {
                                         </Box>
                                         <Box sx={{ p: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem', color: '#555', bgcolor: '#f1f1f1', px: 0.8, py: 0.2, borderRadius: '2px' }}>
-                                                {batch.weight.replace(' avg', '')}
+                                                {batch.weight?.replace(' avg', '') || '-'}
                                             </Typography>
                                         </Box>
                                     </Box>
                                 ))}
 
                                 {/* Empty Rows */}
-                                {Array.from({ length: Math.max(0, 8 - MOCK_BATCHES.filter(b => b.activity === stage.id).length) }).map((_, i) => (
+                                {Array.from({ length: Math.max(0, 8 - (stage.batches || []).length) }).map((_, i) => (
                                     <Box
                                         key={`empty-${i}`}
                                         sx={{
@@ -268,7 +278,7 @@ export default function ActivitiesView() {
                                 TOTAL {stage.name.toUpperCase()}
                             </Typography>
                             <Typography variant="caption" sx={{ fontWeight: 900, color: stage.color, fontSize: '0.75rem' }}>
-                                {MOCK_BATCHES.filter(b => b.activity === stage.id).reduce((acc, curr) => acc + curr.count, 0)} Cabezas
+                                {(stage.batches || []).reduce((acc, curr) => acc + curr.count, 0)} Cabezas
                             </Typography>
                         </Box>
                     </Box>
