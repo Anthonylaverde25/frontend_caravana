@@ -18,6 +18,8 @@ import { useFarms } from '@/features/suppliers/hooks/useFarms';
 import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import { useSnackbar } from 'notistack';
 import { useEffect, useMemo } from 'react';
+import { useActivities } from '@/features/activities/hooks/useActivities';
+import { useCompany } from '@/contexts/CompanyContext';
 import { batchSchema, BatchFormValues } from './BatchSchema';
 
 interface CreateBatchDialogProps {
@@ -33,8 +35,10 @@ interface CreateBatchDialogProps {
  */
 function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBatchDialogProps) {
   const { enqueueSnackbar } = useSnackbar();
+  const { activeCompanyId } = useCompany();
   const { data: providers = [], isLoading: isLoadingProviders } = useSuppliers();
   const { data: allFarms = [], isLoading: isLoadingFarms } = useFarms();
+  const { data: activities = [], isLoading: isLoadingActivities } = useActivities(activeCompanyId);
   const { mutate, isPending } = useCreateBatch();
 
   const {
@@ -50,6 +54,8 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
       name: '',
       provider_id: undefined,
       farm_id: initialFarmId,
+      activity_id: undefined,
+      weight: undefined,
       observaciones: ''
     }
   });
@@ -182,6 +188,39 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
                 </MenuItem>
               ))}
             </TextField>
+
+            <TextField
+              select
+              label="Etapa / Actividad Inicial"
+              value={watch('activity_id') || ''}
+              onChange={(e) => setValue('activity_id', Number(e.target.value))}
+              variant="filled"
+              fullWidth
+              required
+              error={!!errors.activity_id}
+              helperText={errors.activity_id?.message || (isLoadingActivities ? 'Cargando actividades...' : '')}
+              sx={{ bgcolor: 'action.hover' }}
+            >
+              {activities.filter(a => a.isEnabled).map((activity) => (
+                <MenuItem key={activity.id} value={activity.id}>
+                  {activity.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              {...register('weight')}
+              label="Peso Promedio Inicial (kg/cab)"
+              variant="filled"
+              fullWidth
+              type="number"
+              error={!!errors.weight}
+              helperText={errors.weight?.message}
+              sx={{ bgcolor: 'action.hover' }}
+              InputProps={{
+                endAdornment: <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1 }}>KG</Typography>
+              }}
+            />
 
             <TextField
               {...register('observaciones')}

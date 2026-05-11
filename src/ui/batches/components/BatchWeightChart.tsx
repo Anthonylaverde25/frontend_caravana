@@ -1,5 +1,6 @@
-import { Box, Typography, alpha, Tooltip } from '@mui/material';
-import { motion } from 'framer-motion';
+import ReactECharts from 'echarts-for-react';
+import { Box, Typography, useTheme } from '@mui/material';
+import { useMemo } from 'react';
 
 interface WeightRecord {
     id: number;
@@ -13,118 +14,144 @@ interface BatchWeightChartProps {
 }
 
 export function BatchWeightChart({ data }: BatchWeightChartProps) {
+    const theme = useTheme();
+
+    const chartOptions = useMemo(() => {
+        if (!data || data.length === 0) return {};
+
+        // Sort data by date just in case
+        const sortedData = [...data].sort((a, b) => 
+            new Date(a.weighing_date).getTime() - new Date(b.weighing_date).getTime()
+        );
+
+        return {
+            grid: {
+                top: 40,
+                right: 20,
+                bottom: 40,
+                left: 50,
+                containLabel: true,
+            },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                borderWidth: 1,
+                borderColor: '#e0e0e0',
+                textStyle: {
+                    color: '#333',
+                    fontSize: 12,
+                    fontWeight: 600,
+                },
+                formatter: (params: any) => {
+                    const item = params[0];
+                    const record = sortedData[item.dataIndex];
+                    return `
+                        <div style="padding: 4px;">
+                            <div style="color: #999; font-size: 10px; margin-bottom: 4px; text-transform: uppercase;">${record.weighing_date}</div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 16px; font-weight: 800; color: #0a6ed1;">${record.weight} kg</span>
+                                <span style="font-size: 10px; background: #f0f0f0; padding: 2px 6px; border-radius: 4px; color: #666;">${record.type}</span>
+                            </div>
+                        </div>
+                    `;
+                },
+            },
+            xAxis: {
+                type: 'category',
+                data: sortedData.map(d => d.weighing_date),
+                axisLine: {
+                    lineStyle: { color: '#e0e0e0' }
+                },
+                axisLabel: {
+                    color: '#999',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    formatter: (value: string) => {
+                        const parts = value.split('-');
+                        return `${parts[2]}/${parts[1]}`;
+                    }
+                },
+                axisTick: { show: false }
+            },
+            yAxis: {
+                type: 'value',
+                scale: true, // This is crucial for livestock: focuses on the weight range
+                splitLine: {
+                    lineStyle: { 
+                        type: 'dashed',
+                        color: '#f0f0f0' 
+                    }
+                },
+                axisLabel: {
+                    color: '#999',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    formatter: '{value} kg'
+                }
+            },
+            series: [
+                {
+                    data: sortedData.map(d => d.weight),
+                    type: 'line',
+                    smooth: true, // Smooth spline
+                    symbol: 'circle',
+                    symbolSize: 8,
+                    itemStyle: {
+                        color: '#0a6ed1',
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    },
+                    lineStyle: {
+                        width: 4,
+                        color: '#0a6ed1',
+                        shadowColor: 'rgba(10, 110, 209, 0.2)',
+                        shadowBlur: 10,
+                        shadowOffsetY: 5
+                    },
+                    areaStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 0,
+                            y2: 1,
+                            colorStops: [
+                                { offset: 0, color: 'rgba(10, 110, 209, 0.2)' },
+                                { offset: 1, color: 'rgba(10, 110, 209, 0)' }
+                            ]
+                        }
+                    },
+                    emphasis: {
+                        scale: true,
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0,0,0,0.2)'
+                        }
+                    }
+                }
+            ],
+            animationDuration: 1500,
+            animationEasing: 'cubicOut'
+        };
+    }, [data]);
+
     if (!data || data.length === 0) {
         return (
-            <Box sx={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f8f9fa', borderRadius: '8px', border: '1px dashed #ddd' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            <Box sx={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f8f9fa', borderRadius: '8px', border: '1px dashed #ddd' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                     Sin datos de pesaje para graficar
                 </Typography>
             </Box>
         );
     }
 
-    // Chart dimensions
-    const width = 600;
-    const height = 250;
-    const padding = 40;
-
-    const weights = data.map(d => d.weight);
-    const minWeight = Math.min(...weights) * 0.95;
-    const maxWeight = Math.max(...weights) * 1.05;
-    const weightRange = maxWeight - minWeight;
-
-    const points = data.map((d, i) => {
-        const x = padding + (i * (width - 2 * padding)) / (data.length > 1 ? data.length - 1 : 1);
-        const y = height - padding - ((d.weight - minWeight) / weightRange) * (height - 2 * padding);
-        return { x, y, data: d };
-    });
-
-    const linePath = points.reduce((acc, p, i) => 
-        i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, 
-    '');
-
-    const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
-
     return (
-        <Box sx={{ width: '100%', overflowX: 'auto', py: 2 }}>
-            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-                {/* Grid Lines */}
-                {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
-                    const y = height - padding - p * (height - 2 * padding);
-                    const val = (minWeight + p * weightRange).toFixed(0);
-                    return (
-                        <g key={i}>
-                            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f0f0f0" strokeWidth="1" />
-                            <text x={padding - 10} y={y + 4} textAnchor="end" fontSize="10" fill="#999" fontWeight="600">{val}</text>
-                        </g>
-                    );
-                })}
-
-                {/* Area under the line */}
-                <motion.path
-                    d={areaPath}
-                    fill="url(#gradient)"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.3 }}
-                />
-
-                {/* The Line */}
-                <motion.path
-                    d={linePath}
-                    fill="none"
-                    stroke="#0a6ed1"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 1.5, ease: "easeInOut" }}
-                />
-
-                {/* Gradient Definition */}
-                <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#0a6ed1" stopOpacity="0.5" />
-                        <stop offset="100%" stopColor="#0a6ed1" stopOpacity="0" />
-                    </linearGradient>
-                </defs>
-
-                {/* Data Points */}
-                {points.map((p, i) => (
-                    <Tooltip 
-                        key={i} 
-                        title={`${p.data.weighing_date}: ${p.data.weight}kg (${p.data.type})`} 
-                        arrow
-                    >
-                        <circle
-                            cx={p.x}
-                            cy={p.y}
-                            r="5"
-                            fill="#0a6ed1"
-                            stroke="white"
-                            strokeWidth="2"
-                            style={{ cursor: 'pointer' }}
-                        />
-                    </Tooltip>
-                ))}
-
-                {/* X Axis Labels (Dates) */}
-                {points.map((p, i) => (
-                    i % Math.ceil(points.length / 5) === 0 || i === points.length - 1 ? (
-                        <text 
-                            key={i} 
-                            x={p.x} 
-                            y={height - padding + 20} 
-                            textAnchor="middle" 
-                            fontSize="9" 
-                            fill="#999" 
-                            fontWeight="600"
-                        >
-                            {p.data.weighing_date.split('-').slice(1).reverse().join('/')}
-                        </text>
-                    ) : null
-                ))}
-            </svg>
+        <Box sx={{ width: '100%', height: 300 }}>
+            <ReactECharts 
+                option={chartOptions} 
+                style={{ height: '100%', width: '100%' }}
+                opts={{ renderer: 'svg' }} // SVG renderer for sharper lines on high-DPI
+            />
         </Box>
     );
 }

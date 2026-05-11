@@ -1,16 +1,17 @@
 'use client';
 
-import DemoContent from '@fuse/core/DemoContent';
 import { useTranslation } from 'react-i18next';
-import { Container, Box, Typography } from '@mui/material';
+import { Container, Box, Typography, Grid, Paper, Stack } from '@mui/material';
 import ViewHeader from 'src/components/ViewHeader';
 import '../../i18n';
 
 import { BatchWeightChart } from 'src/ui/batches/components/BatchWeightChart';
+import { BatchesComparativeChart } from 'src/ui/batches/components/BatchesComparativeChart';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
 /**
  * ExampleView Component
- * Semantically correct header and container.
+ * Dashboard for Batch Comparison and Evolution.
  */
 function ExampleView() {
 	const { t } = useTranslation('examplePage');
@@ -35,18 +36,69 @@ function ExampleView() {
 			}}
 		>
 			<ViewHeader
-				title={t('TITLE')}
-				subtitle="Demostración del componente de Gráfico de Evolución de Peso (Jhoangel AI Design)."
+				title="Análisis Comparativo de Biomasa"
+				subtitle="Monitoreo en tiempo real del peso promedio por lote y evolución de crecimiento."
 			/>
 
-			<Box sx={{ mt: 4 }}>
-				<Box sx={{ p: 4, bgcolor: 'background.paper', borderRadius: '16px', border: '1px solid #e0e0e0', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-					<Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: 'primary.main' }}>
-						Curva de Crecimiento del Lote (Ejemplo)
-					</Typography>
-					<BatchWeightChart data={mockHistory} />
+			<Stack spacing={4} sx={{ mt: 4 }}>
+				{/* Comparative Chart Section - Full Width */}
+				<Box>
+					<Paper 
+                        elevation={0}
+                        sx={{ 
+                            p: 4, 
+                            borderRadius: '16px', 
+                            border: '1px solid #e0e0e0', 
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                            bgcolor: 'background.paper'
+                        }}
+                    >
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+                            <Box sx={{ p: 1, bgcolor: '#e3f2fd', color: '#0a6ed1', borderRadius: '8px', display: 'flex' }}>
+                                <FuseSvgIcon size={24}>heroicons-outline:adjustments-horizontal</FuseSvgIcon>
+                            </Box>
+                            <Box>
+                                <Typography variant="h6" sx={{ fontWeight: 900, color: '#333' }}>
+                                    Análisis Comparativo de Biomasa (Multi-Lote)
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                    Comparativa de crecimiento acumulado entre lotes activos
+                                </Typography>
+                            </Box>
+                        </Stack>
+						
+						<BatchesComparativeChart />
+					</Paper>
 				</Box>
-			</Box>
+
+				{/* Individual Batch Detail Example - Full Width */}
+				<Box>
+					<Paper 
+                        elevation={0}
+                        sx={{ 
+                            p: 4, 
+                            borderRadius: '16px', 
+                            border: '1px solid #e0e0e0', 
+                            bgcolor: 'background.paper'
+                        }}
+                    >
+						<Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
+                            <Box sx={{ p: 1, bgcolor: '#f1f8e9', color: '#2e7d32', borderRadius: '8px', display: 'flex' }}>
+                                <FuseSvgIcon size={24}>heroicons-outline:presentation-chart-line</FuseSvgIcon>
+                            </Box>
+                            <Box>
+                                <Typography variant="h6" sx={{ fontWeight: 900, color: '#333' }}>
+                                    Evolución Individual: Lote de Ejemplo
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                    Historial de crecimiento detallado (Single Series)
+                                </Typography>
+                            </Box>
+                        </Stack>
+						<BatchWeightChart data={mockHistory} />
+					</Paper>
+				</Box>
+			</Stack>
 		</Container>
 	);
 }

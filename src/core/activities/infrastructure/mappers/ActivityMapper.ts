@@ -13,7 +13,7 @@ export class ActivityMapper {
         name: b.name,
         farmName: b.farm_name,
         count: b.count,
-        weight: b.weight || 'N/A',
+        current_weight: b.current_weight,
       })),
     };
   }

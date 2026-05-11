@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Box, Typography, CircularProgress, IconButton, Paper, Stack, Chip, Tooltip } from '@mui/material';
+import { Box, Typography, CircularProgress, IconButton, Paper, Stack, Chip, Tooltip, alpha } from '@mui/material';
 import DataTable from '@/components/data-table/DataTable';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useBatches } from '@/features/batches/hooks/useBatches';
@@ -17,6 +17,8 @@ export function BatchesTable() {
   const navigate = useNavigate();
   const { data: suppliers = [], isLoading: isLoadingSuppliers, isError: isErrorSuppliers } = useSuppliers();
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
+
+  console.log('batches', batches)
 
   const [addCaravansDialogOpen, setAddCaravansDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -67,6 +69,11 @@ export function BatchesTable() {
         renderDetailPanel={({ row }) => {
           const providerBatches = batches.filter(b => b.provider_id === row.original.id);
 
+          {
+            {
+              console.log('providerBatches', providerBatches)
+            }
+          }
           return (
             <Box
               sx={{
@@ -103,11 +110,25 @@ export function BatchesTable() {
                     >
                       <Stack direction="row" spacing={3} alignItems="center">
                         <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {batch.name}
-                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                              {batch.name}
+                            </Typography>
+                            {batch.activity_name && (
+                              <>
+                                <Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                  {batch.activity_name}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'secondary.main' }}>
+                                  {batch.current_weight ? `${batch.current_weight} kg/cab` : 'SIN PESO'}
+                                </Typography>
+                              </>
+                            )}
+                          </Stack>
                           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                            Establecimiento: {batch.farm_name || 'No asignado'}
+                            Establecimiento: {batch.farm_name || 'Sin establecimiento'}
                           </Typography>
 
                           <Stack direction="row" spacing={2}>

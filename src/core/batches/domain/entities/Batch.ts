@@ -5,6 +5,10 @@ export interface BatchDTO {
   farm_name?: string;
   provider_id?: number;
   provider_name?: string;
+  activity_id?: number;
+  activity_name?: string;
+  weight?: number;
+  current_weight?: number;
   observaciones?: string;
   is_active: boolean;
   created_at?: string;
@@ -13,6 +17,8 @@ export interface BatchDTO {
 export interface CreateBatchRequest {
   name: string;
   farm_id: number;
+  activity_id: number;
+  weight?: number;
   observaciones?: string;
 }
 
@@ -28,6 +34,10 @@ export class Batch {
     public readonly farm_name?: string,
     public readonly provider_id?: number,
     public readonly provider_name?: string,
+    public readonly activity_id?: number,
+    public readonly activity_name?: string,
+    public readonly weight?: number,
+    public readonly current_weight?: number,
     public readonly observaciones?: string,
     public readonly created_at?: string,
   ) { }
@@ -48,6 +58,10 @@ export class Batch {
       dto.farm_name,
       dto.provider_id,
       dto.provider_name,
+      dto.activity_id,
+      dto.activity_name,
+      dto.weight,
+      dto.current_weight,
       dto.observaciones,
       dto.created_at
     );

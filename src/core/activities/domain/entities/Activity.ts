@@ -9,6 +9,6 @@ export interface Activity {
     name: string;
     farmName: string;
     count: number;
-    weight?: string;
+    current_weight?: number;
   }>;
 }

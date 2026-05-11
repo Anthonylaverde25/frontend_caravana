@@ -8,8 +8,8 @@ export function useChangeBatchActivity() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, activityId }: { id: number; activityId: number }) =>
-      batchRepository.changeActivity(id, activityId),
+    mutationFn: ({ id, activityId, weight }: { id: number; activityId: number; weight?: number }) =>
+      batchRepository.changeActivity(id, activityId, weight),
     onSuccess: (data) => {
       // Invalidate both batches and activities to refresh the view
       queryClient.invalidateQueries({ queryKey: ['batches'] });

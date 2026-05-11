@@ -14,13 +14,13 @@ import {
     DialogContent,
     DialogActions,
     TextField,
-    Divider
 } from "@mui/material";
 import { useState } from "react";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import { motion } from "framer-motion";
 import ViewHeader from "@/components/ViewHeader";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 import { useCompany } from "@/contexts/CompanyContext";
 import { useActivities } from "@/features/activities/hooks/useActivities";
@@ -52,6 +52,9 @@ export default function ActivitiesView() {
     const { data: activities, isLoading } = useActivities(activeCompanyId);
     const { mutate: changeActivity } = useChangeBatchActivity();
 
+    console.log("activities", activities);
+
+
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedBatch, setSelectedBatch] = useState<any>(null);
     const [targetStage, setTargetStage] = useState<any>(null);
@@ -75,16 +78,23 @@ export default function ActivitiesView() {
     const handleChangeActivity = (stage: any) => {
         setTargetStage(stage);
         setIsDialogOpen(true);
-        setWeight(selectedBatch?.weight?.replace(' avg', '') || '');
+        setWeight(selectedBatch?.current_weight?.toString() || '');
         handleCloseMenu();
     };
 
     const handleConfirmMove = () => {
+        const parsedWeight = parseFloat(weight);
+
+        if (!weight || isNaN(parsedWeight) || parsedWeight <= 0) {
+            toast.error('Por favor, ingrese un peso válido mayor a 0');
+            return;
+        }
+
         if (selectedBatch && targetStage) {
             changeActivity({
                 id: selectedBatch.id,
                 activityId: targetStage.id,
-                weight: weight ? parseFloat(weight) : undefined
+                weight: parsedWeight
             });
             setIsDialogOpen(false);
             setSelectedBatch(null);
@@ -324,7 +334,7 @@ export default function ActivitiesView() {
                                         </Box>
                                         <Box sx={{ p: 1, borderRight: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem', color: '#555', bgcolor: '#f1f1f1', px: 0.8, py: 0.2, borderRadius: '2px' }}>
-                                                {batch.weight?.replace(' avg', '') || '-'}
+                                                {batch.current_weight ? `${batch.current_weight} KG` : '-'}
                                             </Typography>
                                         </Box>
                                         <Box sx={{ p: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -460,10 +470,10 @@ export default function ActivitiesView() {
                             }}
                         >
                             <Stack direction="row" spacing={1.5} alignItems="center">
-                                <Box sx={{ 
-                                    width: 32, 
-                                    height: 32, 
-                                    borderRadius: '50%', 
+                                <Box sx={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
                                     bgcolor: alpha(selectedBatch?.currentStage?.color || '#999', 0.1),
                                     display: 'flex',
                                     alignItems: 'center',
@@ -485,10 +495,10 @@ export default function ActivitiesView() {
                             <FuseSvgIcon size={20} sx={{ color: '#ddd' }}>heroicons-outline:arrow-long-right</FuseSvgIcon>
 
                             <Stack direction="row" spacing={1.5} alignItems="center">
-                                <Box sx={{ 
-                                    width: 32, 
-                                    height: 32, 
-                                    borderRadius: '50%', 
+                                <Box sx={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
                                     bgcolor: alpha(targetStage?.color || '#0a6ed1', 0.1),
                                     display: 'flex',
                                     alignItems: 'center',
@@ -511,14 +521,14 @@ export default function ActivitiesView() {
                         <Box>
                             <TextField
                                 fullWidth
-                                label="Peso del Lote / Promedio"
+                                label="Peso Promedio de Transferencia (kg/cab)"
                                 variant="filled"
                                 placeholder="0.00"
                                 value={weight}
                                 onChange={(e) => setWeight(e.target.value)}
                                 autoFocus
                                 InputProps={{
-                                    sx: { 
+                                    sx: {
                                         fontWeight: 800,
                                         fontSize: '1.1rem',
                                         bgcolor: '#f5f7f9',
@@ -533,7 +543,7 @@ export default function ActivitiesView() {
                                 }}
                             />
                             <Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#aaa', fontStyle: 'italic' }}>
-                                * Este peso se registrará como el peso de salida oficial.
+                                * Este peso cerrará la etapa actual y abrirá la nueva como peso inicial.
                             </Typography>
                         </Box>
                     </Stack>
@@ -550,6 +560,7 @@ export default function ActivitiesView() {
                         onClick={handleConfirmMove}
                         variant="contained"
                         disableElevation
+                        disabled={!weight || isNaN(parseFloat(weight)) || parseFloat(weight) <= 0}
                         sx={{
                             fontWeight: 800,
                             textTransform: 'none',

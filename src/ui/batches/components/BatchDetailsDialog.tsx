@@ -88,50 +88,118 @@ export function BatchDetailsDialog({ open, onClose, batch }: BatchDetailsDialogP
                             Registro de Pesajes
                         </Typography>
                         
-                        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '8px' }}>
-                            <Table size="small">
-                                <TableHead sx={{ bgcolor: '#f8f9fa' }}>
-                                    <TableRow>
-                                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Fecha</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Etapa</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary' }}>Tipo</TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary' }}>Peso (kg)</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {history.length > 0 ? (
-                                        history.map((record) => (
-                                            <TableRow key={record.id} hover>
-                                                <TableCell sx={{ fontWeight: 600 }}>
+                        <Box sx={{ border: '1px solid #c6c6c6', borderRadius: '4px', overflow: 'hidden' }}>
+                            {/* Columns Header */}
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1.5fr 1fr 1fr 0.8fr',
+                                    bgcolor: '#f3f3f3',
+                                    borderBottom: '2px solid #c6c6c6'
+                                }}
+                            >
+                                {['FECHA', 'ETAPA / ACTIVIDAD', 'TIPO', 'PESO KG', 'DIF. (+/-)'].map((col) => (
+                                    <Box
+                                        key={col}
+                                        sx={{
+                                            p: 1,
+                                            borderRight: '1px solid #c6c6c6',
+                                            '&:last-child': { borderRight: 0 },
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        <Typography variant="caption" sx={{ fontWeight: 900, color: '#444', fontSize: '0.65rem', letterSpacing: 0.5 }}>
+                                            {col}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+
+                            {/* Rows */}
+                            {history.length > 0 ? (
+                                history.map((record, index) => {
+                                    // Calculate difference with previous record
+                                    const prevRecord = index < history.length - 1 ? history[index + 1] : null;
+                                    const diff = prevRecord ? record.weight - prevRecord.weight : null;
+
+                                    return (
+                                        <Box
+                                            key={record.id}
+                                            sx={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '1fr 1.5fr 1fr 1fr 0.8fr',
+                                                borderBottom: '1px solid #e0e0e0',
+                                                '&:last-child': { borderBottom: 0 },
+                                                '&:hover': { bgcolor: '#f8f9fa' }
+                                            }}
+                                        >
+                                            <Box sx={{ p: 1, borderRight: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#555' }}>
                                                     {record.weighing_date}
-                                                </TableCell>
-                                                <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ p: 1, borderRight: '1px solid #e0e0e0' }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.7rem', color: '#333' }}>
                                                     {record.activity_name || '-'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Chip 
-                                                        label={record.type} 
-                                                        size="small" 
-                                                        color={record.type === 'TRANSFER' ? 'primary' : 'default'}
-                                                        variant="soft"
-                                                        sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                                                    {record.weight} kg
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={3} align="center" sx={{ py: 3, color: 'text.secondary', fontStyle: 'italic' }}>
-                                                No hay registros de peso disponibles.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ p: 1, borderRight: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center' }}>
+                                                <Typography 
+                                                    variant="caption" 
+                                                    sx={{ 
+                                                        fontWeight: 900, 
+                                                        fontSize: '0.6rem', 
+                                                        px: 1, 
+                                                        py: 0.2, 
+                                                        borderRadius: '2px',
+                                                        bgcolor: record.type === 'TRANSFER' ? '#e3f2fd' : '#f5f5f5',
+                                                        color: record.type === 'TRANSFER' ? '#0d47a1' : '#616161',
+                                                        border: '1px solid',
+                                                        borderColor: record.type === 'TRANSFER' ? '#bbdefb' : '#e0e0e0'
+                                                    }}
+                                                >
+                                                    {record.type}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ p: 1, borderRight: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: '#fcfcfc' }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 900, fontSize: '0.8rem', color: 'primary.main' }}>
+                                                    {record.weight}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                {diff !== null ? (
+                                                    <Stack direction="row" spacing={0.5} alignItems="center">
+                                                        <FuseSvgIcon size={12} sx={{ color: diff >= 0 ? '#4caf50' : '#f44336' }}>
+                                                            {diff >= 0 ? 'heroicons-outline:arrow-trending-up' : 'heroicons-outline:arrow-trending-down'}
+                                                        </FuseSvgIcon>
+                                                        <Typography 
+                                                            variant="caption" 
+                                                            sx={{ 
+                                                                fontWeight: 800, 
+                                                                fontSize: '0.7rem', 
+                                                                color: diff >= 0 ? '#2e7d32' : '#d32f2f' 
+                                                            }}
+                                                        >
+                                                            {diff > 0 ? `+${diff}` : diff}
+                                                        </Typography>
+                                                    </Stack>
+                                                ) : (
+                                                    <Typography variant="caption" sx={{ color: '#bbb', fontWeight: 700 }}>BASE</Typography>
+                                                )}
+                                            </Box>
+                                        </Box>
+                                    );
+                                })
+                            ) : (
+                                <Box sx={{ p: 4, textAlign: 'center' }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                                        No hay registros de peso disponibles.
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
                     </Box>
                 </Stack>
             </DialogContent>
