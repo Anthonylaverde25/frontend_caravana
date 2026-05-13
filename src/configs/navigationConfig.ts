@@ -44,6 +44,46 @@ const navigationConfig: FuseNavItemType[] = [
 		url: 'livestock'
 	},
 	{
+		id: 'template-management',
+		title: 'GESTIÓN DE PLANTILLAS',
+		subtitle: 'Plantillas de Trabajo',
+		type: 'group',
+		icon: 'heroicons-outline:document-text',
+		children: [
+			{
+				id: 'work-templates',
+				title: 'Lista de Plantillas',
+				subtitle: 'Explorar y Editar',
+				type: 'item',
+				icon: 'heroicons-outline:table',
+				url: 'work-templates'
+			},
+
+			{
+				id: 'templates.ops',
+				title: 'Operaciones de Diseño',
+				type: 'collapse',
+				icon: 'heroicons-outline:pencil-square',
+				children: [
+					{
+						id: 'templates.create',
+						title: 'Crear Plantilla',
+						type: 'item',
+						icon: 'heroicons-outline:plus-circle',
+						url: '/templates/create'
+					},
+					{
+						id: 'templates.import',
+						title: 'Importar / OCR',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-up-tray',
+						url: '/templates/import'
+					}
+				]
+			}
+		]
+	},
+	{
 		id: 'livestock-management',
 		title: 'GESTIÓN GANADERA',
 		subtitle: 'Control de Caravanas',

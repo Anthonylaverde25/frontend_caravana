@@ -38,6 +38,7 @@ type ActionMode = 'create' | 'edit' | 'view';
 
 interface CaravanDataTableProps {
   onBulkWeightEntry?: (batchId: number) => void;
+  onWeightSheet?: (batchId: number | number[]) => void;
 }
 
 const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>((props, ref) => {
@@ -55,15 +56,33 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
   const openExportMenu = Boolean(exportAnchorEl);
 
+  const [bulkMenuAnchorEl, setBulkMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const openBulkMenu = Boolean(bulkMenuAnchorEl);
+
+  const [batchMenuAnchorEl, setBatchMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedBatch, setSelectedBatch] = useState<any>(null);
+  const openBatchMenu = Boolean(batchMenuAnchorEl);
+
+  const handleOpenBatchMenu = (event: React.MouseEvent<HTMLElement>, batch: any) => {
+    setBatchMenuAnchorEl(event.currentTarget);
+    setSelectedBatch(batch);
+  };
+
+  const handleCloseBatchMenu = () => {
+    setBatchMenuAnchorEl(null);
+    setSelectedBatch(null);
+  };
   const [formData, setFormData] = useState({
     id: 0,
     identification: '',
     category: '',
     breed: '',
+    sex: '',
     teeth: 0,
-    entry_weight: '',
-    sex: 'M',
-    entry_date: new Date().toISOString().split('T')[0]
+    entry_weight: 0,
+    entry_date: '',
+    batch_id: 0,
+    farm_id: 0
   });
 
   // --- Transfer Flow State ---
@@ -388,7 +407,10 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
               </IconButton>
             </Tooltip>
             <Tooltip title="Más opciones">
-              <IconButton size="small">
+              <IconButton 
+                size="small"
+                onClick={(e) => handleOpenBatchMenu(e, row.original)}
+              >
                 <FuseSvgIcon size={18}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
               </IconButton>
             </Tooltip>
@@ -412,6 +434,40 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
             >
               Exportar Inventario
             </Button>
+
+            {table.getSelectedRowModel().rows.length > 0 && (
+              <>
+                <IconButton
+                  size="small"
+                  onClick={(e) => setBulkMenuAnchorEl(e.currentTarget)}
+                  sx={{ 
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                    color: 'primary.main',
+                    borderRadius: '8px',
+                    ml: 1
+                  }}
+                >
+                  <FuseSvgIcon size={18}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
+                </IconButton>
+                <Menu
+                  anchorEl={bulkMenuAnchorEl}
+                  open={openBulkMenu}
+                  onClose={() => setBulkMenuAnchorEl(null)}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                  <MenuItem onClick={() => {
+                    const selectedIds = table.getSelectedRowModel().rows.map((r: any) => r.original.id);
+                    props.onWeightSheet?.(selectedIds);
+                    setBulkMenuAnchorEl(null);
+                    table.resetRowSelection();
+                  }}>
+                    <FuseSvgIcon size={20} className="mr-3" color="action">heroicons-outline:document-text</FuseSvgIcon>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>Planillas de Control (Seleccionados)</Typography>
+                  </MenuItem>
+                </Menu>
+              </>
+            )}
             
             <Menu
               anchorEl={exportAnchorEl}
@@ -423,6 +479,29 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
               <MenuItem onClick={() => { console.log('Export CSV'); setExportAnchorEl(null); }}>
                 <FuseSvgIcon size={20} className="mr-3" color="action">heroicons-outline:table</FuseSvgIcon>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>Exportar CSV</Typography>
+              </MenuItem>
+            </Menu>
+
+            <Menu
+              anchorEl={batchMenuAnchorEl}
+              open={openBatchMenu}
+              onClose={handleCloseBatchMenu}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+              <MenuItem onClick={() => { 
+                props.onWeightSheet?.(selectedBatch.id);
+                handleCloseBatchMenu(); 
+              }}>
+                <FuseSvgIcon size={20} className="mr-3" color="action">heroicons-outline:document-text</FuseSvgIcon>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>Planilla de Control de Peso</Typography>
+              </MenuItem>
+              <MenuItem onClick={() => { 
+                console.log('Other batch action'); 
+                handleCloseBatchMenu(); 
+              }}>
+                <FuseSvgIcon size={20} className="mr-3" color="action">heroicons-outline:printer</FuseSvgIcon>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>Imprimir Etiquetas</Typography>
               </MenuItem>
             </Menu>
           </Stack>

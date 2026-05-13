@@ -17,6 +17,7 @@ export type ViewHeaderProps = {
  * ViewHeader Component
  * A standardized minimalist header for views.
  */
+
 function ViewHeader(props: ViewHeaderProps) {
 	const { title, subtitle, actions, showBreadcrumb = true, backUrl, backTitle, className = '' } = props;
 

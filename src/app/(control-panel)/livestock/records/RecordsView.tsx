@@ -21,6 +21,11 @@ function RecordsView() {
 		navigate(`/caravans/bulk-weight/${batchId}`);
 	};
 
+	const handleWeightSheet = (batchId: number | number[]) => {
+		const idParam = Array.isArray(batchId) ? batchId.join(',') : batchId;
+		navigate(`/caravans/weight-sheet/${idParam}`);
+	};
+
 	return (
 		<Container
 			maxWidth={false}
@@ -51,6 +56,7 @@ function RecordsView() {
 				<CaravanDataTable 
 					ref={tableRef} 
 					onBulkWeightEntry={handleBulkWeightEntry}
+					onWeightSheet={handleWeightSheet}
 				/>
 			</Box>
 		</Container>
