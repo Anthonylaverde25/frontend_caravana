@@ -24,6 +24,7 @@ export class CaravanMapper {
         id: Number(raw.batch.id),
         name: raw.batch.name
       } : null,
+      current_weight: raw.current_weight != null ? Number(raw.current_weight) : null,
     };
 
     return Caravan.create(dto);
@@ -44,6 +45,7 @@ export class CaravanMapper {
       sex: entity.sex,
       entry_date: entity.entry_date,
       batch_id: entity.batch_id,
+      current_weight: entity.current_weight,
     };
   }
 }

@@ -22,6 +22,7 @@ import {
 import DataTable from 'src/components/data-table/DataTable';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { getCaravanColumns } from './columns/CaravanColumns';
+import { CaravanWeightDialog } from './CaravanWeightDialog';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useUpsertCaravan } from '@/features/caravans/hooks/useUpsertCaravan';
@@ -35,12 +36,11 @@ export interface CaravanDataTableRef {
 
 type ActionMode = 'create' | 'edit' | 'view';
 
-/**
- * CaravanDataTable Component
- * High-level orchestration of the cattle inventory table.
- * Now modularized with Domain-Driven Design and React Query.
- */
-const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
+interface CaravanDataTableProps {
+  onBulkWeightEntry?: (batchId: number) => void;
+}
+
+const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>((props, ref) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { activeCompanyId } = useCompany();
@@ -70,6 +70,13 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedCaravan, setSelectedCaravan] = useState<any>(null);
   const [targetCompanyId, setTargetCompanyId] = useState<number | string>('');
+  const [weightDialogOpen, setWeightDialogOpen] = useState(false);
+  const [caravanForWeight, setCaravanForWeight] = useState<any>(null);
+
+  const handleOpenWeight = (caravan: any) => {
+    setCaravanForWeight(caravan);
+    setWeightDialogOpen(true);
+  };
 
   const { companies } = useCompany();
   const availableCompanies = companies.filter(c => c.id !== activeCompanyId);
@@ -243,7 +250,7 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
       header: 'Peso Promedio',
       size: 150,
       accessorFn: (row: any) => {
-        const weights = row.caravans.filter((c: any) => c.entry_weight).map((c: any) => c.entry_weight);
+        const weights = row.caravans.filter((c: any) => c.current_weight).map((c: any) => c.current_weight);
         if (weights.length === 0) return 0;
         return weights.reduce((a: number, b: number) => a + b, 0) / weights.length;
       },
@@ -282,7 +289,8 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
             sx={{
               display: 'grid',
               width: '100%',
-              p: 3,
+              px: 1,
+              py: 3,
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
               borderTop: '1px solid',
               borderBottom: '1px solid',
@@ -318,6 +326,9 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
                   <IconButton size="small" onClick={() => handleOpenDialog('edit', caravanRow.original)}>
                     <FuseSvgIcon size={16}>heroicons-outline:pencil-alt</FuseSvgIcon>
                   </IconButton>
+                  <IconButton size="small" color="success" onClick={() => handleOpenWeight(caravanRow.original)}>
+                    <FuseSvgIcon size={16}>heroicons-outline:scale</FuseSvgIcon>
+                  </IconButton>
                   <IconButton size="small" color="primary" onClick={() => handleOpenTransfer(caravanRow.original)}>
                     <FuseSvgIcon size={16}>heroicons-outline:arrows-right-left</FuseSvgIcon>
                   </IconButton>
@@ -325,19 +336,52 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
               )}
               muiTableProps={{
                 sx: {
+                  width: '100%',
                   bgcolor: 'background.paper',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
                   border: '1px solid',
                   borderColor: 'divider',
+                  '& .MuiTableHead-root': {
+                    bgcolor: 'action.hover',
+                  }
                 }
               }}
-              initialState={{ density: 'compact' }}
+              muiTableHeadCellProps={{
+                sx: {
+                  borderRight: '1px solid',
+                  borderBottom: '2px solid',
+                  borderColor: 'divider',
+                  fontWeight: 800,
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  bgcolor: 'action.hover',
+                }
+              }}
+              muiTableBodyCellProps={{
+                sx: {
+                  borderRight: '1px solid',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  p: '6px 12px',
+                }
+              }}
+              initialState={{ 
+                density: 'compact',
+                columnVisibility: { id: false }
+              }}
             />
           </Box>
         )}
         renderRowActions={({ row }) => (
           <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+            <Tooltip title="Carga Masiva de Pesajes">
+              <IconButton 
+                size="small" 
+                color="success"
+                onClick={() => props.onBulkWeightEntry?.(row.original.id)}
+              >
+                <FuseSvgIcon size={18}>heroicons-outline:scale</FuseSvgIcon>
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Gestionar Lote">
               <IconButton size="small" color="primary">
                 <FuseSvgIcon size={18}>heroicons-outline:folder-open</FuseSvgIcon>
@@ -383,6 +427,29 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
             </Menu>
           </Stack>
         )}
+        muiTableProps={{
+          sx: {
+            width: '100%',
+            border: '1px solid',
+            borderColor: 'divider',
+          }
+        }}
+        muiTableHeadCellProps={{
+          sx: {
+            borderRight: '1px solid',
+            borderBottom: '2px solid',
+            borderColor: 'divider',
+            bgcolor: 'action.hover',
+            fontWeight: 800,
+          }
+        }}
+        muiTableBodyCellProps={{
+          sx: {
+            borderRight: '1px solid',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }
+        }}
         initialState={{
           density: 'compact',
           showGlobalFilter: true,
@@ -503,6 +570,15 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef>((_props, ref) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <CaravanWeightDialog
+        open={weightDialogOpen}
+        onClose={() => {
+          setWeightDialogOpen(false);
+          setCaravanForWeight(null);
+        }}
+        caravan={caravanForWeight}
+      />
     </Box>
   );
 });

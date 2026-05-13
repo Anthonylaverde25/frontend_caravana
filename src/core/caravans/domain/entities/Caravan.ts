@@ -13,10 +13,11 @@ export interface CaravanDTO {
   sex?: string | null;
   entry_date?: string | null;
   batch_id?: number | null;
-  batch?: {
+    batch?: {
     id: number;
     name: string;
   } | null;
+  current_weight?: number | null;
 }
 
 /**
@@ -52,6 +53,7 @@ export class Caravan {
     public readonly entry_date: string | null,
     public readonly batch_id: number | null,
     public readonly batch_name: string | null,
+    public readonly current_weight: number | null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -74,6 +76,7 @@ export class Caravan {
       dto.entry_date ?? null,
       dto.batch_id ?? null,
       dto.batch?.name ?? null,
+      dto.current_weight ?? null,
     );
   }
 

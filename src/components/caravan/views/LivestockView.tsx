@@ -27,7 +27,7 @@ function LivestockView() {
 
 	return (
 		<Container
-			maxWidth="xl"
+			maxWidth={false}
 			sx={{
 				// py: 4, 
 				display: 'flex',

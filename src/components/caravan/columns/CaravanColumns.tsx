@@ -8,6 +8,7 @@ export interface Caravan {
   breed: string | null;
   teeth: number;
   entry_weight: number | null;
+  current_weight: number | null;
   sex: string | null;
   entry_date: string | null;
   batch_name: string | null;
@@ -116,7 +117,19 @@ export const getCaravanColumns = (): MRT_ColumnDef<Caravan>[] => [
   },
   {
     accessorKey: 'entry_weight',
-    header: 'Peso (Kg)',
+    header: 'Peso Inicial',
+    size: 110,
+    muiTableHeadCellProps: { align: 'right' },
+    muiTableBodyCellProps: { align: 'right' },
+    Cell: ({ cell }) => cell.getValue() ? (
+      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+        {cell.getValue<number>().toLocaleString()} kg
+      </Typography>
+    ) : '-',
+  },
+  {
+    accessorKey: 'current_weight',
+    header: 'Peso Actual (Kg)',
     size: 110,
     muiTableHeadCellProps: { align: 'right' },
     muiTableBodyCellProps: { align: 'right' },

@@ -21,4 +21,10 @@ export interface ICaravanRepository {
 
   /** Removes a caravan record by its ID. */
   delete(id: number): Promise<void>;
+
+  /** Retrieves the weight history for a caravan. */
+  getWeights(id: number): Promise<any[]>;
+
+  /** Records a new weight for a caravan. */
+  recordWeight(id: number, data: { weight: number; weighing_date: string; notes?: string }): Promise<void>;
 }

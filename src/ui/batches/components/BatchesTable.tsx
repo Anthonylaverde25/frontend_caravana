@@ -241,6 +241,28 @@ export function BatchesTable() {
           showGlobalFilter: true,
           pagination: { pageSize: 15, pageIndex: 0 },
         }}
+        muiTableProps={{
+          sx: {
+            border: '1px solid',
+            borderColor: 'divider',
+          }
+        }}
+        muiTableHeadCellProps={{
+          sx: {
+            borderRight: '1px solid',
+            borderBottom: '2px solid',
+            borderColor: 'divider',
+            bgcolor: 'action.hover',
+            fontWeight: 800,
+          }
+        }}
+        muiTableBodyCellProps={{
+          sx: {
+            borderRight: '1px solid',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }
+        }}
       />
       <AddCaravansDialog
         open={addCaravansDialogOpen}

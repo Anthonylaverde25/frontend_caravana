@@ -36,4 +36,17 @@ export class ApiCaravanRepository implements ICaravanRepository {
   async delete(id: number): Promise<void> {
     await axiosInstance.delete(`/caravans/${id}`);
   }
+
+  async getWeights(id: number): Promise<any[]> {
+    const response = await axiosInstance.get<any[]>(`/caravans/${id}/weights`);
+    return response.data;
+  }
+
+  async recordWeight(id: number, data: { weight: number; weighing_date: string; notes?: string }): Promise<void> {
+    await axiosInstance.post(`/caravans/${id}/weights`, data);
+  }
+
+  async bulkRecordWeights(weights: any[]): Promise<void> {
+    await axiosInstance.post('/caravans/bulk-weights', { weights });
+  }
 }

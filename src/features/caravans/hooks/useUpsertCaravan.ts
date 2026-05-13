@@ -21,6 +21,7 @@ export function useUpsertCaravan() {
     onSuccess: (response) => {
       // Invalidate all caravan queries to force a refetch
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
       
       const message = response.action === 'created' 
         ? 'Caravana registrada exitosamente' 

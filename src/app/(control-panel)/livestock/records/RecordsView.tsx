@@ -1,9 +1,9 @@
 import { Container, Box, Button } from '@mui/material';
 import { useRef } from 'react';
+import { useNavigate } from 'react-router';
 import ViewHeader from 'src/components/ViewHeader';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import CaravanDataTable, { CaravanDataTableRef } from 'src/components/caravan/CaravanDataTable';
-import { Separator } from '@/components/tiptap/tiptap-ui-primitive/separator';
 
 /**
  * RecordsView Component
@@ -11,14 +11,19 @@ import { Separator } from '@/components/tiptap/tiptap-ui-primitive/separator';
  */
 function RecordsView() {
 	const tableRef = useRef<CaravanDataTableRef>(null);
+	const navigate = useNavigate();
 
 	const handleAddClick = () => {
 		tableRef.current?.openAddDialog();
 	};
 
+	const handleBulkWeightEntry = (batchId: number) => {
+		navigate(`/caravans/bulk-weight/${batchId}`);
+	};
+
 	return (
 		<Container
-			maxWidth="xl"
+			maxWidth={false}
 			sx={{
 				display: 'flex',
 				flexDirection: 'column',
@@ -43,7 +48,10 @@ function RecordsView() {
 
 
 			<Box sx={{ mt: 1 }}>
-				<CaravanDataTable ref={tableRef} />
+				<CaravanDataTable 
+					ref={tableRef} 
+					onBulkWeightEntry={handleBulkWeightEntry}
+				/>
 			</Box>
 		</Container>
 	);
