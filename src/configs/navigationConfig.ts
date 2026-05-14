@@ -20,29 +20,7 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'lucide:star',
 		url: 'example'
 	},
-	{
-		id: 'suppliers',
-		title: 'Proveedores',
-		translate: 'SUPPLIERS',
-		type: 'item',
-		icon: 'lucide:star',
-		url: 'suppliers'
-	},
-	{
-		id: 'batches',
-		title: 'Lotes',
-		translate: 'BATCHES',
-		type: 'item',
-		icon: 'heroicons-outline:collection',
-		url: 'batches'
-	},
-	{
-		id: 'livestock-app',
-		title: 'Cuadro de Mando Ganadero',
-		type: 'item',
-		icon: 'heroicons-outline:chart-bar',
-		url: 'livestock'
-	},
+
 	{
 		id: 'template-management',
 		title: 'GESTIÓN DE PLANTILLAS',

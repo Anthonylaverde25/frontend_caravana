@@ -1,13 +1,17 @@
-import { Container, Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { useState } from 'react';
-import ViewHeader from 'src/components/ViewHeader';
+import ViewLayout from 'src/components/ViewLayout';
 import MovementDataTable from 'src/components/caravan/MovementDataTable';
 import CaravanDetailDrawer from 'src/components/caravan/CaravanDetailDrawer';
 import { useAllCaravanMovements } from '@/features/caravans/hooks/useCaravanMovements';
+import { Button } from '@mui/material';
+import { Link } from 'react-router';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
 /**
  * CaravansMovements Component
  * Functional view showing the latest movements across the system.
+ * Standardized using ViewLayout.
  */
 function CaravansMovements() {
 	const [selectedCaravan, setSelectedCaravan] = useState<string | null>(null);
@@ -22,42 +26,57 @@ function CaravansMovements() {
 	};
 
 	return (
-		<Container
-			maxWidth="xl"
-			sx={{
-				display: 'flex',
-				flexDirection: 'column',
-				width: '100%',
-			}}
+		<ViewLayout
+			title="Historial de Movimientos"
+			subtitle="Auditoría completa de trazabilidad: visualiza los últimos movimientos, ingresos y traslados registrados."
+			actions={
+				<Button
+					variant="text"
+					component={Link}
+					to="/caravans"
+					startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-left</FuseSvgIcon>}
+					sx={{ color: 'primary.main', fontWeight: 600, textTransform: 'none' }}
+				>
+					Volver a Caravanas
+				</Button>
+			}
 		>
-			<ViewHeader
-				title="Historial de Movimientos"
-				subtitle="Auditoría completa de trazabilidad: visualiza los últimos movimientos, ingresos y traslados registrados."
-				backUrl="/caravans"
-			/>
-
-			<Box sx={{ mt: 1, position: 'relative', minHeight: 400 }}>
+			<Box sx={{ position: 'relative', minHeight: 400 }}>
 				{isLoading ? (
-					<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-						<CircularProgress size={32} thickness={5} sx={{ color: 'primary.main' }} />
-						<Typography variant="body2" sx={{ ml: 2, fontWeight: 700, color: 'text.secondary' }}>
+					<Box
+						sx={{
+							display: 'flex',
+							justifyContent: 'center',
+							alignItems: 'center',
+							height: 400,
+						}}
+					>
+						<CircularProgress
+							size={32}
+							thickness={5}
+							sx={{ color: 'primary.main' }}
+						/>
+						<Typography
+							variant="body2"
+							sx={{ ml: 2, fontWeight: 700, color: 'text.secondary' }}
+						>
 							CARGANDO AUDITORÍA...
 						</Typography>
 					</Box>
 				) : (
-					<MovementDataTable 
-						data={movements as any} 
+					<MovementDataTable
+						data={movements as any}
 						onCaravanClick={handleCaravanClick}
 					/>
 				)}
 			</Box>
 
-			<CaravanDetailDrawer 
+			<CaravanDetailDrawer
 				open={!!selectedCaravan}
 				onClose={handleCloseDrawer}
 				caravanIdentification={selectedCaravan}
 			/>
-		</Container>
+		</ViewLayout>
 	);
 }
 

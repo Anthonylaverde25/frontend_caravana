@@ -1,394 +1,385 @@
-import FusePageSimple from '@fuse/core/FusePageSimple';
-import { styled } from '@mui/material/styles';
-import { Button, Paper, Typography, Box, Stack, Chip, IconButton, Tooltip, Divider } from '@mui/material';
-import ViewHeader from 'src/components/ViewHeader';
+import { useMemo, useState } from 'react';
+import { 
+	Box, 
+	Typography, 
+	Paper, 
+	Stack, 
+	IconButton, 
+	Tooltip, 
+	Chip, 
+	Button,
+	Dialog,
+	DialogContent,
+	DialogTitle,
+	Divider
+} from '@mui/material';
+import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import DataTable from '@/components/data-table/DataTable';
 import { Link } from 'react-router';
-import { useState } from 'react';
+import { useTemplateData } from './hooks/useTemplateData';
 
 /**
- * Mock data for templates
+ * PreviewDialog Component
+ * Renders a technical "Planilla de Campo" (A4 Style) for the selected template.
  */
-const mockTemplates = [
-    {
-        id: '1',
-        title: 'Control de Pesaje Grupal',
-        description: 'Planilla estandarizada para el seguimiento de biomasa por lote. Incluye campos de caravana, peso y dentición.',
-        category: 'Ganadería',
-        lastModified: '10 Mayo, 2024',
-        status: 'active',
-        icon: 'heroicons-outline:chart-bar',
-        color: '#3b82f6',
-    },
-    {
-        id: '2',
-        title: 'Registro de Sanidad',
-        description: 'Control de vacunación, tratamientos y protocolos sanitarios. Registro de fármacos y dosis aplicadas.',
-        category: 'Sanidad',
-        lastModified: '12 Mayo, 2024',
-        status: 'active',
-        icon: 'heroicons-outline:shield-check',
-        color: '#10b981',
-    },
-    {
-        id: '3',
-        title: 'Movimiento de Hacienda',
-        description: 'Registro de traslados entre establecimientos o potreros. Guías de transporte y documentos legales.',
-        category: 'Operaciones',
-        lastModified: 'Hoy, 09:45',
-        status: 'draft',
-        icon: 'heroicons-outline:truck',
-        color: '#f59e0b',
-    },
-    {
-        id: '4',
-        title: 'Inventario de Insumos',
-        description: 'Control de stock de alimentos, suplementos y herramientas. Registro de ingresos y egresos de almacén.',
-        category: 'Logística',
-        lastModified: '11 Mayo, 2024',
-        status: 'active',
-        icon: 'heroicons-outline:clipboard-list',
-        color: '#8b5cf6',
-    },
-];
+function PreviewDialog({ open, onClose, template }: { open: boolean, onClose: () => void, template: any }) {
+	if (!template) return null;
 
-/**
- * Styled Root component for TemplatesView
- */
-const Root = styled(FusePageSimple)(({ theme }) => ({
-    '& .FusePageSimple-header': {
-        backgroundColor: theme.palette.background.paper,
-        borderBottomWidth: 1,
-        borderStyle: 'solid',
-        borderColor: theme.palette.divider,
-        '& > .container': {
-            maxWidth: 'none !important',
-            width: '100% !important',
-            padding: '0 !important',
-            margin: '0 !important',
-        },
-    },
-    '& .FusePageSimple-content': {
-        display: 'flex',
-        flexDirection: 'column',
-        flex: '1 1 auto',
-        padding: 0,
-        backgroundColor: theme.palette.background.default,
-        '& > .container': {
-            maxWidth: 'none !important',
-            width: '100% !important',
-            padding: '24px !important',
-            margin: '0 !important',
-            display: 'flex',
-            flexDirection: 'column',
-            flex: '1 1 auto',
-        },
-    },
-}));
+	return (
+		<Dialog 
+			open={open} 
+			onClose={onClose} 
+			maxWidth="md" 
+			fullWidth
+			PaperProps={{
+				sx: { borderRadius: '8px', backgroundColor: 'grey.100' }
+			}}
+		>
+			<DialogTitle className="flex items-center justify-between bg-white border-b border-divider px-24 py-16">
+				<Stack direction="row" spacing={1.5} alignItems="center">
+					<FuseSvgIcon size={20} color="primary">heroicons-outline:document-magnifying-glass</FuseSvgIcon>
+					<Box>
+						<Typography variant="subtitle1" className="font-extrabold text-grey-800 leading-tight">
+							Previsualización: {template.title}
+						</Typography>
+						<Typography variant="caption" className="text-grey-500 font-bold uppercase tracking-wider">
+							Formato: Planilla de Campo
+						</Typography>
+					</Box>
+				</Stack>
+				<IconButton onClick={onClose} size="small"><FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon></IconButton>
+			</DialogTitle>
+			<DialogContent className="p-40 flex justify-center overflow-y-auto bg-grey-200">
+				{/* Simulated A4 Sheet */}
+				<Paper 
+					elevation={4} 
+					sx={{ 
+						width: '210mm', 
+						minHeight: '297mm', 
+						p: '20mm', 
+						backgroundColor: 'white',
+						boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+						borderRadius: '2px'
+					}}
+				>
+					{/* Planilla de Campo Header */}
+					<Box className="border-2 border-grey-900 p-16 mb-24">
+						<Stack direction="row" justifyContent="space-between" alignItems="center">
+							<Box>
+								<Typography variant="h5" className="font-black text-grey-900 uppercase">PLANILLA DE CAMPO</Typography>
+								<Typography variant="body2" className="font-bold text-grey-600 italic">{template.type_name}</Typography>
+							</Box>
+							<Box className="text-right border-l-2 border-grey-900 pl-24">
+								<Typography variant="caption" className="block font-bold">ESTABLECIMIENTO: ____________________</Typography>
+								<Typography variant="caption" className="block font-bold mt-4">FECHA: ____ / ____ / ________</Typography>
+							</Box>
+						</Stack>
+					</Box>
+
+					{/* Technical Grid Mockup */}
+					<Box className="w-full">
+						<Table size="small" sx={{ border: '2px solid black', '& td, & th': { border: '1px solid black', py: 1.5 } }}>
+							<TableHead>
+								<TableRow sx={{ bgcolor: 'grey.100' }}>
+									<TableCell sx={{ fontWeight: 900, fontSize: 10, textAlign: 'center', width: 40 }}>ORD.</TableCell>
+									<TableCell sx={{ fontWeight: 900, fontSize: 10 }}>CARAVANA / ID</TableCell>
+									<TableCell sx={{ fontWeight: 900, fontSize: 10 }}>CATEGORÍA</TableCell>
+									<TableCell sx={{ fontWeight: 900, fontSize: 10 }}>PESO (KG)</TableCell>
+									<TableCell sx={{ fontWeight: 900, fontSize: 10 }}>OBSERVACIONES</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{[...Array(15)].map((_, i) => (
+									<TableRow key={i}>
+										<TableCell sx={{ textAlign: 'center', color: 'grey.400', fontSize: 10 }}>{i + 1}</TableCell>
+										<TableCell />
+										<TableCell />
+										<TableCell />
+										<TableCell />
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</Box>
+
+					{/* Footer Info */}
+					<Box className="mt-40 pt-24 border-t border-grey-300">
+						<Stack direction="row" spacing={8}>
+							<Box className="flex-1 border-b border-grey-900 pb-4">
+								<Typography variant="caption" className="font-bold uppercase text-grey-400">Responsable de Campo</Typography>
+							</Box>
+							<Box className="flex-1 border-b border-grey-900 pb-4 text-right">
+								<Typography variant="caption" className="font-bold uppercase text-grey-400 text-right">Firma y Sello</Typography>
+							</Box>
+						</Stack>
+					</Box>
+				</Paper>
+			</DialogContent>
+			<Box className="p-16 bg-white border-t border-divider flex justify-end gap-12">
+				<Button variant="outlined" onClick={onClose} sx={{ textTransform: 'none', fontWeight: 700 }}>Cerrar</Button>
+				<Button 
+					variant="contained" 
+					startIcon={<FuseSvgIcon size={20}>heroicons-outline:printer</FuseSvgIcon>}
+					sx={{ bgcolor: 'primary.main', textTransform: 'none', fontWeight: 700 }}
+				>
+					Imprimir Planilla
+				</Button>
+			</Box>
+		</Dialog>
+	);
+}
+
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 
 /**
  * TemplatesView Component
- * Main view for managing work templates using a List layout with Multi-select Chips.
  */
 function TemplatesView() {
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+	const { types, templates, isLoading, error } = useTemplateData();
+	const [previewTemplate, setPreviewTemplate] = useState<any>(null);
 
-    // Dynamically extract categories (excluding 'Todas' for multi-select logic)
-    const categories = [...new Set(mockTemplates.map((t) => t.category))];
+	const columns = useMemo(() => [
+		{
+			header: 'Tipo de Proceso',
+			accessorKey: 'name',
+			cell: ({ row }: any) => (
+				<Stack direction="row" spacing={1.5} alignItems="center">
+					<Box sx={{ color: row.original.color, display: 'flex' }}>
+						<FuseSvgIcon size={20}>{row.original.icon || 'heroicons-outline:collection'}</FuseSvgIcon>
+					</Box>
+					<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+						{row.original.name}
+					</Typography>
+				</Stack>
+			)
+		},
+		{
+			header: 'Código',
+			accessorKey: 'code',
+			cell: ({ getValue }: any) => (
+				<Typography variant="caption" className="font-mono font-bold text-grey-400 uppercase tracking-wider">
+					{getValue()}
+				</Typography>
+			)
+		},
+		{
+			header: 'Cant. Plantillas',
+			accessorFn: (row: any) => templates.filter(t => t.type_name === row.name).length,
+			cell: ({ getValue }: any) => (
+				<Chip
+					label={`${getValue()} Activas`}
+					size="small"
+					sx={{ fontWeight: 700, fontSize: 10, height: 20 }}
+				/>
+			)
+		}
+	], [templates]);
 
-    // Toggle category selection
-    const toggleCategory = (category: string) => {
-        setSelectedCategories((prev) =>
-            prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-        );
-    };
+	if (error) {
+		return (
+			<ViewLayout title="Plantillas de Trabajo">
+				<Box className="p-32 text-center text-error border border-error rounded-8 bg-error-50">
+					<Typography variant="h6">Error de sincronización</Typography>
+					<Typography variant="body2">{error}</Typography>
+				</Box>
+			</ViewLayout>
+		);
+	}
 
-    // Clear all filters
-    const clearFilters = () => setSelectedCategories([]);
+	return (
+		<ViewLayout
+			title="Gestión de Plantillas"
+			subtitle="Repositorio centralizado de procesos operativos y formatos de campo."
+			actions={
+				<Button
+					variant="contained"
+					component={Link}
+					to="/templates/create"
+					startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
+					sx={{
+						bgcolor: 'primary.main',
+						borderRadius: '6px',
+						px: 3,
+						fontWeight: 700,
+						textTransform: 'none',
+						boxShadow: 'none'
+					}}
+				>
+					Nueva Plantilla
+				</Button>
+			}
+		>
+			<Box className="w-full">
+				<DataTable
+					columns={columns}
+					data={types}
+					isLoading={isLoading}
+					enableExpanding={true}
+					positionActionsColumn="last"
+					renderDetailPanel={({ row }) => {
+						const typeTemplates = templates.filter(t => t.type_name === row.original.name);
 
-    // Filter templates based on selected categories
-    const filteredTemplates =
-        selectedCategories.length === 0
-            ? mockTemplates
-            : mockTemplates.filter((t) => selectedCategories.includes(t.category));
+						return (
+							<Box
+								sx={{
+									display: 'grid',
+									width: '100%',
+									p: 3,
+									bgcolor: 'background.default',
+									borderTop: 1,
+									borderBottom: 1,
+									borderColor: 'divider'
+								}}
+							>
+								<Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, mb: 2, display: 'block' }}>
+									Formatos asociados a {row.original.name} ({typeTemplates.length})
+								</Typography>
 
-    return (
-        <Root
-            header={
-                <ViewHeader
-                    title="Gestión de Plantillas"
-                    subtitle="Administración y diseño de formatos de trabajo estandarizados"
-                    className="p-3"
-                    actions={
-                        <Stack
-                            direction="row"
-                            spacing={1.5}
-                        >
-                            <Button
-                                variant="outlined"
-                                color="primary"
-                                component={Link}
-                                to="/work-templates/import"
-                                startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-up-tray</FuseSvgIcon>}
-                                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
-                            >
-                                Importar
-                            </Button>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                component={Link}
-                                to="/work-templates/create"
-                                startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
-                                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', px: 3 }}
-                            >
-                                Nueva Plantilla
-                            </Button>
-                        </Stack>
-                    }
-                />
-            }
-            content={
-                <Box className="w-full h-full p-24">
-                    {/* Multi-select Chips Filter System */}
-                    <Box className="mb-3">
-                        <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={1.5}
-                            flexWrap="wrap"
-                            useFlexGap
-                        >
-                            <Typography
-                                variant="subtitle2"
-                                className="font-bold text-slate-500  uppercase tracking-wider text-11"
-                            >
-                                Filtrar por área:
-                            </Typography>
+								{typeTemplates.length > 0 ? (
+									<Stack spacing={1.5}>
+										{typeTemplates.map((template) => (
+											<Paper
+												key={template.id}
+												elevation={0}
+												sx={{
+													p: 2,
+													px: 3,
+													borderRadius: '6px',
+													border: 1,
+													borderColor: 'divider',
+													display: 'flex',
+													alignItems: 'center',
+													justifyContent: 'space-between',
+													bgcolor: 'background.paper',
+													transition: 'all 0.2s',
+													'&:hover': {
+														borderColor: 'primary.main',
+														boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+													}
+												}}
+											>
+												<Stack direction="row" spacing={3} alignItems="center">
+													<Box>
+														<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+															<Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+																{template.title}
+															</Typography>
+															<Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
+															<Typography variant="caption" sx={{ fontWeight: 800, color: template.status === 'active' ? 'success.main' : 'warning.main' }}>
+																{template.status === 'active' ? 'ACTIVA' : 'BORRADOR'}
+															</Typography>
+														</Stack>
+														<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+															{template.description || 'Configuración operativa estándar para procesos de gestión.'}
+														</Typography>
+													</Box>
+												</Stack>
 
-                            <Chip
-                                label="Todas"
-                                onClick={clearFilters}
-                                variant={selectedCategories.length === 0 ? 'filled' : 'outlined'}
-                                color={selectedCategories.length === 0 ? 'primary' : 'default'}
-                                sx={{
-                                    fontWeight: 700,
-                                    px: 1,
-                                    borderRadius: '8px',
-                                    height: 32,
-                                }}
-                            />
+												<Stack direction="row" spacing={1} alignItems="center">
+													
+													<Tooltip title="Previsualizar Formato">
+														<IconButton
+															size="small"
+															onClick={() => setPreviewTemplate(template)}
+															sx={{
+																color: 'info.main',
+																bgcolor: 'info.lighter',
+																'&:hover': { bgcolor: 'info.light' }
+															}}
+														>
+															<FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
+														</IconButton>
+													</Tooltip>
 
-                            {categories.map((category) => {
-                                const isSelected = selectedCategories.includes(category);
-                                return (
-                                    <Chip
-                                        key={category}
-                                        label={category}
-                                        onClick={() => toggleCategory(category)}
-                                        variant={isSelected ? 'filled' : 'outlined'}
-                                        color={isSelected ? 'primary' : 'default'}
-                                        onDelete={isSelected ? () => toggleCategory(category) : undefined}
-                                        deleteIcon={
-                                            <FuseSvgIcon size={16}>heroicons-outline:x-mark</FuseSvgIcon>
-                                        }
-                                        sx={{
-                                            fontWeight: 600,
-                                            px: 0.5,
-                                            borderRadius: '8px',
-                                            height: 32,
-                                            transition: 'all 0.2s',
-                                            '&:hover': {
-                                                bgcolor: isSelected ? 'primary.dark' : 'grey.100',
-                                            },
-                                        }}
-                                    />
-                                );
-                            })}
+													<Tooltip title="Imprimir / Descargar PDF">
+														<IconButton
+															size="small"
+															sx={{
+																color: 'success.main',
+																bgcolor: 'success.lighter',
+																'&:hover': { bgcolor: 'success.light' }
+															}}
+														>
+															<FuseSvgIcon size={20}>heroicons-outline:printer</FuseSvgIcon>
+														</IconButton>
+													</Tooltip>
 
-                            {selectedCategories.length > 0 && (
-                                <Button
-                                    size="small"
-                                    onClick={clearFilters}
-                                    sx={{ textTransform: 'none', fontWeight: 700, color: 'text.secondary' }}
-                                >
-                                    Limpiar filtros
-                                </Button>
-                            )}
-                        </Stack>
-                    </Box>
+													<Tooltip title="Configurar Estructura">
+														<IconButton
+															size="small"
+															component={Link}
+															to={`/livestock/generator?id=${template.id}`}
+															sx={{
+																color: 'primary.main',
+																bgcolor: 'action.hover',
+																'&:hover': { bgcolor: 'action.selected' }
+															}}
+														>
+															<FuseSvgIcon size={20}>heroicons-outline:cog</FuseSvgIcon>
+														</IconButton>
+													</Tooltip>
+													
+													<IconButton
+														size="small"
+														sx={{
+															color: 'text.secondary',
+															bgcolor: 'action.hover',
+															'&:hover': { bgcolor: 'action.selected' }
+														}}
+													>
+														<FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
+													</IconButton>
+												</Stack>
+											</Paper>
+										))}
+									</Stack>
+								) : (
+									<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+										No hay plantillas registradas para este tipo de proceso.
+									</Typography>
+								)}
+							</Box>
+						);
+					}}
+					initialState={{
+						density: 'compact',
+						showGlobalFilter: true,
+						pagination: { pageSize: 15, pageIndex: 0 },
+					}}
+					muiTableProps={{
+						sx: {
+							border: '1px solid',
+							borderColor: 'divider',
+						}
+					}}
+					muiTableHeadCellProps={{
+						sx: {
+							borderRight: '1px solid',
+							borderBottom: '2px solid',
+							borderColor: 'divider',
+							bgcolor: 'action.hover',
+							fontWeight: 800,
+						}
+					}}
+					muiTableBodyCellProps={{
+						sx: {
+							borderRight: '1px solid',
+							borderBottom: '1px solid',
+							borderColor: 'divider',
+						}
+					}}
+				/>
+			</Box>
 
-                    {/* Templates List */}
-                    <Stack spacing={2}>
-                        {filteredTemplates.length > 0 ? (
-                            filteredTemplates.map((template) => (
-                                <Paper
-                                    key={template.id}
-                                    className="group transition-all duration-200 ease-in-out hover:shadow-md cursor-pointer"
-                                    elevation={0}
-                                    sx={{
-                                        borderRadius: '12px',
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        p: 2,
-                                        '&:hover': {
-                                            borderColor: 'primary.main',
-                                            bgcolor: 'grey.50',
-                                        },
-                                    }}
-                                >
-                                    <Stack
-                                        direction={{ xs: 'column', sm: 'row' }}
-                                        alignItems={{ xs: 'flex-start', sm: 'center' }}
-                                        spacing={3}
-                                    >
-                                        {/* Visual Icon */}
-                                        <Box
-                                            sx={{
-                                                width: 56,
-                                                height: 56,
-                                                borderRadius: '16px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                bgcolor: `${template.color}15`,
-                                                color: template.color,
-                                                flexShrink: 0,
-                                            }}
-                                        >
-                                            <FuseSvgIcon size={32}>{template.icon}</FuseSvgIcon>
-                                        </Box>
-
-                                        {/* Info Section */}
-                                        <Box sx={{ flex: 1 }}>
-                                            <Stack
-                                                direction="row"
-                                                alignItems="center"
-                                                spacing={1.5}
-                                            >
-                                                <Typography className="text-16 font-bold tracking-tight text-slate-800">
-                                                    {template.title}
-                                                </Typography>
-                                                <Chip
-                                                    label={template.category}
-                                                    size="small"
-                                                    variant="outlined"
-                                                    sx={{ height: 20, fontSize: 10, fontWeight: 600 }}
-                                                />
-                                            </Stack>
-                                            <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                className="mt-4 leading-relaxed line-clamp-1"
-                                                sx={{ maxWidth: '800px' }}
-                                            >
-                                                {template.description}
-                                            </Typography>
-                                        </Box>
-
-                                        {/* Meta Section */}
-                                        <Stack
-                                            direction="row"
-                                            alignItems="center"
-                                            spacing={4}
-                                            sx={{ px: { sm: 2 } }}
-                                        >
-                                            <Box className="text-right hidden md:block">
-                                                <Typography
-                                                    variant="caption"
-                                                    color="text.disabled"
-                                                    className="block font-medium uppercase"
-                                                >
-                                                    Última Modif.
-                                                </Typography>
-                                                <Typography className="text-13 font-semibold text-slate-600">
-                                                    {template.lastModified}
-                                                </Typography>
-                                            </Box>
-
-                                            <Chip
-                                                label={template.status === 'active' ? 'ACTIVO' : 'BORRADOR'}
-                                                sx={{
-                                                    height: 24,
-                                                    fontSize: 10,
-                                                    fontWeight: 800,
-                                                    bgcolor: template.status === 'active' ? '#ecfdf5' : '#fef3c7',
-                                                    color: template.status === 'active' ? '#065f46' : '#92400e',
-                                                    border: '1px solid',
-                                                    borderColor: template.status === 'active' ? '#10b98130' : '#f59e0b30',
-                                                    minWidth: 85,
-                                                }}
-                                            />
-                                        </Stack>
-
-                                        <Divider
-                                            orientation="vertical"
-                                            flexItem
-                                            sx={{ display: { xs: 'none', sm: 'block' } }}
-                                        />
-
-                                        {/* Actions Section */}
-                                        <Stack
-                                            direction="row"
-                                            spacing={1}
-                                        >
-                                            <Tooltip title="Editar">
-                                                <IconButton
-                                                    size="small"
-                                                    className="text-slate-400 hover:text-primary"
-                                                >
-                                                    <FuseSvgIcon size={20}>heroicons-outline:pencil</FuseSvgIcon>
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Button
-                                                variant="contained"
-                                                size="small"
-                                                color="primary"
-                                                sx={{
-                                                    textTransform: 'none',
-                                                    fontWeight: 700,
-                                                    borderRadius: '8px',
-                                                    px: 3,
-                                                    bgcolor: 'primary.main',
-                                                    boxShadow: 'none',
-                                                    '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' },
-                                                }}
-                                            >
-                                                Usar
-                                            </Button>
-                                        </Stack>
-                                    </Stack>
-                                </Paper>
-                            ))
-                        ) : (
-                            <Paper className="p-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-16">
-                                <Typography color="text.secondary">No hay plantillas que coincidan con los filtros seleccionados.</Typography>
-                                <Button onClick={clearFilters} className="mt-8 font-bold">Ver todas las plantillas</Button>
-                            </Paper>
-                        )}
-
-                        {/* Add New Placeholder Row */}
-                        <Box
-                            component={Link}
-                            to="/work-templates/create"
-                            className="flex items-center justify-center p-16 border-2 border-dashed border-slate-200 rounded-12 hover:bg-slate-50 hover:border-primary/40 transition-colors group"
-                            sx={{ mt: 2, cursor: 'pointer', textDecoration: 'none' }}
-                        >
-                            <FuseSvgIcon
-                                size={20}
-                                className="text-slate-400 group-hover:text-primary mr-8"
-                            >
-                                heroicons-outline:plus
-                            </FuseSvgIcon>
-                            <Typography className="font-bold text-slate-500 group-hover:text-primary text-14">
-                                Crear Nueva Plantilla
-                            </Typography>
-                        </Box>
-                    </Stack>
-                </Box>
-            }
-        />
-    );
+			{/* Modal de Previsualización */}
+			<PreviewDialog 
+				open={Boolean(previewTemplate)} 
+				onClose={() => setPreviewTemplate(null)} 
+				template={previewTemplate} 
+			/>
+		</ViewLayout>
+	);
 }
 
 export default TemplatesView;
