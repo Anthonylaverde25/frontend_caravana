@@ -18,6 +18,10 @@ export function useDeleteCaravan() {
     mutationFn: (id: number) => deleteCaravanUseCase.execute(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batch'] });
+      queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       toast.success('Caravana eliminada correctamente');
     },
     onError: (error: any) => {

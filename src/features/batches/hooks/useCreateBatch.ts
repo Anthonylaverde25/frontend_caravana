@@ -13,6 +13,7 @@ export function useCreateBatch() {
     mutationFn: (request: CreateBatchRequest) => createBatchUseCase.execute(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
     },
   });
 }

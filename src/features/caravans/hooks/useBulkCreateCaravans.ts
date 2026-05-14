@@ -12,9 +12,13 @@ export function useBulkCreateCaravans() {
   return useMutation({
     mutationFn: (caravans: CreateCaravanRequest[]) => bulkCreateCaravansUseCase.execute(caravans),
     onSuccess: () => {
-      // Invalidate both caravans and movements to reflect the mass update
+      // Invalidate caravans, movements and all batch related data to reflect the mass update
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['movements'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batch'] });
+      queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
     },
   });
 }

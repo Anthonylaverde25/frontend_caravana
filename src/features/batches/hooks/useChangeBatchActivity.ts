@@ -13,6 +13,8 @@ export function useChangeBatchActivity() {
     onSuccess: (data) => {
       // Invalidate both batches and activities to refresh the view
       queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batch'] });
+      queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
 
       toast.success(`Lote "${data.name}" movido exitosamente.`);

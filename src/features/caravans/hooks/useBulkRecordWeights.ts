@@ -20,7 +20,9 @@ export function useBulkRecordWeights() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batch'] });
       queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       toast.success('Pesajes masivos registrados exitosamente');
     },
     onError: (error: any) => {

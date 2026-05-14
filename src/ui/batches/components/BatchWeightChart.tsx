@@ -62,6 +62,13 @@ export function BatchWeightChart({ data }: BatchWeightChartProps) {
                 axisLine: {
                     lineStyle: { color: '#e0e0e0' }
                 },
+                splitLine: {
+                    show: true,
+                    lineStyle: { 
+                        color: '#e0e0e0',
+                        type: 'dashed'
+                    }
+                },
                 axisLabel: {
                     color: '#999',
                     fontSize: 10,
@@ -77,9 +84,10 @@ export function BatchWeightChart({ data }: BatchWeightChartProps) {
                 type: 'value',
                 scale: true, // This is crucial for livestock: focuses on the weight range
                 splitLine: {
+                    show: true,
                     lineStyle: { 
-                        type: 'dashed',
-                        color: '#f0f0f0' 
+                        type: 'solid',
+                        color: '#e0e0e0' 
                     }
                 },
                 axisLabel: {

@@ -19,9 +19,12 @@ export function useUpsertCaravan() {
   return useMutation({
     mutationFn: (data: CreateCaravanRequest) => upsertCaravanUseCase.execute(data),
     onSuccess: (response) => {
-      // Invalidate all caravan queries to force a refetch
+      // Invalidate all related queries to force a refetch
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batch'] });
+      queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       
       const message = response.action === 'created' 
         ? 'Caravana registrada exitosamente' 

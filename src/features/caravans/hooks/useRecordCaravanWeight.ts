@@ -14,7 +14,9 @@ export function useRecordCaravanWeight() {
       queryClient.invalidateQueries({ queryKey: ['caravan-weights', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batch'] });
       queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       toast.success('Pesaje registrado exitosamente');
     },
     onError: (error: any) => {
