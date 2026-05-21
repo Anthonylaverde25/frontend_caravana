@@ -10,14 +10,18 @@ export interface CaravanDTO {
   entry_weight?: number | null;
   exit_weight?: number | null;
   breed?: string | null;
-  sex?: string | null;
+  sex?: 'M' | 'H' | null;
   entry_date?: string | null;
   batch_id?: number | null;
-    batch?: {
+  batch?: {
     id: number;
     name: string;
   } | null;
   current_weight?: number | null;
+  female_details?: {
+    is_empty: boolean;
+    arrival_category: string;
+  } | null;
 }
 
 /**
@@ -31,9 +35,10 @@ export interface CreateCaravanRequest {
   entry_weight?: number | null;
   breed?: string | null;
   breed_id?: number | null;
-  sex?: string | null;
+  sex?: 'M' | 'H' | null;
   batch_id?: number | null;
   farm_id?: number | null;
+  is_empty?: boolean | null;
 }
 
 /**
@@ -45,7 +50,7 @@ export class Caravan {
     public readonly id: number,
     public readonly identification: string,
     public readonly teeth: number,
-    public readonly sex: string | null,
+    public readonly sex: 'M' | 'H' | null,
     public readonly category: string | null,
     public readonly breed: string | null,
     public readonly entry_weight: number | null,
@@ -54,6 +59,7 @@ export class Caravan {
     public readonly batch_id: number | null,
     public readonly batch_name: string | null,
     public readonly current_weight: number | null,
+    public readonly female_details: { is_empty: boolean; arrival_category: string } | null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -77,6 +83,7 @@ export class Caravan {
       dto.batch_id ?? null,
       dto.batch?.name ?? null,
       dto.current_weight ?? null,
+      dto.female_details ?? null,
     );
   }
 

@@ -12,6 +12,10 @@ export interface Caravan {
   sex: string | null;
   entry_date: string | null;
   batch_name: string | null;
+  female_details?: {
+    is_empty: boolean;
+    arrival_category: string;
+  } | null;
 }
 
 /**
@@ -100,6 +104,35 @@ export const getCaravanColumns = (): MRT_ColumnDef<Caravan>[] => [
         <Typography variant="caption" sx={{ fontWeight: 700, color: val === 'M' ? 'primary.main' : 'secondary.main' }}>
           {val === 'M' ? 'MACHO' : val === 'H' ? 'HEMBRA' : val || '-'}
         </Typography>
+      );
+    },
+  },
+  {
+    accessorKey: 'female_details',
+    header: 'Est. Reprod.',
+    size: 100,
+    muiTableHeadCellProps: { align: 'center' },
+    muiTableBodyCellProps: { align: 'center' },
+    Cell: ({ row }) => {
+      const sex = row.original.sex;
+      if (sex !== 'H') {
+        return (
+          <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+            N/A
+          </Typography>
+        );
+      }
+      
+      const details = row.original.female_details;
+      if (!details) return <Typography variant="caption">VACÍA</Typography>;
+      
+      return (
+        <Chip 
+          label={details.is_empty ? 'VACÍA' : 'PREÑADA'} 
+          size="small" 
+          color={details.is_empty ? 'default' : 'secondary'}
+          sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+        />
       );
     },
   },

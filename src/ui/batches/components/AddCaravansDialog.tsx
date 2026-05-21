@@ -82,7 +82,8 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
       breed_id: undefined,
       teeth: 0,
       entry_weight: undefined,
-      entry_date: new Date().toISOString().split('T')[0]
+      entry_date: new Date().toISOString().split('T')[0],
+      is_empty: "true"
     }
   });
 
@@ -117,7 +118,8 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
         breed_id: currentBreedId,
         teeth: 0,
         entry_weight: undefined,
-        entry_date: currentEntryDate
+        entry_date: currentEntryDate,
+        is_empty: "true"
       });
       } else {
         onClose();
@@ -238,13 +240,19 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
               />
             </Stack>
 
-            {/* Fila 2: Categoría, Sexo y Dentición */}
+            {/* Fila 2: Categoría, Sexo y Estado Reproductivo */}
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <TextField
                 select
                 label="Categoría"
                 value={selectedCategory}
-                onChange={(e) => setValue('category', e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setValue('category', val);
+                  if (selectedSex === 'H' && (val === 'vaquillona' || val === 'ternera' || val === 'vaca_vacia')) {
+                    setValue('is_empty', 'true');
+                  }
+                }}
                 variant="filled"
                 fullWidth
                 required
@@ -263,7 +271,13 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 select
                 label="Sexo"
                 value={selectedSex}
-                onChange={(e) => setValue('sex', e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setValue('sex', val);
+                  if (val === 'H' && (selectedCategory === 'vaquillona' || selectedCategory === 'ternera' || selectedCategory === 'vaca_vacia')) {
+                    setValue('is_empty', 'true');
+                  }
+                }}
                 variant="filled"
                 fullWidth
                 required
@@ -278,26 +292,37 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 ))}
               </TextField>
 
-              <TextField
-                select
-                {...register('teeth', { valueAsNumber: true })}
-                label="Dientes / Dentición"
-                variant="filled"
-                fullWidth
-                error={!!errors.teeth}
-                helperText={errors.teeth?.message}
-                defaultValue={0}
-                InputProps={{ disableUnderline: true, sx: { borderRadius: 1 } }}
-              >
-                {TEETH_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+              {selectedSex === 'H' ? (
+                <TextField
+                  select
+                  {...register('is_empty')}
+                  label="Estado Reproductivo"
+                  variant="filled"
+                  fullWidth
+                  disabled={
+                    selectedCategory === 'vaquillona' || 
+                    selectedCategory === 'ternera' ||
+                    selectedCategory === 'vaca_vacia'
+                  }
+                  defaultValue="true"
+                  InputProps={{ disableUnderline: true, sx: { borderRadius: 1 } }}
+                >
+                  <MenuItem value="true">Vacía</MenuItem>
+                  <MenuItem value="false">Preñada</MenuItem>
+                </TextField>
+              ) : (
+                <TextField 
+                  label="Estado Reproductivo" 
+                  fullWidth 
+                  variant="filled"
+                  disabled 
+                  value="No Aplica"
+                  InputProps={{ disableUnderline: true, sx: { borderRadius: 1, bgcolor: 'action.disabledBackground' } }}
+                />
+              )}
             </Stack>
 
-            {/* Fila 3: Raza y Pesos */}
+            {/* Fila 3: Raza, Dentición y Pesos */}
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <TextField
                 select
@@ -330,6 +355,25 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                     {isLoadingBreeds ? 'Cargando...' : 'No hay razas registradas'}
                   </MenuItem>
                 )}
+              </TextField>
+
+              <TextField
+                select
+                {...register('teeth', { valueAsNumber: true })}
+                label="Dientes / Dentición"
+                variant="filled"
+                fullWidth
+                sx={{ flex: { md: 1 } }}
+                error={!!errors.teeth}
+                helperText={errors.teeth?.message}
+                defaultValue={0}
+                InputProps={{ disableUnderline: true, sx: { borderRadius: 1 } }}
+              >
+                {TEETH_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
               </TextField>
 
               <TextField

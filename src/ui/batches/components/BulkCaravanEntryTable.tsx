@@ -101,6 +101,8 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
     name: 'caravans'
   });
 
+  const watchedCaravans = watch('caravans');
+
   const onSubmit = async (data: BulkFormValues) => {
     try {
       const payload: CreateCaravanRequest[] = data.caravans.map(c => ({
@@ -126,7 +128,8 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
       breed_id: watchedValues?.breed_id,
       teeth: watchedValues?.teeth || 0,
       entry_weight: undefined,
-      entry_date: watchedValues?.entry_date || new Date().toISOString().split('T')[0]
+      entry_date: watchedValues?.entry_date || new Date().toISOString().split('T')[0],
+      is_empty: true
     });
   };
 
@@ -191,6 +194,7 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 150, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Caravana</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 140, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Categoría</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Sexo</TableCell>
+                  <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 120, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Est. Reprod.</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 160, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Raza</TableCell>
                   <TableCell align="center" sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Dientes</TableCell>
                   <TableCell align="right" sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Peso (kg)</TableCell>
@@ -244,6 +248,36 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
                           <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
                         ))}
                       </TextField>
+                    </TableCell>
+
+                    <TableCell sx={cellStyle}>
+                      {watchedCaravans?.[index]?.sex === 'M' ? (
+                        <TextField
+                          fullWidth
+                          variant="outlined"
+                          value="No Aplica"
+                          disabled
+                          sx={{ ...inputSx, '& input': { color: theme.palette.text.disabled } }}
+                        />
+                      ) : (
+                        <TextField
+                          select
+                          {...register(`caravans.${index}.is_empty` as const)}
+                          fullWidth
+                          variant="outlined"
+                          defaultValue={(field as any).is_empty !== false ? "true" : "false"}
+                          disabled={
+                            watchedCaravans?.[index]?.category === 'vaquillona' || 
+                            watchedCaravans?.[index]?.category === 'ternera' || 
+                            watchedCaravans?.[index]?.category === 'vaca_vacia' ||
+                            watchedCaravans?.[index]?.category === 'vaca vacia'
+                          }
+                          sx={inputSx}
+                        >
+                          <MenuItem value="true">Vacía</MenuItem>
+                          <MenuItem value="false">Preñada</MenuItem>
+                        </TextField>
+                      )}
                     </TableCell>
 
                     <TableCell sx={cellStyle}>

@@ -93,7 +93,8 @@ export const REALISTIC_CARAVAN_MOCK = {
                     "category": { "value": "vaquillonas", "confidence": 0.95 },
                     "teeth": { "value": "4", "confidence": 0.99 },
                     "entry_weight": { "value": "280.0", "confidence": 0.99 },
-                    "entry_date": { "value": "08/05/2026", "confidence": 0.90 }
+                    "entry_date": { "value": "08/05/2026", "confidence": 0.90 },
+                    "is_empty": { "value": true, "confidence": 1.0 }
                 },
                 {
                     "identification": { "value": "1003", "confidence": 0.99 },
@@ -111,7 +112,8 @@ export const REALISTIC_CARAVAN_MOCK = {
                     "category": { "value": "vaca", "confidence": 0.95 },
                     "teeth": { "value": "6", "confidence": 0.99 },
                     "entry_weight": { "value": "420.0", "confidence": 0.99 },
-                    "entry_date": { "value": "08/05/2026", "confidence": 0.90 }
+                    "entry_date": { "value": "08/05/2026", "confidence": 0.90 },
+                    "is_empty": { "value": true, "confidence": 1.0 }
                 },
                 {
                     "identification": { "value": "1005", "confidence": 0.99 },

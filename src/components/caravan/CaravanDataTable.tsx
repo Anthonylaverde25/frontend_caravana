@@ -82,7 +82,8 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
     entry_weight: 0,
     entry_date: '',
     batch_id: 0,
-    farm_id: 0
+    farm_id: 0,
+    is_empty: true
   });
 
   // --- Transfer Flow State ---
@@ -160,7 +161,8 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
         teeth: rowData.teeth,
         entry_weight: rowData.entry_weight?.toString() || '',
         sex: rowData.sex || 'M',
-        entry_date: rowData.entry_date || ''
+        entry_date: rowData.entry_date || '',
+        is_empty: rowData.female_details?.is_empty ?? true
       });
     }
     setOpenDialog(true);
@@ -176,13 +178,24 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
       teeth: 0,
       entry_weight: '',
       sex: 'M',
-      entry_date: new Date().toISOString().split('T')[0]
+      entry_date: new Date().toISOString().split('T')[0],
+      is_empty: true
     });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      
+      // Auto-set is_empty to true for young females
+      const cat = updated.category.toLowerCase();
+      if (updated.sex === 'H' && (cat === 'vaquillona' || cat === 'ternera' || cat === 'vaca vacia' || cat === 'vaca_vacia')) {
+        updated.is_empty = true;
+      }
+      
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -556,6 +569,37 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
                   <MenuItem value="H">Hembra</MenuItem>
                 </TextField>
               </Box>
+              {formData.sex === 'H' ? (
+                <Box>
+                  <TextField 
+                    name="is_empty" 
+                    label="Estado Reproductivo" 
+                    select 
+                    fullWidth 
+                    disabled={
+                      actionMode === 'view' || 
+                      formData.category.toLowerCase() === 'vaquillona' || 
+                      formData.category.toLowerCase() === 'ternera' ||
+                      formData.category.toLowerCase() === 'vaca_vacia' ||
+                      formData.category.toLowerCase() === 'vaca vacia'
+                    } 
+                    value={formData.is_empty.toString()} 
+                    onChange={(e) => setFormData(p => ({...p, is_empty: e.target.value === 'true'}))}
+                  >
+                    <MenuItem value="true">Vacía</MenuItem>
+                    <MenuItem value="false">Preñada</MenuItem>
+                  </TextField>
+                </Box>
+              ) : (
+                <Box>
+                  <TextField 
+                    label="Estado Reproductivo" 
+                    fullWidth 
+                    disabled 
+                    value="No Aplica" 
+                  />
+                </Box>
+              )}
               <Box className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-16">
                 <Box><TextField name="teeth" label="Dientes" type="number" fullWidth disabled={actionMode === 'view'} value={formData.teeth} onChange={handleChange} /></Box>
                 <Box><TextField name="entry_weight" label="Peso (Kg)" type="number" fullWidth disabled={actionMode === 'view'} value={formData.entry_weight} onChange={handleChange} /></Box>
