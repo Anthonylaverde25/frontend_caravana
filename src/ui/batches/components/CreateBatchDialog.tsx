@@ -20,6 +20,7 @@ import { useSnackbar } from 'notistack';
 import { useEffect, useMemo } from 'react';
 import { useActivities } from '@/features/activities/hooks/useActivities';
 import { useCompany } from '@/contexts/CompanyContext';
+import { useBatchTypes } from '@/features/batch-types/hooks/useBatchTypes';
 import { batchSchema, BatchFormValues } from './BatchSchema';
 
 interface CreateBatchDialogProps {
@@ -39,6 +40,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
   const { data: providers = [], isLoading: isLoadingProviders } = useSuppliers();
   const { data: allFarms = [], isLoading: isLoadingFarms } = useFarms();
   const { data: activities = [], isLoading: isLoadingActivities } = useActivities(activeCompanyId);
+  const { data: batchTypes = [], isLoading: isLoadingBatchTypes } = useBatchTypes();
   const { mutate, isPending } = useCreateBatch();
 
   const {
@@ -55,6 +57,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
       provider_id: undefined,
       farm_id: initialFarmId,
       activity_id: undefined,
+      batch_type_id: undefined,
       weight: undefined,
       observaciones: ''
     }
@@ -79,11 +82,21 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
     }
   }, [selectedProviderId, filteredFarms, selectedFarmId, setValue]);
 
+  // Automatically select 'OPERATIONAL' batch type in the background
+  useEffect(() => {
+    if (batchTypes.length > 0) {
+      const operationalType = batchTypes.find((t) => t.code === 'OPERATIONAL');
+      if (operationalType) {
+        setValue('batch_type_id', operationalType.id);
+      }
+    }
+  }, [batchTypes, setValue]);
+
   const handleOnSuccess = (data: BatchFormValues) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { provider_id, ...requestData } = data;
-    
-    mutate(requestData, {
+
+    mutate(requestData as any, {
       onSuccess: () => {
         enqueueSnackbar('Lote creado exitosamente', { variant: 'success' });
         reset();
@@ -101,6 +114,8 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
     reset();
     onClose();
   };
+
+  console.log('batchTypes', batchTypes)
 
   return (
     <Dialog
@@ -208,6 +223,8 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               ))}
             </TextField>
 
+
+
             <TextField
               {...register('weight')}
               label="Peso Promedio Inicial (kg/cab)"
@@ -215,7 +232,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               fullWidth
               type="number"
               error={!!errors.weight}
-              helperText={errors.weight?.message}
+              helperText={errors.weight?.message?.toString()}
               sx={{ bgcolor: 'action.hover' }}
               InputProps={{
                 endAdornment: <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1 }}>KG</Typography>

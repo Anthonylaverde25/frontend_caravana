@@ -42,6 +42,8 @@ interface ViewLayoutProps {
 	children: ReactNode;
 	className?: string;
 	headerClassName?: string;
+	backUrl?: string;
+	backTitle?: string;
 }
 
 /**
@@ -55,6 +57,8 @@ function ViewLayout({
 	children,
 	className = 'p-4',
 	headerClassName = 'p-3',
+	backUrl,
+	backTitle,
 }: ViewLayoutProps) {
 	return (
 		<Root
@@ -64,6 +68,8 @@ function ViewLayout({
 					subtitle={subtitle}
 					actions={actions}
 					className={headerClassName}
+					backUrl={backUrl}
+					backTitle={backTitle}
 				/>
 			}
 			content={<Box className={className}>{children}</Box>}

@@ -1,12 +1,15 @@
 export interface BatchDTO {
   id?: number;
   name: string;
-  farm_id: number;
+  farm_id?: number | null;
   farm_name?: string;
   provider_id?: number;
   provider_name?: string;
   activity_id?: number;
   activity_name?: string;
+  batch_type_id?: number;
+  batch_type_name?: string;
+  batch_type_code?: string;
   weight?: number;
   current_weight?: number;
   observaciones?: string;
@@ -16,8 +19,9 @@ export interface BatchDTO {
 
 export interface CreateBatchRequest {
   name: string;
-  farm_id: number;
-  activity_id: number;
+  farm_id?: number | null;
+  activity_id?: number;
+  batch_type_id: number;
   weight?: number;
   observaciones?: string;
 }
@@ -29,13 +33,16 @@ export class Batch {
   private constructor(
     public readonly id: number,
     public readonly name: string,
-    public readonly farm_id: number,
+    public readonly farm_id: number | null | undefined,
     public readonly is_active: boolean,
     public readonly farm_name?: string,
     public readonly provider_id?: number,
     public readonly provider_name?: string,
     public readonly activity_id?: number,
     public readonly activity_name?: string,
+    public readonly batch_type_id?: number,
+    public readonly batch_type_name?: string,
+    public readonly batch_type_code?: string,
     public readonly weight?: number,
     public readonly current_weight?: number,
     public readonly observaciones?: string,
@@ -46,20 +53,20 @@ export class Batch {
     if (!dto.name || dto.name.trim() === '') {
       throw new Error('Batch name cannot be empty');
     }
-    if (dto.farm_id === undefined || dto.farm_id === null) {
-      throw new Error('Batch must be associated with a valid farm');
-    }
 
     return new Batch(
       dto.id ?? 0,
       dto.name,
-      dto.farm_id,
+      dto.farm_id ?? null,
       dto.is_active ?? true,
       dto.farm_name,
       dto.provider_id,
       dto.provider_name,
       dto.activity_id,
       dto.activity_name,
+      dto.batch_type_id,
+      dto.batch_type_name,
+      dto.batch_type_code,
       dto.weight,
       dto.current_weight,
       dto.observaciones,
@@ -69,7 +76,7 @@ export class Batch {
 
   // Domain Behaviors
   public hasFarm(): boolean {
-    return this.farm_id > 0;
+    return !!this.farm_id && this.farm_id > 0;
   }
 
   public isActive(): boolean {
@@ -78,9 +85,8 @@ export class Batch {
 
   public getFarm() {
     return {
-      id: this.farm_id,
+      id: this.farm_id ?? 0,
       name: this.farm_name,
-
     }
   }
 }

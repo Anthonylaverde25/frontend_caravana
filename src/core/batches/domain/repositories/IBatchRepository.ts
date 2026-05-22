@@ -1,7 +1,7 @@
 import { Batch, CreateBatchRequest } from '../entities/Batch';
 
 export interface IBatchRepository {
-  findAll(farmId?: number): Promise<Batch[]>;
+  findAll(farmId?: number, batchType?: string): Promise<Batch[]>;
   findById(id: number): Promise<Batch>;
   create(batch: Batch): Promise<Batch>;
   changeActivity(id: number, activityId: number, weight?: number): Promise<Batch>;

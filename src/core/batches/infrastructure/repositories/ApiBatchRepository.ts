@@ -4,8 +4,10 @@ import { IBatchRepository } from '../../domain/repositories/IBatchRepository';
 import { BatchMapper } from '../mappers/BatchMapper';
 
 export class ApiBatchRepository implements IBatchRepository {
-  async findAll(farmId?: number): Promise<Batch[]> {
-    const params = farmId ? { farm_id: farmId } : {};
+  async findAll(farmId?: number, batchType?: string): Promise<Batch[]> {
+    const params: any = {};
+    if (farmId) params.farm_id = farmId;
+    if (batchType) params.batch_type = batchType;
     const response = await axiosInstance.get<any[]>('/batches', { params });
     // Map raw DTOs to Rich Entities
     return response.data.map(BatchMapper.toDomain);
