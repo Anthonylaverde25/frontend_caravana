@@ -79,11 +79,12 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
     watch
   } = useForm<BulkFormValues>({
     resolver: zodResolver(bulkSchema),
     defaultValues: {
-      caravans: Array(3).fill({
+      caravans: Array.from({ length: 3 }, () => ({
         identification: '',
         category: 'novillo',
         sex: 'M',
@@ -91,8 +92,11 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
         teeth: 0,
         entry_weight: undefined,
         entry_date: new Date().toISOString().split('T')[0],
-        farm_id: batch.getFarm().id
-      })
+        farm_id: batch.getFarm().id,
+        is_empty: 'true',
+        gestation_stage: '',
+        gestation_months: undefined
+      }))
     }
   });
 
@@ -105,10 +109,24 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
 
   const onSubmit = async (data: BulkFormValues) => {
     try {
-      const payload: CreateCaravanRequest[] = data.caravans.map(c => ({
-        ...c,
-        batch_id: batch.id,
-      }));
+      const payload: CreateCaravanRequest[] = data.caravans.map(c => {
+        const isFemale = c.sex === 'H';
+        const isPregnant = isFemale && (c.is_empty === 'false' || c.is_empty === false);
+        return {
+          identification: c.identification,
+          category: c.category,
+          teeth: c.teeth,
+          entry_weight: c.entry_weight,
+          breed_id: c.breed_id,
+          sex: c.sex,
+          entry_date: c.entry_date,
+          batch_id: batch.id,
+          farm_id: batch.getFarm().id,
+          is_empty: isFemale ? (c.is_empty === 'true' || c.is_empty === true) : null,
+          gestation_stage: isPregnant ? c.gestation_stage : null,
+          gestation_months: isPregnant ? c.gestation_months : null
+        };
+      });
 
       await bulkCreate(payload);
       
@@ -129,7 +147,9 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
       teeth: watchedValues?.teeth || 0,
       entry_weight: undefined,
       entry_date: watchedValues?.entry_date || new Date().toISOString().split('T')[0],
-      is_empty: true
+      is_empty: 'true',
+      gestation_stage: '',
+      gestation_months: undefined
     });
   };
 
@@ -195,6 +215,8 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 140, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Categoría</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Sexo</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 120, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Est. Reprod.</TableCell>
+                  <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 120, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Est. Preñez</TableCell>
+                  <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 120, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Meses Gest.</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 160, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Raza</TableCell>
                   <TableCell align="center" sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Dientes</TableCell>
                   <TableCell align="right" sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Peso (kg)</TableCell>
@@ -277,6 +299,84 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
                           <MenuItem value="true">Vacía</MenuItem>
                           <MenuItem value="false">Preñada</MenuItem>
                         </TextField>
+                      )}
+                    </TableCell>
+
+                    <TableCell sx={cellStyle}>
+                      {watchedCaravans?.[index]?.sex === 'H' && watchedCaravans?.[index]?.is_empty === 'false' ? (
+                        <TextField
+                          select
+                          {...register(`caravans.${index}.gestation_stage` as const)}
+                          fullWidth
+                          variant="outlined"
+                          value={watchedCaravans?.[index]?.gestation_stage || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setValue(`caravans.${index}.gestation_stage`, val, { shouldValidate: true });
+                            if (val === 'tail') {
+                              setValue(`caravans.${index}.gestation_months`, 1.0, { shouldValidate: true });
+                            } else if (val === 'body') {
+                              setValue(`caravans.${index}.gestation_months`, 2.0, { shouldValidate: true });
+                            } else if (val === 'head') {
+                              setValue(`caravans.${index}.gestation_months`, 3.0, { shouldValidate: true });
+                            }
+                          }}
+                          error={!!errors.caravans?.[index]?.gestation_stage}
+                          sx={inputSx}
+                        >
+                          <MenuItem value="" disabled><em>-- Seleccionar --</em></MenuItem>
+                          <MenuItem value="head">Cabeza (Head)</MenuItem>
+                          <MenuItem value="body">Cuerpo (Body)</MenuItem>
+                          <MenuItem value="tail">Cola (Tail)</MenuItem>
+                        </TextField>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          variant="outlined"
+                          value="No Aplica"
+                          disabled
+                          sx={{ ...inputSx, '& input': { color: theme.palette.text.disabled } }}
+                        />
+                      )}
+                    </TableCell>
+
+                    <TableCell sx={cellStyle}>
+                      {watchedCaravans?.[index]?.sex === 'H' && watchedCaravans?.[index]?.is_empty === 'false' ? (
+                        <TextField
+                          {...register(`caravans.${index}.gestation_months` as const, { valueAsNumber: true })}
+                          fullWidth
+                          variant="outlined"
+                          type="number"
+                          inputProps={{ step: '0.1', min: '0', max: '12' }}
+                          placeholder="0.0"
+                          value={watchedCaravans?.[index]?.gestation_months !== undefined && watchedCaravans?.[index]?.gestation_months !== null ? watchedCaravans?.[index]?.gestation_months : ''}
+                          onChange={(e) => {
+                            const valStr = e.target.value;
+                            const val = valStr === '' ? null : parseFloat(valStr);
+                            setValue(`caravans.${index}.gestation_months`, val, { shouldValidate: true });
+                            if (val !== null && !isNaN(val)) {
+                              if (val <= 1.0) {
+                                setValue(`caravans.${index}.gestation_stage`, 'tail', { shouldValidate: true });
+                              } else if (val > 1.0 && val <= 2.0) {
+                                setValue(`caravans.${index}.gestation_stage`, 'body', { shouldValidate: true });
+                              } else if (val > 2.0) {
+                                setValue(`caravans.${index}.gestation_stage`, 'head', { shouldValidate: true });
+                              }
+                            } else {
+                              setValue(`caravans.${index}.gestation_stage`, '', { shouldValidate: true });
+                            }
+                          }}
+                          error={!!errors.caravans?.[index]?.gestation_months}
+                          sx={inputSx}
+                        />
+                      ) : (
+                        <TextField
+                          fullWidth
+                          variant="outlined"
+                          value="No Aplica"
+                          disabled
+                          sx={{ ...inputSx, '& input': { color: theme.palette.text.disabled } }}
+                        />
                       )}
                     </TableCell>
 

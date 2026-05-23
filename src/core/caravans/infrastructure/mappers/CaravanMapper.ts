@@ -25,6 +25,19 @@ export class CaravanMapper {
         name: raw.batch.name
       } : null,
       current_weight: raw.current_weight != null ? Number(raw.current_weight) : null,
+      female_details: raw.female_details ? {
+        is_empty: Boolean(raw.female_details.is_empty),
+        arrival_category: raw.female_details.arrival_category,
+      } : null,
+      active_gestation: raw.active_gestation ? {
+        id: raw.active_gestation.id ? Number(raw.active_gestation.id) : undefined,
+        start_date: raw.active_gestation.start_date,
+        estimated_due_date: raw.active_gestation.estimated_due_date,
+        gestation_stage: raw.active_gestation.gestation_stage,
+        gestation_months: Number(raw.active_gestation.gestation_months),
+        is_current: Boolean(raw.active_gestation.is_current),
+        notes: raw.active_gestation.notes
+      } : null
     };
 
     return Caravan.create(dto);
@@ -46,6 +59,7 @@ export class CaravanMapper {
       entry_date: entity.entry_date,
       batch_id: entity.batch_id,
       current_weight: entity.current_weight,
+      active_gestation: entity.active_gestation
     };
   }
 }

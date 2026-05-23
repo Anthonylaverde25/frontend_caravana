@@ -1,3 +1,13 @@
+export interface GestationDTO {
+  id?: number;
+  start_date: string | null;
+  estimated_due_date: string | null;
+  gestation_stage: string;
+  gestation_months: number;
+  is_current: boolean;
+  notes?: string | null;
+}
+
 /**
  * CaravanDTO
  * Mirrors the shape returned by the backend's CaravanResource.
@@ -22,6 +32,7 @@ export interface CaravanDTO {
     is_empty: boolean;
     arrival_category: string;
   } | null;
+  active_gestation?: GestationDTO | null;
 }
 
 /**
@@ -39,6 +50,9 @@ export interface CreateCaravanRequest {
   batch_id?: number | null;
   farm_id?: number | null;
   is_empty?: boolean | null;
+  gestation_stage?: string | null;
+  gestation_months?: number | null;
+  entry_date?: string | null;
 }
 
 /**
@@ -60,6 +74,7 @@ export class Caravan {
     public readonly batch_name: string | null,
     public readonly current_weight: number | null,
     public readonly female_details: { is_empty: boolean; arrival_category: string } | null,
+    public readonly active_gestation: GestationDTO | null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -84,6 +99,7 @@ export class Caravan {
       dto.batch?.name ?? null,
       dto.current_weight ?? null,
       dto.female_details ?? null,
+      dto.active_gestation ?? null,
     );
   }
 

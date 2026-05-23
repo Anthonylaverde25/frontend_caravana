@@ -43,6 +43,14 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/gestation'
 			},
 			{
+				id: 'gestation.list',
+				title: 'Monitoreo por Lotes',
+				subtitle: 'Seguimiento de Vientres',
+				type: 'item',
+				icon: 'heroicons-outline:queue-list',
+				url: '/gestation/list'
+			},
+			{
 				id: 'gestation.tacto',
 				title: 'Tacto / Ecografías',
 				subtitle: 'Diagnósticos',

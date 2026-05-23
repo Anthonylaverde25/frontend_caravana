@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useSnackbar } from 'notistack';
 import { caravanSchema, CaravanFormValues } from './CaravanSchema';
 import { Batch } from '@/core/batches/domain/entities/Batch';
+import { CreateCaravanRequest } from '@/core/caravans/domain/entities/Caravan';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import { useFarm } from '@/features/suppliers/hooks/useFarms';
 import { useSupplier } from '@/features/suppliers/hooks/useSuppliers';
@@ -83,12 +84,17 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
       teeth: 0,
       entry_weight: undefined,
       entry_date: new Date().toISOString().split('T')[0],
-      is_empty: "true"
+      is_empty: "true",
+      gestation_stage: '',
+      gestation_months: undefined
     }
   });
 
   const selectedCategory = watch('category');
   const selectedSex = watch('sex');
+  const selectedIsEmpty = watch('is_empty');
+  const selectedGestationStage = watch('gestation_stage');
+  const selectedGestationMonths = watch('gestation_months');
   const { data: breeds = [], isLoading: isLoadingBreeds } = useBreeds();
 
 
@@ -96,10 +102,21 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
 
   const onSubmit = async (data: CaravanFormValues, keepOpen = false) => {
     try {
-      const payload = {
-        ...data,
+      const isFemale = data.sex === 'H';
+      const isPregnant = isFemale && (data.is_empty === 'false' || data.is_empty === false);
+      const payload: CreateCaravanRequest = {
+        identification: data.identification,
+        category: data.category,
+        teeth: data.teeth,
+        entry_weight: data.entry_weight,
+        breed_id: data.breed_id,
+        sex: data.sex,
         batch_id: batch?.id,
-        farm_id: batch?.farm_id
+        farm_id: batch?.farm_id,
+        entry_date: data.entry_date,
+        is_empty: isFemale ? (data.is_empty === 'true' || data.is_empty === true) : null,
+        gestation_stage: isPregnant ? data.gestation_stage : null,
+        gestation_months: isPregnant ? data.gestation_months : null
       };
       
       await upsertCaravan(payload);
@@ -119,7 +136,9 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
         teeth: 0,
         entry_weight: undefined,
         entry_date: currentEntryDate,
-        is_empty: "true"
+        is_empty: "true",
+        gestation_stage: '',
+        gestation_months: undefined
       });
       } else {
         onClose();
@@ -273,7 +292,7 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 value={selectedSex}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setValue('sex', val);
+                  setValue('sex', val as 'M' | 'H');
                   if (val === 'H' && (selectedCategory === 'vaquillona' || selectedCategory === 'ternera' || selectedCategory === 'vaca_vacia')) {
                     setValue('is_empty', 'true');
                   }
@@ -321,6 +340,72 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 />
               )}
             </Stack>
+
+            {/* Condicional: Estado de Preñez y Meses de Gestación */}
+            {selectedSex === 'H' && selectedIsEmpty === 'false' && (
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+                <TextField
+                  select
+                  {...register('gestation_stage')}
+                  label="Estado de Preñez"
+                  value={selectedGestationStage || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setValue('gestation_stage', val, { shouldValidate: true });
+                    if (val === 'tail') {
+                      setValue('gestation_months', 1.0, { shouldValidate: true });
+                    } else if (val === 'body') {
+                      setValue('gestation_months', 2.0, { shouldValidate: true });
+                    } else if (val === 'head') {
+                      setValue('gestation_months', 3.0, { shouldValidate: true });
+                    }
+                  }}
+                  variant="filled"
+                  fullWidth
+                  error={!!errors.gestation_stage}
+                  helperText={errors.gestation_stage?.message}
+                  InputProps={{ disableUnderline: true, sx: { borderRadius: 1 } }}
+                >
+                  <MenuItem value="" disabled>Seleccione un estado</MenuItem>
+                  <MenuItem value="head">Cabeza (Head)</MenuItem>
+                  <MenuItem value="body">Cuerpo (Body)</MenuItem>
+                  <MenuItem value="tail">Cola (Tail)</MenuItem>
+                </TextField>
+
+                <TextField
+                  {...register('gestation_months', { valueAsNumber: true })}
+                  label="Meses de Gestación"
+                  type="number"
+                  inputProps={{ step: '0.1', min: '0', max: '12' }}
+                  value={selectedGestationMonths !== undefined && selectedGestationMonths !== null ? selectedGestationMonths : ''}
+                  onChange={(e) => {
+                    const valStr = e.target.value;
+                    const val = valStr === '' ? null : parseFloat(valStr);
+                    setValue('gestation_months', val, { shouldValidate: true });
+                    if (val !== null && !isNaN(val)) {
+                      if (val <= 1.0) {
+                        setValue('gestation_stage', 'tail', { shouldValidate: true });
+                      } else if (val > 1.0 && val <= 2.0) {
+                        setValue('gestation_stage', 'body', { shouldValidate: true });
+                      } else if (val > 2.0) {
+                        setValue('gestation_stage', 'head', { shouldValidate: true });
+                      }
+                    } else {
+                      setValue('gestation_stage', '', { shouldValidate: true });
+                    }
+                  }}
+                  variant="filled"
+                  fullWidth
+                  error={!!errors.gestation_months}
+                  helperText={errors.gestation_months?.message}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">meses</InputAdornment>,
+                    disableUnderline: true,
+                    sx: { borderRadius: 1 }
+                  }}
+                />
+              </Stack>
+            )}
 
             {/* Fila 3: Raza, Dentición y Pesos */}
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>

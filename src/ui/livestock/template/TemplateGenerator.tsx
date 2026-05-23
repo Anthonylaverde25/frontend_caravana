@@ -105,16 +105,16 @@ const TemplateGenerator: React.FC = () => {
 
 		// Configuración de alta fidelidad para el PDF
 		const opt = {
-			margin: [5, 5, 5, 5], // 5mm de márgenes
+			margin: [5, 5, 5, 5] as [number, number, number, number], // 5mm de márgenes
 			filename: `Planilla_${establishment.replace(/\s+/g, '_') || 'Campo'}.pdf`,
-			image: { type: 'jpeg', quality: 0.98 },
+			image: { type: 'jpeg' as const, quality: 0.98 },
 			html2canvas: {
 				scale: 3,
 				useCORS: true,
 				letterRendering: true,
 				logging: false,
 			},
-			jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+			jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
 		};
 
 		// Ejecutar generación y descarga
