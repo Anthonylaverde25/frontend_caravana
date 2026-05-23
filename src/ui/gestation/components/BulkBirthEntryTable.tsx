@@ -28,8 +28,9 @@ import { Batch } from '@/core/batches/domain/entities/Batch';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
-import { useBulkCreateCaravans } from '@/features/caravans/hooks/useBulkCreateCaravans';
-import { CreateCaravanRequest } from '@/core/caravans/domain/entities/Caravan';
+import { useBulkRegisterBirth } from '@/features/caravans/hooks/useBulkRegisterBirth';
+import { RegisterBirthDTO } from '@/core/caravans/domain/entities/Caravan';
+import { Divider } from '@mui/material';
 
 const getStageLabel = (stage?: string) => {
   switch (stage) {
@@ -49,7 +50,8 @@ const birthRowSchema = z.object({
   calf_weight: z.number({ invalid_type_error: 'Debe ser número' }).positive('Debe ser > 0').optional().nullable(),
   calf_breed_id: z.union([z.string(), z.number()]).optional().nullable(),
   birth_date: z.string().min(1, 'Requerido'),
-  calf_teeth: z.union([z.string(), z.number()]).optional().nullable()
+  calf_teeth: z.union([z.string(), z.number()]).optional().nullable(),
+  father_id: z.union([z.string(), z.number()]).optional().nullable()
 });
 
 const bulkBirthSchema = z.object({
@@ -76,12 +78,17 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
   const { activeCompanyId } = useCompany();
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId);
   const { data: breeds = [], isLoading: isLoadingBreeds } = useBreeds();
-  const { mutateAsync: bulkCreate, isPending: isSaving } = useBulkCreateCaravans();
+  const { mutateAsync: bulkRegisterBirth, isPending: isSaving } = useBulkRegisterBirth();
 
   // Filter pregnant caravans belonging to this batch
   const pregnantCaravans = useMemo(() => {
     return caravans.filter(c => c.batch_id === batch.id && c.active_gestation !== null);
   }, [caravans, batch.id]);
+
+  // Filter male caravans
+  const maleCaravans = useMemo(() => {
+    return caravans.filter(c => c.sex === 'M');
+  }, [caravans]);
 
   const {
     control,
@@ -108,15 +115,29 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
   useEffect(() => {
     if (pregnantCaravans.length > 0 && watchedBirths.length === 0) {
       reset({
-        births: pregnantCaravans.map(mother => ({
-          mother_id: mother.id,
-          calf_identification: '',
-          calf_sex: 'M',
-          calf_weight: null,
-          calf_breed_id: '',
-          birth_date: new Date().toISOString().split('T')[0],
-          calf_teeth: 0
-        }))
+        births: pregnantCaravans.map(mother => {
+          let suggestedFatherId: string | number = '';
+          const activeGestation = mother.active_gestation;
+          if (activeGestation && activeGestation.sires && activeGestation.sires.length > 0) {
+            const confirmed = activeGestation.sires.find(s => s.is_confirmed);
+            if (confirmed) {
+              suggestedFatherId = confirmed.id;
+            } else if (activeGestation.sires.length === 1) {
+              suggestedFatherId = activeGestation.sires[0].id;
+            }
+          }
+
+          return {
+            mother_id: mother.id,
+            calf_identification: '',
+            calf_sex: 'M',
+            calf_weight: null,
+            calf_breed_id: '',
+            birth_date: new Date().toISOString().split('T')[0],
+            calf_teeth: 0,
+            father_id: suggestedFatherId
+          };
+        })
       });
     }
   }, [pregnantCaravans, reset, watchedBirths.length]);
@@ -128,47 +149,26 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
     }
 
     try {
-      const payload: CreateCaravanRequest[] = [];
-
-      data.births.forEach(birth => {
+      const payload: RegisterBirthDTO[] = data.births.map(birth => {
         const motherId = Number(birth.mother_id);
         const motherCaravan = caravans.find(c => c.id === motherId);
 
-        // 1. Add Mother updates (marking as empty so it closes gestation)
-        if (motherCaravan) {
-          const motherBreed = breeds.find(b => b.name === motherCaravan.breed);
-          payload.push({
-            identification: motherCaravan.identification,
-            category: motherCaravan.category,
-            teeth: motherCaravan.teeth,
-            breed_id: motherBreed ? Number(motherBreed.id) : null,
-            sex: 'H',
-            batch_id: batch.id,
-            farm_id: batch.getFarm().id,
-            is_empty: true,
-            gestation_stage: null,
-            gestation_months: null
-          });
-        }
-
-        // 2. Add Calf registration DTO
-        payload.push({
-          identification: birth.calf_identification,
-          category: birth.calf_sex === 'M' ? 'ternero' : 'ternera',
-          teeth: birth.calf_teeth !== null && birth.calf_teeth !== undefined && birth.calf_teeth !== '' ? Number(birth.calf_teeth) : 0,
-          entry_weight: birth.calf_weight || null,
-          breed_id: birth.calf_breed_id ? Number(birth.calf_breed_id) : null,
-          sex: birth.calf_sex,
-          entry_date: birth.birth_date,
+        return {
+          calf_identification: birth.calf_identification,
+          calf_sex: birth.calf_sex,
+          calf_category: birth.calf_sex === 'M' ? 'ternero' : 'ternera',
+          calf_teeth: birth.calf_teeth !== null && birth.calf_teeth !== undefined && birth.calf_teeth !== '' ? Number(birth.calf_teeth) : 0,
+          calf_weight: birth.calf_weight || null,
+          calf_breed_id: birth.calf_breed_id ? Number(birth.calf_breed_id) : null,
+          birth_date: birth.birth_date,
           batch_id: batch.id,
-          farm_id: batch.getFarm().id,
-          is_empty: birth.calf_sex === 'H' ? true : null,
-          gestation_stage: null,
-          gestation_months: null
-        });
+          mother_id: motherId,
+          father_id: birth.father_id !== '' && birth.father_id !== undefined && birth.father_id !== null ? Number(birth.father_id) : null,
+          gestation_id: motherCaravan?.active_gestation?.id || null
+        };
       });
 
-      await bulkCreate(payload);
+      await bulkRegisterBirth(payload);
       enqueueSnackbar(`${data.births.length} partos registrados con éxito`, { variant: 'success' });
       navigate('/gestation/list');
     } catch (error) {
@@ -239,7 +239,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                   <TableCell colSpan={2} align="center" sx={{ ...cellStyle, bgcolor: headerBg, color: theme.palette.text.secondary, fontWeight: 800, borderBottom: '2px solid', borderColor: theme.palette.divider, py: 1 }}>
                     DATOS DE LA MADRE (GESTANTE)
                   </TableCell>
-                  <TableCell colSpan={6} align="center" sx={{ ...cellStyle, bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main, fontWeight: 800, borderBottom: '2px solid', borderColor: theme.palette.primary.main, py: 1 }}>
+                  <TableCell colSpan={7} align="center" sx={{ ...cellStyle, bgcolor: alpha(theme.palette.primary.main, 0.05), color: theme.palette.primary.main, fontWeight: 800, borderBottom: '2px solid', borderColor: theme.palette.primary.main, py: 1 }}>
                     DATOS DEL TERNERO (A REGISTRAR)
                   </TableCell>
                   <TableCell colSpan={1} sx={{ ...cellStyle, bgcolor: headerBg, borderRight: 0, borderBottom: '2px solid', borderColor: theme.palette.divider }} />
@@ -252,6 +252,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                   <TableCell align="right" sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Peso al Nacer (kg)</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 160, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Raza del Ternero</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 100, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Dientes</TableCell>
+                  <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 180, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Padre (Sire)</TableCell>
                   <TableCell sx={{ ...cellStyle, bgcolor: headerBg, minWidth: 140, fontWeight: 700, px: 2, py: 1.5, color: theme.palette.text.primary }}>Fecha Nacimiento</TableCell>
                   <TableCell align="center" sx={{ ...cellStyle, bgcolor: headerBg, width: 50, borderRight: 0 }} />
                 </TableRow>
@@ -262,7 +263,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                     <TableCell align="center" sx={{ ...cellStyle, bgcolor: headerBg, color: theme.palette.text.disabled, fontSize: '0.75rem' }}>
                       {index + 1}
                     </TableCell>
-
+ 
                     <TableCell sx={cellStyle}>
                       <Box sx={{ px: 2, py: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '40px' }}>
                         <input type="hidden" {...register(`births.${index}.mother_id` as const)} />
@@ -284,7 +285,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                         })()}
                       </Box>
                     </TableCell>
-
+ 
                     <TableCell sx={cellStyle}>
                       <TextField
                         {...register(`births.${index}.calf_identification` as const)}
@@ -295,7 +296,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                         sx={inputSx}
                       />
                     </TableCell>
-
+ 
                     <TableCell sx={cellStyle}>
                       <Controller
                         control={control}
@@ -315,7 +316,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                         )}
                       />
                     </TableCell>
-
+ 
                     <TableCell sx={cellStyle}>
                       <Controller
                         control={control}
@@ -337,7 +338,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                         )}
                       />
                     </TableCell>
-
+ 
                     <TableCell sx={cellStyle}>
                       <Controller
                         control={control}
@@ -358,7 +359,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                         )}
                       />
                     </TableCell>
-
+ 
                     <TableCell sx={cellStyle}>
                       <Controller
                         control={control}
@@ -382,6 +383,48 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                     </TableCell>
 
                     <TableCell sx={cellStyle}>
+                      <Controller
+                        control={control}
+                        name={`births.${index}.father_id` as const}
+                        render={({ field: controllerField }) => (
+                          <TextField
+                            select
+                            fullWidth
+                            variant="outlined"
+                            sx={inputSx}
+                            {...controllerField}
+                          >
+                            <MenuItem value=""><em>-- Desconocido / Sin esp. --</em></MenuItem>
+                            {(() => {
+                              const motherId = watchedBirths[index]?.mother_id || field.mother_id;
+                              const mother = caravans.find(c => c.id === Number(motherId));
+                              const gestationSires = mother?.active_gestation?.sires || [];
+                              
+                              return (
+                                <>
+                                  {gestationSires.map(s => (
+                                    <MenuItem key={`sug-${s.id}`} value={s.id}>
+                                      ⭐ Sugerido: {s.identification}
+                                    </MenuItem>
+                                  ))}
+                                  {gestationSires.length > 0 && <Divider />}
+                                  {maleCaravans.map((male) => {
+                                    if (gestationSires.some(gs => gs.id === male.id)) return null;
+                                    return (
+                                      <MenuItem key={male.id} value={male.id}>
+                                        {male.identification}
+                                      </MenuItem>
+                                    );
+                                  })}
+                                </>
+                              );
+                            })()}
+                          </TextField>
+                        )}
+                      />
+                    </TableCell>
+ 
+                    <TableCell sx={cellStyle}>
                       <TextField
                         {...register(`births.${index}.birth_date` as const)}
                         fullWidth
@@ -391,7 +434,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                         sx={inputSx}
                       />
                     </TableCell>
-
+ 
                     <TableCell align="center" sx={{ ...cellStyle, borderRight: 0 }}>
                       <IconButton
                         size="small"

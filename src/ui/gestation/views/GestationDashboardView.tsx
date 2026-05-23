@@ -425,6 +425,14 @@ function GestationDashboardView() {
         <Stack direction="row" spacing={1.5}>
           <Button
             variant="outlined"
+            startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-path-round-square</FuseSvgIcon>}
+            onClick={() => navigate('/gestation/bull-rotation')}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Rotación de Toros
+          </Button>
+          <Button
+            variant="outlined"
             startIcon={<FuseSvgIcon size={20}>heroicons-outline:funnel</FuseSvgIcon>}
             onClick={() => setFilterBarExpanded(!filterBarExpanded)}
             sx={{ textTransform: 'none', fontWeight: 700 }}

@@ -1,4 +1,4 @@
-import { Caravan, CreateCaravanRequest } from '../entities/Caravan';
+import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../entities/Caravan';
 
 /**
  * ICaravanRepository
@@ -18,6 +18,11 @@ export interface ICaravanRepository {
    * Mass upsert of multiple caravans.
    */
   bulkUpsert(data: CreateCaravanRequest[]): Promise<void>;
+
+  /**
+   * Registers multiple births (Bulk Birth).
+   */
+  bulkRegisterBirth(births: RegisterBirthDTO[]): Promise<void>;
 
   /** Removes a caravan record by its ID. */
   delete(id: number): Promise<void>;

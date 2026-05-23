@@ -1,3 +1,9 @@
+export interface SireDTO {
+  id: number;
+  identification: string;
+  is_confirmed: boolean;
+}
+
 export interface GestationDTO {
   id?: number;
   start_date: string | null;
@@ -6,7 +12,23 @@ export interface GestationDTO {
   gestation_months: number;
   is_current: boolean;
   notes?: string | null;
+  sires?: SireDTO[];
 }
+
+export interface RegisterBirthDTO {
+  calf_identification: string;
+  calf_sex: 'M' | 'H';
+  calf_category?: string | null;
+  calf_teeth?: number | null;
+  calf_weight?: number | null;
+  calf_breed_id?: number | null;
+  birth_date: string;
+  batch_id: number;
+  mother_id: number;
+  father_id?: number | null;
+  gestation_id?: number | null;
+}
+
 
 /**
  * CaravanDTO

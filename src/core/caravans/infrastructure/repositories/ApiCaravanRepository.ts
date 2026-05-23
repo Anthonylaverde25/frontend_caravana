@@ -1,5 +1,5 @@
 import axiosInstance from '@/utils/axios';
-import { Caravan, CreateCaravanRequest } from '../../domain/entities/Caravan';
+import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../../domain/entities/Caravan';
 import { ICaravanRepository } from '../../domain/repositories/ICaravanRepository';
 import { CaravanMapper } from '../mappers/CaravanMapper';
 
@@ -31,6 +31,10 @@ export class ApiCaravanRepository implements ICaravanRepository {
 
   async bulkUpsert(data: CreateCaravanRequest[]): Promise<void> {
     await axiosInstance.post('/caravans/bulk', { caravans: data });
+  }
+
+  async bulkRegisterBirth(births: RegisterBirthDTO[]): Promise<void> {
+    await axiosInstance.post('/caravans/bulk-birth', { births });
   }
 
   async delete(id: number): Promise<void> {

@@ -65,6 +65,14 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:sparkles',
 				url: '/gestation/births'
+			},
+			{
+				id: 'gestation.bull-rotation',
+				title: 'Rotación de Toros',
+				subtitle: 'Asignación Reproductiva',
+				type: 'item',
+				icon: 'heroicons-outline:arrow-path-round-square',
+				url: '/gestation/bull-rotation'
 			}
 		]
 	},
