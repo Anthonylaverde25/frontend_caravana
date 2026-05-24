@@ -43,36 +43,60 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/gestation'
 			},
 			{
-				id: 'gestation.list',
-				title: 'Monitoreo por Lotes',
-				subtitle: 'Seguimiento de Vientres',
-				type: 'item',
-				icon: 'heroicons-outline:queue-list',
-				url: '/gestation/list'
+				id: 'gestation.planning-submenu',
+				title: 'Planificación de Servicios',
+				type: 'collapse',
+				icon: 'heroicons-outline:calendar-days',
+				children: [
+					{
+						id: 'gestation.bull-rotation',
+						title: 'Rotación de Toros',
+						subtitle: 'Asignación Reproductiva',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-path-round-square',
+						url: '/gestation/bull-rotation'
+					},
+					{
+						id: 'gestation.service-orders',
+						title: 'Órdenes de Servicio',
+						subtitle: 'Historial y Estados',
+						type: 'item',
+						icon: 'heroicons-outline:document-text',
+						url: '/gestation/service-orders'
+					}
+				]
 			},
 			{
-				id: 'gestation.tacto',
-				title: 'Tacto / Ecografías',
-				subtitle: 'Diagnósticos',
-				type: 'item',
+				id: 'gestation.control-submenu',
+				title: 'Control y Diagnósticos',
+				type: 'collapse',
 				icon: 'heroicons-outline:clipboard-document-check',
-				url: '/gestation/tacto'
-			},
-			{
-				id: 'gestation.births',
-				title: 'Partos',
-				subtitle: 'Nacimientos',
-				type: 'item',
-				icon: 'heroicons-outline:sparkles',
-				url: '/gestation/births'
-			},
-			{
-				id: 'gestation.bull-rotation',
-				title: 'Rotación de Toros',
-				subtitle: 'Asignación Reproductiva',
-				type: 'item',
-				icon: 'heroicons-outline:arrow-path-round-square',
-				url: '/gestation/bull-rotation'
+				children: [
+					{
+						id: 'gestation.tacto',
+						title: 'Tacto / Ecografías',
+						subtitle: 'Diagnósticos',
+						type: 'item',
+						icon: 'heroicons-outline:clipboard-document-check',
+						url: '/gestation/tacto'
+					},
+					{
+						id: 'gestation.list',
+						title: 'Monitoreo por Lotes',
+						subtitle: 'Seguimiento de Vientres',
+						type: 'item',
+						icon: 'heroicons-outline:queue-list',
+						url: '/gestation/list'
+					},
+					{
+						id: 'gestation.births',
+						title: 'Partos',
+						subtitle: 'Nacimientos',
+						type: 'item',
+						icon: 'heroicons-outline:sparkles',
+						url: '/gestation/births'
+					}
+				]
 			}
 		]
 	},
