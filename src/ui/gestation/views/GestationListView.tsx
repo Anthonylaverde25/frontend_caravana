@@ -21,6 +21,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import DataTable from 'src/components/data-table/DataTable';
 import { MRT_ColumnDef } from 'material-react-table';
+import GestationKpiCards from '../components/GestationKpiCards';
 
 // Helper to compute remaining days of pregnancy
 const getDaysLeft = (dueDateStr?: string | null) => {
@@ -327,6 +328,7 @@ function GestationListView() {
         </Button>
       }
     >
+      <GestationKpiCards caravans={caravans} />
       <Stack spacing={3}>
 
 
