@@ -47,39 +47,7 @@ export function useServiceOrders() {
 }
 
 /**
- * Hook to submit an order for review (DRAFT -> PENDING_REVIEW).
- */
-export function useSubmitServiceOrderReview() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await axiosInstance.post(`/service-orders/${id}/submit-review`);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-    }
-  });
-}
-
-/**
- * Hook to review/observe an order (PENDING_REVIEW -> PENDING_APPROVAL or REJECTED).
- */
-export function useReviewServiceOrder() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, approve, reason }: { id: number; approve: boolean; reason?: string }) => {
-      const response = await axiosInstance.post(`/service-orders/${id}/review`, { approve, reason });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-    }
-  });
-}
-
-/**
- * Hook to approve an order (PENDING_APPROVAL -> APPROVED or REJECTED).
+ * Hook to approve an order (DRAFT -> APPROVED or REJECTED).
  */
 export function useApproveServiceOrder() {
   const queryClient = useQueryClient();
@@ -90,29 +58,13 @@ export function useApproveServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-    }
-  });
-}
-
-/**
- * Hook to execute an order (APPROVED -> IN_PROGRESS), which transfers the animals in the DB.
- */
-export function useExecuteServiceOrder() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await axiosInstance.post(`/service-orders/${id}/execute`);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
     }
   });
 }
 
 /**
- * Hook to complete an order manually (IN_PROGRESS -> COMPLETED).
+ * Hook to complete an order manually (APPROVED -> SUCCESS).
  */
 export function useCompleteServiceOrder() {
   const queryClient = useQueryClient();
@@ -123,6 +75,24 @@ export function useCompleteServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['caravans'] });
+    }
+  });
+}
+
+/**
+ * Hook to update service order status dynamically via PATCH toggle.
+ */
+export function useUpdateServiceOrderStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await axiosInstance.patch(`/service-orders/${id}/status`, { status });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['caravans'] });
     }
   });
 }
@@ -193,3 +163,28 @@ export function useBulkRegisterGestationDiagnosis() {
     }
   });
 }
+
+/**
+ * Hook to create a new service order.
+ */
+export function useCreateServiceOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      batch_id: number;
+      code: string;
+      planned_start_date: string;
+      observations: string | null;
+      male_caravan_ids: number[];
+      female_caravan_ids: number[];
+    }) => {
+      const response = await axiosInstance.post('/service-orders', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['caravans'] });
+    }
+  });
+}
+

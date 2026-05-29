@@ -29,6 +29,15 @@ export interface RegisterBirthDTO {
   gestation_id?: number | null;
 }
 
+export interface LineageDTO {
+  mother_id?: number | null;
+  mother_identification?: string | null;
+  father_id?: number | null;
+  father_identification?: string | null;
+  birth_date?: string | null;
+  is_nursing?: boolean | null;
+}
+
 
 /**
  * CaravanDTO
@@ -55,6 +64,7 @@ export interface CaravanDTO {
     arrival_category: string;
   } | null;
   active_gestation?: GestationDTO | null;
+  lineage?: LineageDTO | null;
 }
 
 /**
@@ -97,6 +107,7 @@ export class Caravan {
     public readonly current_weight: number | null,
     public readonly female_details: { is_empty: boolean; arrival_category: string } | null,
     public readonly active_gestation: GestationDTO | null,
+    public readonly lineage: LineageDTO | null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -122,6 +133,7 @@ export class Caravan {
       dto.current_weight ?? null,
       dto.female_details ?? null,
       dto.active_gestation ?? null,
+      dto.lineage ?? null,
     );
   }
 

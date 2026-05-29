@@ -386,41 +386,60 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                       <Controller
                         control={control}
                         name={`births.${index}.father_id` as const}
-                        render={({ field: controllerField }) => (
-                          <TextField
-                            select
-                            fullWidth
-                            variant="outlined"
-                            sx={inputSx}
-                            {...controllerField}
-                          >
-                            <MenuItem value=""><em>-- Desconocido / Sin esp. --</em></MenuItem>
-                            {(() => {
-                              const motherId = watchedBirths[index]?.mother_id || field.mother_id;
-                              const mother = caravans.find(c => c.id === Number(motherId));
-                              const gestationSires = mother?.active_gestation?.sires || [];
-                              
-                              return (
-                                <>
-                                  {gestationSires.map(s => (
-                                    <MenuItem key={`sug-${s.id}`} value={s.id}>
-                                      ⭐ Sugerido: {s.identification}
+                        render={({ field: controllerField }) => {
+                          const motherId = watchedBirths[index]?.mother_id || field.mother_id;
+                          const mother = caravans.find(c => c.id === Number(motherId));
+                          const gestationSires = mother?.active_gestation?.sires || [];
+
+                          if (gestationSires.length === 1) {
+                            const singleSire = gestationSires[0];
+                            return (
+                              <TextField
+                                fullWidth
+                                variant="outlined"
+                                disabled
+                                value={`Único: ${singleSire.identification}`}
+                                sx={{
+                                  ...inputSx,
+                                  '& .MuiInputBase-root.Mui-disabled': {
+                                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f1f3f4',
+                                    color: theme.palette.text.secondary,
+                                    fontWeight: 700,
+                                    cursor: 'not-allowed'
+                                  }
+                                }}
+                              />
+                            );
+                          }
+
+                          return (
+                            <TextField
+                              select
+                              fullWidth
+                              variant="outlined"
+                              sx={inputSx}
+                              {...controllerField}
+                            >
+                              <MenuItem value=""><em>-- Desconocido / Sin esp. --</em></MenuItem>
+                              <>
+                                {gestationSires.map(s => (
+                                  <MenuItem key={`sug-${s.id}`} value={s.id}>
+                                    ⭐ Sugerido: {s.identification}
+                                  </MenuItem>
+                                ))}
+                                {gestationSires.length > 0 && <Divider />}
+                                {maleCaravans.map((male) => {
+                                  if (gestationSires.some(gs => gs.id === male.id)) return null;
+                                  return (
+                                    <MenuItem key={male.id} value={male.id}>
+                                      {male.identification}
                                     </MenuItem>
-                                  ))}
-                                  {gestationSires.length > 0 && <Divider />}
-                                  {maleCaravans.map((male) => {
-                                    if (gestationSires.some(gs => gs.id === male.id)) return null;
-                                    return (
-                                      <MenuItem key={male.id} value={male.id}>
-                                        {male.identification}
-                                      </MenuItem>
-                                    );
-                                  })}
-                                </>
-                              );
-                            })()}
-                          </TextField>
-                        )}
+                                  );
+                                })}
+                              </>
+                            </TextField>
+                          );
+                        }}
                       />
                     </TableCell>
  

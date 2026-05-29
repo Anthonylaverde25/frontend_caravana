@@ -36,6 +36,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBatches } from '@/features/batches/hooks/useBatches';
+import { useCreateServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import axiosInstance from '@/utils/axios';
 import { toast } from 'sonner';
 
@@ -51,15 +52,18 @@ function SireRotationManager() {
 
   // Helper to generate default service order code
   const generateDefaultCode = () => {
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
     const randStr = Math.floor(1000 + Math.random() * 9000);
-    return `SO-${dateStr}-${randStr}`;
+    return `SO-${dateStr}-${timeStr}-${randStr}`;
   };
 
   // 1. Fetch active company and load data from database (API)
   const { activeCompanyId } = useCompany();
   const { data: dbBatches = [], isLoading: isLoadingBatches } = useBatches();
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId);
+  const createOrderMutation = useCreateServiceOrder();
 
   // Read search parameters from URL
   const [searchParams] = useSearchParams();
@@ -201,7 +205,7 @@ function SireRotationManager() {
     setErrorMsg(null);
 
     try {
-      await axiosInstance.post('/service-orders', {
+      await createOrderMutation.mutateAsync({
         batch_id: selectedBatchId,
         code: orderCode.trim(),
         planned_start_date: startDate,

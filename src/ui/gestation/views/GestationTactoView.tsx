@@ -94,9 +94,9 @@ function GestationTactoView() {
 
   const getBatchName = (batchId: number) => batchMap.get(batchId) || `Lote #${batchId}`;
   
-  // Filter active service orders (in progress or draft)
+  // Filter active service orders (approved only)
   const activeOrders = useMemo(() => {
-    return orders.filter(o => o.status === 'IN_PROGRESS' || o.status === 'DRAFT');
+    return orders.filter(o => o.status === 'APPROVED');
   }, [orders]);
 
   // Handle dialog opening

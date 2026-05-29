@@ -91,15 +91,9 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
     switch (status.toUpperCase()) {
       case 'DRAFT':
         return 'BORRADOR';
-      case 'PENDING_REVIEW':
-        return 'EN REVISIÓN';
-      case 'PENDING_APPROVAL':
-        return 'EN APROBACIÓN';
       case 'APPROVED':
         return 'APROBADA';
-      case 'IN_PROGRESS':
-        return 'EN SERVICIO (MONTA)';
-      case 'COMPLETED':
+      case 'SUCCESS':
         return 'COMPLETADA';
       case 'REJECTED':
         return 'RECHAZADA';

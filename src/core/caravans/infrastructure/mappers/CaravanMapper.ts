@@ -36,7 +36,20 @@ export class CaravanMapper {
         gestation_stage: raw.active_gestation.gestation_stage,
         gestation_months: Number(raw.active_gestation.gestation_months),
         is_current: Boolean(raw.active_gestation.is_current),
-        notes: raw.active_gestation.notes
+        notes: raw.active_gestation.notes,
+        sires: raw.active_gestation.sires ? raw.active_gestation.sires.map((s: any) => ({
+          id: Number(s.id),
+          identification: s.identification,
+          is_confirmed: Boolean(s.is_confirmed)
+        })) : []
+      } : null,
+      lineage: raw.lineage ? {
+        mother_id: raw.lineage.mother_id ? Number(raw.lineage.mother_id) : null,
+        mother_identification: raw.lineage.mother_identification ?? null,
+        father_id: raw.lineage.father_id ? Number(raw.lineage.father_id) : null,
+        father_identification: raw.lineage.father_identification ?? null,
+        birth_date: raw.lineage.birth_date ?? null,
+        is_nursing: raw.lineage.is_nursing != null ? Boolean(raw.lineage.is_nursing) : null,
       } : null
     };
 
@@ -59,7 +72,8 @@ export class CaravanMapper {
       entry_date: entity.entry_date,
       batch_id: entity.batch_id,
       current_weight: entity.current_weight,
-      active_gestation: entity.active_gestation
+      active_gestation: entity.active_gestation,
+      lineage: entity.lineage
     };
   }
 }

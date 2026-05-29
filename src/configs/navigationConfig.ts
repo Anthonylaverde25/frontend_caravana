@@ -95,6 +95,14 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:sparkles',
 						url: '/gestation/births'
+					},
+					{
+						id: 'gestation.pedigree',
+						title: 'Árbol Genealógico',
+						subtitle: 'Líneas de Pedigree',
+						type: 'item',
+						icon: 'heroicons-outline:academic-cap',
+						url: '/gestation/pedigree'
 					}
 				]
 			}

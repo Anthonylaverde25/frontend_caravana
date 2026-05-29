@@ -17,7 +17,9 @@ import {
   DialogActions,
   Tooltip,
   useTheme,
-  TextField
+  TextField,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import { MRT_ColumnDef } from 'material-react-table';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -28,11 +30,9 @@ import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import {
   useServiceOrders,
-  useSubmitServiceOrderReview,
-  useReviewServiceOrder,
   useApproveServiceOrder,
-  useExecuteServiceOrder,
   useCompleteServiceOrder,
+  useUpdateServiceOrderStatus,
   ServiceOrder
 } from '@/features/gestation/hooks/useServiceOrders';
 import { toast } from 'sonner';
@@ -45,15 +45,9 @@ const getStatusConfig = (status: string) => {
   switch (status.toUpperCase()) {
     case 'DRAFT':
       return { label: 'Borrador', color: 'default' as const };
-    case 'PENDING_REVIEW':
-      return { label: 'En Revisión', color: 'warning' as const };
-    case 'PENDING_APPROVAL':
-      return { label: 'En Aprobación', color: 'info' as const };
     case 'APPROVED':
-      return { label: 'Aprobada', color: 'secondary' as const };
-    case 'IN_PROGRESS':
-      return { label: 'En Servicio', color: 'success' as const };
-    case 'COMPLETED':
+      return { label: 'Aprobada', color: 'info' as const };
+    case 'SUCCESS':
       return { label: 'Completada', color: 'success' as const };
     case 'REJECTED':
       return { label: 'Rechazada', color: 'error' as const };
@@ -63,6 +57,84 @@ const getStatusConfig = (status: string) => {
       return { label: status, color: 'default' as const };
   }
 };
+
+interface StatusSelectChipProps {
+  order: ServiceOrder;
+}
+
+function StatusSelectChip({ order }: StatusSelectChipProps) {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const updateStatusMutation = useUpdateServiceOrderStatus();
+
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleStatusChange = async (status: string) => {
+    handleClose();
+    if (status === order.status) return;
+
+    try {
+      await updateStatusMutation.mutateAsync({ id: order.id, status });
+      toast.success(`Estado actualizado a ${getStatusConfig(status).label}`);
+    } catch (e: any) {
+      toast.error(`Error al actualizar el estado: ${e.response?.data?.message || e.message}`);
+    }
+  };
+
+  const statusConf = getStatusConfig(order.status);
+
+  return (
+    <>
+      <Chip
+        label={statusConf.label}
+        size="small"
+        color={statusConf.color}
+        variant="outlined"
+        onClick={handleClick}
+        disabled={updateStatusMutation.isPending}
+        icon={
+          updateStatusMutation.isPending ? (
+            <CircularProgress size={12} color="inherit" />
+          ) : (
+            <FuseSvgIcon size={12}>heroicons-outline:chevron-down</FuseSvgIcon>
+          )
+        }
+        sx={{
+          height: 24,
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          borderRadius: '4px',
+          cursor: 'pointer',
+          '& .MuiChip-icon': {
+            order: 1,
+            marginLeft: '4px',
+            marginRight: '-4px',
+          },
+        }}
+      />
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          'aria-labelledby': 'basic-button',
+        }}
+      >
+        <MenuItem onClick={() => handleStatusChange('DRAFT')}>Borrador</MenuItem>
+        <MenuItem onClick={() => handleStatusChange('APPROVED')}>Aprobada</MenuItem>
+        <MenuItem onClick={() => handleStatusChange('SUCCESS')}>Completada</MenuItem>
+        <MenuItem onClick={() => handleStatusChange('REJECTED')}>Rechazada</MenuItem>
+        <MenuItem onClick={() => handleStatusChange('CANCELLED')}>Cancelada</MenuItem>
+      </Menu>
+    </>
+  );
+}
 
 function ServiceOrdersView() {
   const navigate = useNavigate();
@@ -75,10 +147,7 @@ function ServiceOrdersView() {
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId);
 
   // 2. Lifecycle Transition Mutations
-  const submitReviewMutation = useSubmitServiceOrderReview();
-  const reviewMutation = useReviewServiceOrder();
   const approveMutation = useApproveServiceOrder();
-  const executeMutation = useExecuteServiceOrder();
   const completeMutation = useCompleteServiceOrder();
 
   // 3. UI Local States
@@ -110,39 +179,12 @@ function ServiceOrdersView() {
 
 
   // 5. Action handlers
-  const handleSubmitReview = async (id: number) => {
-    try {
-      await submitReviewMutation.mutateAsync(id);
-      toast.success('Orden enviada a revisión con éxito');
-    } catch (e: any) {
-      toast.error(`Error al enviar a revisión: ${e.response?.data?.message || e.message}`);
-    }
-  };
-
-  const handleReviewPass = async (id: number) => {
-    try {
-      await reviewMutation.mutateAsync({ id, approve: true });
-      toast.success('Orden marcada como revisada y lista para aprobación');
-    } catch (e: any) {
-      toast.error(`Error al revisar la orden: ${e.response?.data?.message || e.message}`);
-    }
-  };
-
   const handleApprove = async (id: number) => {
     try {
       await approveMutation.mutateAsync({ id, approve: true });
       toast.success('Orden aprobada con éxito');
     } catch (e: any) {
       toast.error(`Error al aprobar la orden: ${e.response?.data?.message || e.message}`);
-    }
-  };
-
-  const handleExecute = async (id: number) => {
-    try {
-      await executeMutation.mutateAsync(id);
-      toast.success('Orden ejecutada con éxito. Los animales han sido transferidos físicamente al lote.');
-    } catch (e: any) {
-      toast.error(`Error al ejecutar la orden: ${e.response?.data?.message || e.message}`);
     }
   };
 
@@ -156,17 +198,13 @@ function ServiceOrdersView() {
       toast.error('Debe ingresar un motivo para el rechazo');
       return;
     }
-    const { orderId, mode } = rejectDialog;
+    const { orderId } = rejectDialog;
     if (orderId === null) return;
 
     try {
-      if (mode === 'review') {
-        await reviewMutation.mutateAsync({ id: orderId, approve: false, reason: rejectReason.trim() });
-      } else {
-        await approveMutation.mutateAsync({ id: orderId, approve: false, reason: rejectReason.trim() });
-      }
+      await approveMutation.mutateAsync({ id: orderId, approve: false, reason: rejectReason.trim() });
       toast.success('Orden rechazada exitosamente');
-      setRejectDialog({ open: false, orderId: null, mode: 'review' });
+      setRejectDialog({ open: false, orderId: null, mode: 'approve' });
     } catch (e: any) {
       toast.error(`Error al rechazar la orden: ${e.response?.data?.message || e.message}`);
     }
@@ -191,10 +229,7 @@ function ServiceOrdersView() {
   };
 
   const isTransitioning = 
-    submitReviewMutation.isPending || 
-    reviewMutation.isPending || 
     approveMutation.isPending || 
-    executeMutation.isPending || 
     completeMutation.isPending;
 
   // Datatable Columns Definition
@@ -247,18 +282,7 @@ function ServiceOrdersView() {
       {
         accessorKey: 'status',
         header: 'Estado',
-        Cell: ({ row }) => {
-          const statusConf = getStatusConfig(row.original.status);
-          return (
-            <Chip
-              label={statusConf.label}
-              size="small"
-              color={statusConf.color}
-              variant="outlined"
-              sx={{ height: 22, fontSize: '0.68rem', fontWeight: 700, borderRadius: '4px' }}
-            />
-          );
-        },
+        Cell: ({ row }) => <StatusSelectChip order={row.original} />,
       },
     ],
     [dbBatches]
@@ -345,58 +369,18 @@ function ServiceOrdersView() {
                     </IconButton>
                   </Tooltip>
 
-                  {/* DRAFT -> Submit for Review */}
+                  {/* DRAFT -> Approve (Aprobar) */}
                   {order.status === 'DRAFT' && (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      color="primary"
-                      disabled={isTransitioning}
-                      onClick={() => handleSubmitReview(order.id)}
-                      sx={{ textTransform: 'none', py: 0.2, px: 1, fontSize: '0.68rem', fontWeight: 700, color: '#fff' }}
-                    >
-                      Enviar
-                    </Button>
-                  )}
-
-                  {/* PENDING_REVIEW -> Review Pass or Reject */}
-                  {order.status === 'PENDING_REVIEW' && (
                     <>
                       <Button
                         variant="contained"
                         size="small"
-                        color="info"
-                        disabled={isTransitioning}
-                        onClick={() => handleReviewPass(order.id)}
-                        sx={{ textTransform: 'none', py: 0.2, px: 1, fontSize: '0.68rem', fontWeight: 700, color: '#fff' }}
-                      >
-                        Aprobar Rev.
-                      </Button>
-                      <Tooltip title="Rechazar">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          disabled={isTransitioning}
-                          onClick={() => openRejectDialog(order.id, 'review')}
-                        >
-                          <FuseSvgIcon size={16}>heroicons-outline:x-mark</FuseSvgIcon>
-                        </IconButton>
-                      </Tooltip>
-                    </>
-                  )}
-
-                  {/* PENDING_APPROVAL -> Approve or Reject */}
-                  {order.status === 'PENDING_APPROVAL' && (
-                    <>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        color="secondary"
+                        color="primary"
                         disabled={isTransitioning}
                         onClick={() => handleApprove(order.id)}
                         sx={{ textTransform: 'none', py: 0.2, px: 1, fontSize: '0.68rem', fontWeight: 700, color: '#fff' }}
                       >
-                        Aprobar Fin.
+                        Aprobar
                       </Button>
                       <Tooltip title="Rechazar">
                         <IconButton
@@ -411,22 +395,8 @@ function ServiceOrdersView() {
                     </>
                   )}
 
-                  {/* APPROVED -> Execute (transfer animals) */}
+                  {/* APPROVED -> Complete (Completar) */}
                   {order.status === 'APPROVED' && (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      color="success"
-                      disabled={isTransitioning}
-                      onClick={() => handleExecute(order.id)}
-                      sx={{ textTransform: 'none', py: 0.2, px: 1, fontSize: '0.68rem', fontWeight: 700, color: '#fff' }}
-                    >
-                      Ejecutar
-                    </Button>
-                  )}
-
-                  {/* IN_PROGRESS -> Complete (end service) */}
-                  {order.status === 'IN_PROGRESS' && (
                     <Button
                       variant="contained"
                       size="small"
