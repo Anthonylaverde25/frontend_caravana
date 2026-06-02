@@ -35,7 +35,7 @@ import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useServiceOrders, useRegisterGestationDiagnosis } from '@/features/gestation/hooks/useServiceOrders';
 import { toast } from 'sonner';
-import GestationTactoSheetDialog from '../components/GestationTactoSheetDialog';
+import GestationTactoSheetDialog from '../components/dialogs/GestationTactoSheetDialog';
 import ServiceOrderWorkCard from '../components/ServiceOrderWorkCard';
 
 // Helper to get Spanish labels for gestation stages

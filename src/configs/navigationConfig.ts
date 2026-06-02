@@ -90,7 +90,7 @@ const navigationConfig: FuseNavItemType[] = [
 					},
 					{
 						id: 'gestation.births',
-						title: 'Partos',
+						title: 'Partossss',
 						subtitle: 'Nacimientos',
 						type: 'item',
 						icon: 'heroicons-outline:sparkles',

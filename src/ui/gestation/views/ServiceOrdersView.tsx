@@ -36,7 +36,7 @@ import {
   ServiceOrder
 } from '@/features/gestation/hooks/useServiceOrders';
 import { toast } from 'sonner';
-import ServiceOrderPrintSheetDialog from '../components/ServiceOrderPrintSheetDialog';
+import ServiceOrderPrintSheetDialog from '../components/dialogs/ServiceOrderPrintSheetDialog';
 
 /**
  * ServiceOrderStatus Chip Color configuration

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import GestationBirthSheetDialog from '../components/GestationBirthSheetDialog';
+import GestationBirthSheetDialog from '../components/dialogs/GestationBirthSheetDialog';
 import {
   Paper,
   Typography,
@@ -21,7 +21,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import DataTable from 'src/components/data-table/DataTable';
 import { MRT_ColumnDef } from 'material-react-table';
-import GestationKpiCards from '../components/GestationKpiCards';
+import GestationKpiCards from '../components/dashboard/GestationKpiCards';
 
 // Helper to compute remaining days of pregnancy
 const getDaysLeft = (dueDateStr?: string | null) => {

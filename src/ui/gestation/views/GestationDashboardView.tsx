@@ -4,35 +4,22 @@ import {
   Typography,
   Box,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
   useTheme,
   Button,
-  TextField,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Collapse,
-  Divider,
   Tabs,
   Tab,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from '@mui/material';
-import ReactEcharts from 'echarts-for-react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ViewLayout from 'src/components/ViewLayout';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import React from 'react';
 import { useNavigate } from 'react-router';
+import GestationFilterBar from '../components/dashboard/GestationFilterBar';
+import { PregnancyStatusChart, PregnancyStageChart, CalvingCalendarChart } from '../components/dashboard/GestationCharts';
+import GestationActiveGroupedList from '../components/dashboard/GestationActiveGroupedList';
 
 // Helper to compute remaining days of pregnancy
 const getDaysLeft = (dueDateStr?: string | null) => {
@@ -246,165 +233,7 @@ function GestationDashboardView() {
     return gestatingCaravans.some(c => (c.category || '').toLowerCase().includes('vaquillona'));
   }, [gestatingCaravans]);
 
-  // ECharts Option A: Reproductive Status (Pregnancy vs Empty)
-  const getPregnancyStatusOption = () => ({
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: <b>{c}</b> ({d}%)'
-    },
-    legend: {
-      orient: 'horizontal',
-      bottom: '0%',
-      left: 'center',
-      textStyle: { color: secondaryTextColor, fontSize: 10 }
-    },
-    series: [
-      {
-        name: 'Estado Reproductivo',
-        type: 'pie',
-        radius: ['55%', '75%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 4,
-          borderColor: isDark ? theme.palette.background.paper : '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: '14',
-            fontWeight: 'bold',
-            formatter: '{b}\n{d}%',
-            color: textColor
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: [
-          { value: stats.pregnant, name: 'Preñadas', itemStyle: { color: '#0a6ed1' } },
-          { value: stats.empty, name: 'Vacías', itemStyle: { color: isDark ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0' } }
-        ]
-      }
-    ]
-  });
 
-  // ECharts Option B: Pregnancy Stage Distribution (Cabeza, Cuerpo, Cola)
-  const getPregnancyStageOption = () => ({
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: <b>{c}</b> ({d}%)'
-    },
-    legend: {
-      orient: 'horizontal',
-      bottom: '0%',
-      left: 'center',
-      textStyle: { color: secondaryTextColor, fontSize: 10 }
-    },
-    series: [
-      {
-        name: 'Distribución de Preñez',
-        type: 'pie',
-        radius: ['55%', '75%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 4,
-          borderColor: isDark ? theme.palette.background.paper : '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: '14',
-            fontWeight: 'bold',
-            formatter: '{b}\n{d}%',
-            color: textColor
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: [
-          { value: stats.headCount, name: 'Cabeza', itemStyle: { color: '#10b981' } },
-          { value: stats.bodyCount, name: 'Cuerpo', itemStyle: { color: '#f59e0b' } },
-          { value: stats.tailCount, name: 'Cola', itemStyle: { color: '#ef4444' } }
-        ]
-      }
-    ]
-  });
-
-  // ECharts Option C: Projected Calving Calendar
-  const getCalvingCalendarOption = () => ({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    legend: {
-      textStyle: { color: secondaryTextColor, fontSize: 10 },
-      bottom: '0%'
-    },
-    grid: {
-      top: '10%',
-      left: '3%',
-      right: '4%',
-      bottom: '15%',
-      containLabel: true
-    },
-    xAxis: [
-      {
-        type: 'category',
-        data: next5Months.map(m => m.label),
-        axisLabel: { color: secondaryTextColor, fontSize: 10 },
-        axisLine: { lineStyle: { color: gridLineColor } }
-      }
-    ],
-    yAxis: [
-      {
-        type: 'value',
-        name: 'Partos',
-        nameTextStyle: { color: secondaryTextColor, fontSize: 10 },
-        axisLabel: { color: secondaryTextColor, fontSize: 10 },
-        axisLine: { lineStyle: { color: gridLineColor } },
-        splitLine: { lineStyle: { color: gridLineColor } }
-      }
-    ],
-    series: [
-      {
-        name: 'Cabeza (Parto Temprano)',
-        type: 'bar',
-        stack: 'Adul',
-        emphasis: { focus: 'series' },
-        itemStyle: { color: '#10b981' },
-        data: calvingCalendarData.headData
-      },
-      {
-        name: 'Cuerpo (Parto Medio)',
-        type: 'bar',
-        stack: 'Adul',
-        emphasis: { focus: 'series' },
-        itemStyle: { color: '#f59e0b' },
-        data: calvingCalendarData.bodyData
-      },
-      {
-        name: 'Cola (Parto Tardío)',
-        type: 'bar',
-        stack: 'Adul',
-        emphasis: { focus: 'series' },
-        itemStyle: { color: '#ef4444', borderRadius: [2, 2, 0, 0] },
-        data: calvingCalendarData.tailData
-      }
-    ]
-  });
 
   if (isLoading) {
     return (
@@ -451,109 +280,21 @@ function GestationDashboardView() {
     >
       <Stack spacing={4}>
         {/* SAP Fiori Smart Filter Bar */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: '4px',
-            bgcolor: isDark ? 'background.paper' : '#f8f9fa',
-          }}
-        >
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: filterBarExpanded ? 2 : 0 }}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <FuseSvgIcon size={18} sx={{ color: 'text.secondary' }}>heroicons-outline:funnel</FuseSvgIcon>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                Barra de Filtros Inteligente
-              </Typography>
-              <Chip
-                label={`${(searchQuery ? 1 : 0) + (selectedStage !== 'all' ? 1 : 0) + (selectedBatch !== 'all' ? 1 : 0) + (selectedCategory !== 'all' ? 1 : 0)} activos`}
-                size="small"
-                sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
-              />
-            </Stack>
-          </Stack>
-
-          <Collapse in={filterBarExpanded}>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '2fr 1.5fr 1.5fr 1.5fr 1fr' },
-                gap: 2,
-                alignItems: 'center',
-                mt: 1
-              }}
-            >
-              <TextField
-                fullWidth
-                size="small"
-                label="Buscar Caravana"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Ej: AR-1988"
-                variant="outlined"
-                sx={{ bgcolor: isDark ? 'background.default' : '#fff' }}
-              />
-              <FormControl fullWidth size="small">
-                <InputLabel id="stage-filter-label">Estadio Preñez</InputLabel>
-                <Select
-                  labelId="stage-filter-label"
-                  value={selectedStage}
-                  label="Estadio Preñez"
-                  onChange={(e) => setSelectedStage(e.target.value)}
-                  sx={{ bgcolor: isDark ? 'background.default' : '#fff' }}
-                >
-                  <MenuItem value="all">Todos</MenuItem>
-                  <MenuItem value="head">Cabeza</MenuItem>
-                  <MenuItem value="body">Cuerpo</MenuItem>
-                  <MenuItem value="tail">Cola</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth size="small">
-                <InputLabel id="batch-filter-label">Lote</InputLabel>
-                <Select
-                  labelId="batch-filter-label"
-                  value={selectedBatch}
-                  label="Lote"
-                  onChange={(e) => setSelectedBatch(e.target.value)}
-                  sx={{ bgcolor: isDark ? 'background.default' : '#fff' }}
-                >
-                  <MenuItem value="all">Todos</MenuItem>
-                  {batches.map(batchName => (
-                    <MenuItem key={batchName} value={batchName}>{batchName}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth size="small">
-                <InputLabel id="category-filter-label">Categoría</InputLabel>
-                <Select
-                  labelId="category-filter-label"
-                  value={selectedCategory}
-                  label="Categoría"
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  sx={{ bgcolor: isDark ? 'background.default' : '#fff' }}
-                >
-                  <MenuItem value="all">Todos</MenuItem>
-                  {categories.map(categoryName => (
-                    <MenuItem key={categoryName} value={categoryName}>{categoryName}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  variant="text"
-                  color="secondary"
-                  size="small"
-                  onClick={handleResetFilters}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
-                >
-                  Limpiar
-                </Button>
-              </Box>
-            </Box>
-          </Collapse>
-        </Paper>
+        <GestationFilterBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedStage={selectedStage}
+          setSelectedStage={setSelectedStage}
+          selectedBatch={selectedBatch}
+          setSelectedBatch={setSelectedBatch}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          batches={batches}
+          categories={categories}
+          filterBarExpanded={filterBarExpanded}
+          handleResetFilters={handleResetFilters}
+          isDark={isDark}
+        />
 
         {/* Fiori KPI Tiles Row */}
         <Box
@@ -797,7 +538,7 @@ function GestationDashboardView() {
                       Preñadas vs Vacías
                     </Typography>
                     <Box sx={{ height: 220 }}>
-                      <ReactEcharts option={getPregnancyStatusOption()} style={{ height: '100%', width: '100%' }} />
+                      <PregnancyStatusChart pregnant={stats.pregnant} empty={stats.empty} />
                     </Box>
                   </Box>
                   <Box sx={{ p: 1, border: 1, borderColor: 'divider', borderRadius: '4px', bgcolor: isDark ? 'background.default' : '#fafafa' }}>
@@ -808,7 +549,7 @@ function GestationDashboardView() {
                       Cabeza / Cuerpo / Cola
                     </Typography>
                     <Box sx={{ height: 220 }}>
-                      <ReactEcharts option={getPregnancyStageOption()} style={{ height: '100%', width: '100%' }} />
+                      <PregnancyStageChart headCount={stats.headCount} bodyCount={stats.bodyCount} tailCount={stats.tailCount} />
                     </Box>
                   </Box>
                 </Box>
@@ -823,173 +564,23 @@ function GestationDashboardView() {
                     Nacimientos proyectados por mes y estadio (siguientes 5 meses)
                   </Typography>
                   <Box sx={{ height: 220 }}>
-                    <ReactEcharts option={getCalvingCalendarOption()} style={{ height: '100%', width: '100%' }} />
+                    <CalvingCalendarChart next5Months={next5Months} calvingCalendarData={calvingCalendarData} />
                   </Box>
                 </Box>
               )}
             </Paper>
 
             {/* Fiori-style Worklist Table */}
-            <Paper
-              elevation={0}
-              sx={{
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: '4px',
-                overflow: 'hidden',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: isDark ? 'background.paper' : '#f8f9fa' }}>
-                <Stack>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Monitoreo de Vientres Gestantes
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    Registros filtrados: {filteredAnimals.length} de {gestatingCaravans.length}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={1}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    onClick={() => navigate('/gestation/list')}
-                    startIcon={<FuseSvgIcon size={16}>heroicons-outline:list-bullet</FuseSvgIcon>}
-                    sx={{ textTransform: 'none', py: 0.5, px: 1.5, fontSize: '0.75rem', borderRadius: '4px', color: '#fff' }}
-                  >
-                    Ver Listado Completo
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
-                    sx={{ textTransform: 'none', py: 0.5, px: 1.5, fontSize: '0.75rem', borderRadius: '4px' }}
-                  >
-                    Exportar
-                  </Button>
-                </Stack>
-              </Box>
-
-              <TableContainer sx={{ maxHeight: 500 }}>
-                <Table size="small" stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }}>Caravana</TableCell>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }}>Categoría</TableCell>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }}>Lote Actual</TableCell>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }} align="center">Estadio Preñez</TableCell>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }} align="center">Parto Estimado (FPP)</TableCell>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }} align="right">Restante</TableCell>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }}>Riesgo</TableCell>
-                      <TableCell sx={{ fontWeight: 800, fontSize: '0.72rem', bgcolor: isDark ? '#1e293b' : '#f1f5f9', color: 'text.secondary', py: 1.5 }} align="center">Acción</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Object.keys(groupedAnimals).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                            No se encontraron caravanas que coincidan con los filtros.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      Object.entries(groupedAnimals).map(([batchName, groupList]) => (
-                        <React.Fragment key={batchName}>
-                          {/* Batch Header Row */}
-                          <TableRow sx={{ bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(10, 110, 209, 0.04)' }}>
-                            <TableCell colSpan={8} sx={{ py: 1.5, borderLeft: `4px solid ${theme.palette.primary.main}`, fontWeight: 800 }}>
-                              <Stack direction="row" alignItems="center" spacing={1}>
-                                <FuseSvgIcon size={18} sx={{ color: 'primary.main' }}>heroicons-outline:circle-stack</FuseSvgIcon>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                                  Lote: {batchName} ({groupList.length} vientres)
-                                </Typography>
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                          {/* Animals in this Batch */}
-                          {groupList.map((row) => {
-                            const activeGestation = row.active_gestation;
-                            const daysLeft = getDaysLeft(activeGestation?.estimated_due_date);
-                            const riskInfo = getRiskDetails(row.category, daysLeft);
-
-                            return (
-                              <TableRow key={row.id} hover sx={{ '&:last-child td, &:last-child th': { borderBottom: 1, borderColor: 'divider' } }}>
-                                <TableCell sx={{ fontWeight: 700, color: '#0a6ed1', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                                  {row.identification}
-                                </TableCell>
-                                <TableCell sx={{ fontSize: '0.75rem', py: 1 }}>{row.category || '-'}</TableCell>
-                                <TableCell sx={{ fontSize: '0.75rem', py: 1 }}>{row.batch_name || 'Sin Lote'}</TableCell>
-                                <TableCell align="center" sx={{ py: 1 }}>
-                                  <Chip
-                                    label={getStageLabel(activeGestation?.gestation_stage)}
-                                    size="small"
-                                    sx={{
-                                      fontWeight: 700,
-                                      height: 18,
-                                      fontSize: '0.65rem',
-                                      bgcolor:
-                                        activeGestation?.gestation_stage === 'head'
-                                          ? 'rgba(16, 185, 129, 0.1)'
-                                          : activeGestation?.gestation_stage === 'body'
-                                          ? 'rgba(245, 158, 11, 0.1)'
-                                          : 'rgba(239, 68, 68, 0.1)',
-                                      color:
-                                        activeGestation?.gestation_stage === 'head'
-                                          ? '#10b981'
-                                          : activeGestation?.gestation_stage === 'body'
-                                          ? '#f59e0b'
-                                          : '#ef4444',
-                                      border: 1,
-                                      borderColor:
-                                        activeGestation?.gestation_stage === 'head'
-                                          ? 'rgba(16, 185, 129, 0.2)'
-                                          : activeGestation?.gestation_stage === 'body'
-                                          ? 'rgba(245, 158, 11, 0.2)'
-                                          : 'rgba(239, 68, 68, 0.2)'
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell align="center" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.75rem', py: 1 }}>
-                                  {activeGestation?.estimated_due_date || '-'}
-                                </TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem', py: 1 }}>
-                                  {daysLeft} d
-                                </TableCell>
-                                <TableCell sx={{ py: 1 }}>
-                                  <Chip
-                                    label={riskInfo.label}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{
-                                      fontWeight: 700,
-                                      height: 18,
-                                      fontSize: '0.65rem',
-                                      color: riskInfo.risk === 'High' ? 'error.main' : riskInfo.risk === 'Medium' ? 'warning.main' : 'success.main',
-                                      borderColor: riskInfo.risk === 'High' ? 'error.light' : riskInfo.risk === 'Medium' ? 'warning.light' : 'success.light',
-                                      bgcolor: riskInfo.risk === 'High' ? 'rgba(239, 68, 68, 0.05)' : riskInfo.risk === 'Medium' ? 'rgba(245, 158, 11, 0.05)' : 'rgba(16, 185, 129, 0.05)',
-                                      borderRadius: '2px'
-                                    }}
-                                  />
-                                </TableCell>
-                                <TableCell align="center" sx={{ py: 0.5 }}>
-                                  <Tooltip title="Ver Ficha / Editar">
-                                    <IconButton size="small" color="primary" sx={{ p: 0.25 }}>
-                                      <FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>
-                                    </IconButton>
-                                  </Tooltip>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </React.Fragment>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
+            <GestationActiveGroupedList
+              groupedAnimals={groupedAnimals}
+              filteredAnimals={filteredAnimals}
+              gestatingCaravans={gestatingCaravans}
+              isDark={isDark}
+              navigate={navigate}
+              getDaysLeft={getDaysLeft}
+              getRiskDetails={getRiskDetails}
+              getStageLabel={getStageLabel}
+            />
           </Stack>
 
           {/* Right side operational/alerts column */}

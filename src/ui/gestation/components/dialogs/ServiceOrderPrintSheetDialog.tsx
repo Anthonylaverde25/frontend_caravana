@@ -151,11 +151,40 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
         ? femaleCaravans.map((cow) => `\`${cow.identification}\``).join(', ')
         : '_Ninguna asignada_';
 
+      const getServiceTypeLabelText = (type?: string, controlled?: boolean) => {
+        if (!type) return 'Toro Único';
+        if (type === 'single') return 'Toro Único';
+        if (type === 'rotation') return 'Rotativo Colectivo';
+        return controlled ? 'Multi-Toro (Servicio Controlado)' : 'Multi-Toro (Colectivo)';
+      };
+
+      let controlledAssignmentsText = '';
+      if (order.service_type === 'multi' && order.is_controlled_service && order.female_sire_assignments) {
+        const grouped: { [bullIdent: string]: string[] } = {};
+        order.female_sire_assignments.forEach(assign => {
+          const bull = caravans.find(c => c.id === assign.assigned_male_caravan_id);
+          const cow = caravans.find(c => c.id === assign.female_caravan_id);
+          if (bull && cow) {
+            const bullIdent = bull.identification;
+            if (!grouped[bullIdent]) {
+              grouped[bullIdent] = [];
+            }
+            grouped[bullIdent].push(cow.identification);
+          }
+        });
+        
+        controlledAssignmentsText = '🎯 *Distribución del Servicio Controlado:*\n' +
+          Object.entries(grouped)
+            .map(([bullIdent, cows]) => `• *Toro ${bullIdent}* → vientres: ${cows.join(', ')}`)
+            .join('\n') + '\n\n';
+      }
+
       const text = `*ORDEN DE TRABAJO REPRODUCTIVO* 🐮📋\n\n` +
         `Hola! Te comparto las indicaciones para iniciar las tareas de servicio reproductivo en el campo.\n\n` +
         `🔹 *Detalles del Servicio:*\n` +
         `• *Código:* \`${order.code}\`\n` +
         `• *Lote de Trabajo:* ${batchName} ${farmName ? `(${farmName})` : ''}\n` +
+        `• *Modalidad:* ${getServiceTypeLabelText(order.service_type, order.is_controlled_service)}\n` +
         `• *Fecha Programada:* ${order.planned_start_date}\n` +
         `• *Estado:* ${getStatusLabel(order.status)}\n\n` +
         `🐂 *Reproductores (Toros) a Asignar:*\n` +
@@ -163,6 +192,7 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
         `${bullsText}\n\n` +
         `🐄 *Vientres en Servicio:*\n` +
         `• Cantidad: *${order.female_caravan_ids.length} animales* (vacías/aptas)\n` +
+        controlledAssignmentsText +
         `• Caravanas a Controlar: ${femaleCaravansList}\n\n` +
         `📄 *Planilla de Campo / PDF:*\n` +
         `Puedes descargar, revisar e imprimir la planilla oficial aquí:\n` +
@@ -377,6 +407,17 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
                     {order.actual_start_date || 'NO INICIADO'}
                   </td>
                 </tr>
+                <tr>
+                  <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.62rem' }}>MODALIDAD</Typography>
+                  </td>
+                  <td colSpan={3} style={{ border: '1px solid #000', padding: '4px 8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                    {order.service_type === 'single' ? 'TORO ÚNICO' 
+                     : order.service_type === 'rotation' ? 'ROTATIVO COLECTIVO' 
+                     : order.is_controlled_service ? 'MULTI-TORO (SERVICIO CONTROLADO)' 
+                     : 'MULTI-TORO (COLECTIVO)'}
+                  </td>
+                </tr>
                 {order.observations && (
                   <tr>
                     <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px' }}>
@@ -455,29 +496,43 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f0f0f0' }}>
                   <TableCell sx={{ width: '5%', fontWeight: 900, textAlign: 'center' }}>#</TableCell>
-                  <TableCell sx={{ width: '20%', fontWeight: 900 }}>CARAVANA</TableCell>
+                  <TableCell sx={{ width: '18%', fontWeight: 900 }}>CARAVANA</TableCell>
+                  {order.is_controlled_service && (
+                    <TableCell sx={{ width: '18%', fontWeight: 900 }}>TORO ASIGNADO</TableCell>
+                  )}
                   <TableCell sx={{ width: '15%', fontWeight: 900 }}>CATEGORÍA</TableCell>
                   <TableCell sx={{ width: '15%', fontWeight: 900 }}>RAZA</TableCell>
-                  <TableCell sx={{ width: '12%', fontWeight: 900, textAlign: 'right' }}>PESO ACT.</TableCell>
-                  <TableCell sx={{ width: '15%', fontWeight: 900, textAlign: 'center' }}>FECHA SERV.</TableCell>
-                  <TableCell sx={{ width: '18%', fontWeight: 900, textAlign: 'center' }}>TORO REAL / OBS</TableCell>
+                  <TableCell sx={{ width: '10%', fontWeight: 900, textAlign: 'right' }}>PESO ACT.</TableCell>
+                  <TableCell sx={{ width: '10%', fontWeight: 900, textAlign: 'center' }}>FECHA SERV.</TableCell>
+                  <TableCell sx={{ width: order.is_controlled_service ? '14%' : '22%', fontWeight: 900, textAlign: 'center' }}>TORO REAL / OBS</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {femaleCaravans.map((cow, index) => (
-                  <TableRow key={cow.id}>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 600 }}>{index + 1}</TableCell>
-                    <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace', fontSize: '0.72rem' }}>{cow.identification}</TableCell>
-                    <TableCell>{cow.category || 'N/A'}</TableCell>
-                    <TableCell>{cow.breed || 'N/A'}</TableCell>
-                    <TableCell align="right">{cow.current_weight ? `${cow.current_weight} kg` : 'N/A'}</TableCell>
-                    <TableCell sx={{ textAlign: 'center', color: '#ccc', fontSize: '0.7rem' }}>/  /</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                ))}
+                {femaleCaravans.map((cow, index) => {
+                  const assignment = order.female_sire_assignments?.find(a => a.female_caravan_id === cow.id);
+                  const assignedBull = assignment 
+                    ? caravans.find(c => c.id === assignment.assigned_male_caravan_id) 
+                    : null;
+                  return (
+                    <TableRow key={cow.id}>
+                      <TableCell sx={{ textAlign: 'center', fontWeight: 600 }}>{index + 1}</TableCell>
+                      <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace', fontSize: '0.72rem' }}>{cow.identification}</TableCell>
+                      {order.is_controlled_service && (
+                        <TableCell sx={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.72rem' }}>
+                          {assignedBull ? assignedBull.identification : '—'}
+                        </TableCell>
+                      )}
+                      <TableCell>{cow.category || 'N/A'}</TableCell>
+                      <TableCell>{cow.breed || 'N/A'}</TableCell>
+                      <TableCell align="right">{cow.current_weight ? `${cow.current_weight} kg` : 'N/A'}</TableCell>
+                      <TableCell sx={{ textAlign: 'center', color: '#ccc', fontSize: '0.7rem' }}>/  /</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  );
+                })}
                 {femaleCaravans.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ fontStyle: 'italic', py: 2 }}>
+                    <TableCell colSpan={order.is_controlled_service ? 8 : 7} align="center" sx={{ fontStyle: 'italic', py: 2 }}>
                       No se encontraron detalles de los vientres asignados.
                     </TableCell>
                   </TableRow>

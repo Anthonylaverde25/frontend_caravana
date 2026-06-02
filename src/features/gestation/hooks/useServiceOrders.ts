@@ -29,6 +29,9 @@ export interface ServiceOrder {
   rejection_reason: string | null;
   male_caravan_ids: number[];
   female_caravan_ids: number[];
+  service_type: 'single' | 'rotation' | 'multi';
+  is_controlled_service: boolean;
+  female_sire_assignments: { female_caravan_id: number; assigned_male_caravan_id: number }[];
   history: ServiceOrderHistory[];
   created_at: string;
 }
@@ -177,6 +180,9 @@ export function useCreateServiceOrder() {
       observations: string | null;
       male_caravan_ids: number[];
       female_caravan_ids: number[];
+      service_type?: 'single' | 'rotation' | 'multi';
+      is_controlled_service?: boolean;
+      female_sire_assignments?: { female_caravan_id: number; assigned_male_caravan_id: number }[];
     }) => {
       const response = await axiosInstance.post('/service-orders', data);
       return response.data;
