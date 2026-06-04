@@ -31,6 +31,7 @@ interface ServiceOrderWorkCardProps {
   onOpenDiagnosis: (caravanId: number, serviceOrderId: number, maleCaravanIds: number[]) => void;
   onPrintSheet: (order: ServiceOrder) => void;
   onBulkEntry: (orderId: number) => void;
+  onCompleteOrder?: (orderId: number) => void;
 }
 
 // Helper to get Spanish labels for gestation stages
@@ -53,7 +54,8 @@ function ServiceOrderWorkCard({
   batchName,
   onOpenDiagnosis,
   onPrintSheet,
-  onBulkEntry
+  onBulkEntry,
+  onCompleteOrder
 }: ServiceOrderWorkCardProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -178,6 +180,18 @@ function ServiceOrderWorkCard({
           >
             Carga en Lote
           </Button>
+          {onCompleteOrder && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<FuseSvgIcon size={16}>heroicons-outline:lock-closed</FuseSvgIcon>}
+              onClick={() => onCompleteOrder(order.id)}
+              sx={{ textTransform: 'none', fontWeight: 700, height: 32, fontSize: '0.75rem' }}
+            >
+              Cerrar Orden
+            </Button>
+          )}
         </Stack>
 
         <Button

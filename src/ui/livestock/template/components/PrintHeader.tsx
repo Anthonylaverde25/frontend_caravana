@@ -7,9 +7,10 @@ interface PrintHeaderProps {
   renspa: string;
   lote?: string; // Optional if you want to make it dynamic later
   title?: string;
+  templateCode?: string;
 }
 
-const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, lote = 'hhhh', title = 'Planilla de Campo' }) => {
+const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, lote = 'hhhh', title = 'Planilla de Campo', templateCode }) => {
   return (
     <>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -22,13 +23,13 @@ const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, 
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'right' }}>
-          <Typography variant="caption" sx={{ fontWeight: 800, color: '#000', fontSize: '0.65rem' }}>
+          <Typography variant="caption" sx={{ fontWeight: 800, color: '#000', fontSize: '0.65rem', display: 'block' }}>
             DOCUMENTO DE REGISTRO OFICIAL
           </Typography>
         </Box>
       </Box>
 
-      {/* Table 1: ESTABLECIMIENTO for OCR isolation */}
+      {/* Table 1: ESTABLECIMIENTO & TEMPLATE CODE for OCR isolation */}
       <table style={{
         width: '100%',
         borderCollapse: 'collapse',
@@ -37,21 +38,35 @@ const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, 
         color: '#000'
       }}>
         <tbody>
-          {/* Row 1: ESTABLECIMIENTO Label */}
+          {/* Row 1: Labels */}
           <tr>
-            <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 8px' }}>
+            <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 8px', width: templateCode ? '75%' : '100%' }}>
               <Typography variant="caption" sx={{ fontWeight: 900, color: '#000', textTransform: 'uppercase', fontSize: '0.6rem' }}>
                 ESTABLECIMIENTO
               </Typography>
             </td>
+            {templateCode && (
+              <td style={{ border: '1px solid #000', backgroundColor: '#000000', padding: '4px 8px', width: '25%', textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.5px' }}>
+                  TEMPLATE CODE
+                </Typography>
+              </td>
+            )}
           </tr>
-          {/* Row 2: ESTABLECIMIENTO Value */}
+          {/* Row 2: Values */}
           <tr style={{ height: 32 }}>
             <td style={{ border: '1px solid #000', padding: '4px 12px', verticalAlign: 'middle' }}>
               <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#000' }}>
                 {establishment || ''}
               </Typography>
             </td>
+            {templateCode && (
+              <td style={{ border: '1px solid #000', padding: '4px 12px', verticalAlign: 'middle', textAlign: 'center', backgroundColor: '#fafafa' }}>
+                <Typography variant="body1" sx={{ fontWeight: 900, fontSize: '0.95rem', color: '#000', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                  {templateCode}
+                </Typography>
+              </td>
+            )}
           </tr>
         </tbody>
       </table>

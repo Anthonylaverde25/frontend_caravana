@@ -10,14 +10,23 @@ import {
 	Button,
 	Dialog,
 	DialogContent,
-	DialogTitle,
-	Divider
+	DialogTitle
 } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import DataTable from '@/components/data-table/DataTable';
 import { Link } from 'react-router';
 import { useTemplateData } from './hooks/useTemplateData';
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+
+// Metadatos estáticos para las categorías de procesos operativos
+const CATEGORY_META: Record<string, { name: string; color: string; icon: string }> = {
+	ENTRY: { name: 'Ingreso Ganadero', color: '#4CAF50', icon: 'heroicons-outline:arrow-down-tray' },
+	WEIGHT: { name: 'Control de Peso', color: '#2196F3', icon: 'heroicons-outline:scale' },
+	ACTIVITY: { name: 'Cambio de Actividad', color: '#FF9800', icon: 'heroicons-outline:arrows-right-left' },
+	HEALTH: { name: 'Sanidad', color: '#10b981', icon: 'heroicons-outline:shield-check' },
+	REPRODUCTIVE: { name: 'Reproductivo', color: '#9C27B0', icon: 'heroicons-outline:clipboard-document-check' },
+};
 
 /**
  * PreviewDialog Component
@@ -25,6 +34,8 @@ import { useTemplateData } from './hooks/useTemplateData';
  */
 function PreviewDialog({ open, onClose, template }: { open: boolean, onClose: () => void, template: any }) {
 	if (!template) return null;
+
+	const meta = CATEGORY_META[template.category] || { name: 'Proceso General', color: '#757575', icon: 'heroicons-outline:collection' };
 
 	return (
 		<Dialog 
@@ -68,7 +79,7 @@ function PreviewDialog({ open, onClose, template }: { open: boolean, onClose: ()
 						<Stack direction="row" justifyContent="space-between" alignItems="center">
 							<Box>
 								<Typography variant="h5" className="font-black text-grey-900 uppercase">PLANILLA DE CAMPO</Typography>
-								<Typography variant="body2" className="font-bold text-grey-600 italic">{template.type_name}</Typography>
+								<Typography variant="body2" className="font-bold text-grey-600 italic">{meta.name}</Typography>
 							</Box>
 							<Box className="text-right border-l-2 border-grey-900 pl-24">
 								<Typography variant="caption" className="block font-bold">ESTABLECIMIENTO: ____________________</Typography>
@@ -130,51 +141,125 @@ function PreviewDialog({ open, onClose, template }: { open: boolean, onClose: ()
 	);
 }
 
-import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
-
 /**
  * TemplatesView Component
  */
 function TemplatesView() {
-	const { types, templates, isLoading, error } = useTemplateData();
+	const { templates, isLoading, error } = useTemplateData();
 	const [previewTemplate, setPreviewTemplate] = useState<any>(null);
 
 	const columns = useMemo(() => [
 		{
-			header: 'Tipo de Proceso',
-			accessorKey: 'name',
+			header: 'Nombre de Plantilla',
+			accessorKey: 'title',
 			cell: ({ row }: any) => (
-				<Stack direction="row" spacing={1.5} alignItems="center">
-					<Box sx={{ color: row.original.color, display: 'flex' }}>
-						<FuseSvgIcon size={20}>{row.original.icon || 'heroicons-outline:collection'}</FuseSvgIcon>
-					</Box>
-					<Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-						{row.original.name}
+				<Box>
+					<Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+						{row.original.title}
 					</Typography>
-				</Stack>
+					<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+						{row.original.description || 'Configuración operativa estándar para procesos de gestión.'}
+					</Typography>
+				</Box>
 			)
+		},
+		{
+			header: 'Categoría',
+			accessorKey: 'category',
+			cell: ({ getValue }: any) => {
+				const category = getValue();
+				const meta = CATEGORY_META[category] || { name: 'Proceso General', color: '#757575', icon: 'heroicons-outline:collection' };
+				return (
+					<Stack direction="row" spacing={1} alignItems="center">
+						<Box sx={{ color: meta.color, display: 'flex' }}>
+							<FuseSvgIcon size={18}>{meta.icon}</FuseSvgIcon>
+						</Box>
+						<Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+							{meta.name}
+						</Typography>
+					</Stack>
+				);
+			}
 		},
 		{
 			header: 'Código',
 			accessorKey: 'code',
 			cell: ({ getValue }: any) => (
-				<Typography variant="caption" className="font-mono font-bold text-grey-400 uppercase tracking-wider">
+				<Typography variant="caption" className="font-mono font-bold text-grey-500 uppercase tracking-wider">
 					{getValue()}
 				</Typography>
 			)
 		},
 		{
-			header: 'Cant. Plantillas',
-			accessorFn: (row: any) => templates.filter(t => t.type_name === row.name).length,
-			cell: ({ getValue }: any) => (
-				<Chip
-					label={`${getValue()} Activas`}
-					size="small"
-					sx={{ fontWeight: 700, fontSize: 10, height: 20 }}
-				/>
-			)
+			header: 'Estado',
+			accessorKey: 'status',
+			cell: ({ getValue }: any) => {
+				const status = getValue();
+				const label = status === 'active' ? 'ACTIVA' : status === 'draft' ? 'BORRADOR' : 'ARCHIVADA';
+				const color = status === 'active' ? 'success' : status === 'draft' ? 'warning' : 'default';
+				return (
+					<Chip
+						label={label}
+						size="small"
+						color={color}
+						sx={{ fontWeight: 800, fontSize: 10, height: 20 }}
+					/>
+				);
+			}
+		},
+		{
+			id: 'actions',
+			header: 'Acciones',
+			cell: ({ row }: any) => {
+				const template = row.original;
+				return (
+					<Stack direction="row" spacing={1} alignItems="center">
+						<Tooltip title="Previsualizar Formato">
+							<IconButton
+								size="small"
+								onClick={() => setPreviewTemplate(template)}
+								sx={{
+									color: 'info.main',
+									bgcolor: 'info.lighter',
+									'&:hover': { bgcolor: 'info.light' }
+								}}
+							>
+								<FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
+							</IconButton>
+						</Tooltip>
+
+						<Tooltip title="Imprimir / Descargar PDF">
+							<IconButton
+								size="small"
+								sx={{
+									color: 'success.main',
+									bgcolor: 'success.lighter',
+									'&:hover': { bgcolor: 'success.light' }
+								}}
+							>
+								<FuseSvgIcon size={20}>heroicons-outline:printer</FuseSvgIcon>
+							</IconButton>
+						</Tooltip>
+
+						<Tooltip title="Configurar Estructura">
+							<IconButton
+								size="small"
+								component={Link}
+								to={`/livestock/generator?id=${template.id}`}
+								sx={{
+									color: 'primary.main',
+									bgcolor: 'action.hover',
+									'&:hover': { bgcolor: 'action.selected' }
+								}}
+							>
+								<FuseSvgIcon size={20}>heroicons-outline:cog</FuseSvgIcon>
+							</IconButton>
+						</Tooltip>
+					</Stack>
+				);
+			}
 		}
-	], [templates]);
+	], []);
 
 	if (error) {
 		return (
@@ -213,135 +298,9 @@ function TemplatesView() {
 			<Box className="w-full">
 				<DataTable
 					columns={columns}
-					data={types}
+					data={templates}
 					isLoading={isLoading}
-					enableExpanding={true}
-					positionActionsColumn="last"
-					renderDetailPanel={({ row }) => {
-						const typeTemplates = templates.filter(t => t.type_name === row.original.name);
-
-						return (
-							<Box
-								sx={{
-									display: 'grid',
-									width: '100%',
-									p: 3,
-									bgcolor: 'background.default',
-									borderTop: 1,
-									borderBottom: 1,
-									borderColor: 'divider'
-								}}
-							>
-								<Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, mb: 2, display: 'block' }}>
-									Formatos asociados a {row.original.name} ({typeTemplates.length})
-								</Typography>
-
-								{typeTemplates.length > 0 ? (
-									<Stack spacing={1.5}>
-										{typeTemplates.map((template) => (
-											<Paper
-												key={template.id}
-												elevation={0}
-												sx={{
-													p: 2,
-													px: 3,
-													borderRadius: '6px',
-													border: 1,
-													borderColor: 'divider',
-													display: 'flex',
-													alignItems: 'center',
-													justifyContent: 'space-between',
-													bgcolor: 'background.paper',
-													transition: 'all 0.2s',
-													'&:hover': {
-														borderColor: 'primary.main',
-														boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-													}
-												}}
-											>
-												<Stack direction="row" spacing={3} alignItems="center">
-													<Box>
-														<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-															<Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
-																{template.title}
-															</Typography>
-															<Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
-															<Typography variant="caption" sx={{ fontWeight: 800, color: template.status === 'active' ? 'success.main' : 'warning.main' }}>
-																{template.status === 'active' ? 'ACTIVA' : 'BORRADOR'}
-															</Typography>
-														</Stack>
-														<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-															{template.description || 'Configuración operativa estándar para procesos de gestión.'}
-														</Typography>
-													</Box>
-												</Stack>
-
-												<Stack direction="row" spacing={1} alignItems="center">
-													
-													<Tooltip title="Previsualizar Formato">
-														<IconButton
-															size="small"
-															onClick={() => setPreviewTemplate(template)}
-															sx={{
-																color: 'info.main',
-																bgcolor: 'info.lighter',
-																'&:hover': { bgcolor: 'info.light' }
-															}}
-														>
-															<FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
-														</IconButton>
-													</Tooltip>
-
-													<Tooltip title="Imprimir / Descargar PDF">
-														<IconButton
-															size="small"
-															sx={{
-																color: 'success.main',
-																bgcolor: 'success.lighter',
-																'&:hover': { bgcolor: 'success.light' }
-															}}
-														>
-															<FuseSvgIcon size={20}>heroicons-outline:printer</FuseSvgIcon>
-														</IconButton>
-													</Tooltip>
-
-													<Tooltip title="Configurar Estructura">
-														<IconButton
-															size="small"
-															component={Link}
-															to={`/livestock/generator?id=${template.id}`}
-															sx={{
-																color: 'primary.main',
-																bgcolor: 'action.hover',
-																'&:hover': { bgcolor: 'action.selected' }
-															}}
-														>
-															<FuseSvgIcon size={20}>heroicons-outline:cog</FuseSvgIcon>
-														</IconButton>
-													</Tooltip>
-													
-													<IconButton
-														size="small"
-														sx={{
-															color: 'text.secondary',
-															bgcolor: 'action.hover',
-															'&:hover': { bgcolor: 'action.selected' }
-														}}
-													>
-														<FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
-													</IconButton>
-												</Stack>
-											</Paper>
-										))}
-									</Stack>
-								) : (
-									<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-										No hay plantillas registradas para este tipo de proceso.
-									</Typography>
-								)}
-							</Box>
-						);
-					}}
+					enableExpanding={false}
 					initialState={{
 						density: 'compact',
 						showGlobalFilter: true,

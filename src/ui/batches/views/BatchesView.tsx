@@ -2,6 +2,7 @@ import { Box, Button, Stack, Paper } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useState } from 'react';
+import { useLocation } from 'react-router';
 import { BatchesTable } from '../components/BatchesTable';
 import CreateBatchDialog from '../components/CreateBatchDialog';
 
@@ -12,11 +13,30 @@ import CreateBatchDialog from '../components/CreateBatchDialog';
  */
 function BatchesView() {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const location = useLocation();
+
+	const filter = location.pathname.includes('/own')
+		? 'own'
+		: location.pathname.includes('/external')
+			? 'external'
+			: 'all';
+
+	const title = filter === 'own'
+		? 'Lotes Propios'
+		: filter === 'external'
+			? 'Lotes de Proveedores Externos'
+			: 'Gestión de Lotes (Batches)';
+
+	const subtitle = filter === 'own'
+		? 'Control centralizado de tropas y lotes generados en finca propia.'
+		: filter === 'external'
+			? 'Control de lotes asociados a proveedores externos.'
+			: 'Control centralizado de agrupaciones de ganado por establecimiento.';
 
 	return (
 		<ViewLayout
-			title="Gestión de Lotes (Batches)"
-			subtitle="Control centralizado de agrupaciones de ganado por establecimiento."
+			title={title}
+			subtitle={subtitle}
 			actions={
 				<Stack
 					direction="row"
@@ -56,7 +76,7 @@ function BatchesView() {
 						overflow: 'hidden',
 					}}
 				>
-					<BatchesTable />
+					<BatchesTable filter={filter} />
 				</Paper>
 			</Box>
 

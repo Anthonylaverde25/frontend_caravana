@@ -1,14 +1,14 @@
 import axiosInstance from 'src/utils/axios';
-import { TemplateType, WorkTemplate } from '../types/TemplateModels';
+import { WorkTemplate } from '../types/TemplateModels';
 
 class TemplateService {
-	async getTemplateTypes(): Promise<TemplateType[]> {
-		const response = await axiosInstance.get<TemplateType[]>('/template-types');
+	async getWorkTemplates(): Promise<WorkTemplate[]> {
+		const response = await axiosInstance.get<WorkTemplate[]>('/work-templates');
 		return response.data;
 	}
 
-	async getWorkTemplates(): Promise<WorkTemplate[]> {
-		const response = await axiosInstance.get<WorkTemplate[]>('/work-templates');
+	async getWorkTemplateByCode(code: string): Promise<WorkTemplate> {
+		const response = await axiosInstance.get<WorkTemplate>(`/work-templates/${code}`);
 		return response.data;
 	}
 }

@@ -72,8 +72,8 @@ export function useApproveServiceOrder() {
 export function useCompleteServiceOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, observations }: { id: number; observations?: string }) => {
-      const response = await axiosInstance.post(`/service-orders/${id}/complete`, { observations });
+    mutationFn: async ({ id, observations, targetBatchId }: { id: number; observations?: string; targetBatchId?: number | null }) => {
+      const response = await axiosInstance.post(`/service-orders/${id}/complete`, { observations, target_batch_id: targetBatchId });
       return response.data;
     },
     onSuccess: () => {
@@ -193,4 +193,19 @@ export function useCreateServiceOrder() {
     }
   });
 }
+
+/**
+ * Hook to fetch a single service order by its ID.
+ */
+export function useServiceOrder(id: number | undefined | null) {
+  return useQuery<ServiceOrder>({
+    queryKey: ['service-order', id],
+    queryFn: async () => {
+      const response = await axiosInstance.get(`/service-orders/${id}`);
+      return response.data;
+    },
+    enabled: !!id
+  });
+}
+
 

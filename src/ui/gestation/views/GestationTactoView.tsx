@@ -33,9 +33,8 @@ import ViewLayout from 'src/components/ViewLayout';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBatches } from '@/features/batches/hooks/useBatches';
-import { useServiceOrders, useRegisterGestationDiagnosis } from '@/features/gestation/hooks/useServiceOrders';
+import { useServiceOrders, useRegisterGestationDiagnosis, useCompleteServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { toast } from 'sonner';
-import GestationTactoSheetDialog from '../components/dialogs/GestationTactoSheetDialog';
 import ServiceOrderWorkCard from '../components/ServiceOrderWorkCard';
 
 // Helper to get Spanish labels for gestation stages
@@ -68,10 +67,12 @@ function GestationTactoView() {
   const { data: dbBatches = [], isLoading: isLoadingBatches } = useBatches();
   
   const registerDiagnosisMutation = useRegisterGestationDiagnosis();
+  const completeOrderMutation = useCompleteServiceOrder();
 
   // 2. Local UI States
-  const [tactoSheetOpen, setTactoSheetOpen] = useState(false);
-  const [printOrder, setPrintOrder] = useState<any | null>(null);
+  const [closingOrderId, setClosingOrderId] = useState<number | null>(null);
+  const [closeStep, setCloseStep] = useState<'move' | 'confirm' | null>(null);
+  const [targetBatchId, setTargetBatchId] = useState<number | 'none'>('none');
 
   const [diagnosisModal, setDiagnosisModal] = useState<DiagnosisModalState>({
     open: false,
@@ -156,7 +157,59 @@ function GestationTactoView() {
     }
   };
 
+  // Initiate service order closing workflow
+  const handleInitiateCloseOrder = (orderId: number) => {
+    const orderObj = orders.find(o => o.id === orderId);
+    if (!orderObj) return;
 
+    // Map female caravans of the order
+    const orderFemales = orderObj.female_caravan_ids
+      .map(id => caravans.find(c => c.id === id))
+      .filter(Boolean);
+
+    // Filter empty/unpregnant females (active_gestation === null)
+    const emptyFemales = orderFemales.filter(c => c.active_gestation === null);
+
+    setClosingOrderId(orderId);
+    if (emptyFemales.length > 0) {
+      setCloseStep('move');
+    } else {
+      setCloseStep('confirm');
+    }
+  };
+
+  // Complete service order request
+  const handleCompleteOrder = async () => {
+    if (!closingOrderId) return;
+
+    try {
+      await completeOrderMutation.mutateAsync({
+        id: closingOrderId,
+        targetBatchId: targetBatchId !== 'none' ? targetBatchId : null
+      });
+      toast.success('Orden de servicio completada exitosamente');
+      // Reset states
+      setClosingOrderId(null);
+      setCloseStep(null);
+      setTargetBatchId('none');
+    } catch (e: any) {
+      toast.error(`Error al completar la orden: ${e.response?.data?.message || e.message}`);
+    }
+  };
+
+
+
+  const selectedOrder = useMemo(() => {
+    return orders.find(o => o.id === closingOrderId) || null;
+  }, [closingOrderId, orders]);
+
+  const emptyCount = useMemo(() => {
+    if (!selectedOrder) return 0;
+    const orderFemales = selectedOrder.female_caravan_ids
+      .map(id => caravans.find(c => c.id === id))
+      .filter(Boolean);
+    return orderFemales.filter(c => c.active_gestation === null).length;
+  }, [selectedOrder, caravans]);
 
   if (isLoadingCaravans || isLoadingOrders || isLoadingBatches) {
     return (
@@ -223,10 +276,10 @@ function GestationTactoView() {
                     handleOpenDiagnosis(caravanId, serviceOrderId, maleCaravanIds)
                   }
                   onPrintSheet={(ord) => {
-                    setPrintOrder(ord);
-                    setTactoSheetOpen(true);
+                    navigate(`/work-templates/REP-01?orderId=${ord.id}`);
                   }}
                   onBulkEntry={(orderId) => navigate(`/gestation/service-orders/${orderId}/bulk-tacto`)}
+                  onCompleteOrder={handleInitiateCloseOrder}
                 />
               </Grid>
             ))}
@@ -323,7 +376,7 @@ function GestationTactoView() {
                       const bull = caravanMap.get(id);
                       return (
                         <MenuItem key={id} value={id}>
-                          {bull?.identification || `Toro #${id}`}
+                           {bull?.identification || `Toro #${id}`}
                         </MenuItem>
                       );
                     })}
@@ -355,15 +408,154 @@ function GestationTactoView() {
         </DialogActions>
       </Dialog>
 
-      <GestationTactoSheetDialog
-        open={tactoSheetOpen}
+      {/* DIÁLOGO DE TRASLADO DE VIENTRES VACÍOS */}
+      <Dialog
+        open={closingOrderId !== null && closeStep === 'move'}
         onClose={() => {
-          setTactoSheetOpen(false);
-          setPrintOrder(null);
+          setClosingOrderId(null);
+          setCloseStep(null);
+          setTargetBatchId('none');
         }}
-        order={printOrder}
-        caravans={caravans}
-      />
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            Vientres Vacíos Detectados
+          </Typography>
+          <IconButton
+            onClick={() => {
+              setClosingOrderId(null);
+              setCloseStep(null);
+              setTargetBatchId('none');
+            }}
+            size="small"
+          >
+            <FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon>
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              Se detectaron <strong>{emptyCount}</strong> vientres vacíos (sin preñez activa) en esta orden.
+              Para poder cerrarla, debes transferirlos a otro lote lógico.
+            </Typography>
+            <FormControl fullWidth size="small">
+              <InputLabel id="target-batch-select-label">Lote de Destino</InputLabel>
+              <Select
+                labelId="target-batch-select-label"
+                value={targetBatchId}
+                label="Lote de Destino"
+                onChange={(e) => setTargetBatchId(e.target.value as number | 'none')}
+              >
+                <MenuItem value="none" disabled>
+                  <em>-- Selecciona un Lote --</em>
+                </MenuItem>
+                {dbBatches
+                  .filter(b => selectedOrder && b.id !== selectedOrder.batch_id)
+                  .map(batch => (
+                    <MenuItem key={batch.id} value={batch.id}>
+                      {batch.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              setClosingOrderId(null);
+              setCloseStep(null);
+              setTargetBatchId('none');
+            }}
+            variant="text"
+            size="small"
+            sx={{ textTransform: 'none' }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => {
+              if (targetBatchId === 'none') {
+                toast.error('Por favor, selecciona un lote de destino para continuar.');
+                return;
+              }
+              setCloseStep('confirm');
+            }}
+            color="primary"
+            variant="contained"
+            size="small"
+            sx={{ textTransform: 'none', color: '#fff', px: 3 }}
+          >
+            Continuar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* CONFIRM COMPLETE SERVICE ORDER DIALOG */}
+      <Dialog
+        open={closingOrderId !== null && closeStep === 'confirm'}
+        onClose={() => {
+          setClosingOrderId(null);
+          setCloseStep(null);
+          setTargetBatchId('none');
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            Confirmar Cierre de Orden
+          </Typography>
+          <IconButton
+            onClick={() => {
+              setClosingOrderId(null);
+              setCloseStep(null);
+              setTargetBatchId('none');
+            }}
+            size="small"
+          >
+            <FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon>
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          <Stack spacing={1.5}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              ¿Estás seguro de que deseas cerrar esta orden de servicio? Esta acción es irreversible y marcará la orden como finalizada.
+            </Typography>
+            {targetBatchId !== 'none' && (
+              <Typography variant="caption" color="warning.main" sx={{ fontWeight: 700, display: 'block' }}>
+                * Se trasladarán {emptyCount} vientres vacíos al lote: "{dbBatches.find(b => b.id === targetBatchId)?.name}".
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              setClosingOrderId(null);
+              setCloseStep(null);
+              setTargetBatchId('none');
+            }}
+            variant="text"
+            size="small"
+            sx={{ textTransform: 'none' }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleCompleteOrder}
+            color="error"
+            variant="contained"
+            size="small"
+            disabled={completeOrderMutation.isPending}
+            sx={{ textTransform: 'none', color: '#fff', px: 3 }}
+          >
+            {completeOrderMutation.isPending ? 'Cerrando...' : 'Cerrar Orden'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </ViewLayout>
   );
 }

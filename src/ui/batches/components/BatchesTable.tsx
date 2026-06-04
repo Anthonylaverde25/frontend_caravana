@@ -9,11 +9,15 @@ import AddCaravansDialog from './AddCaravansDialog';
 import { useNavigate } from 'react-router';
 import { BatchDetailsDialog } from './BatchDetailsDialog';
 
+interface BatchesTableProps {
+  filter?: 'own' | 'external' | 'all';
+}
+
 /**
  * BatchesTable Component
  * Displays the list of own batches and providers with their associated batches in a detail panel.
  */
-export function BatchesTable() {
+export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -64,7 +68,7 @@ export function BatchesTable() {
   return (
     <Box className="w-full">
       {/* Section for Own Batches (without supplier) */}
-      {ownBatches.length > 0 && (
+      {filter !== 'external' && ownBatches.length > 0 && (
         <Box
           sx={{
             p: 3,
@@ -210,211 +214,213 @@ export function BatchesTable() {
       )}
 
       {/* Main DataTable of Suppliers */}
-      <DataTable
-        columns={columns}
-        data={suppliers}
-        enableRowSelection={true}
-        enableColumnOrdering={true}
-        enableGlobalFilter={true}
-        enableRowActions={true}
-        enableExpanding={true}
-        positionActionsColumn="last"
-        renderDetailPanel={({ row }) => {
-          // Filter batches belonging to this specific provider
-          const providerBatches = batches.filter(b => b.provider_id === row.original.id);
+      {filter !== 'own' && (
+        <DataTable
+          columns={columns}
+          data={suppliers}
+          enableRowSelection={true}
+          enableColumnOrdering={true}
+          enableGlobalFilter={true}
+          enableRowActions={true}
+          enableExpanding={true}
+          positionActionsColumn="last"
+          renderDetailPanel={({ row }) => {
+            // Filter batches belonging to this specific provider
+            const providerBatches = batches.filter(b => b.provider_id === row.original.id);
 
-          return (
-            <Box
-              sx={{
-                display: 'grid',
-                width: '100%',
-                p: 3,
-                bgcolor: 'background.default',
-                borderTop: 1,
-                borderBottom: 1,
-                borderColor: 'divider'
-              }}
-            >
-              <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, mb: 2, display: 'block' }}>
-                Lotes asociados a este Proveedor ({providerBatches.length})
-              </Typography>
-
-              {providerBatches.length > 0 ? (
-                <Stack spacing={1.5}>
-                  {providerBatches.map((batch) => (
-                    <Paper
-                      key={batch.id}
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        px: 3,
-                        borderRadius: '6px',
-                        border: 1,
-                        borderColor: 'divider',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        bgcolor: 'background.paper'
-                      }}
-                    >
-                      <Stack direction="row" spacing={3} alignItems="center">
-                        <Box>
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
-                              {batch.name}
-                            </Typography>
-                            {batch.activity_name && (
-                              <>
-                                <Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                  {batch.activity_name}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'secondary.main' }}>
-                                  {batch.current_weight ? `${batch.current_weight} kg/cab` : 'SIN PESO'}
-                                </Typography>
-                              </>
-                            )}
-                          </Stack>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                            Establecimiento: {batch.farm_name || 'Sin establecimiento'}
-                          </Typography>
-
-                          <Stack direction="row" spacing={2}>
-                            <Stack direction="row" spacing={0.5} alignItems="center">
-                              <FuseSvgIcon size={16} sx={{ color: 'text.secondary' }}>heroicons-outline:users</FuseSvgIcon>
-                              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                120 Cabezas
-                              </Typography>
-                            </Stack>
-                            {batch.batch_type_name && (
-                              <Chip
-                                label={batch.batch_type_name.toUpperCase()}
-                                size="small"
-                                sx={{
-                                  height: 20,
-                                  fontSize: '0.65rem',
-                                  fontWeight: 700,
-                                  bgcolor: 'primary.light',
-                                  color: 'primary.contrastText',
-                                  border: 'none'
-                                }}
-                              />
-                            )}
-                          </Stack>
-                        </Box>
-                      </Stack>
-
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Tooltip title="Ver Detalles y Evolución">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleViewDetails(batch)}
-                            sx={{
-                              color: 'primary.main',
-                              bgcolor: 'action.hover',
-                              '&:hover': { bgcolor: 'action.selected' }
-                            }}
-                          >
-                            <FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
-                          </IconButton>
-                        </Tooltip>
-
-                        <Tooltip title="Ingreso Múltiple (Manual)">
-                          <IconButton
-                            size="small"
-                            onClick={() => navigate(`/batches/${batch.id}/bulk-entry`)}
-                            sx={{
-                              color: 'secondary.main',
-                              bgcolor: 'action.hover',
-                              '&:hover': { bgcolor: 'action.selected' }
-                            }}
-                          >
-                            <FuseSvgIcon size={20}>heroicons-outline:table-cells</FuseSvgIcon>
-                          </IconButton>
-                        </Tooltip>
-
-                        <Tooltip title="Añadir Caravana">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleAddCaravans(batch)}
-                            sx={{
-                              color: (theme) => theme.palette.mode === 'dark' ? '#ffffff' : 'primary.main',
-                              bgcolor: 'action.hover',
-                              '&:hover': { bgcolor: 'action.selected' }
-                            }}
-                          >
-                            <FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>
-                          </IconButton>
-                        </Tooltip>
-
-                        <Chip
-                          label={batch.is_active ? 'Activo' : 'Inactivo'}
-                          size="small"
-                          color={batch.is_active ? 'success' : 'default'}
-                          variant="outlined"
-                          sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-                        />
-                      </Stack>
-                    </Paper>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                  Este proveedor no tiene lotes registrados.
+            return (
+              <Box
+                sx={{
+                  display: 'grid',
+                  width: '100%',
+                  p: 3,
+                  bgcolor: 'background.default',
+                  borderTop: 1,
+                  borderBottom: 1,
+                  borderColor: 'divider'
+                }}
+              >
+                <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, mb: 2, display: 'block' }}>
+                  Lotes asociados a este Proveedor ({providerBatches.length})
                 </Typography>
-              )}
+
+                {providerBatches.length > 0 ? (
+                  <Stack spacing={1.5}>
+                    {providerBatches.map((batch) => (
+                      <Paper
+                        key={batch.id}
+                        elevation={0}
+                        sx={{
+                          p: 2,
+                          px: 3,
+                          borderRadius: '6px',
+                          border: 1,
+                          borderColor: 'divider',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          bgcolor: 'background.paper'
+                        }}
+                      >
+                        <Stack direction="row" spacing={3} alignItems="center">
+                          <Box>
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                {batch.name}
+                              </Typography>
+                              {batch.activity_name && (
+                                <>
+                                  <Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    {batch.activity_name}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'divider', fontWeight: 900 }}>|</Typography>
+                                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'secondary.main' }}>
+                                    {batch.current_weight ? `${batch.current_weight} kg/cab` : 'SIN PESO'}
+                                  </Typography>
+                                </>
+                              )}
+                            </Stack>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                              Establecimiento: {batch.farm_name || 'Sin establecimiento'}
+                            </Typography>
+
+                            <Stack direction="row" spacing={2}>
+                              <Stack direction="row" spacing={0.5} alignItems="center">
+                                <FuseSvgIcon size={16} sx={{ color: 'text.secondary' }}>heroicons-outline:users</FuseSvgIcon>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                                  120 Cabezas
+                                </Typography>
+                              </Stack>
+                              {batch.batch_type_name && (
+                                <Chip
+                                  label={batch.batch_type_name.toUpperCase()}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700,
+                                    bgcolor: 'primary.light',
+                                    color: 'primary.contrastText',
+                                    border: 'none'
+                                  }}
+                                />
+                              )}
+                            </Stack>
+                          </Box>
+                        </Stack>
+
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Tooltip title="Ver Detalles y Evolución">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewDetails(batch)}
+                              sx={{
+                                color: 'primary.main',
+                                bgcolor: 'action.hover',
+                                '&:hover': { bgcolor: 'action.selected' }
+                              }}
+                            >
+                              <FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Ingreso Múltiple (Manual)">
+                            <IconButton
+                              size="small"
+                              onClick={() => navigate(`/batches/${batch.id}/bulk-entry`)}
+                              sx={{
+                                color: 'secondary.main',
+                                bgcolor: 'action.hover',
+                                '&:hover': { bgcolor: 'action.selected' }
+                              }}
+                            >
+                              <FuseSvgIcon size={20}>heroicons-outline:table-cells</FuseSvgIcon>
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Añadir Caravana">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleAddCaravans(batch)}
+                              sx={{
+                                color: (theme) => theme.palette.mode === 'dark' ? '#ffffff' : 'primary.main',
+                                bgcolor: 'action.hover',
+                                '&:hover': { bgcolor: 'action.selected' }
+                              }}
+                            >
+                              <FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>
+                            </IconButton>
+                          </Tooltip>
+
+                          <Chip
+                            label={batch.is_active ? 'Activo' : 'Inactivo'}
+                            size="small"
+                            color={batch.is_active ? 'success' : 'default'}
+                            variant="outlined"
+                            sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                          />
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                    Este proveedor no tiene lotes registrados.
+                  </Typography>
+                )}
+              </Box>
+            );
+          }}
+          renderRowActions={({ row }) => (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <IconButton
+                size="small"
+                title="Ver detalle"
+                sx={{ color: 'primary.main' }}
+                onClick={() => console.log('Ver proveedor', row.original.id)}
+              >
+                <FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
+              </IconButton>
+              <IconButton
+                size="small"
+                title="Más opciones"
+                sx={{ color: 'text.secondary' }}
+                onClick={() => console.log('Acciones adicionales', row.original.id)}
+              >
+                <FuseSvgIcon size={18}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
+              </IconButton>
             </Box>
-          );
-        }}
-        renderRowActions={({ row }) => (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              size="small"
-              title="Ver detalle"
-              sx={{ color: 'primary.main' }}
-              onClick={() => console.log('Ver proveedor', row.original.id)}
-            >
-              <FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
-            </IconButton>
-            <IconButton
-              size="small"
-              title="Más opciones"
-              sx={{ color: 'text.secondary' }}
-              onClick={() => console.log('Acciones adicionales', row.original.id)}
-            >
-              <FuseSvgIcon size={18}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
-            </IconButton>
-          </Box>
-        )}
-        initialState={{
-          density: 'compact',
-          showGlobalFilter: true,
-          pagination: { pageSize: 15, pageIndex: 0 },
-        }}
-        muiTableProps={{
-          sx: {
-            border: '1px solid',
-            borderColor: 'divider',
-          }
-        }}
-        muiTableHeadCellProps={{
-          sx: {
-            borderRight: '1px solid',
-            borderBottom: '2px solid',
-            borderColor: 'divider',
-            bgcolor: 'action.hover',
-            fontWeight: 800,
-          }
-        }}
-        muiTableBodyCellProps={{
-          sx: {
-            borderRight: '1px solid',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }
-        }}
-      />
+          )}
+          initialState={{
+            density: 'compact',
+            showGlobalFilter: true,
+            pagination: { pageSize: 15, pageIndex: 0 },
+          }}
+          muiTableProps={{
+            sx: {
+              border: '1px solid',
+              borderColor: 'divider',
+            }
+          }}
+          muiTableHeadCellProps={{
+            sx: {
+              borderRight: '1px solid',
+              borderBottom: '2px solid',
+              borderColor: 'divider',
+              bgcolor: 'action.hover',
+              fontWeight: 800,
+            }
+          }}
+          muiTableBodyCellProps={{
+            sx: {
+              borderRight: '1px solid',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            }
+          }}
+        />
+      )}
       <AddCaravansDialog
         open={addCaravansDialogOpen}
         onClose={() => setAddCaravansDialogOpen(false)}

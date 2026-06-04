@@ -132,12 +132,29 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/farms'
 			},
 			{
-				id: 'gestion.batches',
+				id: 'gestion.batches-collapse',
 				title: 'Lotes',
 				subtitle: 'Tropas y Grupos',
-				type: 'item',
+				type: 'collapse',
 				icon: 'heroicons-outline:view-columns',
-				url: '/batches'
+				children: [
+					{
+						id: 'gestion.batches.own',
+						title: 'Lotes Propios',
+						subtitle: 'Finca Propia',
+						type: 'item',
+						icon: 'heroicons-outline:home',
+						url: '/batches/own'
+					},
+					{
+						id: 'gestion.batches.external',
+						title: 'Lotes Externos',
+						subtitle: 'De Proveedores',
+						type: 'item',
+						icon: 'heroicons-outline:user-group',
+						url: '/batches/external'
+					}
+				]
 			},
 			{
 				id: 'livestock.records',
@@ -167,6 +184,13 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:cloud-upload',
 						url: 'livestock/upload',
+					},
+					{
+						id: 'upload-document.ocr',
+						title: 'Analizador OCR Independiente',
+						type: 'item',
+						icon: 'heroicons-outline:document-magnifying-glass',
+						url: 'upload-document/ocr',
 					},
 					{
 						id: 'livestock.generator',
