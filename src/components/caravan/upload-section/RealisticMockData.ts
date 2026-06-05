@@ -6,13 +6,22 @@ export const REALISTIC_CARAVAN_MOCK = {
     "status": "success",
     "provider": "azure",
     "suggested_workday_code": "WD-20260508-REAL",
+    "identified_template": {
+        "code": "REP-01",
+        "title": "Planilla de Tacto y Ecografía",
+        "category": "REPRODUCTIVE"
+    },
     "context": {
         "cuit": "30-12345678-9",
         "renspa": "01.02.0.00001/01",
         "lote": "LOTE-REAL-001",
+        "establecimiento": "Estancia La Primavera",
+        "fecha": "04/06/2026",
         "provider_id": 1,
         "farm_id": 1,
-        "batch_id": null
+        "batch_id": null,
+        "service_order_code": "SO-20260604-095258-7392",
+        "service_order_id": 2
     },
     "data": [
         {
@@ -137,9 +146,13 @@ export const UPDATE_CARAVANS_MOCK = {
         "cuit": "30-12345678-9",
         "renspa": "01.02.0.00001/01",
         "lote": "LOTE-REAL-001",
+        "establecimiento": "Estancia La Primavera",
+        "fecha": "04/06/2026",
         "provider_id": 1,
         "farm_id": 1,
-        "batch_id": null
+        "batch_id": null,
+        "service_order_code": null,
+        "service_order_id": null
     },
     "data": [
         {

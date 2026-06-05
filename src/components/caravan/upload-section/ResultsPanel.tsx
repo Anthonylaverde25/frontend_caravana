@@ -8,6 +8,7 @@ import { TableResult, ImportResult, DocumentContext } from './types';
 // Sub-components & Hooks
 import { ResultsHeader } from './results/ResultsHeader';
 import { ResultsContextBar } from './results/ResultsContextBar';
+import { DocumentHeaderBar } from './results/DocumentHeaderBar';
 import { useResultsColumns } from './results/useResultsColumns';
 
 interface ResultsPanelProps {
@@ -17,24 +18,31 @@ interface ResultsPanelProps {
   workdayType: string;
   suggestedWorkdayCode?: string;
   onReset: () => void;
+  emptyDestinationBatchId?: number | null;
+  identifiedTemplate?: any;
 }
 
 /**
  * ResultsPanel Component (Container)
  * Orchestrates the data visualization, editing, and massive import process.
  */
-const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkdayCode, onReset }: ResultsPanelProps) => {
+const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkdayCode, onReset, emptyDestinationBatchId, identifiedTemplate }: ResultsPanelProps) => {
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'done' | 'error'>('idle');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [localRows, setLocalRows] = useState<any[]>([]);
 
-  // Initialize local rows from the first table result
+  // Initialize local rows by resolving the correct caravan data table
   useEffect(() => {
     if (data && data.length > 0) {
-      setLocalRows(data[0].mapped_rows.map(row => {
+      // Find the table that contains caravan data (has 'identification' mapped or present in rows)
+      const caravanTable = data.find(table => 
+        table.field_mapping && Object.values(table.field_mapping).includes('identification')
+      ) || data.reduce((max, table) => (table.row_count > max.row_count ? table : max), data[0]);
+
+      setLocalRows((caravanTable.mapped_rows || []).map(row => {
         const flatRow: any = {};
-        Object.entries(row).forEach(([key, val]) => {
+        Object.entries(row).forEach(([key, val]: [string, any]) => {
           flatRow[key] = val.value;
           flatRow[key + '_meta'] = { confidence: val.confidence };
         });
@@ -56,7 +64,7 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
   }, []);
 
   // Use the custom hook for columns
-  const columns = useResultsColumns({ localRows, handleCellEdit });
+  const columns = useResultsColumns({ localRows, handleCellEdit, identifiedTemplate });
 
   const handleImport = async () => {
     setImportStatus('importing');
@@ -81,6 +89,8 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
         batch_id: context?.batch_id || null,
         farm_id: context?.farm_id || null,
         batch_name: context?.lote || null,
+        empty_destination_batch_id: emptyDestinationBatchId || null,
+        service_order_id: context?.service_order_id || null,
       });
 
       if (response.status === 200 || response.status === 201) {
@@ -115,6 +125,9 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
         onReset={onReset}
         onImport={handleImport}
       />
+
+      {/* Document Header (Establecimiento, Service Order, Template Code, Lote, CUIT, RENSPA, Fecha) */}
+      <DocumentHeaderBar context={context} identifiedTemplate={identifiedTemplate} />
 
       {/* Context Area */}
       <ResultsContextBar context={context} />

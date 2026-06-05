@@ -12,9 +12,13 @@ export const MOCK_AZURE_RESPONSE = {
         "cuit": "30-98765432-1",
         "renspa": "01.02.0.00002/01",
         "lote": "mock-lote-test",
+        "establecimiento": null,
+        "fecha": null,
         "provider_id": 2,
         "farm_id": 4,
-        "batch_id": null
+        "batch_id": null,
+        "service_order_code": null,
+        "service_order_id": null
     },
     "data": [
         {

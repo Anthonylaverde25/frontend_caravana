@@ -1,4 +1,4 @@
-import { Box, Typography, TextField, Divider, Stack, Select, MenuItem, FormControl, Chip } from '@mui/material';
+import { Box, Typography, TextField, Divider, Stack, Select, MenuItem, FormControl } from '@mui/material';
 import {
   DescriptionOutlined as NotesIcon,
   FormatListNumberedOutlined as SectionIcon,
@@ -7,19 +7,31 @@ import {
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { DocumentContext } from './types';
+import { Rep01Sidebar } from './Rep01Sidebar';
 
 interface AnalysisSidebarProps {
   suggestedWorkdayCode?: string;
   workdayType: string;
   setWorkdayType: (type: string) => void;
   context?: DocumentContext;
+  templateCode?: string;
+  emptyDestinationBatchId: number | null;
+  setEmptyDestinationBatchId: (id: number | null) => void;
 }
 
 /**
  * AnalysisSidebar Component
  * Provides a minimal area for manual metadata input during OCR verification.
  */
-const AnalysisSidebar = ({ suggestedWorkdayCode, workdayType, setWorkdayType, context }: AnalysisSidebarProps) => {
+const AnalysisSidebar = ({
+  suggestedWorkdayCode,
+  workdayType,
+  setWorkdayType,
+  context,
+  templateCode,
+  emptyDestinationBatchId,
+  setEmptyDestinationBatchId
+}: AnalysisSidebarProps) => {
   return (
     <Box
       sx={{
@@ -74,6 +86,18 @@ const AnalysisSidebar = ({ suggestedWorkdayCode, workdayType, setWorkdayType, co
             </Select>
           </FormControl>
         </Box>
+
+        {/* REP-01 Template Specific Configuration */}
+        {templateCode === 'REP-01' && (
+          <>
+            <Divider />
+            <Rep01Sidebar
+              farmId={context?.farm_id ?? undefined}
+              emptyDestinationBatchId={emptyDestinationBatchId}
+              setEmptyDestinationBatchId={setEmptyDestinationBatchId}
+            />
+          </>
+        )}
 
         <Divider />
 

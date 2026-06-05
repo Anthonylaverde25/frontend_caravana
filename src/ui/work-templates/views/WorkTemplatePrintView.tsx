@@ -361,6 +361,7 @@ const WorkTemplatePrintView: React.FC = () => {
                     lote={batch?.name || ''}
                     title={template?.title || 'Planilla de Tacto y Ecografía'}
                     templateCode={code}
+                    serviceOrderCode={order?.code}
                   />
 
                   {/* Subtitle / Context indicator */}

@@ -39,6 +39,8 @@ import { REALISTIC_CARAVAN_MOCK, UPDATE_CARAVANS_MOCK } from './upload-section-o
 // Atomized Components & Types
 import { UploadResponse, UploadStatus } from './upload-section-ocr/types';
 import IntegrationCards from './upload-section-ocr/IntegrationCards';
+import AnalysisSidebar from '@/components/caravan/upload-section/AnalysisSidebar';
+import ResultsPanel from '@/components/caravan/upload-section/ResultsPanel';
 
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/tiff', 'application/pdf'];
 const ACCEPTED_EXTENSIONS = '.pdf,.png,.jpg,.jpeg,.tiff';
@@ -82,6 +84,8 @@ const UploadSection = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [ocrProvider, setOcrProvider] = useState<'azure' | 'google'>('azure');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [workdayType, setWorkdayType] = useState('entry');
+  const [emptyDestinationBatchId, setEmptyDestinationBatchId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { openPicker, disconnect, isConnected, isDriveLoading, driveError } = useGoogleDrive((file) => {
@@ -95,6 +99,8 @@ const UploadSection = () => {
     setResult(null);
     setErrorMessage('');
     setIsModalOpen(false);
+    setWorkdayType('entry');
+    setEmptyDestinationBatchId(null);
   };
 
   const handleMockTest = () => {
@@ -107,9 +113,13 @@ const UploadSection = () => {
         cuit: '30-98765432-1',
         renspa: '01.234.5.67890/12',
         lote: 'Lote Recría A',
+        establecimiento: 'Estancia El Roble',
+        fecha: '04/06/2026',
         provider_id: 1,
         farm_id: 1,
-        batch_id: 1
+        batch_id: 1,
+        service_order_code: null,
+        service_order_id: null
       },
       identified_template: {
         code: 'ING-01',
@@ -125,7 +135,6 @@ const UploadSection = () => {
       }
     } as any);
     setSelectedFile({ name: 'mock_azure_test_data.json', size: 0 } as File);
-    setIsModalOpen(true);
   };
 
   const handleRealisticMockTest = () => {
@@ -138,9 +147,13 @@ const UploadSection = () => {
         cuit: '30-12345678-9',
         renspa: '12.345.6.78910/11',
         lote: 'Lote 5',
+        establecimiento: 'Estancia La Primavera',
+        fecha: '04/06/2026',
         provider_id: 1,
         farm_id: 2,
-        batch_id: 3
+        batch_id: 3,
+        service_order_code: 'SO-20260604-095258-7392',
+        service_order_id: 2
       },
       identified_template: {
         code: 'REP-01',
@@ -154,10 +167,39 @@ const UploadSection = () => {
           { name: 'gestational_stage', label: 'Estadio Estimado', type: 'select', required: false, options: [{ value: 'CABEZA', label: 'Cabeza' }, { value: 'CUERPO', label: 'Cuerpo' }, { value: 'COLA', label: 'Cola' }] },
           { name: 'observations', label: 'Observaciones', type: 'text', required: false }
         ]
-      }
+      },
+      data: [
+        {
+          table_id: 0,
+          row_count: 5,
+          column_count: 5,
+          headers: ["caravana", "categoria", "diagnostico", "estadio_estimado", "observaciones"],
+          field_mapping: {
+            "caravana": "identification",
+            "categoria": "category",
+            "diagnostico": "diagnostico",
+            "estadio_estimado": "gestational_stage",
+            "observaciones": "observations"
+          },
+          rows: [],
+          mapped_rows: [
+            {
+              identification: { value: "1001", confidence: 1 },
+              category: { value: "vaca", confidence: 1 },
+              diagnostico: { value: "Vacía :selected:", confidence: 1 },
+              is_empty: { value: true, confidence: 1 }
+            },
+            {
+              identification: { value: "1002", confidence: 1 },
+              category: { value: "vaca", confidence: 1 },
+              diagnostico: { value: "Preñada :selected:", confidence: 1 },
+              is_empty: { value: false, confidence: 1 }
+            }
+          ]
+        }
+      ]
     } as any);
     setSelectedFile({ name: 'realistic_caravans.json', size: 0 } as File);
-    setIsModalOpen(true);
   };
 
   const handleUpdateMockTest = () => {
@@ -170,9 +212,13 @@ const UploadSection = () => {
         cuit: '30-11111111-1',
         renspa: '99.999.9.99999/99',
         lote: 'Lote Terminación B',
+        establecimiento: 'Estancia Los Pinos',
+        fecha: '04/06/2026',
         provider_id: 2,
         farm_id: 3,
-        batch_id: 4
+        batch_id: 4,
+        service_order_code: null,
+        service_order_id: null
       },
       identified_template: {
         code: 'OP-01',
@@ -187,7 +233,6 @@ const UploadSection = () => {
       }
     } as any);
     setSelectedFile({ name: 'update_weights_mock.json', size: 0 } as File);
-    setIsModalOpen(true);
   };
 
   const handleFile = useCallback((file: File) => {
@@ -231,7 +276,6 @@ const UploadSection = () => {
       setProgress(100);
       setResult(response.data);
       setStatus('success');
-      setIsModalOpen(true);
     } catch (err: any) {
       clearInterval(progressInterval);
       setErrorMessage(err.response?.data?.error || err.message || 'An unexpected error occurred.');
@@ -242,112 +286,161 @@ const UploadSection = () => {
   return (
     <Box sx={{ width: '100%', mb: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       
-      {/* ─── DropZone & Integrations Grid ─── */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: 4, 
-          width: '100%', 
-          justifyContent: 'center', 
-          alignItems: 'center' 
-        }}
-      >
-        {/* Column 1: DropZone Area */}
-        <Box 
-          sx={{ 
-            width: '100%',
-            flex: {
-              xs: '1 1 100%',
-              lg: '1 1 calc(72% - 16px)'
-            },
-            maxWidth: {
-              lg: '72%'
-            }
-          }}
-        >
-          <DropZone
-            elevation={0}
-            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={(e) => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); }}
-            onClick={status === 'idle' || status === 'error' ? () => fileInputRef.current?.click() : undefined}
-            isDragOver={isDragOver}
-            status={status}
-          >
-            <input ref={fileInputRef} type="file" accept={ACCEPTED_EXTENSIONS} onChange={(e) => { if (e.target.files?.length) handleFile(e.target.files[0]); e.target.value = ''; }} style={{ display: 'none' }} />
-
-            {/* Provider Selector */}
-            {(status === 'idle' || status === 'error') && (
-              <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 1, zIndex: 2 }} onClick={(e) => e.stopPropagation()}>
-                <Chip label="Azure" size="small" onClick={() => setOcrProvider('azure')} color={ocrProvider === 'azure' ? 'primary' : 'default'} sx={{ fontSize: '0.65rem' }} />
-              </Box>
-            )}
-
-            {/* Content based on status */}
-            {(status === 'idle' || status === 'error' || status === 'success') && !isDragOver && (
-              <>
-                <Avatar sx={{ bgcolor: alpha('#1a73e8', 0.08), color: 'primary.main', width: 80, height: 80, mb: 3 }}><InsertDriveFileIcon sx={{ fontSize: 40 }} /></Avatar>
-                <Typography variant="h5" sx={{ mb: 1, fontWeight: 500 }}>Select a spreadsheet</Typography>
-                <Button variant="contained" disableElevation onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} sx={{ py: 1.5, px: 5 }}>Browse Files</Button>
-
-                {import.meta.env.DEV && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
-                    <Button variant="outlined" color="secondary" onClick={(e) => { e.stopPropagation(); handleMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<InfoIcon />}>
-                      Load Mock OCR Data (Test)
-                    </Button>
-                    <Button variant="outlined" color="primary" onClick={(e) => { e.stopPropagation(); handleRealisticMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CheckCircleIcon />}>
-                      Load Realistic Caravan Data
-                    </Button>
-                    <Button variant="outlined" color="warning" onClick={(e) => { e.stopPropagation(); handleUpdateMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CloudUploadIcon />}>
-                      Load Update (Exit Weights)
-                    </Button>
-                  </Box>
-                )}
-              </>
-            )}
-
-            {isDragOver && (
-              <>
-                <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 96, height: 96, mb: 3 }}><CloudUploadIcon sx={{ fontSize: 48 }} /></Avatar>
-                <Typography variant="h4" color="primary.main" fontWeight={500}>Ready to drop</Typography>
-              </>
-            )}
-
-            {status === 'uploading' && (
-              <>
-                <CircularProgress variant="determinate" value={progress} size={80} sx={{ mb: 4 }} />
-                <Typography variant="h5">Analyzing document...</Typography>
-                <Box sx={{ mt: 3, width: '100%', maxWidth: 250 }}><LinearProgress variant="determinate" value={progress} /></Box>
-              </>
-            )}
-
-            {status === 'error' && (
-              <>
-                <Avatar sx={{ bgcolor: alpha('#d32f2f', 0.1), color: 'error.main', width: 80, height: 80, mb: 3 }}><ErrorIcon sx={{ fontSize: 48 }} /></Avatar>
-                <Typography variant="body1" color="error" sx={{ mb: 4 }}>{errorMessage || driveError}</Typography>
-                <Button variant="contained" color="error" onClick={() => resetState()}>Try Again</Button>
-              </>
-            )}
-          </DropZone>
-        </Box>
-
-        {/* Column 2: Integrations */}
+      {/* ─── Success Mode: Analysis View (Sidebar + Table) ─── */}
+      {status === 'success' && result ? (
         <Box 
           sx={{ 
             width: '100%', 
-            flex: { 
-              xs: '1 1 100%', 
-              lg: '1 1 calc(28% - 16px)' 
-            }, 
-            maxWidth: { 
-              lg: '28%' 
-            } 
+            maxWidth: '1600px', 
+            mx: 'auto', 
+            display: 'flex', 
+            flexDirection: { xs: 'column', lg: 'row' },
+            gap: 2
           }}
         >
-          <IntegrationCards isConnected={isConnected} isDriveLoading={isDriveLoading} openPicker={openPicker} disconnect={disconnect} />
+          {/* Metadata Sidebar (25%) */}
+          <Box 
+            sx={{ 
+              flex: '1 1 25%', 
+              borderRight: { lg: '1px solid' }, 
+              borderColor: { lg: 'divider' },
+              mb: { xs: 4, lg: 0 },
+              order: { xs: 2, lg: 1 }
+            }}
+          >
+            <AnalysisSidebar 
+              suggestedWorkdayCode={result.suggested_workday_code} 
+              workdayType={workdayType}
+              setWorkdayType={setWorkdayType}
+              context={result.context}
+              templateCode={result.identified_template?.code}
+              emptyDestinationBatchId={emptyDestinationBatchId}
+              setEmptyDestinationBatchId={setEmptyDestinationBatchId}
+            />
+          </Box>
+
+          {/* Main Table Area (75%) */}
+          <Box sx={{ flex: '1 1 75%', minWidth: 0, order: { xs: 1, lg: 2 } }}>
+            <ResultsPanel 
+              data={result.data} 
+              context={result.context}
+              ocrProvider={ocrProvider} 
+              workdayType={workdayType}
+              suggestedWorkdayCode={result.suggested_workday_code}
+              onReset={resetState} 
+              emptyDestinationBatchId={emptyDestinationBatchId}
+              identifiedTemplate={result.identified_template}
+            />
+          </Box>
         </Box>
-      </Box>
+      ) : (
+        /* ─── Idle/Uploading/Error Mode: Two Column Layout ─── */
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: 4, 
+            width: '100%', 
+            justifyContent: 'center', 
+            alignItems: 'center' 
+          }}
+        >
+          {/* Column 1: DropZone Area */}
+          <Box 
+            sx={{ 
+              width: '100%',
+              flex: {
+                xs: '1 1 100%',
+                lg: '1 1 calc(72% - 16px)'
+              },
+              maxWidth: {
+                lg: '72%'
+              }
+            }}
+          >
+            <DropZone
+              elevation={0}
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); }}
+              onClick={status === 'idle' || status === 'error' ? () => fileInputRef.current?.click() : undefined}
+              isDragOver={isDragOver}
+              status={status}
+            >
+              <input ref={fileInputRef} type="file" accept={ACCEPTED_EXTENSIONS} onChange={(e) => { if (e.target.files?.length) handleFile(e.target.files[0]); e.target.value = ''; }} style={{ display: 'none' }} />
+
+              {/* Provider Selector */}
+              {(status === 'idle' || status === 'error') && (
+                <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', gap: 1, zIndex: 2 }} onClick={(e) => e.stopPropagation()}>
+                  <Chip label="Azure" size="small" onClick={() => setOcrProvider('azure')} color={ocrProvider === 'azure' ? 'primary' : 'default'} sx={{ fontSize: '0.65rem' }} />
+                </Box>
+              )}
+
+              {/* Content based on status */}
+              {(status === 'idle' || status === 'error') && !isDragOver && (
+                <>
+                  <Avatar sx={{ bgcolor: alpha('#1a73e8', 0.08), color: 'primary.main', width: 80, height: 80, mb: 3 }}><InsertDriveFileIcon sx={{ fontSize: 40 }} /></Avatar>
+                  <Typography variant="h5" sx={{ mb: 1, fontWeight: 500 }}>Select a spreadsheet</Typography>
+                  <Button variant="contained" disableElevation onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} sx={{ py: 1.5, px: 5 }}>Browse Files</Button>
+
+                  {import.meta.env.DEV && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
+                      <Button variant="outlined" color="secondary" onClick={(e) => { e.stopPropagation(); handleMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<InfoIcon />}>
+                        Load Mock OCR Data (Test)
+                      </Button>
+                      <Button variant="outlined" color="primary" onClick={(e) => { e.stopPropagation(); handleRealisticMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CheckCircleIcon />}>
+                        Load Realistic Caravan Data
+                      </Button>
+                      <Button variant="outlined" color="warning" onClick={(e) => { e.stopPropagation(); handleUpdateMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CloudUploadIcon />}>
+                        Load Update (Exit Weights)
+                      </Button>
+                    </Box>
+                  )}
+                </>
+              )}
+
+              {isDragOver && (
+                <>
+                  <Avatar sx={{ bgcolor: 'primary.main', color: 'white', width: 96, height: 96, mb: 3 }}><CloudUploadIcon sx={{ fontSize: 48 }} /></Avatar>
+                  <Typography variant="h4" color="primary.main" fontWeight={500}>Ready to drop</Typography>
+                </>
+              )}
+
+              {status === 'uploading' && (
+                <>
+                  <CircularProgress variant="determinate" value={progress} size={80} sx={{ mb: 4 }} />
+                  <Typography variant="h5">Analyzing document...</Typography>
+                  <Box sx={{ mt: 3, width: '100%', maxWidth: 250 }}><LinearProgress variant="determinate" value={progress} /></Box>
+                </>
+              )}
+
+              {status === 'error' && (
+                <>
+                  <Avatar sx={{ bgcolor: alpha('#d32f2f', 0.1), color: 'error.main', width: 80, height: 80, mb: 3 }}><ErrorIcon sx={{ fontSize: 48 }} /></Avatar>
+                  <Typography variant="body1" color="error" sx={{ mb: 4 }}>{errorMessage || driveError}</Typography>
+                  <Button variant="contained" color="error" onClick={() => resetState()}>Try Again</Button>
+                </>
+              )}
+            </DropZone>
+          </Box>
+
+          {/* Column 2: Integrations */}
+          <Box 
+            sx={{ 
+              width: '100%', 
+              flex: { 
+                xs: '1 1 100%', 
+                lg: '1 1 calc(28% - 16px)' 
+              }, 
+              maxWidth: { 
+                lg: '28%' 
+              } 
+            }}
+          >
+            <IntegrationCards isConnected={isConnected} isDriveLoading={isDriveLoading} openPicker={openPicker} disconnect={disconnect} />
+          </Box>
+        </Box>
+      )}
 
       {/* ─── Template Identification Dialog ─── */}
       <Dialog

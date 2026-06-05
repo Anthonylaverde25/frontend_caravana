@@ -3,7 +3,8 @@ import {
   Inventory2Outlined as BatchIcon, 
   CheckCircleOutline as SuccessIcon, 
   AddCircleOutline as NewIcon, 
-  HelpOutline as UnknownIcon 
+  HelpOutline as UnknownIcon,
+  AssignmentOutlined as OrderIcon
 } from '@mui/icons-material';
 import { DocumentContext } from '../types';
 
@@ -103,7 +104,33 @@ export const ResultsContextBar = ({ context }: ResultsContextBarProps) => {
             '& .MuiChip-icon': { color: 'inherit' }
           }}
         />
+
+        {/* Service Order */}
+        {context.service_order_code && (
+          <Chip
+            icon={context.service_order_id ? <SuccessIcon sx={{ fontSize: '14px !important' }} /> : <UnknownIcon sx={{ fontSize: '14px !important' }} />}
+            label={
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, opacity: 0.7 }}>Orden:</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>{context.service_order_code}</Typography>
+              </Box>
+            }
+            sx={{
+              borderRadius: '6px',
+              height: 28,
+              border: 'none',
+              bgcolor: (theme) => theme.palette.mode === 'dark'
+                ? (context.service_order_id ? alpha('#2e7d32', 0.2) : alpha('#fff', 0.05))
+                : (context.service_order_id ? '#e8f5e9' : '#f2f2f2'),
+              color: (theme) => theme.palette.mode === 'dark'
+                ? (context.service_order_id ? '#66bb6a' : '#aaa')
+                : (context.service_order_id ? '#2e7d32' : '#555'),
+              '& .MuiChip-icon': { color: 'inherit' }
+            }}
+          />
+        )}
       </Stack>
     </Box>
   );
 };
+

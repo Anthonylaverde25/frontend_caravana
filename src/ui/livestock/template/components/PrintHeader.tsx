@@ -8,9 +8,10 @@ interface PrintHeaderProps {
   lote?: string; // Optional if you want to make it dynamic later
   title?: string;
   templateCode?: string;
+  serviceOrderCode?: string;
 }
 
-const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, lote = 'hhhh', title = 'Planilla de Campo', templateCode }) => {
+const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, lote = 'hhhh', title = 'Planilla de Campo', templateCode, serviceOrderCode }) => {
   return (
     <>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -40,11 +41,18 @@ const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, 
         <tbody>
           {/* Row 1: Labels */}
           <tr>
-            <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 8px', width: templateCode ? '75%' : '100%' }}>
+            <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 8px', width: templateCode ? (serviceOrderCode ? '50%' : '75%') : '100%' }}>
               <Typography variant="caption" sx={{ fontWeight: 900, color: '#000', textTransform: 'uppercase', fontSize: '0.6rem' }}>
                 ESTABLECIMIENTO
               </Typography>
             </td>
+            {serviceOrderCode && (
+              <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 8px', width: '25%', textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ fontWeight: 900, color: '#000', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.5px' }}>
+                  SERVICE ORDER
+                </Typography>
+              </td>
+            )}
             {templateCode && (
               <td style={{ border: '1px solid #000', backgroundColor: '#000000', padding: '4px 8px', width: '25%', textAlign: 'center' }}>
                 <Typography variant="caption" sx={{ fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.5px' }}>
@@ -60,6 +68,13 @@ const PrintHeader: React.FC<PrintHeaderProps> = ({ establishment, cuit, renspa, 
                 {establishment || ''}
               </Typography>
             </td>
+            {serviceOrderCode && (
+              <td style={{ border: '1px solid #000', padding: '4px 12px', verticalAlign: 'middle', textAlign: 'center', backgroundColor: '#fafafa' }}>
+                <Typography variant="body1" sx={{ fontWeight: 900, fontSize: '0.9rem', color: '#000', fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+                  {serviceOrderCode}
+                </Typography>
+              </td>
+            )}
             {templateCode && (
               <td style={{ border: '1px solid #000', padding: '4px 12px', verticalAlign: 'middle', textAlign: 'center', backgroundColor: '#fafafa' }}>
                 <Typography variant="body1" sx={{ fontWeight: 900, fontSize: '0.95rem', color: '#000', fontFamily: 'monospace', letterSpacing: '1px' }}>

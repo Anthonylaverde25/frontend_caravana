@@ -76,6 +76,7 @@ const UploadSection = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [ocrProvider, setOcrProvider] = useState<'azure' | 'google'>('azure');
   const [workdayType, setWorkdayType] = useState('entry');
+  const [emptyDestinationBatchId, setEmptyDestinationBatchId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { openPicker, disconnect, isConnected, isDriveLoading, driveError } = useGoogleDrive((file) => {
@@ -89,6 +90,7 @@ const UploadSection = () => {
     setResult(null);
     setErrorMessage('');
     setWorkdayType('entry');
+    setEmptyDestinationBatchId(null);
   };
 
   const handleMockTest = () => {
@@ -136,7 +138,6 @@ const UploadSection = () => {
 
     const formData = new FormData();
     formData.append('document', file);
-    formData.append('target_model', 'caravans');
     formData.append('provider', ocrProvider);
 
     const progressInterval = setInterval(() => {
@@ -144,7 +145,7 @@ const UploadSection = () => {
     }, 1500);
 
     try {
-      const response = await axiosInstance.post('/test/azure-layout', formData);
+      const response = await axiosInstance.post('/work-templates/identify', formData);
       clearInterval(progressInterval);
       setProgress(100);
       setResult(response.data);
@@ -186,6 +187,9 @@ const UploadSection = () => {
               workdayType={workdayType}
               setWorkdayType={setWorkdayType}
               context={result.context}
+              templateCode={result.identified_template?.code}
+              emptyDestinationBatchId={emptyDestinationBatchId}
+              setEmptyDestinationBatchId={setEmptyDestinationBatchId}
             />
           </Box>
 
@@ -198,6 +202,8 @@ const UploadSection = () => {
               workdayType={workdayType}
               suggestedWorkdayCode={result.suggested_workday_code}
               onReset={resetState} 
+              emptyDestinationBatchId={emptyDestinationBatchId}
+              identifiedTemplate={result.identified_template}
             />
           </Box>
         </Box>

@@ -22,9 +22,13 @@ export interface DocumentContext {
   cuit: string | null;
   renspa: string | null;
   lote: string | null;
+  establecimiento: string | null;
+  fecha: string | null;
   provider_id: number | null;
   farm_id: number | null;
   batch_id: number | null;
+  service_order_code: string | null;
+  service_order_id: number | null;
 }
 
 export interface UploadResponse {
@@ -36,6 +40,12 @@ export interface UploadResponse {
   };
   context?: DocumentContext;
   data: TableResult[];
+  identified_template?: {
+    code: string;
+    title: string;
+    category: string;
+    description?: string;
+  } | null;
 }
 
 export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';

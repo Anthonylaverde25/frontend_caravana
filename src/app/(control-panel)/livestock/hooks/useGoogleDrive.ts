@@ -15,6 +15,8 @@ declare global {
 
 interface UseGoogleDriveReturn {
   openPicker: () => void;
+  disconnect: () => void;
+  isConnected: boolean;
   isDriveLoading: boolean;
   driveError: string | null;
 }
