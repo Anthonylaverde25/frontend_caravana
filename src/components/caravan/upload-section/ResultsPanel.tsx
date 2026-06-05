@@ -10,6 +10,7 @@ import { ResultsHeader } from './results/ResultsHeader';
 import { ResultsContextBar } from './results/ResultsContextBar';
 import { DocumentHeaderBar } from './results/DocumentHeaderBar';
 import { useResultsColumns } from './results/useResultsColumns';
+import Rep01ResultsTable from './results/Rep01ResultsTable';
 
 interface ResultsPanelProps {
   data: TableResult[];
@@ -40,14 +41,34 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
         table.field_mapping && Object.values(table.field_mapping).includes('identification')
       ) || data.reduce((max, table) => (table.row_count > max.row_count ? table : max), data[0]);
 
-      setLocalRows((caravanTable.mapped_rows || []).map(row => {
+      const mappedRows = (caravanTable.mapped_rows || []).map(row => {
         const flatRow: any = {};
         Object.entries(row).forEach(([key, val]: [string, any]) => {
-          flatRow[key] = val.value;
-          flatRow[key + '_meta'] = { confidence: val.confidence };
+          flatRow[key] = val?.value ?? '';
+          flatRow[key + '_meta'] = { confidence: val?.confidence ?? 1 };
         });
         return flatRow;
-      }));
+      });
+
+      // Filter out rows that have absolutely no useful data (only contain empty fields)
+      const filteredRows = mappedRows.filter(row => {
+        const hasCaravan = row.identification && String(row.identification).trim() !== '';
+        const hasCategory = row.category && String(row.category).trim() !== '';
+        const hasDiagnosis = row.diagnosis && String(row.diagnosis).trim() !== '';
+        const hasStage = row.gestational_stage && String(row.gestational_stage).trim() !== '';
+        const hasObservations = row.observations && String(row.observations).trim() !== '';
+        
+        // Check for other dynamic template keys if any
+        const otherKeys = Object.keys(row).filter(key => 
+          !key.endsWith('_meta') && 
+          !['identification', 'category', 'diagnosis', 'gestational_stage', 'observations', 'unnamed_column'].includes(key)
+        );
+        const hasOtherValues = otherKeys.some(k => row[k] && String(row[k]).trim() !== '');
+
+        return hasCaravan || hasCategory || hasDiagnosis || hasStage || hasObservations || hasOtherValues;
+      });
+
+      setLocalRows(filteredRows);
     }
   }, [data]);
 
@@ -61,6 +82,10 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
       newRows[rowIndex] = currentRow;
       return newRows;
     });
+  }, []);
+
+  const handleRemoveRow = useCallback((rowIndex: number) => {
+    setLocalRows(prev => prev.filter((_, idx) => idx !== rowIndex));
   }, []);
 
   // Use the custom hook for columns
@@ -83,15 +108,35 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
           return hasId && hasAnyValue;
         });
 
-      const response = await axiosInstance.post('/caravans/import', {
-        rows: cleanedRows,
-        work_type: workdayType,
-        batch_id: context?.batch_id || null,
-        farm_id: context?.farm_id || null,
-        batch_name: context?.lote || null,
-        empty_destination_batch_id: emptyDestinationBatchId || null,
-        service_order_id: context?.service_order_id || null,
-      });
+      const templateCode = identifiedTemplate?.code?.toUpperCase();
+
+      let response;
+
+      if (templateCode === 'REP-01') {
+        // ─── REP-01: Gestation Diagnosis Flow ───
+        // This flow evaluates EXISTING caravans, not creating new ones.
+        response = await axiosInstance.post('/caravans/import-gestation-ocr', {
+          rows: cleanedRows.map(row => ({
+            identification: row.identification,
+            diagnostico: row.diagnostico || row.diagnosis || 'EMPTY',
+            gestation_stage: row.gestation_stage || row.gestational_stage || row.estadio_estimado || null,
+            observations: row.observations || null,
+          })),
+          service_order_id: context?.service_order_id || null,
+          diagnosis_date: new Date().toISOString().split('T')[0],
+        });
+      } else {
+        // ─── Standard: Caravan Import Flow ───
+        response = await axiosInstance.post('/caravans/import', {
+          rows: cleanedRows,
+          work_type: workdayType,
+          batch_id: context?.batch_id || null,
+          farm_id: context?.farm_id || null,
+          batch_name: context?.lote || null,
+          empty_destination_batch_id: emptyDestinationBatchId || null,
+          service_order_id: context?.service_order_id || null,
+        });
+      }
 
       if (response.status === 200 || response.status === 201) {
         setImportResult(response.data.data);
@@ -142,21 +187,29 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
         </Box>
 
         <Box sx={{ flex: 1, overflow: 'hidden', mx: 2, mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-          <DataTable
-            columns={columns}
-            data={localRows}
-            enableEditing={true}
-            editDisplayMode="cell"
-            enableRowSelection={true}
-            enableColumnOrdering={true}
-            enableGlobalFilter={true}
-            initialState={{
-              density: 'compact',
-              pagination: { pageSize: 15, pageIndex: 0 },
-              showGlobalFilter: true
-            }}
-            muiTablePaperProps={{ sx: { height: '100%', boxShadow: 'none' } }}
-          />
+          {identifiedTemplate?.code?.toUpperCase() === 'REP-01' ? (
+            <Rep01ResultsTable
+              rows={localRows}
+              onCellEdit={handleCellEdit}
+              onRemoveRow={handleRemoveRow}
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              data={localRows}
+              enableEditing={true}
+              editDisplayMode="cell"
+              enableRowSelection={true}
+              enableColumnOrdering={true}
+              enableGlobalFilter={true}
+              initialState={{
+                density: 'compact',
+                pagination: { pageSize: 15, pageIndex: 0 },
+                showGlobalFilter: true
+              }}
+              muiTablePaperProps={{ sx: { height: '100%', boxShadow: 'none' } }}
+            />
+          )}
         </Box>
       </Box>
 

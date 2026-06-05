@@ -1,23 +1,65 @@
 import { Box, Typography, FormControl, Select, MenuItem, Stack } from '@mui/material';
-import { AltRouteOutlined as RouteIcon } from '@mui/icons-material';
+import { AltRouteOutlined as RouteIcon, AssignmentOutlined as OrderIcon } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { useBatches } from '@/features/batches/hooks/useBatches';
+import { useServiceOrders } from '@/features/gestation/hooks/useServiceOrders';
 
 interface Rep01SidebarProps {
   farmId?: number;
   emptyDestinationBatchId: number | null;
   setEmptyDestinationBatchId: (id: number | null) => void;
+  serviceOrderId: number | null;
+  onUpdateServiceOrder: (id: number | null, code: string | null) => void;
 }
 
 /**
  * Rep01Sidebar Component
  * Specific settings sidebar for REP-01 (Tacto y Ecografía) template.
  */
-export const Rep01Sidebar = ({ farmId, emptyDestinationBatchId, setEmptyDestinationBatchId }: Rep01SidebarProps) => {
+export const Rep01Sidebar = ({
+  farmId,
+  emptyDestinationBatchId,
+  setEmptyDestinationBatchId,
+  serviceOrderId,
+  onUpdateServiceOrder
+}: Rep01SidebarProps) => {
   const { data: dbBatches = [], isLoading: isLoadingBatches } = useBatches(farmId);
+  const { data: dbServiceOrders = [], isLoading: isLoadingOrders } = useServiceOrders();
 
   return (
     <Stack spacing={3}>
+      <Box>
+        <Typography variant="subtitle2" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
+          <OrderIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+          Orden de Servicio
+        </Typography>
+        <FormControl fullWidth size="small" error={!serviceOrderId}>
+          <Select
+            value={serviceOrderId ?? ''}
+            onChange={(e) => {
+              const selectedId = e.target.value ? Number(e.target.value) : null;
+              const selectedSo = dbServiceOrders.find((so: any) => so.id === selectedId);
+              onUpdateServiceOrder(selectedId, selectedSo ? selectedSo.code : null);
+            }}
+            sx={{ borderRadius: 2 }}
+            displayEmpty
+          >
+            <MenuItem value="">
+              <em>Seleccionar Orden...</em>
+            </MenuItem>
+            {isLoadingOrders ? (
+              <MenuItem disabled>Cargando órdenes...</MenuItem>
+            ) : (
+              dbServiceOrders.map((so: any) => (
+                <MenuItem key={so.id} value={so.id}>
+                  {so.code} ({so.service_type})
+                </MenuItem>
+              ))
+            )}
+          </Select>
+        </FormControl>
+      </Box>
+
       <Box>
         <Typography variant="subtitle2" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
           <RouteIcon sx={{ fontSize: 18, color: 'warning.main' }} />

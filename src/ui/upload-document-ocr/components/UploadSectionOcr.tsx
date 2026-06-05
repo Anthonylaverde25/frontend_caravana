@@ -202,6 +202,108 @@ const UploadSection = () => {
     setSelectedFile({ name: 'realistic_caravans.json', size: 0 } as File);
   };
 
+  const handleRecria3MockTest = () => {
+    resetState();
+    setStatus('success');
+    setResult({
+      status: 'success',
+      suggested_workday_code: 'WD-20260605-01',
+      context: {
+        cuit: '30-98765432-1',
+        renspa: '01.02.0.00001/01',
+        lote: 'Lote Recría - 3',
+        establecimiento: 'Sección A - Ganadera Sur',
+        fecha: 'II',
+        provider_id: 2,
+        farm_id: 3,
+        batch_id: 6,
+        service_order_code: 'SO-20260605-092008-5727',
+        service_order_id: null
+      },
+      identified_template: {
+        id: 4,
+        title: 'Planilla de Tacto y Ecografía',
+        description: 'Registro de diagnóstico de gestación, tacto rectal y ecografía.',
+        category: 'REPRODUCTIVE',
+        status: 'active',
+        code: 'REP-01',
+        schema_definition: [
+          { name: 'caravana', label: 'Caravana', type: 'string', required: true },
+          { name: 'category', label: 'Categoría', type: 'string', required: true },
+          { name: 'diagnosis', label: 'Diagnóstico', type: 'select', required: true, options: [{ value: 'PREGNANT', label: 'Preñada' }, { value: 'EMPTY', label: 'Vacía' }] },
+          { name: 'gestational_stage', label: 'Estadio Estimado', type: 'select', required: false, options: [{ value: 'CABEZA', label: 'Cabeza' }, { value: 'CUERPO', label: 'Cuerpo' }, { value: 'COLA', label: 'Cola' }] },
+          { name: 'observations', label: 'Observaciones', type: 'text', required: false }
+        ]
+      },
+      data: [
+        {
+          table_id: 2,
+          row_count: 5,
+          column_count: 6,
+          headers: [
+            "unnamed_column",
+            "diagnsti_co",
+            "caravana",
+            "categora",
+            "estadio_estimado",
+            "observaci_ones"
+          ],
+          field_mapping: {
+            "caravana": "identification",
+            "diagnsti_co": "diagnosis",
+            "categora": "category",
+            "estadio_estimado": "gestational_stage",
+            "observaci_ones": "observations"
+          },
+          unresolved_headers: ["unnamed_column"],
+          rows: [
+            {
+              "unnamed_column": { "value": "1", "confidence": 1 },
+              "caravana": { "value": "CAR-6-3-466", "confidence": 1 },
+              "categora": { "value": "vaca", "confidence": 1 },
+              "diagnsti_co": { "value": ":selected: Preñada :unselected: Vacía", "confidence": 1 },
+              "estadio_estimado": { "value": ":selected: Cabeza :unselected: Cuerpo :unselected: Cola", "confidence": 1 },
+              "observaci_ones": { "value": "", "confidence": 1 }
+            },
+            {
+              "unnamed_column": { "value": "2", "confidence": 1 },
+              "caravana": { "value": "CAR-6-4-963", "confidence": 1 },
+              "categora": { "value": "vaca", "confidence": 1 },
+              "diagnsti_co": { "value": ":selected: Preñada :unselected: Vacía", "confidence": 1 },
+              "estadio_estimado": { "value": ":selected: Cabeza", "confidence": 1 },
+              "observaci_ones": { "value": "", "confidence": 1 }
+            },
+            {
+              "estadio_estimado": { "value": ":unselected: Cuerpo :unselected: Cola", "confidence": 1 }
+            }
+          ],
+          mapped_rows: [
+            {
+              "unnamed_column": { "value": "1", "confidence": 1 },
+              "identification": { "value": "CAR-6-3-466", "confidence": 1 },
+              "category": { "value": "vaca", "confidence": 1 },
+              "diagnosis": { "value": "PREGNANT", "confidence": 0.95 },
+              "gestational_stage": { "value": "head", "confidence": 0.95 },
+              "observations": { "value": "", "confidence": 1 }
+            },
+            {
+              "unnamed_column": { "value": "2", "confidence": 1 },
+              "identification": { "value": "CAR-6-4-963", "confidence": 1 },
+              "category": { "value": "vaca", "confidence": 1 },
+              "diagnosis": { "value": "PREGNANT", "confidence": 0.95 },
+              "gestational_stage": { "value": "head", "confidence": 0.95 },
+              "observations": { "value": "", "confidence": 1 }
+            },
+            {
+              "gestational_stage": { "value": "", "confidence": 0.5 }
+            }
+          ]
+        }
+      ]
+    } as any);
+    setSelectedFile({ name: 'Planilla de Tacto y Ecografía - Lote Recría 3 V2.pdf', size: 62905 } as File);
+  };
+
   const handleUpdateMockTest = () => {
     resetState();
     setStatus('success');
@@ -283,6 +385,19 @@ const UploadSection = () => {
     }
   };
 
+  const handleUpdateContext = useCallback((updatedFields: any) => {
+    setResult((prev: any) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        context: {
+          ...prev.context,
+          ...updatedFields,
+        },
+      };
+    });
+  }, []);
+
   return (
     <Box sx={{ width: '100%', mb: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       
@@ -316,6 +431,7 @@ const UploadSection = () => {
               templateCode={result.identified_template?.code}
               emptyDestinationBatchId={emptyDestinationBatchId}
               setEmptyDestinationBatchId={setEmptyDestinationBatchId}
+              onUpdateContext={handleUpdateContext}
             />
           </Box>
 
@@ -390,6 +506,9 @@ const UploadSection = () => {
                       </Button>
                       <Button variant="outlined" color="primary" onClick={(e) => { e.stopPropagation(); handleRealisticMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CheckCircleIcon />}>
                         Load Realistic Caravan Data
+                      </Button>
+                      <Button variant="outlined" color="success" onClick={(e) => { e.stopPropagation(); handleRecria3MockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CheckCircleIcon />}>
+                        Load Lote Recría 3 Mock (REP-01)
                       </Button>
                       <Button variant="outlined" color="warning" onClick={(e) => { e.stopPropagation(); handleUpdateMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CloudUploadIcon />}>
                         Load Update (Exit Weights)

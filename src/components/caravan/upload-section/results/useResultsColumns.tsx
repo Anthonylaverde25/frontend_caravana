@@ -21,6 +21,35 @@ const normalizeString = (str: string) => {
 };
 
 /**
+ * Helper to match selectable options with resilient translation support (ES <-> EN).
+ */
+const matchSelectOption = (optVal: string, optLabel: string, rawVal: string) => {
+  const oval = optVal.toLowerCase();
+  const olabel = optLabel.toLowerCase();
+  const val = rawVal.toLowerCase();
+  
+  if (oval === val || olabel === val) return true;
+  
+  // Gestation Stage translations
+  const headTerms = ['head', 'cabeza', 'cobeza', 'cab'];
+  const bodyTerms = ['body', 'cuerpo', 'cue'];
+  const tailTerms = ['tail', 'cola', 'col'];
+  
+  if (headTerms.includes(val) && (headTerms.includes(oval) || headTerms.includes(olabel))) return true;
+  if (bodyTerms.includes(val) && (bodyTerms.includes(oval) || bodyTerms.includes(olabel))) return true;
+  if (tailTerms.includes(val) && (tailTerms.includes(oval) || tailTerms.includes(olabel))) return true;
+  
+  // Diagnosis translations
+  const pregnantTerms = ['pregnant', 'preñada', 'prenada', 'preñadas', 'preñ'];
+  const emptyTerms = ['empty', 'vacía', 'vacia', 'vacías', 'vac'];
+  
+  if (pregnantTerms.includes(val) && (pregnantTerms.includes(oval) || pregnantTerms.includes(olabel))) return true;
+  if (emptyTerms.includes(val) && (emptyTerms.includes(oval) || emptyTerms.includes(olabel))) return true;
+  
+  return false;
+};
+
+/**
  * Helper to match table fields (raw from OCR or database alias) with schema fields.
  */
 const findSchemaField = (field: string, identifiedTemplate: any) => {
@@ -63,12 +92,13 @@ export const useResultsColumns = ({ localRows, handleCellEdit, identifiedTemplat
     // Filter out internal metadata fields to avoid rendering them as columns
     return Object.keys(localRows[0]).filter(key => !key.endsWith('_meta'));
   }, [localRows]);
-
   const columns = useMemo<MRT_ColumnDef<any>[]>(
-    () => allDbFields.map((field) => ({
-      accessorKey: field,
-      header: field.replace(/_/g, ' ').toUpperCase(),
-      Cell: ({ cell }) => {
+    () => allDbFields.map((field) => {
+      const schemaField = findSchemaField(field, identifiedTemplate);
+      return {
+        accessorKey: field,
+        header: schemaField?.label || field.replace(/_/g, ' ').toUpperCase(),
+        Cell: ({ cell }) => {
         const rowData = cell.row.original;
         const fieldData = rowData[field + '_meta'] || { confidence: 1 };
         let val = cell.getValue<string>();
@@ -78,8 +108,7 @@ export const useResultsColumns = ({ localRows, handleCellEdit, identifiedTemplat
         const schemaField = findSchemaField(field, identifiedTemplate);
         if (schemaField && schemaField.type === 'select' && val) {
           const option = schemaField.options?.find((o: any) => 
-            String(o.value).toLowerCase() === String(val).toLowerCase() || 
-            String(o.label).toLowerCase() === String(val).toLowerCase()
+            matchSelectOption(String(o.value), String(o.label || ''), val)
           );
           if (option) {
             val = option.label || option.value;
@@ -120,8 +149,7 @@ export const useResultsColumns = ({ localRows, handleCellEdit, identifiedTemplat
         if (schemaField && schemaField.type === 'select') {
           const rawValue = cell.getValue<string>();
           const matchingOption = schemaField.options?.find((o: any) => 
-            String(o.value).toLowerCase() === String(rawValue).toLowerCase() || 
-            String(o.label).toLowerCase() === String(rawValue).toLowerCase()
+            matchSelectOption(String(o.value), String(o.label || ''), rawValue)
           );
           const selectValue = matchingOption ? matchingOption.value : '';
 
@@ -151,7 +179,8 @@ export const useResultsColumns = ({ localRows, handleCellEdit, identifiedTemplat
           },
         };
       },
-    })),
+    };
+  }),
     [allDbFields, handleCellEdit, identifiedTemplate]
   );
 

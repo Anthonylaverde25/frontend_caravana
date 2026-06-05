@@ -17,6 +17,7 @@ interface AnalysisSidebarProps {
   templateCode?: string;
   emptyDestinationBatchId: number | null;
   setEmptyDestinationBatchId: (id: number | null) => void;
+  onUpdateContext?: (updatedFields: Partial<DocumentContext>) => void;
 }
 
 /**
@@ -30,7 +31,8 @@ const AnalysisSidebar = ({
   context,
   templateCode,
   emptyDestinationBatchId,
-  setEmptyDestinationBatchId
+  setEmptyDestinationBatchId,
+  onUpdateContext
 }: AnalysisSidebarProps) => {
   return (
     <Box
@@ -95,6 +97,8 @@ const AnalysisSidebar = ({
               farmId={context?.farm_id ?? undefined}
               emptyDestinationBatchId={emptyDestinationBatchId}
               setEmptyDestinationBatchId={setEmptyDestinationBatchId}
+              serviceOrderId={context?.service_order_id ?? null}
+              onUpdateServiceOrder={(soId, soCode) => onUpdateContext?.({ service_order_id: soId, service_order_code: soCode })}
             />
           </>
         )}
