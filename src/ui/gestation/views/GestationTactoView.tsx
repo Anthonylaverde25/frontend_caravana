@@ -167,8 +167,8 @@ function GestationTactoView() {
       .map(id => caravans.find(c => c.id === id))
       .filter(Boolean);
 
-    // Filter empty/unpregnant females (active_gestation === null)
-    const emptyFemales = orderFemales.filter(c => c.active_gestation === null);
+    // Filter empty/unpregnant females (active_gestation === null) that are still in the service order batch
+    const emptyFemales = orderFemales.filter(c => c.active_gestation === null && c.batch_id === orderObj.batch_id);
 
     setClosingOrderId(orderId);
     if (emptyFemales.length > 0) {
@@ -208,7 +208,7 @@ function GestationTactoView() {
     const orderFemales = selectedOrder.female_caravan_ids
       .map(id => caravans.find(c => c.id === id))
       .filter(Boolean);
-    return orderFemales.filter(c => c.active_gestation === null).length;
+    return orderFemales.filter(c => c.active_gestation === null && c.batch_id === selectedOrder.batch_id).length;
   }, [selectedOrder, caravans]);
 
   if (isLoadingCaravans || isLoadingOrders || isLoadingBatches) {

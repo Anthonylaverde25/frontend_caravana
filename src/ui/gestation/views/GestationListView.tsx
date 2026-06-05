@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import GestationBirthSheetDialog from '../components/dialogs/GestationBirthSheetDialog';
 import {
   Paper,
   Typography,
@@ -73,9 +72,7 @@ function GestationListView() {
   // Fetch caravans from active company
   const { data: caravans = [], isLoading } = useCaravans(activeCompanyId);
 
-  // States for printable gestation sheet dialog
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedBatch, setSelectedBatch] = useState<{ id: number; name: string; caravans: any[] } | null>(null);
+
 
   // Filter only pregnant caravans
   const gestatingCaravans = useMemo(() => {
@@ -385,14 +382,7 @@ function GestationListView() {
                       variant="contained"
                       color="primary"
                       startIcon={<FuseSvgIcon size={16}>heroicons-outline:printer</FuseSvgIcon>}
-                      onClick={() => {
-                        setSelectedBatch({
-                          id: Number(row.original.id),
-                          name: row.original.name,
-                          caravans: row.original.caravans
-                        });
-                        setSheetOpen(true);
-                      }}
+                      onClick={() => navigate(`/work-templates/REP-02?batchId=${row.original.id}`)}
                       sx={{ textTransform: 'none', py: 0.5, px: 1.5, fontSize: '0.75rem', borderRadius: '4px', color: '#fff', fontWeight: 700 }}
                     >
                       Planilla de Parición
@@ -438,15 +428,7 @@ function GestationListView() {
         </Paper>
       </Stack>
 
-      <GestationBirthSheetDialog
-        open={sheetOpen}
-        onClose={() => {
-          setSheetOpen(false);
-          setSelectedBatch(null);
-        }}
-        batchId={selectedBatch?.id}
-        caravans={selectedBatch?.caravans || []}
-      />
+
     </ViewLayout>
   );
 }

@@ -124,6 +124,7 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
           })),
           service_order_id: context?.service_order_id || null,
           diagnosis_date: new Date().toISOString().split('T')[0],
+          empty_cows_batch_id: emptyDestinationBatchId || null,
         });
       } else {
         // ─── Standard: Caravan Import Flow ───

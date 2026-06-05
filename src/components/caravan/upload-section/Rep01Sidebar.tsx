@@ -23,7 +23,7 @@ export const Rep01Sidebar = ({
   serviceOrderId,
   onUpdateServiceOrder
 }: Rep01SidebarProps) => {
-  const { data: dbBatches = [], isLoading: isLoadingBatches } = useBatches(farmId);
+  const { data: dbBatches = [], isLoading: isLoadingBatches } = useBatches();
   const { data: dbServiceOrders = [], isLoading: isLoadingOrders } = useServiceOrders();
 
   return (
