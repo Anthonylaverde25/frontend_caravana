@@ -1,4 +1,4 @@
-import { TableRow, TableCell, Box, Typography, TextField, MenuItem, IconButton, Divider } from '@mui/material';
+import { TableRow, TableCell, Box, Typography, TextField, MenuItem, IconButton, Divider, Chip } from '@mui/material';
 import { Controller, Control, UseFormRegister } from 'react-hook-form';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useTheme } from '@mui/material/styles';
@@ -35,6 +35,7 @@ interface BulkBirthRowProps {
 	isDark: boolean;
 	zebraBg: string;
 	headerBg: string;
+	deferSire?: boolean;
 }
 
 const SEX_OPTIONS = [
@@ -69,7 +70,8 @@ export default function BulkBirthRow({
 	fieldsLength,
 	isDark,
 	zebraBg,
-	headerBg
+	headerBg,
+	deferSire = false
 }: BulkBirthRowProps) {
 	const theme = useTheme();
 	const focusBorder = theme.palette.primary.main;
@@ -274,65 +276,86 @@ export default function BulkBirthRow({
 
 			{/* 8. Sire (Father) Selection */}
 			<TableCell sx={cellStyle}>
-				<Controller
-					control={control}
-					name={`births.${index}.father_id` as const}
-					render={({ field: controllerField }) => {
-						if (gestationSires.length === 1) {
-							const singleSire = gestationSires[0];
+				{deferSire ? (
+					<Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', minHeight: '40px', gap: 1 }}>
+						<Chip
+							size="small"
+							label="⏳ Pendiente"
+							sx={{
+								bgcolor: isDark ? 'rgba(255,167,38,0.15)' : 'rgba(255,167,38,0.1)',
+								color: 'warning.main',
+								fontWeight: 700,
+								fontSize: '0.65rem',
+								height: 20,
+								border: '1px dashed',
+								borderColor: 'warning.main'
+							}}
+						/>
+						<Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem' }}>
+							Asignar luego
+						</Typography>
+					</Box>
+				) : (
+					<Controller
+						control={control}
+						name={`births.${index}.father_id` as const}
+						render={({ field: controllerField }) => {
+							if (gestationSires.length === 1) {
+								const singleSire = gestationSires[0];
+								return (
+									<TextField
+										fullWidth
+										variant="outlined"
+										disabled
+										value={`Único: ${singleSire.identification}`}
+										sx={{
+											...inputSx,
+											'& .MuiInputBase-root.Mui-disabled': {
+												backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f1f3f4',
+												color: theme.palette.text.secondary,
+												fontWeight: 700,
+												cursor: 'not-allowed'
+											}
+										}}
+									/>
+								);
+							}
+
 							return (
 								<TextField
+									select
 									fullWidth
 									variant="outlined"
-									disabled
-									value={`Único: ${singleSire.identification}`}
-									sx={{
-										...inputSx,
-										'& .MuiInputBase-root.Mui-disabled': {
-											backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f1f3f4',
-											color: theme.palette.text.secondary,
-											fontWeight: 700,
-											cursor: 'not-allowed'
-										}
-									}}
-								/>
-							);
-						}
-
-						return (
-							<TextField
-								select
-								fullWidth
-								variant="outlined"
-								sx={inputSx}
-								{...controllerField}
-							>
-								<MenuItem value="">
-									<em>-- Desconocido / Sin esp. --</em>
-								</MenuItem>
-								{gestationSires.map((s) => (
-									<MenuItem
-										key={`sug-${s.id}`}
-										value={s.id}
-									>
-										⭐ Sugerido: {s.identification}
+									sx={inputSx}
+									{...controllerField}
+								>
+									<MenuItem value="">
+										<em>-- Desconocido / Sin esp. --</em>
 									</MenuItem>
-								))}
-								{gestationSires.length > 0 && <Divider />}
-								{maleCaravans
-									.filter((male) => !gestationSires.some((gs) => gs.id === male.id))
-									.map((male) => (
+									{gestationSires.map((s) => (
 										<MenuItem
-											key={male.id}
-											value={male.id}
+											key={`sug-${s.id}`}
+											value={s.id}
 										>
-											{male.identification}
+											⭐ Sugerido: {s.identification}
 										</MenuItem>
 									))}
-							</TextField>
-						);
-					}}
-				/>
+									{gestationSires.length > 0 && <Divider />}
+									{maleCaravans
+										.filter((male) => !gestationSires.some((gs) => gs.id === male.id))
+										.map((male) => (
+											<MenuItem
+												key={male.id}
+												value={male.id}
+											>
+												{male.identification}
+											</MenuItem>
+										))}
+								</TextField>
+							);
+						}}
+					/>
+				)}
 			</TableCell>
 
 			{/* 9. Birth Date Input */}

@@ -53,4 +53,9 @@ export class ApiCaravanRepository implements ICaravanRepository {
   async bulkRecordWeights(weights: any[]): Promise<void> {
     await axiosInstance.post('/caravans/bulk-weights', { weights });
   }
+
+  async getPedigree(id: number): Promise<any> {
+    const response = await axiosInstance.get(`/caravans/${id}/pedigree`);
+    return response.data;
+  }
 }

@@ -7,36 +7,26 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Typography,
-  Stack
+  Typography
 } from '@mui/material';
 import PrintHeader from '@/ui/livestock/template/components/PrintHeader';
-import { WorkTemplate } from '../types/TemplateModels';
-
 import { useGestatingCaravans } from '@/features/caravans/hooks/useGestatingCaravans';
-
-interface TemplateREP02Props {
-  template: WorkTemplate | null;
-  batchId: number | null;
-  batch: any;
-  farm: any;
-  provider: any;
-  printAreaRef: React.RefObject<HTMLDivElement | null>;
-}
+import { useWorkTemplatePrint } from '@/contexts/WorkTemplatePrintContext';
 
 const ROWS_PER_PAGE = 10;
 
-const TemplateREP02: React.FC<TemplateREP02Props> = ({
-  template,
-  batchId,
-  batch,
-  farm,
-  provider,
-  printAreaRef
-}) => {
+const TemplateREP02: React.FC = () => {
+  const {
+    template,
+    batchId,
+    batch,
+    farm,
+    provider,
+    printAreaRef
+  } = useWorkTemplatePrint();
+
   // Map pregnant caravan details from specified batch
   const { data: targetAnimals = [], isLoading: isLoadingCaravans } = useGestatingCaravans(batchId);
-
 
   // Parse template schema fields
   const schemaFields = useMemo(() => {

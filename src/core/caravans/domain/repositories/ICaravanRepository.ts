@@ -32,4 +32,7 @@ export interface ICaravanRepository {
 
   /** Records a new weight for a caravan. */
   recordWeight(id: number, data: { weight: number; weighing_date: string; notes?: string }): Promise<void>;
+
+  /** Retrieves the 3G pedigree tree and inbreeding analysis for a caravan. */
+  getPedigree(id: number): Promise<any>;
 }

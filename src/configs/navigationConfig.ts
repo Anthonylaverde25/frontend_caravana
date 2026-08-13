@@ -238,10 +238,18 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:view-columns',
 						url: '/internal-batches/quarantine'
+					},
+					{
+						id: 'internal-batches.reserve',
+						title: 'Lote Reserva (Apartados)',
+						subtitle: 'Lote del sistema para animales apartados',
+						type: 'item',
+						icon: 'heroicons-outline:archive-box',
+						url: '/internal-batches/reserve'
 					}
-
 				]
 			}
+
 
 		]
 	},

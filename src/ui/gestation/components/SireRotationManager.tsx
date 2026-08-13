@@ -1,27 +1,27 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Box, Button, Alert, useTheme, CircularProgress, Typography } from '@mui/material';
+import { Alert, CircularProgress } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useCreateServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { toast } from 'sonner';
+import { Caravan } from '@/core/caravans/domain/entities/Caravan';
+import { simulateMating } from '@/core/caravans/domain/services/pedigreeAnalysis';
 
 import SireRotationFormFields from './sire-rotation/SireRotationFormFields';
 import SireRotationMaleSelector from './sire-rotation/SireRotationMaleSelector';
 import SireRotationFemaleSelector from './sire-rotation/SireRotationFemaleSelector';
+import SireRotationInbreedingDialog, { RiskyFemalePair } from './sire-rotation/SireRotationInbreedingDialog';
+import MatingAdvisorDialog from './pedigree/MatingAdvisorDialog';
 
 /**
  * SireRotationManager Component
- * Re-designed in SAP Fiori style.
- * Uses strict rectangular layouts (borderRadius: 0), solid corporate colors, and zero gradients/shadows.
- * Features a flow starting from a "Nueva Orden de Servicio" button.
+ * Orchestrates Service Order / Entore creation with live Wright Fx inbreeding audit,
+ * bull battery kinship detection, and assisted/optional exclusion of risky crossbreeds.
  */
 function SireRotationManager() {
-	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
-
 	// Helper to generate default service order code
 	const generateDefaultCode = () => {
 		const now = new Date();
@@ -52,6 +52,21 @@ function SireRotationManager() {
 	const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+	// Dialog States
+	const [isMatingAdvisorOpen, setIsMatingAdvisorOpen] = useState<boolean>(false);
+	const [matingAdvisorDamId, setMatingAdvisorDamId] = useState<number | null>(null);
+	const [matingAdvisorSireId, setMatingAdvisorSireId] = useState<number | null>(null);
+
+	const [isInbreedingDialogOpen, setIsInbreedingDialogOpen] = useState<boolean>(false);
+	const [riskyFemalesForDialog, setRiskyFemalesForDialog] = useState<RiskyFemalePair[]>([]);
+
+	// 2. Index caravans map in memory for ultra-fast pedigree and inbreeding lookups (< 5ms)
+	const caravansMap = useMemo(() => {
+		const map = new Map<number, Caravan>();
+		caravans.forEach((c) => map.set(c.id, c));
+		return map;
+	}, [caravans]);
 
 	// 3. Filter Male Caravans (available bulls) directly from database
 	const availableBulls = useMemo(() => {
@@ -134,6 +149,12 @@ function SireRotationManager() {
 		}
 	};
 
+	const handleOpenMatingAdvisor = (damId?: number, sireId?: number) => {
+		setMatingAdvisorDamId(damId || null);
+		setMatingAdvisorSireId(sireId || null);
+		setIsMatingAdvisorOpen(true);
+	};
+
 	const handleDiscard = () => {
 		setSelectedSireIds([]);
 		setSelectedFemaleIds([]);
@@ -148,6 +169,48 @@ function SireRotationManager() {
 		navigate('/gestation');
 	};
 
+	// 8. Core execution of Service Order creation
+	const executeOrderCreation = async (femaleIdsToSubmit: number[]) => {
+		setIsSubmitting(true);
+		setErrorMsg(null);
+
+		const assignments =
+			serviceType === 'multi' && isControlledService
+				? Array.from(femaleSireAssignments.entries())
+						.filter(([femaleId]) => femaleIdsToSubmit.includes(femaleId))
+						.map(([femaleId, assignedMaleId]) => ({
+							female_caravan_id: femaleId,
+							assigned_male_caravan_id: assignedMaleId
+						}))
+				: [];
+
+		try {
+			await createOrderMutation.mutateAsync({
+				batch_id: selectedBatchId as number,
+				code: orderCode.trim(),
+				planned_start_date: startDate,
+				observations: observations.trim() || null,
+				male_caravan_ids: selectedSireIds,
+				female_caravan_ids: femaleIdsToSubmit,
+				service_type: serviceType,
+				is_controlled_service: isControlledService,
+				female_sire_assignments: assignments
+			});
+
+			toast.success('Orden de Servicio creada exitosamente en borrador');
+			handleDiscard();
+		} catch (e) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const error = e as any;
+			const msg = error.response?.data?.message || error.message || 'Error desconocido';
+			setErrorMsg(msg);
+			toast.error(`Error al crear la orden: ${msg}`);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	// 9. Validation Gate with Assisted Inbreeding Audit before creation
 	const handleCreateOrder = async () => {
 		if (selectedBatchId === 'all') {
 			toast.error('Debe seleccionar un lote específico para generar la orden de servicio');
@@ -178,130 +241,130 @@ function SireRotationManager() {
 			}
 		}
 
-		setIsSubmitting(true);
-		setErrorMsg(null);
+		// Audit inbreeding among selected females
+		const riskyList: RiskyFemalePair[] = [];
 
-		const assignments =
-			serviceType === 'multi' && isControlledService
-				? Array.from(femaleSireAssignments.entries())
-						.filter(([femaleId]) => selectedFemaleIds.includes(femaleId))
-						.map(([femaleId, assignedMaleId]) => ({
-							female_caravan_id: femaleId,
-							assigned_male_caravan_id: assignedMaleId
-						}))
-				: [];
+		selectedFemaleIds.forEach((fId) => {
+			const female = caravansMap.get(fId);
+			if (!female) return;
 
-		try {
-			await createOrderMutation.mutateAsync({
-				batch_id: selectedBatchId,
-				code: orderCode.trim(),
-				planned_start_date: startDate,
-				observations: observations.trim() || null,
-				male_caravan_ids: selectedSireIds,
-				female_caravan_ids: selectedFemaleIds,
-				service_type: serviceType,
-				is_controlled_service: isControlledService,
-				female_sire_assignments: assignments
-			});
+			if (serviceType === 'single') {
+				const sireId = selectedSireIds[0];
+				const sim = simulateMating(fId, sireId, caravansMap);
+				if (sim && sim.projectedInbreeding >= 6.25) {
+					const sObj = caravansMap.get(sireId);
+					riskyList.push({
+						female,
+						fx: sim.projectedInbreeding,
+						risk: sim.risk,
+						sireDesc: `Toro #${sObj?.identification || sireId}`,
+						commonAncestors: sim.commonAncestors
+					});
+				}
+			} else if (serviceType === 'multi' && isControlledService) {
+				const assignedSireId = femaleSireAssignments.get(fId);
+				if (assignedSireId) {
+					const sim = simulateMating(fId, assignedSireId, caravansMap);
+					if (sim && sim.projectedInbreeding >= 6.25) {
+						const sObj = caravansMap.get(assignedSireId);
+						riskyList.push({
+							female,
+							fx: sim.projectedInbreeding,
+							risk: sim.risk,
+							sireDesc: `Toro #${sObj?.identification || assignedSireId} (Asignado)`,
+							commonAncestors: sim.commonAncestors
+						});
+					}
+				}
+			} else {
+				// Multi-sire collective / rotation: check highest inbreeding against any selected bull
+				let maxSim = simulateMating(fId, selectedSireIds[0], caravansMap);
+				selectedSireIds.forEach((sId) => {
+					const sim = simulateMating(fId, sId, caravansMap);
+					if (sim && maxSim && sim.projectedInbreeding > maxSim.projectedInbreeding) {
+						maxSim = sim;
+					}
+				});
 
-			toast.success('Orden de Servicio creada exitosamente en borrador');
-			handleDiscard();
-		} catch (e) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const error = e as any;
-			const msg = error.response?.data?.message || error.message || 'Error desconocido';
-			setErrorMsg(msg);
-			toast.error(`Error al crear la orden: ${msg}`);
-		} finally {
-			setIsSubmitting(false);
+				if (maxSim && maxSim.projectedInbreeding >= 6.25) {
+					riskyList.push({
+						female,
+						fx: maxSim.projectedInbreeding,
+						risk: maxSim.risk,
+						sireDesc: `Batería de toros (Riesgo máximo con Toro #${maxSim.sire.identification})`,
+						commonAncestors: maxSim.commonAncestors
+					});
+				}
+			}
+		});
+
+		// If risky crossbreeds exist, prompt the user with non-blocking assisted choices
+		if (riskyList.length > 0) {
+			setRiskyFemalesForDialog(riskyList);
+			setIsInbreedingDialogOpen(true);
+			return;
 		}
+
+		// If no risky pairings, proceed directly
+		await executeOrderCreation(selectedFemaleIds);
 	};
 
-	const borderStyle = isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.06)';
-	const cardShadow = isDark ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(0, 0, 0, 0.03)';
-
-	const cellStyle = {
-		px: 2,
-		py: 1.25,
-		borderRight: '1px solid',
-		borderBottom: '1px solid',
-		borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-		fontSize: '0.8rem',
-		borderRadius: 0,
-		backgroundColor: 'transparent',
-		'&:last-child': { borderRight: 0 }
+	// Dialog Action: User accepts the risk and proceeds with all females
+	const handleConfirmWithAll = async () => {
+		setIsInbreedingDialogOpen(false);
+		await executeOrderCreation(selectedFemaleIds);
 	};
 
-	const tableHeaderStyle = {
-		px: 2,
-		py: 1.5,
-		borderRight: '1px solid',
-		borderBottom: '2px solid',
-		borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-		fontSize: '0.78rem',
-		fontWeight: 800,
-		color: theme.palette.text.primary,
-		backgroundColor: isDark ? theme.palette.background.default : '#f8f9fa',
-		textTransform: 'uppercase',
-		letterSpacing: '0.5px',
-		borderRadius: 0,
-		'&:last-child': { borderRight: 0 }
+	// Dialog Action: User chooses to exclude risky females and proceed with the rest
+	const handleExcludeAndConfirm = async () => {
+		const riskyIds = new Set(riskyFemalesForDialog.map((r) => r.female.id));
+		const safeIds = selectedFemaleIds.filter((id) => !riskyIds.has(id));
+
+		setSelectedFemaleIds(safeIds);
+		setIsInbreedingDialogOpen(false);
+
+		if (safeIds.length === 0) {
+			toast.error('Todos los vientres seleccionados presentaban consanguinidad. Seleccione otros vientres antes de continuar.');
+			return;
+		}
+
+		await executeOrderCreation(safeIds);
 	};
 
 	// Render loading state if data is fetching
 	if (isLoadingBatches || isLoadingCaravans) {
 		return (
-			<Box
-				sx={{
-					display: 'flex',
-					flexDirection: 'column',
-					justifyContent: 'center',
-					alignItems: 'center',
-					p: 12,
-					gap: 2.5,
-					borderRadius: 0
-				}}
-			>
-				<CircularProgress
-					size={40}
-					thickness={4}
-					sx={{ borderRadius: 0 }}
-				/>
-				<Typography
-					variant="body2"
-					color="text.secondary"
-					sx={{ fontWeight: 600, letterSpacing: '0.2px' }}
-				>
+			<div className="flex flex-col justify-center items-center py-24 gap-3">
+				<CircularProgress size={36} thickness={4} />
+				<p className="text-sm font-semibold text-gray-500 dark:text-gray-400">
 					Cargando configuración reproductiva...
-				</Typography>
-			</Box>
+				</p>
+			</div>
 		);
 	}
 
+	const isGenerateDisabled =
+		isSubmitting ||
+		selectedBatchId === 'all' ||
+		selectedFemaleIds.length === 0 ||
+		selectedSireIds.length === 0 ||
+		!orderCode.trim();
+
 	return (
-		<Box sx={{ width: '100%', pb: 2, borderRadius: 0 }}>
+		<div className="w-full flex flex-col gap-6 relative">
 			{errorMsg && (
 				<Alert
 					severity="error"
-					sx={{ mb: 4, borderRadius: 0, border: '1px solid', borderColor: 'error.light', boxShadow: 'none' }}
+					className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400"
 					onClose={() => setErrorMsg(null)}
 				>
 					{errorMsg}
 				</Alert>
 			)}
 
-			{/* SINGLE-COLUMN LAYOUT */}
-			<Box
-				sx={{
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 4,
-					alignItems: 'stretch',
-					borderRadius: 0,
-					width: '100%'
-				}}
-			>
-				{/* STEP 1: General Order Metadata */}
+			{/* Order Form (single unified sheet) */}
+			<div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden pb-8">
+				{/* Order Information */}
 				<SireRotationFormFields
 					dbBatches={dbBatches}
 					selectedBatchId={selectedBatchId}
@@ -318,130 +381,116 @@ function SireRotationManager() {
 					setObservations={setObservations}
 					setSelectedSireIds={setSelectedSireIds}
 					setFemaleSireAssignments={setFemaleSireAssignments}
-					borderStyle={borderStyle}
-					isDark={isDark}
-					cardShadow={cardShadow}
 				/>
 
-				{/* STEP 2: Sire Assignment (Bulls) */}
-				<SireRotationMaleSelector
-					availableBulls={availableBulls}
-					selectedSireIds={selectedSireIds}
-					handleAddBull={handleAddBull}
-					handleRemoveBull={handleRemoveBull}
-					borderStyle={borderStyle}
-					isDark={isDark}
-					cardShadow={cardShadow}
-				/>
+				{/* Sires (Bulls) */}
+				<div className="border-t border-gray-200 dark:border-gray-800">
+					<SireRotationMaleSelector
+						availableBulls={availableBulls}
+						selectedSireIds={selectedSireIds}
+						handleAddBull={handleAddBull}
+						handleRemoveBull={handleRemoveBull}
+						caravansMap={caravansMap}
+						eligibleFemales={eligibleFemales}
+						onOpenMatingAdvisor={handleOpenMatingAdvisor}
+					/>
+				</div>
 
-				{/* STEP 3: Vientres Disponibles (Eligible Females) */}
-				<SireRotationFemaleSelector
-					selectedBatchId={selectedBatchId}
-					serviceType={serviceType}
-					isControlledService={isControlledService}
-					selectedFemaleIds={selectedFemaleIds}
-					setSelectedFemaleIds={setSelectedFemaleIds}
-					selectedSireIds={selectedSireIds}
-					availableBulls={availableBulls}
-					filteredFemales={filteredFemales}
-					searchQuery={searchQuery}
-					setSearchQuery={setSearchQuery}
-					selectedCategoryFilter={selectedCategoryFilter}
-					setSelectedCategoryFilter={setSelectedCategoryFilter}
-					categoryCounts={categoryCounts}
-					femaleSireAssignments={femaleSireAssignments}
-					setFemaleSireAssignments={setFemaleSireAssignments}
-					handleSelectFemale={handleSelectFemale}
-					handleSelectAllFemales={handleSelectAllFemales}
-					borderStyle={borderStyle}
-					cellStyle={cellStyle}
-					tableHeaderStyle={tableHeaderStyle}
-					isDark={isDark}
-					cardShadow={cardShadow}
-				/>
-			</Box>
+				{/* Eligible Females */}
+				<div className="border-t border-gray-200 dark:border-gray-800">
+					<SireRotationFemaleSelector
+						selectedBatchId={selectedBatchId}
+						serviceType={serviceType}
+						isControlledService={isControlledService}
+						selectedFemaleIds={selectedFemaleIds}
+						setSelectedFemaleIds={setSelectedFemaleIds}
+						selectedSireIds={selectedSireIds}
+						availableBulls={availableBulls}
+						filteredFemales={filteredFemales}
+						searchQuery={searchQuery}
+						setSearchQuery={setSearchQuery}
+						selectedCategoryFilter={selectedCategoryFilter}
+						setSelectedCategoryFilter={setSelectedCategoryFilter}
+						categoryCounts={categoryCounts}
+						femaleSireAssignments={femaleSireAssignments}
+						setFemaleSireAssignments={setFemaleSireAssignments}
+						handleSelectFemale={handleSelectFemale}
+						handleSelectAllFemales={handleSelectAllFemales}
+						caravansMap={caravansMap}
+						onOpenMatingAdvisor={handleOpenMatingAdvisor}
+					/>
+				</div>
+			</div>
 
-			{/* PREMIUM ACTION BAR */}
-			<Box
-				sx={{
-					mt: 5,
-					p: 2,
-					display: 'flex',
-					justifyContent: 'flex-end',
-					gap: 2,
-					border: borderStyle,
-					bgcolor: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(239, 242, 245, 0.7)',
-					backdropFilter: 'blur(10px)',
-					borderRadius: '12px',
-					boxShadow: cardShadow
-				}}
-			>
-				<Button
-					variant="text"
-					sx={{
-						textTransform: 'none',
-						fontWeight: 700,
-						color: 'text.secondary',
-						py: 1,
-						px: 3,
-						fontSize: '0.825rem',
-						borderRadius: '8px',
-						'&:hover': {
-							backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
-						}
-					}}
-					onClick={handleDiscard}
-					disabled={isSubmitting}
-				>
-					Descartar Borrador
-				</Button>
+			{/* Sticky Action Bar */}
+			<footer className="sticky bottom-0 z-20 mt-6 -mx-4 -mb-4 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+				<div className="flex items-center gap-2 flex-wrap text-xs">
+					<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">
+						<FuseSvgIcon size={14}>heroicons-outline:map-pin</FuseSvgIcon>
+						{selectedBatchId === 'all'
+							? 'Sin lote seleccionado'
+							: `Lote: ${dbBatches.find((b) => b.id === selectedBatchId)?.name ?? `#${selectedBatchId}`}`}
+					</span>
+					<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">
+						<FuseSvgIcon size={14}>heroicons-outline:shield-check</FuseSvgIcon>
+						{selectedSireIds.length} {selectedSireIds.length === 1 ? 'toro' : 'toros'}
+					</span>
+					<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-medium text-gray-700 dark:text-gray-300">
+						<FuseSvgIcon size={14}>heroicons-outline:users</FuseSvgIcon>
+						{selectedFemaleIds.length} {selectedFemaleIds.length === 1 ? 'vientre' : 'vientres'}
+					</span>
+				</div>
 
-				<Button
-					variant="contained"
-					disabled={
-						isSubmitting ||
-						selectedBatchId === 'all' ||
-						selectedFemaleIds.length === 0 ||
-						selectedSireIds.length === 0 ||
-						!orderCode.trim()
-					}
-					onClick={handleCreateOrder}
-					startIcon={
-						isSubmitting ? (
-							<CircularProgress
-								size={16}
-								color="inherit"
-							/>
+				<div className="flex items-center gap-3">
+					<button
+						type="button"
+						onClick={handleDiscard}
+						disabled={isSubmitting}
+						className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50"
+					>
+						Descartar Borrador
+					</button>
+					<button
+						type="button"
+						onClick={handleCreateOrder}
+						disabled={isGenerateDisabled}
+						className={`px-5 py-2 text-sm font-semibold text-white rounded-md flex items-center gap-2 transition-colors ${
+							isGenerateDisabled
+								? 'bg-gray-350 dark:bg-gray-850 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+								: 'bg-[#0a6ed1] hover:bg-[#0854a0]'
+						}`}
+					>
+						{isSubmitting ? (
+							<CircularProgress size={16} color="inherit" />
 						) : (
-							<FuseSvgIcon size={16}>heroicons-outline:document-plus</FuseSvgIcon>
-						)
-					}
-					sx={{
-						textTransform: 'none',
-						fontWeight: 700,
-						py: 1,
-						px: 3.5,
-						color: '#fff',
-						borderRadius: '8px',
-						fontSize: '0.85rem',
-						boxShadow: 'none',
-						bgcolor: isDark ? '#1a56db' : '#2563eb',
-						'&:hover': {
-							bgcolor: isDark ? '#1e429f' : '#1d4ed8',
-							boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
-						},
-						'&:disabled': {
-							background: isDark ? 'rgba(255,255,255,0.05)' : '#e5e9ec',
-							color: 'text.disabled',
-							boxShadow: 'none'
-						}
-					}}
-				>
-					{isSubmitting ? 'Creando Orden...' : 'Generar Orden de Servicio'}
-				</Button>
-			</Box>
-		</Box>
+							<FuseSvgIcon size={16}>heroicons-outline:document-text</FuseSvgIcon>
+						)}
+						{isSubmitting ? 'Creando Orden...' : 'Generar Orden de Servicio'}
+					</button>
+				</div>
+			</footer>
+
+			{/* Preventative Inbreeding Confirmation Modal */}
+			<SireRotationInbreedingDialog
+				open={isInbreedingDialogOpen}
+				onClose={() => setIsInbreedingDialogOpen(false)}
+				riskyFemales={riskyFemalesForDialog}
+				onConfirmWithAll={handleConfirmWithAll}
+				onExcludeAndConfirm={handleExcludeAndConfirm}
+				isSubmitting={isSubmitting}
+			/>
+
+			{/* Mating Advisor Simulation Modal */}
+			<MatingAdvisorDialog
+				open={isMatingAdvisorOpen}
+				onClose={() => setIsMatingAdvisorOpen(false)}
+				caravans={caravans}
+				initialDamId={matingAdvisorDamId}
+				initialSireId={matingAdvisorSireId}
+			/>
+		</div>
 	);
 }
 
 export default SireRotationManager;
+

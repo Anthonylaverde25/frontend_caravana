@@ -36,6 +36,9 @@ export interface LineageDTO {
   father_identification?: string | null;
   birth_date?: string | null;
   is_nursing?: boolean | null;
+  sire_assigned_at?: string | null;
+  sire_identification_method?: string | null;
+  sire_notes?: string | null;
 }
 
 

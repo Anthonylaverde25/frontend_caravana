@@ -22,6 +22,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ReactECharts from 'echarts-for-react';
 import DataTable from 'src/components/data-table/DataTable';
 import { MRT_ColumnDef } from 'material-react-table';
+import PendingSiresWidget from 'src/ui/dashboard/widgets/PendingSiresWidget';
 
 // Interface definitions for our mock dashboard data
 interface QuarantineCaravan {
@@ -461,6 +462,9 @@ function DashboardView() {
 			subtitle="Monitoreo de bioseguridad, consumo interno y registro de decesos en tiempo real."
 		>
 			<Stack spacing={4}>
+				{/* 0. Pending Sires Alert Widget — only shown when there are pending assignments */}
+				<PendingSiresWidget />
+
 				{/* 1. Summary Cards Section */}
 				<Box
 					sx={{

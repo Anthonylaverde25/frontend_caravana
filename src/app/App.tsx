@@ -83,7 +83,7 @@ function App() {
 							</CompanyProvider>
 						</Authentication>
 						<Toaster position="bottom-right" richColors closeButton />
-						<ReactQueryDevtools initialIsOpen={false} />
+						{/* <ReactQueryDevtools initialIsOpen={false} /> */}
 					</QueryClientProvider>
 				</LocalizationProvider>
 			</AppContext>

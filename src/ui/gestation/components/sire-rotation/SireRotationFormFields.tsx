@@ -1,19 +1,5 @@
-import {
-	Card,
-	CardContent,
-	Box,
-	Typography,
-	Stack,
-	FormControl,
-	InputLabel,
-	Select,
-	MenuItem,
-	TextField,
-	ToggleButtonGroup,
-	ToggleButton,
-	FormControlLabel,
-	Switch
-} from '@mui/material';
+import { useState } from 'react';
+import { TextField, MenuItem } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
 interface Batch {
@@ -38,9 +24,6 @@ interface SireRotationFormFieldsProps {
 	setObservations: (val: string) => void;
 	setSelectedSireIds: (ids: number[]) => void;
 	setFemaleSireAssignments: (assignments: Map<number, number>) => void;
-	borderStyle: string;
-	isDark: boolean;
-	cardShadow: string;
 }
 
 function SireRotationFormFields({
@@ -48,7 +31,6 @@ function SireRotationFormFields({
 	selectedBatchId,
 	setSelectedBatchId,
 	orderCode,
-	setOrderCode,
 	startDate,
 	setStartDate,
 	serviceType,
@@ -58,263 +40,183 @@ function SireRotationFormFields({
 	observations,
 	setObservations,
 	setSelectedSireIds,
-	setFemaleSireAssignments,
-	borderStyle,
-	isDark,
-	cardShadow
+	setFemaleSireAssignments
 }: SireRotationFormFieldsProps) {
+	const [showObservations, setShowObservations] = useState(false);
+
 	return (
-		<Card
-			elevation={0}
-			sx={{
-				borderRadius: '12px',
-				border: borderStyle,
-				boxShadow: cardShadow,
-				overflow: 'visible',
-				background: isDark ? 'rgba(30, 41, 59, 0.4)' : '#ffffff'
-			}}
-		>
-			<CardContent sx={{ p: 4 }}>
-				<Box
-					sx={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: 2,
-						mb: 4
-					}}
-				>
-					<Box
-						sx={{
-							color: isDark ? '#60a5fa' : '#2563eb',
-							bgcolor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.08)',
-							p: 1.25,
-							borderRadius: '50%',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							boxShadow: isDark ? 'inset 0 0 8px rgba(96, 165, 250, 0.1)' : 'none'
+		<section className="p-6">
+			{/* Section Header */}
+			<div className="flex items-center justify-between gap-4 pb-5 mb-6 border-b border-gray-200 dark:border-gray-800">
+				<div className="flex items-center gap-3">
+					<div className="w-9 h-9 rounded-lg bg-[#0a6ed1]/10 dark:bg-[#60a5fa]/15 text-[#0a6ed1] dark:text-[#60a5fa] flex items-center justify-center">
+						<FuseSvgIcon size={17}>heroicons-outline:document-text</FuseSvgIcon>
+					</div>
+					<div>
+						<h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Información de la Orden</h2>
+						<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+							Lote de origen, modalidad y fechas programadas del entore.
+						</p>
+					</div>
+				</div>
+				<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 font-mono">
+					<FuseSvgIcon size={14}>heroicons-outline:tag</FuseSvgIcon>
+					{orderCode}
+				</span>
+			</div>
+
+			{/* Form Layout */}
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+				{/* Lote de Trabajo */}
+				<div>
+					<TextField
+						id="lote-trabajo"
+						select
+						label="Lote de Trabajo (Servicio)"
+						value={selectedBatchId}
+						onChange={(e) => {
+							const val = e.target.value;
+							setSelectedBatchId(val === 'all' ? 'all' : Number(val));
 						}}
+						variant="filled"
+						size="small"
+						fullWidth
 					>
-						<FuseSvgIcon size={20}>heroicons-outline:cog-8-tooth</FuseSvgIcon>
-					</Box>
-					<Box>
-						<Typography
-							variant="subtitle2"
-							sx={{
-								fontWeight: 800,
-								textTransform: 'uppercase',
-								letterSpacing: '1px',
-								fontSize: '0.75rem',
-								color: isDark ? '#94a3b8' : '#475569',
-								lineHeight: 1
-							}}
-						>
-							Paso 1
-						</Typography>
-						<Typography
-							variant="h6"
-							sx={{
-								fontWeight: 800,
-								fontSize: '1.05rem',
-								mt: 0.5,
-								color: isDark ? '#f8fafc' : '#1e293b',
-								lineHeight: 1
-							}}
-						>
-							Configuración General
-						</Typography>
-					</Box>
-				</Box>
+						<MenuItem value="all">
+							<em>-- Seleccione un Lote --</em>
+						</MenuItem>
+						{dbBatches.map((b) => (
+							<MenuItem key={b.id} value={b.id}>
+								{b.name} {b.farm_name ? `(${b.farm_name})` : ''}
+							</MenuItem>
+						))}
+					</TextField>
+				</div>
 
-				<Stack spacing={3.5}>
-					<Box
-						sx={{
-							display: 'flex',
-							flexDirection: { xs: 'column', sm: 'row' },
-							gap: 2.5
+				{/* Código de la Orden */}
+				<div>
+					<TextField
+						id="codigo-orden"
+						label="Código de la Orden"
+						value={orderCode}
+						variant="filled"
+						size="small"
+						fullWidth
+						InputProps={{
+							readOnly: true
 						}}
-					>
-						<FormControl
-							fullWidth
-							size="small"
-							variant="outlined"
-							required
-						>
-							<InputLabel id="source-batch-select-label">Lote de Trabajo (Servicio)</InputLabel>
-							<Select
-								labelId="source-batch-select-label"
-								value={selectedBatchId}
-								label="Lote de Trabajo (Servicio)"
-								onChange={(e) => {
-									const val = e.target.value;
-									setSelectedBatchId(val === 'all' ? 'all' : Number(val));
-								}}
-								sx={{ borderRadius: '8px', bgcolor: 'background.paper' }}
-							>
-								<MenuItem value="all">
-									<em>-- Seleccione un Lote --</em>
-								</MenuItem>
-								{dbBatches.map((b) => (
-									<MenuItem
-										key={b.id}
-										value={b.id}
-									>
-										{b.name} {b.farm_name ? `(${b.farm_name})` : ''}
-									</MenuItem>
-								))}
-							</Select>
-						</FormControl>
+					/>
+				</div>
 
-						<TextField
-							required
-							fullWidth
-							size="small"
-							variant="outlined"
-							label="Código de la Orden"
-							placeholder="SO-YYYYMMDD-XXXX"
-							value={orderCode}
-							onChange={(e) => setOrderCode(e.target.value)}
-							InputProps={{ sx: { borderRadius: '8px', bgcolor: 'background.paper' } }}
-						/>
-					</Box>
-
-					<Box
-						sx={{
-							display: 'flex',
-							flexDirection: { xs: 'column', sm: 'row' },
-							gap: 2.5
+				{/* Fecha Programada */}
+				<div>
+					<TextField
+						id="fecha-programada"
+						label="Fecha Programada de Inicio"
+						type="date"
+						value={startDate}
+						onChange={(e) => setStartDate(e.target.value)}
+						variant="filled"
+						size="small"
+						fullWidth
+						InputLabelProps={{
+							shrink: true
 						}}
-					>
-						<TextField
-							required
-							fullWidth
-							variant="outlined"
-							label="Fecha Programada de Inicio"
-							type="date"
-							size="small"
-							InputLabelProps={{ shrink: true }}
-							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
-							InputProps={{ sx: { borderRadius: '8px', bgcolor: 'background.paper' } }}
-						/>
+					/>
+				</div>
 
-						<FormControl
-							fullWidth
-							size="small"
-						>
-							<Typography
-								variant="caption"
-								color="text.secondary"
-								sx={{
-									fontWeight: 700,
-									mb: 1,
-									display: 'block',
-									fontSize: '0.72rem',
-									textTransform: 'uppercase',
-									letterSpacing: '0.5px'
-								}}
-							>
-								Modalidad de Servicio
-							</Typography>
-							<ToggleButtonGroup
-								value={serviceType}
-								exclusive
-								onChange={(e, val) => {
-									if (val !== null) {
-										setServiceType(val);
-										setSelectedSireIds([]);
-										setIsControlledService(false);
+				{/* Modalidad de Servicio */}
+				<div>
+					<TextField
+						id="modalidad-servicio"
+						select
+						label="Modalidad de Servicio"
+						value={serviceType === 'rotation' ? 'multi' : serviceType}
+						onChange={(e) => {
+							const val = e.target.value as 'single' | 'multi';
+							setServiceType(val);
+							setSelectedSireIds([]);
+							setIsControlledService(false);
+							setFemaleSireAssignments(new Map());
+						}}
+						variant="filled"
+						size="small"
+						fullWidth
+					>
+						<MenuItem value="single">Toro Único</MenuItem>
+						<MenuItem value="multi">Multi-Toro</MenuItem>
+					</TextField>
+
+					{/* Controlled Service Switch */}
+					{serviceType === 'multi' && (
+						<div className="flex items-center gap-2 mt-3 transition-opacity duration-300">
+							<button
+								type="button"
+								role="switch"
+								aria-checked={isControlledService}
+								onClick={() => {
+									const val = !isControlledService;
+									setIsControlledService(val);
+									if (!val) {
 										setFemaleSireAssignments(new Map());
 									}
 								}}
-								fullWidth
-								size="small"
-								color="primary"
-								sx={{
-									height: 38,
-									borderRadius: '8px',
-									bgcolor: isDark ? 'rgba(0, 0, 0, 0.15)' : 'rgba(0, 0, 0, 0.02)',
-									p: 0.5,
-									border: borderStyle,
-									'& .MuiToggleButton-root': {
-										textTransform: 'none',
-										fontWeight: 700,
-										borderRadius: '6px',
-										border: 'none',
-										mx: 0.25,
-										color: 'text.secondary',
-										transition: 'all 0.2s ease',
-										'&.Mui-selected': {
-											backgroundColor: isDark ? '#1a56db' : '#2563eb',
-											color: '#ffffff',
-											boxShadow: '0 2px 8px rgba(37, 99, 235, 0.15)',
-											'&:hover': {
-												backgroundColor: isDark ? '#1e429f' : '#1d4ed8'
-											}
-										}
-									}
-								}}
+								className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0a6ed1] focus:ring-offset-2 ${
+									isControlledService ? 'bg-[#0a6ed1]' : 'bg-gray-200 dark:bg-gray-700'
+								}`}
 							>
-								<ToggleButton
-									value="single"
-									sx={{ gap: 1 }}
-								>
-									<FuseSvgIcon size={16}>heroicons-outline:user</FuseSvgIcon>
-									Toro Único
-								</ToggleButton>
-								<ToggleButton
-									value="multi"
-									sx={{ gap: 1 }}
-								>
-									<FuseSvgIcon size={16}>heroicons-outline:users</FuseSvgIcon>
-									Multi-Toro
-								</ToggleButton>
-							</ToggleButtonGroup>
-
-							{serviceType === 'multi' && (
-								<FormControlLabel
-									control={
-										<Switch
-											checked={isControlledService}
-											onChange={(e) => {
-												setIsControlledService(e.target.checked);
-
-												if (!e.target.checked) {
-													setFemaleSireAssignments(new Map());
-												}
-											}}
-											size="small"
-										/>
-									}
-									label={
-										<Typography
-											variant="body2"
-											sx={{ fontWeight: 600, fontSize: '0.78rem' }}
-										>
-											Servicio Controlado — Asignar toros específicos a cada vientre
-										</Typography>
-									}
-									sx={{ mt: 1.5, ml: 0 }}
+								<span
+									aria-hidden="true"
+									className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+										isControlledService ? 'translate-x-4' : 'translate-x-0'
+									}`}
 								/>
-							)}
-						</FormControl>
-					</Box>
+							</button>
+							<span className="text-sm text-gray-750 dark:text-gray-300 font-medium">
+								Servicio Controlado — Asignar toros específicos a cada vientre
+							</span>
+						</div>
+					)}
+				</div>
 
-					<TextField
-						size="small"
-						fullWidth
-						variant="outlined"
-						multiline
-						rows={3}
-						label="Observaciones de la Orden"
-						placeholder="Escriba aquí los detalles sobre el potrero asignado, las condiciones de salud de los toros o cualquier especificación técnica..."
-						value={observations}
-						onChange={(e) => setObservations(e.target.value)}
-						InputProps={{ sx: { borderRadius: '8px', bgcolor: 'background.paper' } }}
-					/>
-				</Stack>
-			</CardContent>
-		</Card>
+				{/* Observaciones */}
+				<div className="md:col-span-2 flex flex-col gap-2">
+					<div className="flex items-center gap-2">
+						<input
+							id="toggle-observaciones"
+							type="checkbox"
+							checked={showObservations}
+							onChange={(e) => {
+								const checked = e.target.checked;
+								setShowObservations(checked);
+								if (!checked) {
+									setObservations('');
+								}
+							}}
+							className="rounded border-gray-300 dark:border-gray-600 text-[#0a6ed1] dark:text-[#60a5fa] focus:ring-[#0a6ed1] h-4 w-4"
+						/>
+						<label htmlFor="toggle-observaciones" className="text-sm font-medium text-gray-750 dark:text-gray-300 cursor-pointer">
+							Habilitar observaciones de la orden
+						</label>
+					</div>
+
+					{showObservations && (
+						<TextField
+							id="observaciones"
+							label="Observaciones de la Orden"
+							variant="filled"
+							multiline
+							rows={3}
+							value={observations}
+							onChange={(e) => setObservations(e.target.value)}
+							placeholder="Escriba observaciones adicionales..."
+							size="small"
+							fullWidth
+						/>
+					)}
+				</div>
+			</div>
+		</section>
 	);
 }
 

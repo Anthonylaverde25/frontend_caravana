@@ -1,4 +1,5 @@
 import { useFieldArray, useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Table,
@@ -12,6 +13,7 @@ import {
   Stack,
   Paper,
   Container,
+  Alert,
   useTheme
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
@@ -57,7 +59,8 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
   const isDark = theme.palette.mode === 'dark';
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
-  
+  const [deferSire, setDeferSire] = useState(false);
+
   const { activeCompanyId } = useCompany();
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId);
   const { data: breeds = [], isLoading: isLoadingBreeds } = useBreeds();
@@ -125,34 +128,56 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
     }
   }, [pregnantCaravans, reset, watchedBirths.length]);
 
+  const buildPayload = (data: BulkBirthFormValues, forceDeferSire: boolean): RegisterBirthDTO[] =>
+    data.births.map(birth => {
+      const motherId = Number(birth.mother_id);
+      const motherCaravan = caravans.find(c => c.id === motherId);
+      return {
+        calf_identification: birth.calf_identification,
+        calf_sex: birth.calf_sex,
+        calf_category: birth.calf_sex === 'M' ? 'ternero' : 'ternera',
+        calf_teeth: birth.calf_teeth !== null && birth.calf_teeth !== undefined && birth.calf_teeth !== '' ? Number(birth.calf_teeth) : 0,
+        calf_weight: birth.calf_weight || null,
+        calf_breed_id: birth.calf_breed_id ? Number(birth.calf_breed_id) : null,
+        birth_date: birth.birth_date,
+        batch_id: batch.id,
+        mother_id: motherId,
+        // If deferred mode is active, always send null regardless of what was selected
+        father_id: forceDeferSire
+          ? null
+          : (birth.father_id !== '' && birth.father_id !== undefined && birth.father_id !== null ? Number(birth.father_id) : null),
+        gestation_id: motherCaravan?.active_gestation?.id || null
+      };
+    });
+
   const onSubmit = async (data: BulkBirthFormValues) => {
     if (data.births.length === 0) {
       enqueueSnackbar('Debe registrar al menos un parto', { variant: 'warning' });
       return;
     }
-
     try {
-      const payload: RegisterBirthDTO[] = data.births.map(birth => {
-        const motherId = Number(birth.mother_id);
-        const motherCaravan = caravans.find(c => c.id === motherId);
-
-        return {
-          calf_identification: birth.calf_identification,
-          calf_sex: birth.calf_sex,
-          calf_category: birth.calf_sex === 'M' ? 'ternero' : 'ternera',
-          calf_teeth: birth.calf_teeth !== null && birth.calf_teeth !== undefined && birth.calf_teeth !== '' ? Number(birth.calf_teeth) : 0,
-          calf_weight: birth.calf_weight || null,
-          calf_breed_id: birth.calf_breed_id ? Number(birth.calf_breed_id) : null,
-          birth_date: birth.birth_date,
-          batch_id: batch.id,
-          mother_id: motherId,
-          father_id: birth.father_id !== '' && birth.father_id !== undefined && birth.father_id !== null ? Number(birth.father_id) : null,
-          gestation_id: motherCaravan?.active_gestation?.id || null
-        };
-      });
-
+      const payload = buildPayload(data, false);
       await bulkRegisterBirth(payload);
       enqueueSnackbar(`${data.births.length} partos registrados con éxito`, { variant: 'success' });
+      navigate('/gestation/list');
+    } catch (error) {
+      console.error(error);
+      enqueueSnackbar('Error al guardar el registro de partos', { variant: 'error' });
+    }
+  };
+
+  const onSubmitDeferred = async (data: BulkBirthFormValues) => {
+    if (data.births.length === 0) {
+      enqueueSnackbar('Debe registrar al menos un parto', { variant: 'warning' });
+      return;
+    }
+    try {
+      const payload = buildPayload(data, true);
+      await bulkRegisterBirth(payload);
+      enqueueSnackbar(
+        `${data.births.length} partos guardados. Asigná los padres desde el Dashboard.`,
+        { variant: 'info', autoHideDuration: 6000 }
+      );
       navigate('/gestation/list');
     } catch (error) {
       console.error(error);
@@ -176,7 +201,17 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
 
   return (
     <Box sx={{ width: '100%', mb: 10 }}>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      {deferSire && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: '6px', fontWeight: 500 }}
+          onClose={() => setDeferSire(false)}
+        >
+          <strong>Modo diferido activo.</strong> Los partos se guardarán sin asignar padre. Podrás completar la paternidad desde el{' '}
+          <strong>Dashboard → Sires Pendientes</strong> cuando tengas el resultado del laboratorio o confirmes los rasgos fenotípicos.
+        </Alert>
+      )}
+      <form onSubmit={handleSubmit(deferSire ? onSubmitDeferred : onSubmit)}>
         <Paper
           elevation={0}
           sx={{
@@ -230,6 +265,7 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
                      isDark={isDark}
                      zebraBg={zebraBg}
                      headerBg={headerBg}
+                     deferSire={deferSire}
                    />
                  ))}
               </TableBody>
@@ -255,31 +291,63 @@ function BulkBirthEntryTable({ batch }: { batch: Batch }) {
           }}
         >
           <Container maxWidth="xl">
-            <Stack direction="row" justifyContent="flex-end" spacing={2}>
-              <Button
-                variant="text"
-                onClick={() => navigate('/gestation/list')}
-                sx={{ textTransform: 'none', fontWeight: 600, px: 4, color: theme.palette.text.secondary }}
-              >
-                Descartar
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={isSaving}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 800,
-                  px: 6,
-                  bgcolor: theme.palette.primary.main,
-                  color: theme.palette.primary.contrastText,
-                  borderRadius: '4px',
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: theme.palette.primary.dark, boxShadow: 'none' }
-                }}
-              >
-                {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-              </Button>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              {/* Left: deferred mode hint */}
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  onClick={() => setDeferSire(v => !v)}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    px: 3,
+                    borderRadius: '4px',
+                    borderColor: deferSire ? 'warning.main' : 'divider',
+                    color: deferSire ? 'warning.main' : 'text.secondary',
+                    bgcolor: deferSire
+                      ? (isDark ? 'rgba(255,167,38,0.08)' : 'rgba(255,167,38,0.06)')
+                      : 'transparent',
+                  }}
+                  startIcon={
+                    <Box component="span" sx={{ fontSize: '1rem' }}>⏳</Box>
+                  }
+                >
+                  {deferSire ? 'Modo Diferido Activo' : 'Posponer Sires'}
+                </Button>
+              </Stack>
+
+              {/* Right: actions */}
+              <Stack direction="row" spacing={2}>
+                <Button
+                  variant="text"
+                  onClick={() => navigate('/gestation/list')}
+                  sx={{ textTransform: 'none', fontWeight: 600, px: 4, color: theme.palette.text.secondary }}
+                >
+                  Descartar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={isSaving}
+                  color={deferSire ? 'warning' : 'primary'}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 800,
+                    px: 6,
+                    borderRadius: '4px',
+                    boxShadow: 'none',
+                    '&:hover': { boxShadow: 'none' }
+                  }}
+                >
+                  {isSaving
+                    ? 'Guardando...'
+                    : deferSire
+                      ? 'Guardar sin Sire'
+                      : 'Guardar Cambios'
+                  }
+                </Button>
+              </Stack>
             </Stack>
           </Container>
         </Box>

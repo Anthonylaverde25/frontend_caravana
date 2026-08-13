@@ -14,6 +14,7 @@ export interface BatchDTO {
   current_weight?: number;
   observaciones?: string;
   is_active: boolean;
+  is_system?: boolean;
   created_at?: string;
 }
 
@@ -46,6 +47,7 @@ export class Batch {
     public readonly weight?: number,
     public readonly current_weight?: number,
     public readonly observaciones?: string,
+    public readonly is_system: boolean = false,
     public readonly created_at?: string,
   ) { }
 
@@ -70,9 +72,11 @@ export class Batch {
       dto.weight,
       dto.current_weight,
       dto.observaciones,
+      dto.is_system ?? false,
       dto.created_at
     );
   }
+
 
   // Domain Behaviors
   public hasFarm(): boolean {

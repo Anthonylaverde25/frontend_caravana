@@ -7,33 +7,24 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Typography,
-  Stack
+  Typography
 } from '@mui/material';
 import PrintHeader from '@/ui/livestock/template/components/PrintHeader';
-import { WorkTemplate } from '../types/TemplateModels';
-
-interface TemplateREP01Props {
-  template: WorkTemplate | null;
-  order: any;
-  batch: any;
-  farm: any;
-  provider: any;
-  caravans: any[];
-  printAreaRef: React.RefObject<HTMLDivElement | null>;
-}
+import { useWorkTemplatePrint } from '@/contexts/WorkTemplatePrintContext';
 
 const ROWS_PER_PAGE = 10;
 
-const TemplateREP01: React.FC<TemplateREP01Props> = ({
-  template,
-  order,
-  batch,
-  farm,
-  provider,
-  caravans,
-  printAreaRef
-}) => {
+const TemplateREP01: React.FC = () => {
+  const {
+    template,
+    order,
+    batch,
+    farm,
+    provider,
+    caravans,
+    printAreaRef
+  } = useWorkTemplatePrint();
+
   // Map female caravan ids to full caravan details
   const targetAnimals = useMemo(() => {
     if (!order || !caravans.length) return [];
@@ -202,7 +193,7 @@ const TemplateREP01: React.FC<TemplateREP01Props> = ({
               cuit={provider?.cuit || ''}
               renspa={farm?.renspa || ''}
               lote={batch?.name || ''}
-              title={template?.title || 'Planilla de Tacto y Ecografía'}
+              title={template?.title || 'Planilla de Campo'}
               templateCode={template?.code}
               serviceOrderCode={order?.code}
             />
