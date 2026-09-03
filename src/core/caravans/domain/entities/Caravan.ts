@@ -42,6 +42,15 @@ export interface LineageDTO {
 }
 
 
+export interface PhysiologicalStateDTO {
+  code: string;
+  label: string;
+  is_pregnant: boolean | null;
+  is_nursing: boolean | null;
+  gestation_stage?: string | null;
+  gestation_months?: number | null;
+}
+
 /**
  * CaravanDTO
  * Mirrors the shape returned by the backend's CaravanResource.
@@ -50,17 +59,30 @@ export interface CaravanDTO {
   id?: number;
   identification: string;
   category?: string | null;
+  category_id?: number | null;
+  category_code?: string | null;
+  category_name?: string | null;
+  subcategory_id?: number | null;
+  subcategory_code?: string | null;
+  subcategory_name?: string | null;
   teeth: number;
   entry_weight?: number | null;
   exit_weight?: number | null;
   breed?: string | null;
   sex?: 'M' | 'H' | null;
   entry_date?: string | null;
+  renspa?: string;
+  provider_id?: number | null;
+  provider_name?: string | null;
+  provenance?: Record<string, any> | null;
+  is_operational?: boolean;
   batch_id?: number | null;
   batch?: {
     id: number;
     name: string;
+    farm_name?: string;
   } | null;
+  farm_name?: string | null;
   current_weight?: number | null;
   female_details?: {
     is_empty: boolean;
@@ -68,6 +90,7 @@ export interface CaravanDTO {
   } | null;
   active_gestation?: GestationDTO | null;
   lineage?: LineageDTO | null;
+  physiological_state?: PhysiologicalStateDTO | null;
 }
 
 /**
@@ -77,6 +100,8 @@ export interface CaravanDTO {
 export interface CreateCaravanRequest {
   identification: string;
   category?: string | null;
+  category_id?: number | null;
+  subcategory_id?: number | null;
   teeth: number;
   entry_weight?: number | null;
   breed?: string | null;
@@ -111,6 +136,19 @@ export class Caravan {
     public readonly female_details: { is_empty: boolean; arrival_category: string } | null,
     public readonly active_gestation: GestationDTO | null,
     public readonly lineage: LineageDTO | null,
+    public readonly renspa: string = 'NO_DEFINIDO',
+    public readonly provider_id: number | null = null,
+    public readonly provider_name: string | null = null,
+    public readonly provenance: Record<string, any> | null = null,
+    public readonly is_operational: boolean = true,
+    public readonly farm_name: string | null = null,
+    public readonly category_id: number | null = null,
+    public readonly category_code: string | null = null,
+    public readonly category_name: string | null = null,
+    public readonly subcategory_id: number | null = null,
+    public readonly subcategory_code: string | null = null,
+    public readonly subcategory_name: string | null = null,
+    public readonly physiological_state: PhysiologicalStateDTO | null = null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -137,8 +175,23 @@ export class Caravan {
       dto.female_details ?? null,
       dto.active_gestation ?? null,
       dto.lineage ?? null,
+      dto.renspa ?? 'NO_DEFINIDO',
+      dto.provider_id ?? null,
+      dto.provider_name ?? null,
+      dto.provenance ?? null,
+      dto.is_operational ?? true,
+      dto.farm_name ?? (dto.batch as any)?.farm_name ?? null,
+      dto.category_id ?? null,
+      dto.category_code ?? null,
+      dto.category_name ?? null,
+      dto.subcategory_id ?? null,
+      dto.subcategory_code ?? null,
+      dto.subcategory_name ?? null,
+      dto.physiological_state ?? null,
     );
   }
+
+
 
   // ── Domain Behaviors ──────────────────────────────────────────
 

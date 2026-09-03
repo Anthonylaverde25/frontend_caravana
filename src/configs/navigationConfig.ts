@@ -49,6 +49,22 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:calendar-days',
 				children: [
 					{
+						id: 'gestation.pre-service',
+						title: 'Pre-Servicio & Toros',
+						subtitle: 'Sanidad y Aptitud Andrológica',
+						type: 'item',
+						icon: 'heroicons-outline:shield-check',
+						url: '/gestation/pre-service'
+					},
+					{
+						id: 'gestation.service-batches',
+						title: 'Lotes de Servicio',
+						subtitle: 'Entore y Categorías',
+						type: 'item',
+						icon: 'heroicons-outline:heart',
+						url: '/gestation/service-batches'
+					},
+					{
 						id: 'gestation.bull-rotation',
 						title: 'Rotación de Toros',
 						subtitle: 'Asignación Reproductiva',
@@ -153,8 +169,17 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:user-group',
 						url: '/batches/external'
+					},
+					{
+						id: 'gestion.batches.assignment',
+						title: 'Asignar a Lote Propio',
+						subtitle: 'Ingreso de Hacienda',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-right-start-on-rectangle',
+						url: '/batches/external-assignment'
 					}
 				]
+
 			},
 			{
 				id: 'livestock.records',
@@ -268,7 +293,14 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:table',
 				url: 'work-templates'
 			},
-
+			{
+				id: 'work-templates.scan',
+				title: 'Escanear Planilla (AI)',
+				subtitle: 'Extracción y Carga',
+				type: 'item',
+				icon: 'heroicons-outline:camera',
+				url: 'work-templates/scan'
+			},
 			{
 				id: 'templates.ops',
 				title: 'Operaciones de Diseño',
@@ -287,7 +319,7 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Importar / OCR',
 						type: 'item',
 						icon: 'heroicons-outline:arrow-up-tray',
-						url: '/templates/import'
+						url: 'work-templates/scan'
 					}
 				]
 			}

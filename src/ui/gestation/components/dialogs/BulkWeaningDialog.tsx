@@ -17,6 +17,7 @@ import {
   TableRow,
   Paper,
   CircularProgress,
+  Chip,
   useTheme
 } from '@mui/material';
 import { useBatches } from '@/features/batches/hooks/useBatches';
@@ -89,6 +90,10 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
 
     // Validate weights
     const weaningsPayload = [];
+    const selectedBatch = batches.find((b: any) => b.id === parseInt(targetBatchId));
+    const isRecria = selectedBatch?.activity_name?.toLowerCase().includes('recr') || 
+                     selectedBatch?.activity_name?.toLowerCase().includes('inver') || false;
+
     for (const calf of selectedCalves) {
       const wVal = weights[calf.calf_id];
       const weightNum = parseFloat(wVal);
@@ -97,18 +102,22 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
         return;
       }
 
-      // Resolve category
+      // Resolve category based on mode and batch activity
       let resolvedCategory: string | null = null;
       if (categoryMode === 'auto') {
-        if (calf.calf_sex === 'M') {
-          resolvedCategory = 'novillito';
-        } else if (calf.calf_sex === 'H') {
-          resolvedCategory = 'vaquillona';
+        if (isRecria) {
+          resolvedCategory = calf.calf_sex === 'M' ? 'novillito' : 'vaquillona';
+        } else {
+          resolvedCategory = calf.calf_sex === 'M' ? 'ternero' : 'ternera';
         }
       } else if (categoryMode === 'novillito') {
         resolvedCategory = 'novillito';
       } else if (categoryMode === 'vaquillona') {
         resolvedCategory = 'vaquillona';
+      } else if (categoryMode === 'ternero_destete') {
+        resolvedCategory = calf.calf_sex === 'M' ? 'ternero' : 'ternera';
+      } else if (categoryMode === 'no_change') {
+        resolvedCategory = null;
       }
 
       weaningsPayload.push({
@@ -133,6 +142,8 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
   const countFemale = selectedCalves.filter(c => c.calf_sex === 'H').length;
 
   const isSubmitting = bulkWeanMutation.isPending;
+
+  const selectedBatchInfo = batches.find((b: any) => b.id === parseInt(targetBatchId));
 
   const tableHeaderStyle = {
     px: 2,
@@ -161,10 +172,10 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 0,
+          borderRadius: '8px',
           border: '1px solid',
           borderColor: theme.palette.divider,
-          boxShadow: 'none'
+          boxShadow: 2
         }
       }}
     >
@@ -181,6 +192,7 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
               bgcolor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f8f9fa',
               border: '1px solid',
               borderColor: 'divider',
+              borderRadius: '6px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
@@ -207,7 +219,7 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
               select
-              label="Lote de Destino"
+              label="Lote de Destino (Cría / Recría)"
               value={targetBatchId}
               onChange={(e) => setTargetBatchId(e.target.value)}
               required
@@ -218,13 +230,39 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
               SelectProps={{ displayEmpty: true }}
             >
               <MenuItem value="" disabled>
-                Seleccione un lote...
+                Seleccione un lote de destino...
               </MenuItem>
-              {batches.map((batch: any) => (
-                <MenuItem key={batch.id} value={batch.id}>
-                  {batch.name}
-                </MenuItem>
-              ))}
+              {batches.map((batch: any) => {
+                const isRecria = batch.activity_name?.toLowerCase().includes('recr');
+                const isCria = batch.activity_name?.toLowerCase().includes('cr');
+                return (
+                  <MenuItem key={batch.id} value={batch.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1.5 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        {batch.name}
+                        {batch.farm_name && (
+                          <Typography component="span" variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
+                            ({batch.farm_name})
+                          </Typography>
+                        )}
+                      </Typography>
+                      <Chip
+                        label={batch.activity_name || (isRecria ? 'Recría' : isCria ? 'Cría' : 'General')}
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          bgcolor: isRecria ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                          color: isRecria ? '#2563eb' : '#059669',
+                          border: 1,
+                          borderColor: isRecria ? 'rgba(59, 130, 246, 0.3)' : 'rgba(16, 185, 129, 0.3)'
+                        }}
+                      />
+                    </Box>
+                  </MenuItem>
+                );
+              })}
             </TextField>
 
             <TextField
@@ -240,6 +278,26 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
             />
           </Box>
 
+          {selectedBatchInfo && (
+            <Box
+              sx={{
+                p: 1.5,
+                bgcolor: 'action.hover',
+                borderRadius: '6px',
+                borderLeft: '4px solid',
+                borderColor: 'primary.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                Lote seleccionado: <strong>{selectedBatchInfo.name}</strong> • Actividad: <strong>{selectedBatchInfo.activity_name || 'Cría'}</strong>
+                {selectedBatchInfo.farm_name ? ` • Establecimiento: ${selectedBatchInfo.farm_name}` : ''}
+              </Typography>
+            </Box>
+          )}
+
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
               select
@@ -251,10 +309,21 @@ const BulkWeaningDialog: React.FC<BulkWeaningDialogProps> = ({
               disabled={isSubmitting}
               InputLabelProps={{ shrink: true }}
             >
-              <MenuItem value="auto">Auto por Sexo (Machos → Novillito, Hembras → Vaquillona)</MenuItem>
-              <MenuItem value="no_change">No cambiar (Permanecer como Ternero/a)</MenuItem>
-              <MenuItem value="novillito">Cambiar todos a Novillito</MenuItem>
-              <MenuItem value="vaquillona">Cambiar todos a Vaquillona</MenuItem>
+              <MenuItem value="auto">
+                Auto inteligente (según sexo y actividad del lote)
+              </MenuItem>
+              <MenuItem value="ternero_destete">
+                Ternero/a de Destete (Actividad Cría)
+              </MenuItem>
+              <MenuItem value="novillito">
+                Novillito de Recría (Machos)
+              </MenuItem>
+              <MenuItem value="vaquillona">
+                Vaquillona de Recría (Hembras)
+              </MenuItem>
+              <MenuItem value="no_change">
+                No cambiar (Permanecer en categoría actual)
+              </MenuItem>
             </TextField>
 
             <TextField

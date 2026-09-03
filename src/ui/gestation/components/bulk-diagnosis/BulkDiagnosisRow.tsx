@@ -10,6 +10,13 @@ interface Caravan {
   category?: string | null;
 }
 
+interface BatchOption {
+  id: number;
+  name: string;
+  activity_name?: string;
+  farm_name?: string;
+}
+
 interface DiagnosisRowValues {
   caravan_id: number;
   is_pregnant: boolean;
@@ -17,6 +24,7 @@ interface DiagnosisRowValues {
   gestation_months?: number | null;
   confirmed_sire_id?: string | number | null;
   diagnosis_date: string;
+  empty_destination_batch_id?: string | number | null;
 }
 
 interface BulkDiagnosisFormValues {
@@ -34,6 +42,8 @@ interface BulkDiagnosisRowProps {
   caravans: Caravan[];
   orderBulls: Caravan[];
   order: ServiceOrder;
+  batches?: BatchOption[];
+  currentBatchName?: string;
   onRemove: () => void;
   fieldsLength: number;
   zebraBg: string;
@@ -62,6 +72,8 @@ export default function BulkDiagnosisRow({
   caravans,
   orderBulls,
   order,
+  batches = [],
+  currentBatchName = '',
   onRemove,
   fieldsLength,
   zebraBg,
@@ -155,14 +167,16 @@ export default function BulkDiagnosisRow({
               onChange={(e) => {
                 const val = e.target.value === 'true';
                 controllerField.onChange(val);
-                // If they mark empty, nullify stage/months/sire
+                // If they mark empty, nullify stage/months/sire and reset destination batch to default (keep in current)
                 if (!val) {
                   setValue(`diagnoses.${index}.gestation_stage`, null);
                   setValue(`diagnoses.${index}.gestation_months`, null);
                   setValue(`diagnoses.${index}.confirmed_sire_id`, '');
+                  setValue(`diagnoses.${index}.empty_destination_batch_id`, '');
                 } else {
                   setValue(`diagnoses.${index}.gestation_stage`, 'head');
                   setValue(`diagnoses.${index}.gestation_months`, 3);
+                  setValue(`diagnoses.${index}.empty_destination_batch_id`, null);
 
                   let defaultSire: string | number = '';
                   if (order.service_type === 'single') {
@@ -203,7 +217,7 @@ export default function BulkDiagnosisRow({
               variant="outlined"
               sx={inputSx}
               disabled={!isPregnant}
-              value={controllerField.value ?? ''}
+              value={isPregnant ? (controllerField.value ?? '') : ''}
               onChange={(e) => {
                 const stage = e.target.value;
                 controllerField.onChange(stage);
@@ -214,7 +228,7 @@ export default function BulkDiagnosisRow({
               }}
             >
               <MenuItem value="">
-                <em>-- N/A --</em>
+                <em>-- {isPregnant ? 'Seleccione Estadio' : 'N/A'} --</em>
               </MenuItem>
               {STAGE_OPTIONS.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
@@ -236,11 +250,11 @@ export default function BulkDiagnosisRow({
               fullWidth
               variant="outlined"
               type="number"
-              placeholder="Meses"
+              placeholder={isPregnant ? 'Meses' : '--'}
               disabled={!isPregnant}
               error={!!errors.diagnoses?.[index]?.gestation_months}
               sx={{ ...inputSx, '& input': { textAlign: 'right' } }}
-              value={controllerField.value ?? ''}
+              value={isPregnant ? (controllerField.value ?? '') : ''}
               onChange={(e) => {
                 const val = e.target.value === '' ? null : parseFloat(e.target.value);
                 controllerField.onChange(val);
@@ -250,32 +264,63 @@ export default function BulkDiagnosisRow({
         />
       </TableCell>
 
-      {/* 7. Confirmed Sire Selection */}
+      {/* 7. Confirmed Sire (if Pregnant) OR Destination Batch (if Empty) */}
       <TableCell sx={cellStyle}>
-        <Controller
-          control={control}
-          name={`diagnoses.${index}.confirmed_sire_id` as const}
-          render={({ field: controllerField }) => (
-            <TextField
-              select
-              fullWidth
-              variant="outlined"
-              sx={inputSx}
-              disabled={!isPregnant}
-              value={controllerField.value ?? ''}
-              onChange={controllerField.onChange}
-            >
-              <MenuItem value="">
-                <em>-- Colectivo / Indeterminado --</em>
-              </MenuItem>
-              {orderBulls.map((bull) => (
-                <MenuItem key={bull.id} value={bull.id}>
-                  {bull.identification}
+        {isPregnant ? (
+          <Controller
+            control={control}
+            name={`diagnoses.${index}.confirmed_sire_id` as const}
+            render={({ field: controllerField }) => (
+              <TextField
+                select
+                fullWidth
+                variant="outlined"
+                sx={inputSx}
+                value={controllerField.value ?? ''}
+                onChange={controllerField.onChange}
+              >
+                <MenuItem value="">
+                  <em>-- Colectivo / Indeterminado --</em>
                 </MenuItem>
-              ))}
-            </TextField>
-          )}
-        />
+                {orderBulls.map((bull) => (
+                  <MenuItem key={bull.id} value={bull.id}>
+                    {bull.identification}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+        ) : (
+          <Controller
+            control={control}
+            name={`diagnoses.${index}.empty_destination_batch_id` as const}
+            render={({ field: controllerField }) => (
+              <TextField
+                select
+                fullWidth
+                variant="outlined"
+                sx={{
+                  ...inputSx,
+                  '& .MuiSelect-select': {
+                    color: controllerField.value ? theme.palette.warning.main : theme.palette.text.secondary,
+                    fontWeight: controllerField.value ? 600 : 400
+                  }
+                }}
+                value={controllerField.value ?? ''}
+                onChange={controllerField.onChange}
+              >
+                <MenuItem value="">
+                  <em>-- Mantener en lote actual {currentBatchName ? `(${currentBatchName})` : ''} --</em>
+                </MenuItem>
+                {batches.map((b) => (
+                  <MenuItem key={b.id} value={b.id}>
+                    Mover a: {b.name} ({b.activity_name || b.farm_name || 'Lote'})
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+        )}
       </TableCell>
 
       {/* 8. Diagnosis Date Input */}

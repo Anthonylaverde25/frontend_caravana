@@ -154,6 +154,7 @@ export function useBulkRegisterGestationDiagnosis() {
       gestation_months?: number | null;
       confirmed_sire_id?: number | null;
       diagnosis_date: string;
+      empty_destination_batch_id?: number | null;
     }>) => {
       const response = await axiosInstance.post('/caravans/bulk-gestation-diagnosis', {
         diagnoses

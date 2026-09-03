@@ -1,105 +1,46 @@
-import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { useState } from 'react';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import _ from 'lodash';
-import { lighten } from '@mui/material/styles';
-import JwtLoginTab from '../tabs/sign-in/JwtSignInTab';
-import FirebaseSignInTab from '../tabs/sign-in/FirebaseSignInTab';
-import AwsSignInTab from '../tabs/sign-in/AwsSignInTab';
+import JwtSignInForm from '@auth/services/jwt/components/JwtSignInForm';
 import SignInPageTitle from '../ui/SignInPageTitle';
 import AuthPagesMessageSection from '../ui/AuthPagesMessageSection';
-
-const tabs = [
-	{
-		id: 'jwt',
-		title: 'JWT',
-		logo: '/assets/images/logo/jwt.svg',
-		logoClass: 'h-9 p-1 bg-black rounded-lg'
-	},
-	{
-		id: 'firebase',
-		title: 'Firebase',
-		logo: '/assets/images/logo/firebase.svg',
-		logoClass: 'h-9'
-	},
-	{
-		id: 'aws',
-		title: 'AWS',
-		logo: '/assets/images/logo/aws-amplify.svg',
-		logoClass: 'h-9'
-	}
-];
+import { Box, Typography } from '@mui/material';
 
 /**
- * The sign in page.
+ * The RXNA Sistema Ganadero sign in page view.
  */
 function SignInPageView() {
-	const [selectedTabId, setSelectedTabId] = useState(tabs[0].id);
-
-	function handleSelectTab(id: string) {
-		setSelectedTabId(id);
-	}
-
 	return (
-		<div className="flex min-w-0 flex-auto flex-col items-center sm:flex-row sm:justify-center md:items-start md:justify-start">
-			<Paper className="h-full w-full px-4 py-2 sm:h-auto sm:w-auto sm:rounded-xl sm:p-12 sm:shadow-sm md:flex md:h-full md:w-1/2 md:items-center md:justify-end md:rounded-none md:p-16 md:shadow-none ltr:border-r-1 rtl:border-l-1">
-				<div className="mx-auto flex w-full max-w-80 flex-col gap-8 sm:mx-0 sm:w-80">
+		<div className="flex min-w-0 flex-auto flex-col items-center sm:flex-row sm:justify-center md:items-start md:justify-start h-screen">
+			{/* Left Authentication Form Panel */}
+			<Paper
+				elevation={0}
+				className="relative h-full w-full px-6 py-8 sm:h-auto sm:w-auto sm:rounded-2xl sm:p-12 sm:shadow-xl md:flex md:h-full md:w-1/2 md:items-center md:justify-center md:rounded-none md:p-16 md:shadow-none ltr:border-r rtl:border-l overflow-hidden"
+				sx={{
+					backgroundColor: (theme) => theme.palette.background.paper,
+					borderColor: (theme) => theme.palette.divider
+				}}
+			>
+				{/* Top subtle brand accent line for mobile & small screens */}
+				<div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-800 via-emerald-600 to-emerald-800 sm:hidden" />
+
+				<div className="mx-auto flex w-full max-w-sm flex-col gap-6 sm:mx-0">
 					<SignInPageTitle />
-					<div>
-						<Tabs
-							value={_.findIndex(tabs, { id: selectedTabId })}
-							variant="fullWidth"
-							className="mb-8 w-full"
-							classes={{
-								indicator: 'flex justify-center bg-transparent w-full h-full'
-							}}
-							TabIndicatorProps={{
-								children: (
-									<Box
-										sx={{ borderColor: (theme) => theme.vars.palette.secondary.main }}
-										className="h-full w-full rounded-lg border-1 border-solid"
-									/>
-								)
-							}}
-						>
-							{tabs.map((item) => (
-								<Tab
-									disableRipple
-									onClick={() => handleSelectTab(item.id)}
-									key={item.id}
-									icon={
-										<img
-											className={item.logoClass}
-											src={item.logo}
-											alt={item.title}
-										/>
-									}
-									className="min-w-0"
-									label={item.title}
-								/>
-							))}
-						</Tabs>
 
-						{selectedTabId === 'jwt' && <JwtLoginTab />}
-						{selectedTabId === 'firebase' && <FirebaseSignInTab />}
-						{selectedTabId === 'aws' && <AwsSignInTab />}
-					</div>
+					<Box className="w-full mt-1">
+						<JwtSignInForm />
+					</Box>
 
-					<Box
-						className="text-md rounded-lg px-4 py-2 leading-[1.625]"
-						sx={{
-							backgroundColor: (theme) => lighten(theme.palette.primary.main, 0.8),
-							color: 'primary.dark'
-						}}
-					>
-						You are browsing <b>Fuse React Demo</b>. Click on the "Sign in" button to access the Demo and
-						Documentation.
+					<Box className="mt-6 border-t border-divider pt-5 flex items-center justify-between text-xs text-text-secondary">
+						<Typography variant="caption" color="text.secondary">
+							RXNA Agrotech &copy; {new Date().getFullYear()}
+						</Typography>
+						<Typography variant="caption" sx={{ color: 'text.disabled' }}>
+							v16.0
+						</Typography>
 					</Box>
 				</div>
 			</Paper>
 
+			{/* Right Agrotech Hero Section */}
 			<AuthPagesMessageSection />
 		</div>
 	);

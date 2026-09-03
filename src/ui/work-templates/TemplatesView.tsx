@@ -15,7 +15,7 @@ import {
 import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import DataTable from '@/components/data-table/DataTable';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useTemplateData } from './hooks/useTemplateData';
 import { Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 
@@ -145,6 +145,7 @@ function PreviewDialog({ open, onClose, template }: { open: boolean, onClose: ()
  * TemplatesView Component
  */
 function TemplatesView() {
+	const navigate = useNavigate();
 	const { templates, isLoading, error } = useTemplateData();
 	const [previewTemplate, setPreviewTemplate] = useState<any>(null);
 
@@ -153,8 +154,18 @@ function TemplatesView() {
 			header: 'Nombre de Plantilla',
 			accessorKey: 'title',
 			cell: ({ row }: any) => (
-				<Box>
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+				<Box
+					component={Link}
+					to={`/work-templates/${row.original.code}`}
+					onClick={(e: React.MouseEvent) => e.stopPropagation()}
+					sx={{
+						textDecoration: 'none',
+						color: 'inherit',
+						display: 'block',
+						'&:hover .template-title': { color: 'primary.main', textDecoration: 'underline' }
+					}}
+				>
+					<Typography variant="subtitle2" className="template-title" sx={{ fontWeight: 800, color: 'text.primary', transition: 'color 0.2s' }}>
 						{row.original.title}
 					</Typography>
 					<Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
@@ -213,11 +224,14 @@ function TemplatesView() {
 			cell: ({ row }: any) => {
 				const template = row.original;
 				return (
-					<Stack direction="row" spacing={1} alignItems="center">
-						<Tooltip title="Previsualizar Formato">
+					<Stack direction="row" spacing={1} alignItems="center" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+						<Tooltip title="Previsualización Rápida">
 							<IconButton
 								size="small"
-								onClick={() => setPreviewTemplate(template)}
+								onClick={(e: React.MouseEvent) => {
+									e.stopPropagation();
+									setPreviewTemplate(template);
+								}}
 								sx={{
 									color: 'info.main',
 									bgcolor: 'info.lighter',
@@ -228,9 +242,28 @@ function TemplatesView() {
 							</IconButton>
 						</Tooltip>
 
-						<Tooltip title="Imprimir / Descargar PDF">
+						<Tooltip title="Escanear y Cargar Planilla (AI)">
 							<IconButton
 								size="small"
+								component={Link}
+								to={`/work-templates/scan?templateCode=${template.code}`}
+								onClick={(e: React.MouseEvent) => e.stopPropagation()}
+								sx={{
+									color: '#6366f1',
+									bgcolor: '#e0e7ff',
+									'&:hover': { bgcolor: '#c7d2fe' }
+								}}
+							>
+								<FuseSvgIcon size={20}>heroicons-outline:camera</FuseSvgIcon>
+							</IconButton>
+						</Tooltip>
+
+						<Tooltip title="Ver / Imprimir / Descargar Planilla">
+							<IconButton
+								size="small"
+								component={Link}
+								to={`/work-templates/${template.code}`}
+								onClick={(e: React.MouseEvent) => e.stopPropagation()}
 								sx={{
 									color: 'success.main',
 									bgcolor: 'success.lighter',
@@ -246,6 +279,7 @@ function TemplatesView() {
 								size="small"
 								component={Link}
 								to={`/livestock/generator?id=${template.id}`}
+								onClick={(e: React.MouseEvent) => e.stopPropagation()}
 								sx={{
 									color: 'primary.main',
 									bgcolor: 'action.hover',
@@ -277,29 +311,48 @@ function TemplatesView() {
 			title="Gestión de Plantillas"
 			subtitle="Repositorio centralizado de procesos operativos y formatos de campo."
 			actions={
-				<Button
-					variant="contained"
-					component={Link}
-					to="/templates/create"
-					startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
-					sx={{
-						bgcolor: 'primary.main',
-						borderRadius: '6px',
-						px: 3,
-						fontWeight: 700,
-						textTransform: 'none',
-						boxShadow: 'none'
-					}}
-				>
-					Nueva Plantilla
-				</Button>
+				<Stack direction="row" spacing={1.5}>
+					<Button
+						variant="outlined"
+						component={Link}
+						to="/work-templates/scan"
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:camera</FuseSvgIcon>}
+						sx={{
+							borderColor: '#6366f1',
+							color: '#6366f1',
+							borderRadius: '6px',
+							px: 2.5,
+							fontWeight: 700,
+							textTransform: 'none',
+							'&:hover': { bgcolor: '#f5f3ff', borderColor: '#4f46e5' }
+						}}
+					>
+						Escanear Planilla (AI)
+					</Button>
+					<Button
+						variant="contained"
+						component={Link}
+						to="/templates/create"
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
+						sx={{
+							bgcolor: 'primary.main',
+							borderRadius: '6px',
+							px: 3,
+							fontWeight: 700,
+							textTransform: 'none',
+							boxShadow: 'none'
+						}}
+					>
+						Nueva Plantilla
+					</Button>
+				</Stack>
 			}
 		>
 			<Box className="w-full">
 				<DataTable
 					columns={columns}
 					data={templates}
-					isLoading={isLoading}
+					state={{ isLoading }}
 					enableExpanding={false}
 					initialState={{
 						density: 'compact',
@@ -328,6 +381,19 @@ function TemplatesView() {
 							borderColor: 'divider',
 						}
 					}}
+					muiTableBodyRowProps={({ row }: any) => ({
+						onClick: () => {
+							if (row?.original?.code) {
+								navigate(`/work-templates/${row.original.code}`);
+							}
+						},
+						sx: {
+							cursor: 'pointer',
+							'&:hover': {
+								bgcolor: 'action.hover'
+							}
+						}
+					})}
 				/>
 			</Box>
 

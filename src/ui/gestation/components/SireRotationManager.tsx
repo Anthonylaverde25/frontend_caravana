@@ -33,7 +33,7 @@ function SireRotationManager() {
 
 	// 1. Fetch active company and load data from database (API)
 	const { activeCompanyId } = useCompany();
-	const { data: dbBatches = [], isLoading: isLoadingBatches } = useBatches();
+	const { data: dbBatches = [], isLoading: isLoadingBatches } = useBatches(undefined, undefined, 'own');
 	const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId);
 	const createOrderMutation = useCreateServiceOrder();
 

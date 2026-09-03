@@ -1,26 +1,31 @@
 import Typography from '@mui/material/Typography';
-import Link from '@fuse/core/Link';
+import Logo from '@/components/theme-layouts/components/Logo';
+import { Box } from '@mui/material';
 
 function SignInPageTitle() {
 	return (
-		<div className="w-full">
-			<img
-				className="w-12"
-				src="/assets/images/logo/logo.svg"
-				alt="logo"
-			/>
+		<Box className="w-full flex flex-col items-start gap-4">
+			<Logo />
 
-			<Typography className="mt-8 text-4xl leading-[1.25] font-extrabold tracking-tight">Sign in</Typography>
-			<div className="mt-0.5 flex items-baseline font-medium">
-				<Typography>Don't have an account?</Typography>
-				<Link
-					className="ml-1"
-					to="/sign-up"
+			<Box className="mt-3 flex flex-col gap-1.5">
+				<Box className="inline-flex items-center gap-1.5 self-start rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+					<span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
+					PORTAL OPERATIVO GANADERO
+				</Box>
+
+				<Typography
+					variant="h5"
+					className="font-extrabold tracking-tight mt-1"
+					sx={{ color: 'text.primary', fontWeight: 800 }}
 				>
-					Sign up
-				</Link>
-			</div>
-		</div>
+					Acceso al Sistema
+				</Typography>
+
+				<Typography variant="body2" sx={{ color: 'text.secondary' }}>
+					Ingrese sus credenciales corporativas para gestionar el rodeo y operaciones de campo.
+				</Typography>
+			</Box>
+		</Box>
 	);
 }
 

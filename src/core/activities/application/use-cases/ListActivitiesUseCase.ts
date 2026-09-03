@@ -1,5 +1,5 @@
-import { Activity } from '../entities/Activity';
-import { IActivityRepository } from '../repositories/IActivityRepository';
+import { Activity } from '../../domain/entities/Activity';
+import { IActivityRepository } from '../../domain/repositories/IActivityRepository';
 
 export class ListActivitiesUseCase {
   constructor(private repository: IActivityRepository) {}

@@ -5,7 +5,13 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 interface Batch {
 	id: number;
 	name: string;
+	farm_id?: number | null;
 	farm_name?: string;
+	provider_id?: number | null;
+	provider_name?: string;
+	activity_id?: number;
+	activity_name?: string;
+	activity_code?: string;
 }
 
 interface SireRotationFormFieldsProps {
@@ -44,6 +50,14 @@ function SireRotationFormFields({
 }: SireRotationFormFieldsProps) {
 	const [showObservations, setShowObservations] = useState(false);
 
+	const criaBatches = dbBatches.filter((b) => {
+		const isOwn = b.provider_id === null || b.provider_id === undefined;
+		const code = (b.activity_code || '').toUpperCase();
+		const name = (b.activity_name || '').toLowerCase();
+		const isCria = code === 'CRIA' || name.includes('cría') || name.includes('cria');
+		return isOwn && isCria;
+	});
+
 	return (
 		<section className="p-6">
 			{/* Section Header */}
@@ -55,7 +69,7 @@ function SireRotationFormFields({
 					<div>
 						<h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Información de la Orden</h2>
 						<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-							Lote de origen, modalidad y fechas programadas del entore.
+							Lote de trabajo (Cría), modalidad y fechas programadas del entore.
 						</p>
 					</div>
 				</div>
@@ -72,7 +86,7 @@ function SireRotationFormFields({
 					<TextField
 						id="lote-trabajo"
 						select
-						label="Lote de Trabajo (Servicio)"
+						label="Lote de Trabajo (Actividad Cría)"
 						value={selectedBatchId}
 						onChange={(e) => {
 							const val = e.target.value;
@@ -81,11 +95,17 @@ function SireRotationFormFields({
 						variant="filled"
 						size="small"
 						fullWidth
+						error={criaBatches.length === 0}
+						helperText={
+							criaBatches.length === 0
+								? 'No hay lotes con actividad Cría disponibles. Cree un lote de Cría para continuar.'
+								: undefined
+						}
 					>
 						<MenuItem value="all">
-							<em>-- Seleccione un Lote --</em>
+							<em>-- Seleccione un Lote de Cría --</em>
 						</MenuItem>
-						{dbBatches.map((b) => (
+						{criaBatches.map((b) => (
 							<MenuItem key={b.id} value={b.id}>
 								{b.name} {b.farm_name ? `(${b.farm_name})` : ''}
 							</MenuItem>

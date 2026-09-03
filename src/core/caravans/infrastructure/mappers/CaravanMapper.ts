@@ -13,17 +13,31 @@ export class CaravanMapper {
       id: raw.id,
       identification: raw.identification,
       category: raw.category ?? null,
+      category_id: raw.category_id != null ? Number(raw.category_id) : null,
+      category_code: raw.category_code ?? null,
+      category_name: raw.category_name ?? null,
+      subcategory_id: raw.subcategory_id != null ? Number(raw.subcategory_id) : null,
+      subcategory_code: raw.subcategory_code ?? null,
+      subcategory_name: raw.subcategory_name ?? null,
       teeth: Number(raw.teeth ?? 0),
       entry_weight: raw.entry_weight != null ? Number(raw.entry_weight) : null,
       exit_weight: raw.exit_weight != null ? Number(raw.exit_weight) : null,
       breed: raw.breed ?? null,
       sex: raw.sex ?? null,
       entry_date: raw.entry_date ?? null,
+      renspa: raw.renspa ?? 'NO_DEFINIDO',
+      provider_id: raw.provider_id != null ? Number(raw.provider_id) : null,
+      provider_name: raw.provider_name ?? null,
+      provenance: raw.provenance ?? null,
+      is_operational: raw.is_operational != null ? Boolean(raw.is_operational) : true,
+      farm_name: raw.farm_name ?? raw.batch?.farm?.name ?? null,
       batch_id: raw.batch?.id != null ? Number(raw.batch.id) : (raw.batch_id != null ? Number(raw.batch_id) : null),
       batch: raw.batch ? {
         id: Number(raw.batch.id),
-        name: raw.batch.name
+        name: raw.batch.name,
+        farm_name: raw.batch.farm?.name ?? raw.farm_name ?? undefined
       } : null,
+
       current_weight: raw.current_weight != null ? Number(raw.current_weight) : null,
       female_details: raw.female_details ? {
         is_empty: Boolean(raw.female_details.is_empty),
@@ -50,6 +64,14 @@ export class CaravanMapper {
         father_identification: raw.lineage.father_identification ?? null,
         birth_date: raw.lineage.birth_date ?? null,
         is_nursing: raw.lineage.is_nursing != null ? Boolean(raw.lineage.is_nursing) : null,
+      } : null,
+      physiological_state: raw.physiological_state ? {
+        code: raw.physiological_state.code,
+        label: raw.physiological_state.label,
+        is_pregnant: raw.physiological_state.is_pregnant != null ? Boolean(raw.physiological_state.is_pregnant) : null,
+        is_nursing: raw.physiological_state.is_nursing != null ? Boolean(raw.physiological_state.is_nursing) : null,
+        gestation_stage: raw.physiological_state.gestation_stage ?? null,
+        gestation_months: raw.physiological_state.gestation_months != null ? Number(raw.physiological_state.gestation_months) : null,
       } : null
     };
 
@@ -64,6 +86,12 @@ export class CaravanMapper {
       id: entity.id,
       identification: entity.identification,
       category: entity.category,
+      category_id: entity.category_id,
+      category_code: entity.category_code,
+      category_name: entity.category_name,
+      subcategory_id: entity.subcategory_id,
+      subcategory_code: entity.subcategory_code,
+      subcategory_name: entity.subcategory_name,
       teeth: entity.teeth,
       entry_weight: entity.entry_weight,
       exit_weight: entity.exit_weight,
@@ -73,7 +101,8 @@ export class CaravanMapper {
       batch_id: entity.batch_id,
       current_weight: entity.current_weight,
       active_gestation: entity.active_gestation,
-      lineage: entity.lineage
+      lineage: entity.lineage,
+      physiological_state: entity.physiological_state,
     };
   }
 }

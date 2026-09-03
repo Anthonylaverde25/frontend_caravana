@@ -12,18 +12,20 @@ function GestationTabs() {
 
   const getActiveTab = () => {
     const path = location.pathname;
-    if (path.includes('/gestation/tacto')) return 2;
-    if (path.includes('/gestation/list')) return 3;
-    if (path.includes('/gestation/service-orders')) return 1;
+    if (path.includes('/gestation/pre-service')) return 1;
+    if (path.includes('/gestation/service-orders')) return 2;
+    if (path.includes('/gestation/tacto')) return 3;
+    if (path.includes('/gestation/list')) return 4;
     // Exactly matches the main /gestation dashboard
     return 0;
   };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     if (newValue === 0) navigate('/gestation');
-    else if (newValue === 1) navigate('/gestation/service-orders');
-    else if (newValue === 2) navigate('/gestation/tacto');
-    else if (newValue === 3) navigate('/gestation/list');
+    else if (newValue === 1) navigate('/gestation/pre-service');
+    else if (newValue === 2) navigate('/gestation/service-orders');
+    else if (newValue === 3) navigate('/gestation/tacto');
+    else if (newValue === 4) navigate('/gestation/list');
   };
 
   return (
@@ -88,6 +90,11 @@ function GestationTabs() {
           icon={<FuseSvgIcon size={18}>heroicons-outline:chart-bar</FuseSvgIcon>}
           iconPosition="start"
           label="Dashboard"
+        />
+        <Tab
+          icon={<FuseSvgIcon size={18}>heroicons-outline:shield-check</FuseSvgIcon>}
+          iconPosition="start"
+          label="Pre-Servicio & Toros"
         />
         <Tab
           icon={<FuseSvgIcon size={18}>heroicons-outline:queue-list</FuseSvgIcon>}

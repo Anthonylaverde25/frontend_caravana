@@ -15,13 +15,16 @@ const listCaravansUseCase = new ListCaravansUseCase(caravanRepository);
  * The actual filtering is handled server-side via the X-Company-ID header
  * (set globally by CompanyContext → axiosInstance).
  *
+/**
  * @param companyId - The active company ID from useCompany(). Pass null to disable the query.
+ * @param scope - 'own' | 'external' | 'all'. Defaults to 'own'.
  */
-export function useCaravans(companyId: number | null | undefined) {
+export function useCaravans(companyId: number | null | undefined, scope: 'own' | 'external' | 'all' = 'own') {
   return useQuery({
-    queryKey: ['caravans', companyId],
-    queryFn: () => listCaravansUseCase.execute(companyId || undefined),
+    queryKey: ['caravans', companyId, scope],
+    queryFn: () => listCaravansUseCase.execute(companyId || undefined, scope),
     enabled: companyId != null,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
+

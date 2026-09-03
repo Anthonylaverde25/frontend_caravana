@@ -85,7 +85,7 @@ const TemplateREP01: React.FC = () => {
     if (name === 'category' || name === 'categoria') {
       return (
         <TableCell key={field.name} sx={{ fontSize: '0.65rem' }}>
-          {caravan?.category || 'Vientre'}
+          {caravan?.category_name || caravan?.category || 'Vientre'}
         </TableCell>
       );
     }

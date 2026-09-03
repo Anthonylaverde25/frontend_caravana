@@ -1,10 +1,16 @@
 import { MRT_ColumnDef } from 'material-react-table';
-import { Typography, Chip } from '@mui/material';
+import { Typography, Chip, Box } from '@mui/material';
 
 export interface Caravan {
   id: number;
   identification: string;
   category: string | null;
+  category_id?: number | null;
+  category_code?: string | null;
+  category_name?: string | null;
+  subcategory_id?: number | null;
+  subcategory_code?: string | null;
+  subcategory_name?: string | null;
   breed: string | null;
   teeth: number;
   entry_weight: number | null;
@@ -15,6 +21,14 @@ export interface Caravan {
   female_details?: {
     is_empty: boolean;
     arrival_category: string;
+  } | null;
+  physiological_state?: {
+    code: string;
+    label: string;
+    is_pregnant: boolean | null;
+    is_nursing: boolean | null;
+    gestation_stage?: string | null;
+    gestation_months?: number | null;
   } | null;
 }
 
@@ -75,12 +89,23 @@ export const getCaravanColumns = (): MRT_ColumnDef<Caravan>[] => [
   {
     accessorKey: 'category',
     header: 'Categoría',
-    size: 140,
-    Cell: ({ cell }) => (
-      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.875rem' }}>
-        {cell.getValue<string>() || '-'}
-      </Typography>
-    ),
+    size: 150,
+    Cell: ({ row }) => {
+      const catName = row.original.category_name || row.original.category || '-';
+      const subName = row.original.subcategory_name;
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.85rem' }}>
+            {catName}
+          </Typography>
+          {subName && (
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+              {subName}
+            </Typography>
+          )}
+        </Box>
+      );
+    },
   },
   {
     accessorKey: 'breed',
@@ -109,8 +134,8 @@ export const getCaravanColumns = (): MRT_ColumnDef<Caravan>[] => [
   },
   {
     accessorKey: 'female_details',
-    header: 'Est. Reprod.',
-    size: 100,
+    header: 'Est. Fisiológico',
+    size: 160,
     muiTableHeadCellProps: { align: 'center' },
     muiTableBodyCellProps: { align: 'center' },
     Cell: ({ row }) => {
@@ -123,14 +148,47 @@ export const getCaravanColumns = (): MRT_ColumnDef<Caravan>[] => [
         );
       }
       
-      const details = row.original.female_details;
-      if (!details) return <Typography variant="caption">VACÍA</Typography>;
-      
+      const phys = row.original.physiological_state;
+      if (!phys) {
+        const details = row.original.female_details;
+        if (!details) return <Typography variant="caption">VACÍA</Typography>;
+        return (
+          <Chip 
+            label={details.is_empty ? 'VACÍA' : 'PREÑADA'} 
+            size="small" 
+            color={details.is_empty ? 'default' : 'secondary'}
+            sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+          />
+        );
+      }
+
+      let chipColor: 'primary' | 'secondary' | 'success' | 'warning' | 'default' = 'default';
+      switch (phys.code) {
+        case 'PREGNANT_LACTATING':
+          chipColor = 'secondary';
+          break;
+        case 'PREGNANT_DRY':
+          chipColor = 'success';
+          break;
+        case 'EMPTY_LACTATING':
+          chipColor = 'warning';
+          break;
+        case 'EMPTY_DRY':
+          chipColor = 'default';
+          break;
+        case 'IN_SERVICE':
+          chipColor = 'primary';
+          break;
+        default:
+          chipColor = 'default';
+      }
+
       return (
         <Chip 
-          label={details.is_empty ? 'VACÍA' : 'PREÑADA'} 
+          label={phys.label} 
           size="small" 
-          color={details.is_empty ? 'default' : 'secondary'}
+          color={chipColor}
+          variant={phys.code === 'EMPTY_DRY' ? 'outlined' : 'filled'}
           sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
         />
       );

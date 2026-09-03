@@ -5,8 +5,9 @@ import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../entities/Car
  * Domain contract — no dependency on HTTP or Eloquent.
  */
 export interface ICaravanRepository {
-  /** Retrieves all caravans for the active company (filtered by X-Company-ID header). */
-  findAll(companyId?: number): Promise<Caravan[]>;
+  /** Retrieves all caravans for the active company (filtered by X-Company-ID header and scope). */
+  findAll(companyId?: number, scope?: 'own' | 'external' | 'all'): Promise<Caravan[]>;
+
 
   /**
    * Creates or updates a caravan based on the identification field.

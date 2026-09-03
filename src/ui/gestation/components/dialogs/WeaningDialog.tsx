@@ -157,9 +157,20 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
           {/* Form Fields */}
           <TextField
             select
-            label="Lote de Destino"
+            label="Lote de Destino (Cría / Recría)"
             value={targetBatchId}
-            onChange={(e) => setTargetBatchId(e.target.value)}
+            onChange={(e) => {
+              const newId = e.target.value;
+              setTargetBatchId(newId);
+              const b = batches.find((item: any) => item.id === parseInt(newId));
+              const isRecria = b?.activity_name?.toLowerCase().includes('recr') || 
+                               b?.activity_name?.toLowerCase().includes('inver');
+              if (isRecria) {
+                setNewCategory(calfSex === 'M' ? 'novillito' : calfSex === 'H' ? 'vaquillona' : 'no_change');
+              } else {
+                setNewCategory(calfSex === 'M' ? 'ternero' : calfSex === 'H' ? 'ternera' : 'no_change');
+              }
+            }}
             required
             fullWidth
             size="small"
@@ -168,14 +179,64 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
             SelectProps={{ displayEmpty: true }}
           >
             <MenuItem value="" disabled>
-              Seleccione un lote...
+              Seleccione un lote de destino...
             </MenuItem>
-            {batches.map((batch: any) => (
-              <MenuItem key={batch.id} value={batch.id}>
-                {batch.name}
-              </MenuItem>
-            ))}
+            {batches.map((batch: any) => {
+              const isRecria = batch.activity_name?.toLowerCase().includes('recr');
+              const isCria = batch.activity_name?.toLowerCase().includes('cr');
+              return (
+                <MenuItem key={batch.id} value={batch.id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {batch.name}
+                      {batch.farm_name && (
+                        <Typography component="span" variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
+                          ({batch.farm_name})
+                        </Typography>
+                      )}
+                    </Typography>
+                    <Box
+                      component="span"
+                      sx={{
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: '4px',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        bgcolor: isRecria ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        color: isRecria ? '#2563eb' : '#059669',
+                        border: '1px solid',
+                        borderColor: isRecria ? 'rgba(59, 130, 246, 0.3)' : 'rgba(16, 185, 129, 0.3)'
+                      }}
+                    >
+                      {batch.activity_name || (isRecria ? 'Recría' : isCria ? 'Cría' : 'General')}
+                    </Box>
+                  </Box>
+                </MenuItem>
+              );
+            })}
           </TextField>
+
+          {targetBatchId && (() => {
+            const b = batches.find((item: any) => item.id === parseInt(targetBatchId));
+            if (!b) return null;
+            return (
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: 'action.hover',
+                  borderRadius: '6px',
+                  borderLeft: '4px solid',
+                  borderColor: 'primary.main'
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  Lote: <strong>{b.name}</strong> • Actividad: <strong>{b.activity_name || 'Cría'}</strong>
+                  {b.farm_name ? ` • Establecimiento: ${b.farm_name}` : ''}
+                </Typography>
+              </Box>
+            );
+          })()}
 
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
@@ -215,9 +276,11 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
             disabled={isSubmitting}
             InputLabelProps={{ shrink: true }}
           >
-            <MenuItem value="no_change">No cambiar (Permanecer como Ternero/a)</MenuItem>
-            <MenuItem value="novillito">Novillito</MenuItem>
-            <MenuItem value="vaquillona">Vaquillona</MenuItem>
+            <MenuItem value="no_change">No cambiar (Permanecer en categoría actual)</MenuItem>
+            <MenuItem value="ternero">Ternero de Destete (Macho - Actividad Cría)</MenuItem>
+            <MenuItem value="ternera">Ternera de Destete (Hembra - Actividad Cría)</MenuItem>
+            <MenuItem value="novillito">Novillito de Recría (Macho - Actividad Recría)</MenuItem>
+            <MenuItem value="vaquillona">Vaquillona de Recría (Hembra - Actividad Recría)</MenuItem>
           </TextField>
 
           <TextField

@@ -10,14 +10,13 @@ import {
   IconButton,
   MenuItem,
   FormControlLabel,
-  Switch
+  Checkbox,
+  Alert
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateBatch } from '@/features/batches/hooks/useCreateBatch';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import { useSnackbar } from 'notistack';
 import { useEffect, useMemo } from 'react';
 import { useActivities } from '@/features/activities/hooks/useActivities';
@@ -28,19 +27,17 @@ import { batchSchema, BatchFormValues } from './BatchSchema';
 interface CreateBatchDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (createdBatch: any) => void;
   initialFarmId?: number;
 }
 
 /**
  * CreateBatchDialog Component
- * Modal for quick creation of batches associated with a farm or as own batches.
+ * Modal for quick creation of own batches associated with the active company.
  */
 function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBatchDialogProps) {
   const { enqueueSnackbar } = useSnackbar();
   const { activeCompanyId } = useCompany();
-  const { data: providers = [], isLoading: isLoadingProviders } = useSuppliers();
-  const { data: allFarms = [], isLoading: isLoadingFarms } = useFarms();
   const { data: activities = [], isLoading: isLoadingActivities } = useActivities(activeCompanyId);
   const { data: batchTypes = [], isLoading: isLoadingBatchTypes } = useBatchTypes();
   const { mutate, isPending } = useCreateBatch();
@@ -56,43 +53,19 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
     resolver: zodResolver(batchSchema),
     defaultValues: {
       name: '',
-      is_own: initialFarmId ? false : true,
+      is_own: true,
       provider_id: undefined,
-      farm_id: initialFarmId,
+      farm_id: null,
       activity_id: undefined,
       batch_type_id: undefined,
       weight: undefined,
+      min_weight: undefined,
+      max_weight: undefined,
+      knows_to_eat: false,
+      age_in_months: undefined,
       observaciones: ''
     }
   });
-
-  const isOwn = watch('is_own');
-  const selectedProviderId = watch('provider_id');
-  const selectedFarmId = watch('farm_id');
-
-  // Filter farms by selected provider
-  const filteredFarms = useMemo(() => {
-    if (!selectedProviderId) return [];
-    return allFarms.filter((f) => f.provider_id === selectedProviderId);
-  }, [allFarms, selectedProviderId]);
-
-  // If provider changes, reset farm selection
-  useEffect(() => {
-    if (selectedProviderId && selectedFarmId) {
-      const farmBelongsToProvider = filteredFarms.some(f => f.id === selectedFarmId);
-      if (!farmBelongsToProvider) {
-        setValue('farm_id', undefined as any);
-      }
-    }
-  }, [selectedProviderId, filteredFarms, selectedFarmId, setValue]);
-
-  // If isOwn switches to true, clear provider and farm fields to prevent Zod validation errors
-  useEffect(() => {
-    if (isOwn) {
-      setValue('provider_id', undefined as any);
-      setValue('farm_id', undefined as any);
-    }
-  }, [isOwn, setValue]);
 
   // Automatically select 'OPERATIONAL' batch type in the background
   useEffect(() => {
@@ -106,18 +79,18 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
 
   const handleOnSuccess = (data: BatchFormValues) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { provider_id, is_own, ...requestData } = data;
+    const { provider_id, is_own, farm_id, ...requestData } = data;
 
     const payload = {
       ...requestData,
-      farm_id: is_own ? null : data.farm_id
+      farm_id: null
     };
 
     mutate(payload as any, {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
         enqueueSnackbar('Lote creado exitosamente', { variant: 'success' });
         reset();
-        if (onSuccess) onSuccess();
+        if (onSuccess) onSuccess(response);
         onClose();
       },
       onError: (error: any) => {
@@ -169,21 +142,6 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
       <form onSubmit={handleSubmit(handleOnSuccess)}>
         <DialogContent sx={{ p: 3, bgcolor: 'background.paper' }}>
           <Stack spacing={3}>
-            {/* Switch to indicate if it's an own batch */}
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={watch('is_own') ?? true}
-                  onChange={(e) => setValue('is_own', e.target.checked)}
-                />
-              }
-              label={
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  ¿Es un lote propio de mi establecimiento?
-                </Typography>
-              }
-            />
-
             <TextField
               {...register('name')}
               label="Nombre del Lote"
@@ -194,50 +152,6 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               helperText={errors.name?.message}
               sx={{ bgcolor: 'action.hover' }}
             />
-
-            {/* Render provider and farm selectors only if it is NOT an own batch */}
-            {!isOwn && (
-              <>
-                <TextField
-                  select
-                  label="Proveedor"
-                  value={selectedProviderId || ''}
-                  onChange={(e) => setValue('provider_id', Number(e.target.value))}
-                  variant="filled"
-                  fullWidth
-                  required
-                  error={!!errors.provider_id}
-                  helperText={errors.provider_id?.message || (isLoadingProviders ? 'Cargando proveedores...' : '')}
-                  sx={{ bgcolor: 'action.hover' }}
-                >
-                  {providers.map((provider) => (
-                    <MenuItem key={provider.id} value={provider.id}>
-                      {provider.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <TextField
-                  select
-                  label="Establecimiento / Granja"
-                  value={selectedFarmId || ''}
-                  onChange={(e) => setValue('farm_id', Number(e.target.value))}
-                  variant="filled"
-                  fullWidth
-                  required
-                  disabled={!selectedProviderId}
-                  error={!!errors.farm_id}
-                  helperText={errors.farm_id?.message || (!selectedProviderId ? 'Seleccione primero un proveedor' : isLoadingFarms ? 'Cargando establecimientos...' : '')}
-                  sx={{ bgcolor: 'action.hover', opacity: !selectedProviderId ? 0.6 : 1 }}
-                >
-                  {filteredFarms.map((farm) => (
-                    <MenuItem key={farm.id} value={farm.id}>
-                      {farm.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </>
-            )}
 
             <TextField
               select
@@ -251,7 +165,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               helperText={errors.activity_id?.message || (isLoadingActivities ? 'Cargando actividades...' : '')}
               sx={{ bgcolor: 'action.hover' }}
             >
-              {activities.filter(a => a.isEnabled).map((activity) => (
+              {activities.filter(a => a.isEnabled !== false).map((activity) => (
                 <MenuItem key={activity.id} value={activity.id}>
                   {activity.name}
                 </MenuItem>
@@ -271,6 +185,68 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
                 endAdornment: <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1 }}>KG</Typography>
               }}
             />
+
+            <Stack direction="row" spacing={2}>
+              <TextField
+                {...register('min_weight')}
+                label="Peso Mínimo (Opcional)"
+                variant="filled"
+                fullWidth
+                type="number"
+                error={!!errors.min_weight}
+                helperText={errors.min_weight?.message?.toString()}
+                sx={{ bgcolor: 'action.hover' }}
+                InputProps={{
+                  endAdornment: <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1 }}>KG</Typography>
+                }}
+              />
+              <TextField
+                {...register('max_weight')}
+                label="Peso Máximo (Opcional)"
+                variant="filled"
+                fullWidth
+                type="number"
+                error={!!errors.max_weight}
+                helperText={errors.max_weight?.message?.toString()}
+                sx={{ bgcolor: 'action.hover' }}
+                InputProps={{
+                  endAdornment: <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', ml: 1 }}>KG</Typography>
+                }}
+              />
+            </Stack>
+
+            <Alert severity="info" sx={{ mt: 1, fontSize: '0.75rem', py: 0.5, '& .MuiAlert-message': { width: '100%', lineHeight: 1.3 } }}>
+              <strong>Nota:</strong> Los pesos mínimo y máximo manuales sirven como referencia inicial. Se recalcularán automáticamente en base al pesaje real de los animales una vez asignados.
+            </Alert>
+
+            <Stack direction="row" spacing={2} alignItems="center">
+              <TextField
+                {...register('age_in_months')}
+                label="Edad (Meses - Opcional)"
+                variant="filled"
+                fullWidth
+                type="number"
+                error={!!errors.age_in_months}
+                helperText={errors.age_in_months?.message?.toString()}
+                sx={{ bgcolor: 'action.hover', flex: 1 }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={watch('knows_to_eat') || false}
+                    onChange={(e) => setValue('knows_to_eat', e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box sx={{ userSelect: 'none' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.1 }}>Sabe Comer</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem', display: 'block', mt: 0.25 }}>¿Saben comer de comedero?</Typography>
+                  </Box>
+                }
+                sx={{ flex: 1.2, ml: 1 }}
+              />
+            </Stack>
 
             <TextField
               {...register('observaciones')}

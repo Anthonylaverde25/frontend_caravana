@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 560" width="100%" height="100%">
+  <defs>
+    <style>
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 700; fill: #0f172a; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; fill: #64748b; }
+      .card-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 700; }
+      .card-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 12px; fill: #334155; line-height: 1.4; }
+    </style>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.12" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="950" height="560" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+
+  <!-- Header -->
+  <rect x="20" y="16" width="910" height="65" rx="8" fill="url(#headerGrad)" stroke="#cbd5e1" stroke-width="1" />
+  <circle cx="50" cy="48" r="18" fill="#3b82f6" />
+  <text x="50" y="54" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="bold" fill="#ffffff">✨</text>
+  <text x="80" y="42" class="title">Limpieza Visual &amp; Botón de Retorno Minimalista en ViewHeader</text>
+  <text x="80" y="62" class="subtitle">Eliminación de bordes redundantes, navegación inteligente de rutas y diseño minimalista</text>
+
+  <!-- Box 1: Before vs After (Bordes) -->
+  <g transform="translate(20, 95)" filter="url(#shadow)">
+    <rect width="440" height="435" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+    <rect x="0" y="0" width="440" height="38" rx="8" fill="#ef4444" />
+    <rect x="0" y="30" width="440" height="8" fill="#ef4444" />
+    <text x="14" y="24" class="card-title" fill="#ffffff">❌ Problemas Visuales Actuales (Bordes Sucios)</text>
+
+    <g transform="translate(14, 50)">
+      <rect width="412" height="110" rx="6" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" stroke-dasharray="4,4" />
+      <text x="12" y="22" font-weight="700" font-size="12" fill="#991b1b">1. Borde de Contenedor en ViewHeader</text>
+      <text x="12" y="42" class="card-text">Clase tailwind 'border' + 'mt-5' + 'mb-8' crea un recuadro cerrado</text>
+      <text x="12" y="58" class="card-text">que encajona visualmente los títulos y genera ruido estético.</text>
+      <rect x="12" y="70" width="200" height="24" rx="4" fill="#fee2e2" />
+      <text x="20" y="86" font-size="11" font-weight="600" fill="#b91c1c">Encajonamiento no deseado</text>
+    </g>
+
+    <g transform="translate(14, 172)">
+      <rect width="412" height="110" rx="6" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" stroke-dasharray="4,4" />
+      <text x="12" y="22" font-weight="700" font-size="12" fill="#991b1b">2. Borde en PageBreadcrumb</text>
+      <text x="12" y="42" class="card-text">Clase 'border-1 px-2' genera una caja rígida alrededor</text>
+      <text x="12" y="58" class="card-text">de las migas de pan en lugar de un rastro sutil y fluido.</text>
+      <rect x="12" y="70" width="200" height="24" rx="4" fill="#fee2e2" />
+      <text x="20" y="86" font-size="11" font-weight="600" fill="#b91c1c">Bordes redundantes en texto</text>
+    </g>
+
+    <g transform="translate(14, 294)">
+      <rect width="412" height="115" rx="6" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5" />
+      <text x="12" y="22" font-weight="700" font-size="12" fill="#991b1b">3. Botón Volver Rígido / Ausente</text>
+      <text x="12" y="42" class="card-text">Solo aparece si se pasa 'backUrl' explícito en cada vista.</text>
+      <text x="12" y="58" class="card-text">Dimensiones 40x40 toscas y sin tooltip ni fallback automático.</text>
+    </g>
+  </g>
+
+  <!-- Box 2: Proposed Solution -->
+  <g transform="translate(480, 95)" filter="url(#shadow)">
+    <rect width="450" height="435" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+    <rect x="0" y="0" width="450" height="38" rx="8" fill="#10b981" />
+    <rect x="0" y="30" width="450" height="8" fill="#10b981" />
+    <text x="14" y="24" class="card-title" fill="#ffffff">✅ Diseño Limpio &amp; Navegación Minimalista</text>
+
+    <!-- Header Mockup -->
+    <g transform="translate(16, 50)">
+      <rect width="418" height="150" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+      
+      <!-- Breadcrumb row -->
+      <text x="16" y="28" font-size="11" fill="#64748b">Inicio  /  Gestación  /  <tspan font-weight="600" fill="#0f172a">Lotes de Servicio</tspan></text>
+      
+      <!-- Title & Minimalist Back Button row -->
+      <g transform="translate(16, 44)">
+        <!-- Minimalist Back Button -->
+        <rect x="0" y="8" width="34" height="34" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+        <path d="M 22 25 L 12 25 M 16 19 L 10 25 L 16 31" stroke="#334155" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        
+        <!-- Title & Subtitle -->
+        <text x="44" y="24" font-size="16" font-weight="700" fill="#0f172a">Lotes de Servicio Reproductivo</text>
+        <text x="44" y="42" font-size="12" fill="#64748b">Supervisión y balance zootécnico del rodeo</text>
+
+        <!-- Mock action button -->
+        <rect x="290" y="10" width="112" height="30" rx="6" fill="#0a6ed1" />
+        <text x="346" y="29" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff">+ Nuevo Lote</text>
+      </g>
+
+      <!-- Bottom border indicator -->
+      <line x1="0" y1="150" x2="418" y2="150" stroke="#e2e8f0" stroke-width="1" />
+    </g>
+
+    <!-- Smart Navigation Features -->
+    <g transform="translate(16, 215)">
+      <rect width="418" height="195" rx="6" fill="#eff6ff" stroke="#bfdbfe" />
+      <text x="14" y="22" font-size="12" font-weight="700" fill="#1e40af">🧠 Inteligencia de Navegación del Botón Volver:</text>
+      <text x="14" y="44" class="card-text">1. <tspan font-weight="600">Ruta Explícita:</tspan> Usa 'backUrl' si fue especificado por la vista.</text>
+      <text x="14" y="64" class="card-text">2. <tspan font-weight="600">Resolución Jerárquica Automática:</tspan> Para sub-rutas (ej: /gestation/service-batches</text>
+      <text x="14" y="80" class="card-text">   o /batches/create), calcula automáticamente la ruta padre (/gestation).</text>
+      <text x="14" y="100" class="card-text">3. <tspan font-weight="600">Historial del Navegador:</tspan> Fallback a 'navigate(-1)' cuando aplica.</text>
+      <text x="14" y="120" class="card-text">4. <tspan font-weight="600">Vistas Raíz Limpias:</tspan> Se oculta automáticamente en rutas principales</text>
+      <text x="14" y="136" class="card-text">   como /dashboard o /home sin contaminar la UI.</text>
+      <text x="14" y="156" class="card-text">5. <tspan font-weight="600">Estilo Minimalista:</tspan> 34x34px, hover suave, tooltip con nombre destino.</text>
+    </g>
+  </g>
+</svg>

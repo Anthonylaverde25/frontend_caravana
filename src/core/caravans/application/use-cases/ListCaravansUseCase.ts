@@ -9,7 +9,8 @@ import { Caravan } from '../../domain/entities/Caravan';
 export class ListCaravansUseCase {
   constructor(private readonly caravanRepository: ICaravanRepository) {}
 
-  async execute(companyId?: number): Promise<Caravan[]> {
-    return this.caravanRepository.findAll(companyId);
+  async execute(companyId?: number, scope?: 'own' | 'external' | 'all'): Promise<Caravan[]> {
+    return this.caravanRepository.findAll(companyId, scope);
   }
 }
+

@@ -1,34 +1,52 @@
-import axios from 'axios';
+import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
 const axiosInstance = axios.create({
   baseURL,
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 
 // Request interceptor for API calls
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Add Authorization token header from localStorage if not present
+    if (!config.headers.Authorization) {
+      const rawToken = localStorage.getItem("jwt_access_token");
+      if (rawToken) {
+        try {
+          const token = JSON.parse(rawToken);
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch {
+          config.headers.Authorization = `Bearer ${rawToken}`;
+        }
+      }
+    }
+
     // Add Company ID header from localStorage for multi-tenancy
-    const activeCompanyId = localStorage.getItem('activeCompanyId');
+    const activeCompanyId = localStorage.getItem("activeCompanyId");
     if (activeCompanyId) {
-      config.headers['X-Company-ID'] = activeCompanyId;
+      config.headers["X-Company-ID"] = activeCompanyId;
     }
 
     // Log requests during development
     if (import.meta.env.DEV) {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url} [Company: ${activeCompanyId || 'NONE'}]`);
+      console.log(
+        `[API Request] ${config.method?.toUpperCase()} ${config.url} [Company: ${activeCompanyId || "NONE"}]`,
+      );
     }
     return config;
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor for API calls
@@ -39,14 +57,17 @@ axiosInstance.interceptors.response.use(
   (error) => {
     // Handle global errors here (e.g. 401 unauthorized)
     if (error.response) {
-      console.error(`[API Error] ${error.response.status}:`, error.response.data);
+      console.error(
+        `[API Error] ${error.response.status}:`,
+        error.response.data,
+      );
     } else if (error.request) {
-      console.error('[API Error] No response received from server');
+      console.error("[API Error] No response received from server");
     } else {
-      console.error('[API Error]', error.message);
+      console.error("[API Error]", error.message);
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 /**

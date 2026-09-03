@@ -5,11 +5,10 @@ import { ListActivitiesUseCase } from '@/core/activities/application/use-cases/L
 const activityRepository = new ApiActivityRepository();
 const listActivitiesUseCase = new ListActivitiesUseCase(activityRepository);
 
-export function useActivities(companyId: number | null | undefined) {
+export function useActivities(companyId?: number | null) {
   return useQuery({
     queryKey: ['activities', companyId],
     queryFn: () => listActivitiesUseCase.execute(companyId || undefined),
-    enabled: companyId != null,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

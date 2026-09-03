@@ -29,7 +29,8 @@ import { useFarms } from '@/features/suppliers/hooks/useFarms';
 import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import axiosInstance from '@/utils/axios';
 import { toast } from 'sonner';
-import PrintHeader from '@/ui/livestock/template/components/PrintHeader';
+import { useCompany } from '@/contexts/CompanyContext';
+import { TemplateMON01 } from '@/ui/work-templates/templates/mon01';
 
 interface ServiceOrderPrintSheetDialogProps {
   open: boolean;
@@ -52,6 +53,12 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
 }) => {
   const printAreaRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = React.useState(false);
+
+  // Retrieve company info
+  const { activeCompanyId, companies } = useCompany();
+  const activeCompany = useMemo(() => {
+    return companies?.find((c) => c.id === activeCompanyId) || null;
+  }, [companies, activeCompanyId]);
 
   // Fetch batch details from the order's batch_id
   const { data: batch, isLoading: isLoadingBatch } = useBatch(order?.batch_id);
@@ -338,218 +345,14 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
             </Typography>
           </Box>
         ) : (
-          <Paper
-            ref={printAreaRef}
-            className="print-area"
-            elevation={0}
-            sx={{
-              p: { xs: '10mm', md: '12mm' },
-              width: '100%',
-              maxWidth: '210mm', // standard A4 width
-              minHeight: '297mm', // standard A4 height
-              bgcolor: '#ffffff',
-              borderRadius: '4px',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.05)',
-              border: '1px solid #d8dde6',
-              boxSizing: 'border-box'
-            }}
-          >
-            {/* Custom printable header */}
-            <PrintHeader
-              establishment={batch?.farm_name || farm?.name || ''}
-              cuit={provider?.cuit || ''}
-              renspa={farm?.renspa || ''}
-              lote={batch?.name || ''}
-              title="Orden de Servicio Reproductivo"
-            />
-
-            {/* Subtitle / Context indicator */}
-            <Box sx={{ mb: 2, pb: 1, borderBottom: '1.5px solid #000' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#000', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                DETALLES DE LA ORDEN Y PLANILLA DE CAMPO
-              </Typography>
-            </Box>
-
-            {/* Metadata Table for Service Order */}
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              marginBottom: '15px',
-              border: '1.5px solid #000',
-              color: '#000'
-            }}>
-              <tbody>
-                <tr>
-                  <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px', width: '20%' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.62rem' }}>CÓDIGO</Typography>
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px 8px', width: '30%', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'monospace' }}>
-                    {order.code}
-                  </td>
-                  <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px', width: '20%' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.62rem' }}>ESTADO</Typography>
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px 8px', width: '30%', fontWeight: 700, fontSize: '0.72rem' }}>
-                    {getStatusLabel(order.status)}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.62rem' }}>FECHA PLANIF.</Typography>
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px 8px', fontSize: '0.72rem' }}>
-                    {order.planned_start_date}
-                  </td>
-                  <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.62rem' }}>FECHA EJECUCIÓN</Typography>
-                  </td>
-                  <td style={{ border: '1px solid #000', padding: '4px 8px', fontSize: '0.72rem' }}>
-                    {order.actual_start_date || 'NO INICIADO'}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.62rem' }}>MODALIDAD</Typography>
-                  </td>
-                  <td colSpan={3} style={{ border: '1px solid #000', padding: '4px 8px', fontSize: '0.72rem', fontWeight: 700 }}>
-                    {order.service_type === 'single' ? 'TORO ÚNICO' 
-                     : order.service_type === 'rotation' ? 'ROTATIVO COLECTIVO' 
-                     : order.is_controlled_service ? 'MULTI-TORO (SERVICIO CONTROLADO)' 
-                     : 'MULTI-TORO (COLECTIVO)'}
-                  </td>
-                </tr>
-                {order.observations && (
-                  <tr>
-                    <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '4px 6px' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 900, fontSize: '0.62rem' }}>OBSERVACIONES</Typography>
-                    </td>
-                    <td colSpan={3} style={{ border: '1px solid #000', padding: '6px 8px', fontSize: '0.7rem', fontStyle: 'italic' }}>
-                      {order.observations}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-
-            {/* Bulls Section */}
-            <Typography variant="caption" sx={{ fontWeight: 900, color: '#000', display: 'block', mb: 0.5, letterSpacing: '0.5px' }}>
-              REPRODUCTORES ASIGNADOS (TOROS)
-            </Typography>
-            <Table sx={{
-              borderCollapse: 'collapse',
-              width: '100%',
-              mb: 3,
-              '& .MuiTableCell-root': {
-                border: '1px solid #000',
-                padding: '4px 6px',
-                fontSize: '0.68rem',
-                color: '#000',
-                height: 24,
-                boxSizing: 'border-box'
-              }
-            }}>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: '#f0f0f0' }}>
-                  <TableCell sx={{ width: '5%', fontWeight: 900, textAlign: 'center' }}>#</TableCell>
-                  <TableCell sx={{ width: '25%', fontWeight: 900 }}>IDENTIFICACIÓN (CARAVANA)</TableCell>
-                  <TableCell sx={{ width: '25%', fontWeight: 900 }}>RAZA</TableCell>
-                  <TableCell sx={{ width: '20%', fontWeight: 900 }}>CATEGORÍA</TableCell>
-                  <TableCell sx={{ width: '25%', fontWeight: 900, textAlign: 'center' }}>CONTROL EN CAMPO (FIRMA/OBS)</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {maleCaravans.map((bull, index) => (
-                  <TableRow key={bull.id}>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700 }}>{index + 1}</TableCell>
-                    <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace', fontSize: '0.75rem' }}>{bull.identification}</TableCell>
-                    <TableCell>{bull.breed || 'N/A'}</TableCell>
-                    <TableCell>{bull.category || 'TORO'}</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                ))}
-                {maleCaravans.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ fontStyle: 'italic', py: 1.5 }}>
-                      No se encontraron detalles de los toros asignados.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            {/* Females Section */}
-            <Typography variant="caption" sx={{ fontWeight: 900, color: '#000', display: 'block', mb: 0.5, letterSpacing: '0.5px' }}>
-              VIENTRES APTOS DEL LOTE (VACAS Y VAQUILLONAS)
-            </Typography>
-            <Table sx={{
-              borderCollapse: 'collapse',
-              width: '100%',
-              '& .MuiTableCell-root': {
-                border: '1px solid #000',
-                padding: '4px 6px',
-                fontSize: '0.65rem',
-                color: '#000',
-                height: 24,
-                boxSizing: 'border-box'
-              }
-            }}>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: '#f0f0f0' }}>
-                  <TableCell sx={{ width: '5%', fontWeight: 900, textAlign: 'center' }}>#</TableCell>
-                  <TableCell sx={{ width: '18%', fontWeight: 900 }}>CARAVANA</TableCell>
-                  {order.is_controlled_service && (
-                    <TableCell sx={{ width: '18%', fontWeight: 900 }}>TORO ASIGNADO</TableCell>
-                  )}
-                  <TableCell sx={{ width: '15%', fontWeight: 900 }}>CATEGORÍA</TableCell>
-                  <TableCell sx={{ width: '15%', fontWeight: 900 }}>RAZA</TableCell>
-                  <TableCell sx={{ width: '10%', fontWeight: 900, textAlign: 'right' }}>PESO ACT.</TableCell>
-                  <TableCell sx={{ width: '10%', fontWeight: 900, textAlign: 'center' }}>FECHA SERV.</TableCell>
-                  <TableCell sx={{ width: order.is_controlled_service ? '14%' : '22%', fontWeight: 900, textAlign: 'center' }}>TORO REAL / OBS</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {femaleCaravans.map((cow, index) => {
-                  const assignment = order.female_sire_assignments?.find(a => a.female_caravan_id === cow.id);
-                  const assignedBull = assignment 
-                    ? caravans.find(c => c.id === assignment.assigned_male_caravan_id) 
-                    : null;
-                  return (
-                    <TableRow key={cow.id}>
-                      <TableCell sx={{ textAlign: 'center', fontWeight: 600 }}>{index + 1}</TableCell>
-                      <TableCell sx={{ fontWeight: 900, fontFamily: 'monospace', fontSize: '0.72rem' }}>{cow.identification}</TableCell>
-                      {order.is_controlled_service && (
-                        <TableCell sx={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.72rem' }}>
-                          {assignedBull ? assignedBull.identification : '—'}
-                        </TableCell>
-                      )}
-                      <TableCell>{cow.category || 'N/A'}</TableCell>
-                      <TableCell>{cow.breed || 'N/A'}</TableCell>
-                      <TableCell align="right">{cow.current_weight ? `${cow.current_weight} kg` : 'N/A'}</TableCell>
-                      <TableCell sx={{ textAlign: 'center', color: '#ccc', fontSize: '0.7rem' }}>/  /</TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  );
-                })}
-                {femaleCaravans.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={order.is_controlled_service ? 8 : 7} align="center" sx={{ fontStyle: 'italic', py: 2 }}>
-                      No se encontraron detalles de los vientres asignados.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            {/* Document footer for audit, signing and offline validation */}
-            <Box sx={{ mt: 5, pt: 1.5, borderTop: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="caption" sx={{ color: '#666', fontStyle: 'italic', fontSize: '0.62rem' }}>
-                Orden de Servicio Reproductivo • Generado por Jhoangel AI • Sincronización offline
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#333', fontWeight: 800, fontSize: '0.62rem' }}>
-                HOJA 1 DE 1
-              </Typography>
-            </Box>
-          </Paper>
+          <TemplateMON01
+            order={order}
+            batch={batch}
+            farm={farm}
+            activeCompany={activeCompany}
+            caravans={caravans}
+            printAreaRef={printAreaRef}
+          />
         )}
       </Box>
     </Dialog>

@@ -23,8 +23,14 @@ export class BatchMapper {
       batch_type_code: raw.batch_type_code,
       weight: raw.weight,
       current_weight: raw.current_weight,
+      min_weight: raw.min_weight,
+      max_weight: raw.max_weight,
+      knows_to_eat: raw.knows_to_eat,
+      age_in_months: raw.age_in_months,
       observaciones: raw.observaciones,
       is_active: raw.is_active !== undefined ? Boolean(raw.is_active) : true,
+      is_service_batch: raw.is_service_batch ?? raw.batch_type_code === 'SERVICE',
+      service_detail: raw.service_detail ?? null,
       created_at: raw.created_at,
     };
     return Batch.create(dto);
@@ -48,8 +54,14 @@ export class BatchMapper {
       batch_type_code: entity.batch_type_code,
       weight: entity.weight,
       current_weight: entity.current_weight,
+      min_weight: entity.min_weight,
+      max_weight: entity.max_weight,
+      knows_to_eat: entity.knows_to_eat,
+      age_in_months: entity.age_in_months,
       observaciones: entity.observaciones,
       is_active: entity.is_active,
+      is_service_batch: entity.is_service_batch,
+      service_detail: entity.service_detail,
       created_at: entity.created_at,
     };
   }

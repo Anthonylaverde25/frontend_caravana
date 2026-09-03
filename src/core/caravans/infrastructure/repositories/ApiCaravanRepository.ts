@@ -11,14 +11,20 @@ import { CaravanMapper } from '../mappers/CaravanMapper';
  * which triggers the BelongsToCompany global scope on the backend.
  */
 export class ApiCaravanRepository implements ICaravanRepository {
-  async findAll(companyId?: number): Promise<Caravan[]> {
+  async findAll(companyId?: number, scope?: 'own' | 'external' | 'all'): Promise<Caravan[]> {
     const headers: Record<string, string> = {};
     if (companyId) {
       headers['X-Company-ID'] = companyId.toString();
     }
-    const response = await axiosInstance.get<any[]>('/caravans', { headers });
-    return response.data.map(CaravanMapper.toDomain);
+    const params: Record<string, string> = {};
+    if (scope) {
+      params['scope'] = scope;
+    }
+    const response = await axiosInstance.get<any>('/caravans', { headers, params });
+    const rawList = Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
+    return rawList.map(CaravanMapper.toDomain);
   }
+
 
   async upsert(data: CreateCaravanRequest): Promise<{ action: string; id: number }> {
     const response = await axiosInstance.post<{ action: string; id: number }>(
