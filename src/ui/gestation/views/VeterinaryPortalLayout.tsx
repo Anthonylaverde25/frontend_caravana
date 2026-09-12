@@ -143,6 +143,26 @@ export const VeterinaryPortalLayout: React.FC<Props> = ({
     return raw ? Number(raw) : null;
   }, [paramActId, searchParams]);
 
+  /*
+   * ADR-11 + ADR-36: el informe hereda del acta, y la caja que la cubre es la que dice a quién se
+   * derivó. Se busca por los tubos y no por un id de acta porque una conservadora puede llevar
+   * tubos de varias actas; el más reciente no anulado es el vigente — una caja anulada no declara
+   * ningún destino.
+   */
+  const shipmentForReport = useMemo(() => {
+    if (!actToReport) return null;
+
+    return (
+      shipments
+        .filter(
+          (shipment) =>
+            !shipment.is_voided &&
+            shipment.samples.some((sample) => sample.extraction_act_id === actToReport.id),
+        )
+        .sort((a, b) => b.shipped_on.localeCompare(a.shipped_on))[0] ?? null
+    );
+  }, [shipments, actToReport]);
+
   const derivedPendingShipmentsCount = useMemo(() => {
     const map = new Map<number, DiagnosticProtocol>();
     (acts?.pending_signature ?? []).forEach((a) => {
@@ -446,6 +466,11 @@ export const VeterinaryPortalLayout: React.FC<Props> = ({
           act={actToReport}
           isSaving={registerReport.isPending}
           defaultInstitutionCuit={defaultInstitutionCuit}
+          shipment={shipmentForReport}
+          onReviewShipment={() => {
+            handleCloseReport();
+            navigate(`${basePath}/envios`);
+          }}
           onClose={handleCloseReport}
           onConfirm={handleReport}
         />

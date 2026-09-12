@@ -384,6 +384,9 @@ export const VeterinaryPortalView: React.FC<Props> = ({
         act={actToReport}
         isSaving={registerReport.isPending}
         defaultInstitutionCuit={defaultInstitutionCuit}
+        // Esta vista no carga envíos: un acta a derivar cae en "derivado sin envío registrado" y
+        // el modal pide la institución en vez de inventarla. Degradación, no error.
+        shipment={null}
         onClose={() => setActToReport(null)}
         onConfirm={handleReport}
       />

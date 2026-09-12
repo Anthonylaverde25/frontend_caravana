@@ -33,6 +33,7 @@ interface PortalLabReportDataTableProps {
   onResultChange: (sampleId: number, status: LabSampleStatus) => void;
   onApplyToAll: (status: LabSampleStatus) => void;
   disabled?: boolean;
+  hideToolbarCounter?: boolean;
 }
 
 const FILTER_ITEMS: { id: FilterType; label: string }[] = [
@@ -51,6 +52,7 @@ export const PortalLabReportDataTable: React.FC<PortalLabReportDataTableProps> =
   results,
   onResultChange,
   onApplyToAll,
+  hideToolbarCounter = false,
   disabled = false,
 }) => {
   const theme = useTheme();
@@ -281,23 +283,25 @@ export const PortalLabReportDataTable: React.FC<PortalLabReportDataTableProps> =
             </Button>
 
             {/* Resolved counter badge */}
-            <Chip
-              size="small"
-              label={`${resolvedCount} de ${samples.length} calificados`}
-              color={
-                resolvedCount === samples.length && samples.length > 0
-                  ? 'success'
-                  : resolvedCount > 0
-                  ? 'primary'
-                  : 'default'
-              }
-              variant="outlined"
-              sx={{
-                fontWeight: 700,
-                fontSize: '0.72rem',
-                height: 28,
-              }}
-            />
+            {!hideToolbarCounter && (
+              <Chip
+                size="small"
+                label={`${resolvedCount} de ${samples.length} calificados`}
+                color={
+                  resolvedCount === samples.length && samples.length > 0
+                    ? 'success'
+                    : resolvedCount > 0
+                    ? 'primary'
+                    : 'default'
+                }
+                variant="outlined"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                  height: 28,
+                }}
+              />
+            )}
           </Stack>
         </Stack>
       </Paper>

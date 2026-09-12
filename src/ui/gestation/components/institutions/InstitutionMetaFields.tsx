@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Autocomplete, Box, Stack, TextField, Typography } from '@mui/material';
+import { Autocomplete, Box, Chip, Stack, TextField, Typography, useTheme } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { InstitutionMeta } from '@/core/veterinary/domain/VeterinaryTypes';
 import { useInstitutionSuggestions } from '@/features/gestation/hooks/useVeterinaryPortal';
 import { cuitDigits, cuitProblem, expectedCheckDigit } from '@/core/veterinary/domain/cuit';
@@ -11,6 +12,7 @@ interface Props {
   disabled?: boolean;
   /** Shown above the block, because the same fields describe different roles. */
   caption?: string;
+  variant?: 'card' | 'standard';
 }
 
 /**
@@ -34,6 +36,7 @@ export const InstitutionMetaFields: React.FC<Props> = ({
   accessToken = null,
   disabled,
   caption,
+  variant = 'standard',
 }) => {
   const [search, setSearch] = useState('');
   const { data: suggestions = [] } = useInstitutionSuggestions(search, accessToken);
@@ -51,6 +54,221 @@ export const InstitutionMetaFields: React.FC<Props> = ({
       : problem === 'CHECK_DIGIT'
         ? `El dígito verificador no cierra: con estos números debería terminar en ${suggestion}. Se guarda igual.`
         : 'Es lo que permite agrupar por institución.';
+
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  if (variant === 'card') {
+    const digits = cuitDigits(value.cuit);
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        {/* Header with INSTITUCIÓN * label and chip */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 800,
+              fontSize: '0.72rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'text.secondary',
+            }}
+          >
+            Institución <span style={{ color: '#ef4444' }}>*</span>
+          </Typography>
+
+          <Chip
+            size="small"
+            label="Se ofrecen las que ya usaste"
+            sx={{
+              height: 20,
+              fontSize: '0.68rem',
+              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+              color: 'text.secondary',
+              borderRadius: '4px',
+            }}
+          />
+        </Stack>
+
+        {/* Institution Name Autocomplete */}
+        <Autocomplete
+          freeSolo
+          fullWidth
+          disabled={disabled}
+          options={suggestions}
+          getOptionLabel={(option) => (typeof option === 'string' ? option : option.nombre)}
+          inputValue={value.nombre ?? ''}
+          onInputChange={(_event, newValue) => {
+            set('nombre', newValue);
+            setSearch(newValue);
+          }}
+          onChange={(_event, picked) => {
+            if (picked && typeof picked !== 'string') {
+              onChange({ ...picked });
+              setSearch(picked.nombre);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              size="small"
+              placeholder="Nombre de la institución o laboratorio..."
+              sx={{
+                mb: 1.5,
+                '& .MuiOutlinedInput-root': {
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  borderRadius: '6px',
+                },
+              }}
+            />
+          )}
+        />
+
+        {/* CUIT Section */}
+        <Box sx={{ mb: 1.5 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'text.secondary',
+              }}
+            >
+              CUIT
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                color: 'text.secondary',
+              }}
+            >
+              {digits.length} / 11 dígitos
+            </Typography>
+          </Stack>
+
+          <TextField
+            value={value.cuit ?? ''}
+            onChange={(e) => set('cuit', e.target.value)}
+            disabled={disabled}
+            fullWidth
+            size="small"
+            placeholder="Sin guiones, ej. 20123456789"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+              },
+            }}
+          />
+
+          {problem !== null && (
+            <Box
+              sx={{
+                mt: 1,
+                p: 1,
+                borderRadius: '6px',
+                bgcolor: isDark ? 'rgba(234, 179, 8, 0.12)' : '#fefce8',
+                border: '1px solid',
+                borderColor: isDark ? 'rgba(234, 179, 8, 0.3)' : '#fef08a',
+                color: isDark ? '#fef08a' : '#a16207',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+              }}
+            >
+              <FuseSvgIcon size={14}>heroicons-outline:exclamation-triangle</FuseSvgIcon>
+              <span>{cuitHelperText}</span>
+            </Box>
+          )}
+        </Box>
+
+        {/* Two-column subgrid: SENASA / RENALAB & DIRECCIÓN */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 1.5,
+            pt: 1.5,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                fontSize: '0.68rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'text.secondary',
+                display: 'block',
+                mb: 0.25,
+              }}
+            >
+              Código SENASA / RENALAB
+            </Typography>
+            <TextField
+              value={value.codigo_oficial ?? ''}
+              onChange={(e) => set('codigo_oficial', e.target.value)}
+              disabled={disabled}
+              size="small"
+              fullWidth
+              placeholder="00921"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '6px',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8rem',
+                },
+              }}
+            />
+          </Box>
+
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                fontSize: '0.68rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'text.secondary',
+                display: 'block',
+                mb: 0.25,
+              }}
+            >
+              Dirección
+            </Typography>
+            <TextField
+              value={value.direccion ?? ''}
+              onChange={(e) => set('direccion', e.target.value)}
+              disabled={disabled}
+              size="small"
+              fullWidth
+              placeholder="Buenos aires, bernal"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                },
+              }}
+            />
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Stack spacing={1.5}>
