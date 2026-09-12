@@ -51,10 +51,26 @@ const navigationConfig: FuseNavItemType[] = [
 					{
 						id: 'gestation.pre-service',
 						title: 'Pre-Servicio & Toros',
-						subtitle: 'Sanidad y Aptitud Andrológica',
+						subtitle: '1 · Selección de toros y planilla de manga',
 						type: 'item',
 						icon: 'heroicons-outline:shield-check',
 						url: '/gestation/pre-service'
+					},
+					{
+						id: 'gestation.veterinary-portal',
+						title: 'Portales de Profesionales',
+						subtitle: '2 · Supervisión y acceso a portales veterinarios',
+						type: 'item',
+						icon: 'heroicons-outline:users',
+						url: '/gestation/veterinary-portal'
+					},
+					{
+						id: 'gestation.diagnostic-protocols',
+						title: 'Protocolos Diagnósticos',
+						subtitle: '3 · Actas firmadas e informes de laboratorio',
+						type: 'item',
+						icon: 'heroicons-outline:document-check',
+						url: '/gestation/diagnostic-protocols'
 					},
 					{
 						id: 'gestation.service-batches',

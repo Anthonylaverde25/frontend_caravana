@@ -2,11 +2,15 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSnackbar } from 'notistack';
-import { Stack } from '@mui/material';
+import { Box, Stack, Button } from '@mui/material';
+import { useNavigate } from 'react-router';
 import ViewLayout from 'src/components/ViewLayout';
 import PendingSiresWidget from 'src/ui/dashboard/widgets/PendingSiresWidget';
 
-import { DashboardBoardManager } from '../board-manager/DashboardBoardManager';
+import { FioriKpiFacets } from '../fiori/FioriKpiFacets';
+import { FioriTabBar } from '../fiori/FioriTabBar';
+import { FioriFooterBar } from '../fiori/FioriFooterBar';
+
 import { CreateEditBoardDialog } from '../board-manager/CreateEditBoardDialog';
 import { AddWidgetDialog } from '../board-manager/AddWidgetDialog';
 import { DashboardBlankCanvas } from '../canvas/DashboardBlankCanvas';
@@ -26,8 +30,8 @@ import { DashboardPasturePanel } from '../panels/DashboardPasturePanel';
 const INITIAL_BOARDS: DashboardBoard[] = [
   { id: 'b_general', name: 'Tablero General', icon: 'heroicons-outline:squares-2x2', templateType: 'GENERAL' },
   { id: 'b_health', name: 'Sanidad Interna', icon: 'heroicons-outline:shield-check', templateType: 'HEALTH' },
-  { id: 'b_repro', name: 'Reproducción', icon: 'heroicons-outline:heart', templateType: 'REPRODUCTIVE' },
-  { id: 'b_pasture', name: 'Pasturas', icon: 'heroicons-outline:sparkles', templateType: 'PASTURE' },
+  { id: 'b_repro', name: 'Reproducción & Entore', icon: 'heroicons-outline:heart', templateType: 'REPRODUCTIVE' },
+  { id: 'b_pasture', name: 'Pasturas & Recursos', icon: 'heroicons-outline:sparkles', templateType: 'PASTURE' },
 ];
 
 const MOCK_QUARANTINE_DATA: QuarantineCaravan[] = [
@@ -46,11 +50,12 @@ const MOCK_CONSUMPTION_DATA: ConsumptionCaravan[] = [
 const MOCK_DEATH_DATA: DeathCaravan[] = [
   { id: 'AR-07412', tag: '07412', deathDate: '2026-05-02', cause: 'Timpanismo agudo espumoso', diagnosedBy: 'Vet. Carlos Gómez', status: 'Acta Firmada' },
   { id: 'AR-06991', tag: '06991', deathDate: '2026-05-08', cause: 'Traumatismo severo (caída en manga)', diagnosedBy: 'Vet. Carlos Gómez', status: 'Acta Firmada' },
-  { id: 'AR-08815', tag: '08815', deathDate: '2026-05-15', cause: 'Neumonía enzoótica bovina', diagnosedBy: 'Vet. Sofía Martínez', status: 'Acta Pendiente' },
+  { id: 'AR-08815', tag: '08815', deathDate: '2026-05-15', cause: 'Neumonía enzoótica bovina', diagnosedBy: 'Vet. Carlos Gómez', status: 'Acta Pendiente' },
 ];
 
 export function DashboardView() {
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
   // Load custom boards from localStorage
   const [boards, setBoards] = useState<DashboardBoard[]>(() => {
@@ -132,48 +137,157 @@ export function DashboardView() {
     setBoards((prev) => prev.map((b) => (b.id === activeBoardId ? { ...b, widgets: (b.widgets || []).filter((w) => w.id !== widgetId) } : b)));
   };
 
-  return (
-    <ViewLayout title="Dashboard Ganadero Integral" subtitle="Tableros personalizables de sanidad, entore reproductivo, faena y pasturas.">
-      <Stack spacing={3}>
-        <PendingSiresWidget />
+  const handleExportReport = () => {
+    enqueueSnackbar('Generando informe consolidado de la Campaña 2026/2027...', { variant: 'info' });
+  };
 
-        {/* Holded-Style Pill Buttons Board Manager */}
-        <DashboardBoardManager
+  const handleNewLot = () => {
+    navigate('/gestation/service-batches');
+  };
+
+  return (
+    <ViewLayout
+      title="Dashboard Ganadero Integral"
+      subtitle="Monitoreo consolidado de sanidad, entore reproductivo, faena interna y disponibilidad de pasturas."
+      className="p-0 sm:p-0"
+      actions={
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleExportReport}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              color: 'text.primary',
+              borderColor: 'divider',
+              borderRadius: '6px',
+              px: 2,
+              py: 0.7,
+              bgcolor: 'background.paper',
+              '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary' },
+            }}
+            startIcon={
+              <svg style={{ width: 14, height: 14, color: '#64748b' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
+            }
+          >
+            Exportar Informe
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleNewLot}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              color: '#ffffff',
+              bgcolor: '#0a4d3c',
+              borderRadius: '6px',
+              px: 2,
+              py: 0.7,
+              boxShadow: 'none',
+              '&:hover': { bgcolor: '#07382c', boxShadow: 'none' },
+            }}
+            startIcon={
+              <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
+            }
+          >
+            Nuevo Registro Lote
+          </Button>
+        </Stack>
+      }
+    >
+      <Stack spacing={0} sx={{ width: '100%', bgcolor: '#f5f6f8' }}>
+        {/* 1. SAP Fiori KPI Micro-Metrics Header Facets */}
+        <FioriKpiFacets
+          kpis={kpis}
+          onServiceClick={() => navigate('/gestation/service-batches')}
+          onQuarantineClick={() => setActiveBoardId('b_health')}
+        />
+
+        {/* 2. SAP Fiori IconTabBar Navigation */}
+        <FioriTabBar
           boards={boards}
           activeBoardId={activeBoardId}
           onSelectBoard={setActiveBoardId}
-          onOpenCreateDialog={() => { setBoardToEdit(null); setIsCreateOpen(true); }}
-          onOpenEditDialog={(board) => { setBoardToEdit(board); setIsCreateOpen(true); }}
+          onOpenCreateDialog={() => {
+            setBoardToEdit(null);
+            setIsCreateOpen(true);
+          }}
+          onOpenEditDialog={(board) => {
+            setBoardToEdit(board);
+            setIsCreateOpen(true);
+          }}
+          onToggleFilter={() => {
+            enqueueSnackbar('Filtros analíticos avanzados aplicados al tablero', { variant: 'info' });
+          }}
         />
 
-        {/* Active Board Rendering */}
-        {activeBoard?.templateType === 'GENERAL' && (
-          <DashboardGeneralPanel
-            kpis={kpis}
-            quarantineData={MOCK_QUARANTINE_DATA}
-            consumptionData={MOCK_CONSUMPTION_DATA}
-            deathData={MOCK_DEATH_DATA}
-            onActionClick={handleActionClick}
-          />
-        )}
-        {activeBoard?.templateType === 'HEALTH' && <DashboardHealthPanel quarantineData={MOCK_QUARANTINE_DATA} consumptionData={MOCK_CONSUMPTION_DATA} deathData={MOCK_DEATH_DATA} onActionClick={handleActionClick} />}
-        {activeBoard?.templateType === 'REPRODUCTIVE' && <DashboardReproductivePanel />}
-        {activeBoard?.templateType === 'PASTURE' && <DashboardPasturePanel />}
-        {activeBoard?.templateType === 'BLANK' && (
-          <DashboardBlankCanvas
-            boardName={activeBoard.name}
-            widgets={activeBoard.widgets}
-            kpis={kpis}
-            quarantineData={MOCK_QUARANTINE_DATA}
-            consumptionData={MOCK_CONSUMPTION_DATA}
-            deathData={MOCK_DEATH_DATA}
-            onOpenAddWidget={() => setIsAddWidgetOpen(true)}
-            onRemoveWidget={handleRemoveWidget}
-            onActionClick={handleActionClick}
-          />
-        )}
+        {/* 3. Main Content Workbench */}
+        <Box
+          component="main"
+          sx={{
+            flex: '1 1 auto',
+            p: { xs: 2, sm: 3 },
+            maxWidth: 1900,
+            width: '100%',
+            mx: 'auto',
+          }}
+        >
+          <Stack spacing={3}>
+            <PendingSiresWidget />
+
+            {/* Active Tab Panel */}
+            {activeBoard?.templateType === 'GENERAL' && (
+              <DashboardGeneralPanel
+                kpis={kpis}
+                quarantineData={MOCK_QUARANTINE_DATA}
+                consumptionData={MOCK_CONSUMPTION_DATA}
+                deathData={MOCK_DEATH_DATA}
+                onActionClick={handleActionClick}
+              />
+            )}
+
+            {activeBoard?.templateType === 'HEALTH' && (
+              <DashboardHealthPanel
+                quarantineData={MOCK_QUARANTINE_DATA}
+                consumptionData={MOCK_CONSUMPTION_DATA}
+                deathData={MOCK_DEATH_DATA}
+                onActionClick={handleActionClick}
+              />
+            )}
+
+            {activeBoard?.templateType === 'REPRODUCTIVE' && <DashboardReproductivePanel />}
+
+            {activeBoard?.templateType === 'PASTURE' && <DashboardPasturePanel />}
+
+            {activeBoard?.templateType === 'BLANK' && (
+              <DashboardBlankCanvas
+                boardName={activeBoard.name}
+                widgets={activeBoard.widgets}
+                kpis={kpis}
+                quarantineData={MOCK_QUARANTINE_DATA}
+                consumptionData={MOCK_CONSUMPTION_DATA}
+                deathData={MOCK_DEATH_DATA}
+                onOpenAddWidget={() => setIsAddWidgetOpen(true)}
+                onRemoveWidget={handleRemoveWidget}
+                onActionClick={handleActionClick}
+              />
+            )}
+          </Stack>
+        </Box>
+
+        {/* 4. SAP Fiori Horizon Footer Status Toolbar */}
+        <FioriFooterBar />
       </Stack>
 
+      {/* Dialogs */}
       {isCreateOpen && (
         <CreateEditBoardDialog
           key={boardToEdit?.id || 'new_board'}

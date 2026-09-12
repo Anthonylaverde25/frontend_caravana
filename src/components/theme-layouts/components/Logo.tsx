@@ -20,6 +20,10 @@ const Root = styled("div")(({ theme }) => ({
 
 type LogoProps = {
   className?: string;
+  size?: "small" | "medium" | "large";
+  forceDark?: boolean;
+  showSubtext?: boolean;
+  onClick?: () => void;
 };
 
 const isColorDark = (hexColor: string): boolean => {
@@ -33,54 +37,91 @@ const isColorDark = (hexColor: string): boolean => {
 };
 
 /**
- * The logo component.
+ * The enterprise logo component.
+ * Supports compact (small), standard (medium), and showcase (large) variants
+ * with forced dark-mode contrast for persistent dark headers.
  */
 function Logo(props: LogoProps) {
-  const { className = "" } = props;
+  const {
+    className = "",
+    size = "medium",
+    forceDark = false,
+    showSubtext = true,
+    onClick,
+  } = props;
   const theme = useTheme();
   const { settings: contrastSettings } = useContrastTheme();
   const isThemeDark = theme.palette.mode === "dark";
 
-  const isContrastActive = contrastSettings.enabled;
+  const isContrastActive = contrastSettings.enabled && !forceDark;
   const isDark =
-    isContrastActive && contrastSettings.asideBg
+    forceDark ||
+    (isContrastActive && contrastSettings.asideBg
       ? isColorDark(contrastSettings.asideBg)
-      : isThemeDark;
+      : isThemeDark);
 
   const logoSrc = isDark
     ? "/assets/images/logo/logo-light.svg"
     : "/assets/images/logo/logo-dark.svg";
 
-  const primaryTextColor =
-    isContrastActive && contrastSettings.asideText
+  const primaryTextColor = forceDark
+    ? "#26D07C"
+    : isContrastActive && contrastSettings.asideText
       ? contrastSettings.asideText
       : isDark
         ? "#26D07C"
         : "#0E3D26";
 
-  const secondaryTextColor =
-    isContrastActive && contrastSettings.asideText
+  const secondaryTextColor = forceDark
+    ? "#A7F3D0"
+    : isContrastActive && contrastSettings.asideText
       ? contrastSettings.asideText
       : isDark
         ? "#A7F3D0"
         : "#3A6351";
 
+  const iconClasses = {
+    small: "h-7 w-7",
+    medium: "h-12 w-12",
+    large: "h-16 w-16",
+  }[size];
+
+  const titleClasses = {
+    small: "text-lg tracking-wider",
+    medium: "text-3xl tracking-wider",
+    large: "text-4xl tracking-wider",
+  }[size];
+
+  const subtitleClasses = {
+    small: "text-[9px] tracking-widest",
+    medium: "text-[11px] tracking-widest",
+    large: "text-[13px] tracking-widest",
+  }[size];
+
+  const gapClass = {
+    small: "gap-2",
+    medium: "gap-3.5",
+    large: "gap-4",
+  }[size];
+
   return (
     <Root
       className={clsx(
-        "flex flex-shrink-0 flex-grow items-center gap-3",
+        "flex flex-shrink-0 flex-grow items-center",
+        onClick && "cursor-pointer",
         className,
       )}
+      onClick={onClick}
     >
-      <div className="flex flex-1 items-center gap-3.5">
+      <div className={clsx("flex flex-1 items-center", gapClass)}>
         <img
-          className="logo-icon h-12 w-12 shrink-0 object-contain"
+          className={clsx("logo-icon shrink-0 object-contain", iconClasses)}
           src={logoSrc}
-          alt="logo"
+          alt="RXNA Sistema Ganadero"
         />
-        <div className="logo-text flex flex-auto flex-col gap-1">
+        <div className="logo-text flex flex-auto flex-col">
           <Typography
-            className="tracking-wider text-3xl leading-none font-black"
+            className={clsx("leading-none font-black", titleClasses)}
             style={{
               color: primaryTextColor,
               fontFamily: "system-ui, -apple-system, sans-serif",
@@ -88,17 +129,19 @@ function Logo(props: LogoProps) {
           >
             RXNA
           </Typography>
-          <Typography
-            className="tracking-widest text-[11px] uppercase leading-none font-bold"
-            style={{
-              color: secondaryTextColor,
-              fontFamily: "system-ui, -apple-system, sans-serif",
-              letterSpacing: "0.2em",
-              opacity: isContrastActive ? 0.85 : 1,
-            }}
-          >
-            Sistema Ganadero
-          </Typography>
+          {showSubtext && (
+            <Typography
+              className={clsx("uppercase leading-none font-bold mt-0.5", subtitleClasses)}
+              style={{
+                color: secondaryTextColor,
+                fontFamily: "system-ui, -apple-system, sans-serif",
+                letterSpacing: "0.2em",
+                opacity: isContrastActive ? 0.85 : 1,
+              }}
+            >
+              Sistema Ganadero
+            </Typography>
+          )}
         </div>
       </div>
     </Root>

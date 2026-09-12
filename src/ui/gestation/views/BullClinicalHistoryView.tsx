@@ -35,7 +35,9 @@ export const BullClinicalHistoryView: React.FC = () => {
   );
 
   const handleEvaluateInManga = () => {
-    navigate('/gestation/pre-service/evaluate');
+    // Carries this bull into the sheet. It used to navigate with no selection at all, which
+    // dropped the operator into a sheet loaded with the entire troop.
+    navigate(`/gestation/pre-service?stage=sheet&ids=${caravanId}`);
   };
 
   const handlePrint = () => {
