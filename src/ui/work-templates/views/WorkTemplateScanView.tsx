@@ -63,7 +63,44 @@ import {
   ScanTor01MetadataHeader,
   ScanTor01Table,
   ScanSuccessDialog,
+  Lser01Metadata,
+  ScanLser01MetadataHeader,
+  ScanLser01Table,
+  Lser01RepairDialog,
+  Dest01Row,
+  ScanDest01Workspace,
+  Dest01RepairDialog,
+  Cact01Row,
+  ScanCact01Workspace,
+  Cact01RepairDialog,
+  ScanPreviewSidePanel,
+  ScanDocumentPreviewModal,
+  SimulationSelectorModal,
+  getSimulationPreset,
+  generateSimulationSvg,
+  SimulationPreset,
+  SimulationScenario,
 } from "../components/scan";
+import {
+  useLser01Submission,
+  emptyLser01Metadata,
+} from "../hooks/useLser01Submission";
+import {
+  DEST01_CODE,
+  pageFromIdentifyResponse,
+  useDest01Pages,
+} from "../hooks/useDest01Pages";
+import { useDest01Submission } from "../hooks/useDest01Submission";
+import {
+  CACT01_CODE,
+  pageFromIdentifyResponse as cact01PageFromIdentifyResponse,
+  useCact01Pages,
+} from "../hooks/useCact01Pages";
+import { useCact01Destinations } from "../hooks/useCact01Destinations";
+import { useCact01Submission } from "../hooks/useCact01Submission";
+import { useCact01ScanOptions } from "../hooks/useCact01ScanOptions";
+import { useCact01SourceBatch } from "../hooks/useCact01SourceBatch";
+import { suggestedWeaningBatchName } from "../templates/dest01/Dest01PrintContext";
 
 type CaravanRow = WorkTemplateScanRow;
 
@@ -117,40 +154,6 @@ const normalizeDateForInput = (rawDate?: string | null): string => {
   return new Date().toISOString().slice(0, 10);
 };
 
-const SIMULATED_DOCUMENT_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1100" viewBox="0 0 800 1100" style="background:#FAF8F5;font-family:sans-serif;">
-  <rect width="800" height="1100" fill="#FAF8F5"/>
-  <rect x="30" y="30" width="740" height="1040" fill="none" stroke="#0E3D26" stroke-width="3"/>
-  <text x="60" y="80" font-size="22" font-weight="bold" fill="#0E3D26">PLANILLA DE CAMPO - RODEOS DE CRIA (ING-01)</text>
-  <text x="60" y="110" font-size="14" fill="#555">ESTABLECIMIENTO: EL OMBU | ACTIVIDAD: CRIA | FECHA: 2026-08-29</text>
-  <line x1="60" y1="130" x2="740" y2="130" stroke="#0E3D26" stroke-width="2"/>
-  <text x="60" y="160" font-size="14" font-weight="bold" fill="#333">PROVEEDOR: ESTANCIA LAS LILAS | CUIT: 30-71234567-9</text>
-  <text x="60" y="185" font-size="14" font-weight="bold" fill="#333">RENSPA: 02.123.4.56789/00 | GUIA DTE: DTE-884920</text>
-  <line x1="60" y1="205" x2="740" y2="205" stroke="#ccc" stroke-width="1"/>
-  <rect x="60" y="220" width="680" height="35" fill="#0E3D26"/>
-  <text x="75" y="243" font-size="13" font-weight="bold" fill="#FFF">#</text>
-  <text x="110" y="243" font-size="13" font-weight="bold" fill="#FFF">CARAVANA / TAG</text>
-  <text x="280" y="243" font-size="13" font-weight="bold" fill="#FFF">CATEGORIA</text>
-  <text x="430" y="243" font-size="13" font-weight="bold" fill="#FFF">SEXO</text>
-  <text x="485" y="243" font-size="13" font-weight="bold" fill="#FFF">RAZA</text>
-  <text x="565" y="243" font-size="13" font-weight="bold" fill="#FFF">DIENTES</text>
-  <text x="645" y="243" font-size="13" font-weight="bold" fill="#FFF">PESO (KG)</text>
-  <g font-size="13" fill="#222" font-weight="500">
-    <text x="75" y="285">1</text><text x="110" y="285">caravana-test-1</text><text x="280" y="285">Vaca de Cría</text><text x="430" y="285">H</text><text x="485" y="285">Angus</text><text x="565" y="285">6</text><text x="645" y="285">430.0</text>
-    <text x="75" y="325">2</text><text x="110" y="325">caravana-test-2</text><text x="280" y="325">Vaca de Cría</text><text x="430" y="325">H</text><text x="485" y="325">Angus Negro</text><text x="565" y="325">4</text><text x="645" y="325">415.0</text>
-    <text x="75" y="365">3</text><text x="110" y="365">caravana-test-3</text><text x="280" y="365">Ternero</text><text x="430" y="365">M</text><text x="485" y="365">Brangus</text><text x="565" y="365">0</text><text x="645" y="365">160.0</text>
-    <text x="75" y="405">4</text><text x="110" y="405">caravana-test-4</text><text x="280" y="405">Ternera</text><text x="430" y="405">H</text><text x="485" y="405">Hereford</text><text x="565" y="405">0</text><text x="645" y="405">152.0</text>
-    <text x="75" y="445">5</text><text x="110" y="445">caravana-test-5</text><text x="280" y="445">Vaquillona Rep.</text><text x="430" y="445">H</text><text x="485" y="445">Angus</text><text x="565" y="445">2</text><text x="645" y="445">285.0</text>
-    <text x="75" y="485">6</text><text x="110" y="485">caravana-test-6</text><text x="280" y="485">Vaquillona</text><text x="430" y="485">H</text><text x="485" y="485">Braford</text><text x="565" y="485">2</text><text x="645" y="485">290.0</text>
-    <text x="75" y="525">7</text><text x="110" y="525">caravana-test-7</text><text x="280" y="525">Toro</text><text x="430" y="525">M</text><text x="485" y="525">Angus Col.</text><text x="565" y="525">8</text><text x="645" y="525">680.0</text>
-    <text x="75" y="565">8</text><text x="110" y="565">caravana-test-8</text><text x="280" y="565">Toro</text><text x="430" y="565">M</text><text x="485" y="565">Brangus</text><text x="565" y="565">6</text><text x="645" y="565">640.0</text>
-  </g>
-  <rect x="60" y="900" width="680" height="100" fill="#EAE6DF" stroke="#ccc"/>
-  <text x="80" y="930" font-size="14" font-weight="bold" fill="#333">OBSERVACIONES DE RODEOS DE CRIA:</text>
-  <text x="80" y="960" font-size="13" fill="#555">Rodeo de cría inspeccionado. Vientres con sanidad al día y terneros al pie.</text>
-</svg>
-`)}`;
-
 export const WorkTemplateScanView: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -165,6 +168,8 @@ export const WorkTemplateScanView: React.FC = () => {
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
+
 
   // URL Query Param Template Code Sync
   const urlTemplateCode = useMemo(() => {
@@ -182,7 +187,9 @@ export const WorkTemplateScanView: React.FC = () => {
   const [templateTitle, setTemplateTitle] = useState<string>(
     urlTemplateCode === "TOR-01"
       ? "Revisación Andrológica de Toros"
-      : "Ingreso de Compra Directa"
+      : urlTemplateCode === "LSER-01"
+        ? "Conformación de Lote de Servicio — Toro Único"
+        : "Ingreso de Compra Directa"
   );
 
   // Context Fields (ING-01)
@@ -211,6 +218,64 @@ export const WorkTemplateScanView: React.FC = () => {
     value: Tor01Metadata[K]
   ) => {
     setTor01Metadata((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Context Fields (LSER-01)
+  const [lser01Metadata, setLser01Metadata] = useState<Lser01Metadata>(emptyLser01Metadata);
+  const [isLser01MetadataOpen, setIsLser01MetadataOpen] = useState(true);
+  const [isLser01RepairOpen, setIsLser01RepairOpen] = useState(false);
+  const lser01 = useLser01Submission();
+
+  const handleLser01MetadataChange = <K extends keyof Lser01Metadata>(
+    field: K,
+    value: Lser01Metadata[K]
+  ) => {
+    setLser01Metadata((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Context Fields (DEST-01): several scanned pages confirmed together
+  const dest01 = useDest01Pages();
+  const dest01Submission = useDest01Submission();
+  const [isDest01RepairOpen, setIsDest01RepairOpen] = useState(false);
+
+  const cact01 = useCact01Pages();
+  const cact01Submission = useCact01Submission();
+  const cact01Options = useCact01ScanOptions();
+  const cact01Destinations = useCact01Destinations(
+    cact01.rows,
+    cact01Options.batches,
+    cact01.metadata.sistema_manejo === "CORRAL"
+      ? true
+      : cact01.metadata.sistema_manejo === "PASTURA"
+        ? false
+        : null,
+  );
+  // The sheet names its source batch at the top; proposing it here is what stops the
+  // validation from asking for something the header already answered.
+  const cact01Source = useCact01SourceBatch(
+    cact01.metadata.lote_origen,
+    cact01.sourceBatchId,
+    cact01.setSourceBatchId,
+    cact01Options.sourceBatchOptions,
+  );
+  const [isCact01RepairOpen, setIsCact01RepairOpen] = useState(false);
+
+  const handleCact01RowChange = (
+    id: string,
+    field: keyof Cact01Row,
+    value: string,
+  ) => {
+    if (cact01Submission.repair) {
+      cact01Submission.markRowEdited(id);
+    }
+    cact01.updateRow(id, field, value);
+  };
+
+  const handleDest01RowChange = (id: string, field: keyof Dest01Row, value: string) => {
+    if (dest01Submission.repair) {
+      dest01Submission.markRowEdited(id);
+    }
+    dest01.updateRow(id, field, value);
   };
 
   // Table Rows State
@@ -329,6 +394,125 @@ export const WorkTemplateScanView: React.FC = () => {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    if (templateCode === DEST01_CODE) {
+      const { target, metadata } = dest01;
+      if (target.mode === "existing" && !target.batchId) {
+        errors.push("Elegí el lote de destete existente");
+      }
+      if (target.mode === "new" && !target.name.trim()) {
+        errors.push("Nombre del lote de destete nuevo requerido");
+      }
+      if (!metadata.fecha_destete) {
+        errors.push("Fecha de destete requerida");
+      }
+      if (dest01.pendingPage) {
+        errors.push("Hay una hoja con un encabezado distinto pendiente de decidir");
+      }
+
+      const calfTags = dest01.rows.map((r) => r.caravana.trim().toUpperCase()).filter(Boolean);
+      if (calfTags.length === 0) {
+        errors.push("Sin crías registradas en la planilla");
+      }
+
+      const duplicates = calfTags.filter((tag, idx) => calfTags.indexOf(tag) !== idx);
+      if (duplicates.length > 0) {
+        warnings.push(`Caravanas duplicadas: ${Array.from(new Set(duplicates)).join(", ")}`);
+      }
+      const invalidWeights = dest01.rows.filter(
+        (r) => r.peso.trim() !== "" && !Number.isFinite(Number(r.peso.replace(",", "."))),
+      );
+      if (invalidWeights.length > 0) {
+        errors.push(`${invalidWeights.length} peso(s) que no son un número`);
+      }
+      if (dest01.missingPages.length > 0) {
+        warnings.push(`Faltan hojas: ${dest01.missingPages.join(", ")}`);
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        validRowsCount: calfTags.length,
+      };
+    }
+
+    if (templateCode === CACT01_CODE) {
+      if (!cact01.sourceBatchId) {
+        errors.push("Elegí el lote de origen");
+      }
+      if (!cact01.metadata.fecha_movimiento) {
+        errors.push("Fecha del movimiento requerida");
+      }
+      if (cact01.pendingPage) {
+        errors.push("Hay una hoja con un encabezado distinto pendiente de decidir");
+      }
+
+      // Everything the backend would reject as a header error, surfaced before the
+      // operator spends a round trip on it.
+      cact01Destinations.blockingIssues.forEach((issue) => errors.push(issue));
+
+      const tags = cact01.rows
+        .map((r) => r.caravana.trim().toUpperCase())
+        .filter(Boolean);
+      if (tags.length === 0) {
+        errors.push("Sin animales registrados en la planilla");
+      }
+
+      const duplicates = tags.filter((tag, idx) => tags.indexOf(tag) !== idx);
+      if (duplicates.length > 0) {
+        warnings.push(
+          `Caravanas duplicadas: ${Array.from(new Set(duplicates)).join(", ")}`,
+        );
+      }
+      const invalidWeights = cact01.rows.filter(
+        (r) =>
+          r.peso_actual.trim() !== "" &&
+          !Number.isFinite(Number(r.peso_actual.replace(",", "."))),
+      );
+      if (invalidWeights.length > 0) {
+        errors.push(`${invalidWeights.length} peso(s) que no son un número`);
+      }
+      if (cact01.missingPages.length > 0) {
+        warnings.push(`Faltan hojas: ${cact01.missingPages.join(", ")}`);
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        validRowsCount: tags.length,
+      };
+    }
+
+    if (templateCode === "LSER-01") {
+      if (!lser01Metadata.lote.trim()) {
+        errors.push("Nombre del lote de servicio requerido");
+      }
+      if (!lser01Metadata.toro_caravana.trim()) {
+        errors.push("Caravana del toro requerida");
+      }
+      if (!lser01Metadata.planned_start_date) {
+        errors.push("Fecha de inicio de servicio requerida");
+      }
+
+      const femaleTags = rows.map((r) => r.caravana.trim().toUpperCase()).filter(Boolean);
+      if (femaleTags.length === 0) {
+        errors.push("Sin vientres registrados en la planilla");
+      }
+
+      const duplicates = femaleTags.filter((tag, idx) => femaleTags.indexOf(tag) !== idx);
+      if (duplicates.length > 0) {
+        warnings.push(`Caravanas duplicadas: ${Array.from(new Set(duplicates)).join(", ")}`);
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        validRowsCount: femaleTags.length,
+      };
+    }
+
     if (templateCode === "TOR-01") {
       if (rows.length === 0) {
         errors.push("Sin toros registrados en la planilla");
@@ -400,156 +584,203 @@ export const WorkTemplateScanView: React.FC = () => {
       warnings,
       validRowsCount: rows.filter((r) => r.caravana.trim() !== "").length,
     };
-  }, [templateCode, batchName, rows]);
+  }, [templateCode, batchName, rows, lser01Metadata, dest01, cact01, cact01Destinations]);
 
-  // Load Mock Simulation Data (Fast Design Mode - No Microservice Call)
-  const handleSimulateDocument = (targetCode?: string) => {
-    const selectedCode = targetCode || templateCode || "ING-01";
-    setSearchParams({ template: selectedCode }, { replace: true });
+  // Apply Structured Simulation Preset (Fast Testing Mode - Zero AI latency)
+  const handleApplySimulationPreset = (preset: SimulationPreset) => {
+    setSearchParams({ template: preset.templateCode }, { replace: true });
     setFile(null);
-    setFilePreviewUrl(SIMULATED_DOCUMENT_SVG);
     setErrorMessage(null);
+    setTemplateCode(preset.templateCode);
+    setTemplateTitle(`${preset.templateTitle} (${preset.scenarioLabel})`);
 
-    setTemplateCode(selectedCode);
+    const svgUrl = generateSimulationSvg(preset, 1, preset.pages ? preset.pages.length : 1);
+    setFilePreviewUrl(svgUrl);
 
-    if (selectedCode === "TOR-01") {
-      setTemplateTitle("Revisación Andrológica y Muestreo en Manga (Simulación)");
-      setTor01Metadata({
-        farm_name: "Establecimiento La Juanita",
-        renspa: "02.001.0.00001/01",
-        veterinarian_name: "Dr. Esteban Rossi",
-        veterinarian_license: "MP: 4892-BA",
-        sample_round: 1,
-        evaluation_date: new Date().toISOString().slice(0, 10),
-      });
+    if (preset.templateCode === DEST01_CODE) {
+      dest01Submission.clearRepair();
+      if (preset.pages && preset.pages.length > 0) {
+        // Multi-page simulation
+        const p1 = pageFromIdentifyResponse(
+          {
+            context: preset.pages[0].metadata,
+            data: [
+              {
+                mapped_rows: preset.pages[0].rows.map((r: any) => ({
+                  caravana: { value: r.caravana, confidence: 0.98 },
+                  caravana_madre: { value: r.caravana_madre, confidence: 0.95 },
+                  peso: { value: String(r.peso), confidence: 0.95 },
+                })),
+              },
+            ],
+          },
+          preset.pages[0].fileName,
+          svgUrl,
+        );
+        dest01.startWith(p1);
 
-      setRows([
-        { id: 1, caravana: "TR-001", ce_cm: 37.5, bcs: 3.5, libido: "ALTA", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-01", serology_collected: true, serology_tube: "S-01", physical_verdict: "A", observations: "Excelente conformación", confidence: 0.99 },
-        { id: 2, caravana: "TR-002", ce_cm: 35.0, bcs: 3.0, libido: "M", aplomos: "Buenos", scrape_collected: true, scrape_tube: "R-02", serology_collected: true, serology_tube: "S-02", physical_verdict: "A", observations: "Rodeo general", confidence: 0.98 },
-        { id: 3, caravana: "TR-003", ce_cm: 36.0, bcs: 3.5, libido: "MEDIA", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-03", serology_collected: true, serology_tube: "S-03", physical_verdict: "A", observations: "Buen prepucio", confidence: 0.97 },
-        { id: 4, caravana: "TR-004", ce_cm: 34.5, bcs: 3.0, libido: "M", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-04", serology_collected: true, serology_tube: "S-04", physical_verdict: "A", observations: "Sin novedades", confidence: 0.96 },
-        { id: 5, caravana: "TR-005", ce_cm: 38.0, bcs: 4.0, libido: "ALTA", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-05", serology_collected: true, serology_tube: "S-05", physical_verdict: "A", observations: "Toro padre de cabaña", confidence: 0.99 },
-        { id: 6, caravana: "TR-006", ce_cm: 33.5, bcs: 3.0, libido: "M", aplomos: "Buenos", scrape_collected: true, scrape_tube: "R-06", serology_collected: true, serology_tube: "S-06", physical_verdict: "A", observations: "Torito 2 años", confidence: 0.95 },
-        { id: 7, caravana: "TR-007", ce_cm: 35.5, bcs: 3.5, libido: "A", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-07", serology_collected: true, serology_tube: "S-07", physical_verdict: "A", observations: "Testículos simétricos", confidence: 0.98 },
-        { id: 8, caravana: "TR-008", ce_cm: 36.0, bcs: 3.5, libido: "MEDIA", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-08", serology_collected: true, serology_tube: "S-08", physical_verdict: "A", observations: "Destino entore 1", confidence: 0.97 },
-        { id: 9, caravana: "TR-009", ce_cm: 34.0, bcs: 3.0, libido: "M", aplomos: "Buenos", scrape_collected: true, scrape_tube: "R-09", serology_collected: true, serology_tube: "S-09", physical_verdict: "A", observations: "Correcto", confidence: 0.96 },
-        { id: 10, caravana: "TR-010", ce_cm: 37.0, bcs: 3.5, libido: "ALTA", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-10", serology_collected: true, serology_tube: "S-10", physical_verdict: "A", observations: "Plantel superior", confidence: 0.99 },
-        { id: 11, caravana: "TR-011", ce_cm: 35.0, bcs: 3.0, libido: "M", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-11", serology_collected: true, serology_tube: "S-11", physical_verdict: "A", observations: "Repetir R2 en 15 d", confidence: 0.98 },
-        { id: 12, caravana: "TR-012", ce_cm: 36.5, bcs: 3.5, libido: "A", aplomos: "Correctos", scrape_collected: true, scrape_tube: "R-12", serology_collected: true, serology_tube: "S-12", physical_verdict: "A", observations: "Lote vaquillonas", confidence: 0.99 },
-      ]);
+        if (preset.pages[1]) {
+          const p2Svg = generateSimulationSvg(preset, 2, preset.pages.length);
+          const p2 = pageFromIdentifyResponse(
+            {
+              context: preset.pages[1].metadata,
+              data: [
+                {
+                  mapped_rows: preset.pages[1].rows.map((r: any) => ({
+                    caravana: { value: r.caravana, confidence: 0.98 },
+                    caravana_madre: { value: r.caravana_madre, confidence: 0.95 },
+                    peso: { value: String(r.peso), confidence: 0.95 },
+                  })),
+                },
+              ],
+            },
+            preset.pages[1].fileName,
+            p2Svg,
+          );
+          dest01.addPage(p2);
+        }
+      } else {
+        const fakeRow = (caravana: string, madre: string, peso: number | string) => ({
+          caravana: { value: caravana, confidence: 0.97 },
+          caravana_madre: { value: madre, confidence: 0.95 },
+          peso: { value: String(peso), confidence: 0.9 },
+        });
+        dest01.startWith(
+          pageFromIdentifyResponse(
+            {
+              context: preset.context,
+              data: [
+                {
+                  mapped_rows: preset.rows.map((r: any) => fakeRow(r.caravana, r.caravana_madre, r.peso)),
+                },
+              ],
+            },
+            `simulacion-${preset.templateCode.toLowerCase()}.svg`,
+            svgUrl,
+          ),
+        );
+      }
+
+      if (preset.scenario === 'REPAIR_ERROR') {
+        setIsDest01RepairOpen(true);
+      }
       setIsProcessed(true);
       return;
     }
-    const title =
-      selectedCode === "REP-01"
-        ? "Planilla de Tacto y Ecografía"
-        : selectedCode === "REP-02"
-          ? "Planilla de Parición"
-          : selectedCode === "OP-01"
-            ? "Control Mensual de Pesajes"
-            : "Ingreso de Compra Directa";
-    setTemplateTitle(`${title} (Simulación)`);
 
-    setBatchName(`LOTE-CRIA-${selectedCode}`);
-    setActivityName("CRIA");
-    setEntryDate(new Date().toISOString().slice(0, 10));
-    setProviderCuit("30-71234567-9");
-    setProviderRenspa("02.123.4.56789/00");
-    setGuiaDte("DTE-884920");
+    if (preset.templateCode === CACT01_CODE) {
+      cact01Submission.clearRepair();
+      cact01Destinations.reset();
 
-    setRows([
-      {
-        id: 1,
-        caravana: "caravana-test-1",
-        category: "Vaca de Cría",
-        sex: "H",
-        breed: "Angus",
-        teeth: 6,
-        entry_weight: 430.0,
-        observations: "Estado corporal 3.5",
-        confidence: 0.98,
-      },
-      {
-        id: 2,
-        caravana: "caravana-test-2",
-        category: "Vaca de Cría",
-        sex: "H",
-        breed: "Angus Negro",
-        teeth: 4,
-        entry_weight: 415.0,
-        observations: "Preñada cabeza",
-        confidence: 0.96,
-      },
-      {
-        id: 3,
-        caravana: "caravana-test-3",
-        category: "Ternero",
-        sex: "M",
-        breed: "Brangus",
-        teeth: 0,
-        entry_weight: 160.0,
-        observations: "Al pie de la madre",
-        confidence: 0.99,
-      },
-      {
-        id: 4,
-        caravana: "caravana-test-4",
-        category: "Ternera",
-        sex: "H",
-        breed: "Hereford",
-        teeth: 0,
-        entry_weight: 152.0,
-        observations: "Al pie de la madre",
-        confidence: 0.95,
-      },
-      {
-        id: 5,
-        caravana: "caravana-test-5",
-        category: "Vaquillona Reposición",
-        sex: "H",
-        breed: "Angus",
-        teeth: 2,
-        entry_weight: 285.0,
-        observations: "Para servicio",
-        confidence: 0.97,
-      },
-      {
-        id: 6,
-        caravana: "caravana-test-6",
-        category: "Vaquillona",
-        sex: "H",
-        breed: "Braford",
-        teeth: 2,
-        entry_weight: 290.0,
-        observations: "Control sanitario al día",
-        confidence: 0.94,
-      },
-      {
-        id: 7,
-        caravana: "caravana-test-7",
-        category: "Toro",
-        sex: "M",
-        breed: "Angus Colorado",
-        teeth: 8,
-        entry_weight: 680.0,
-        observations: "Apto reproductor",
-        confidence: 0.99,
-      },
-      {
-        id: 8,
-        caravana: "caravana-test-8",
-        category: "Toro",
-        sex: "M",
-        breed: "Brangus",
-        teeth: 6,
-        entry_weight: 640.0,
-        observations: "Evaluación andrológica OK",
-        confidence: 0.99,
-      },
-    ]);
+      // The same shape the microservice returns, so the simulation exercises the real
+      // extraction path — including the "row cell wins, header is the default" rule.
+      const fakeRow = (r: any) => ({
+        caravana: { value: r.caravana, confidence: 0.97 },
+        peso_actual: { value: String(r.peso_actual ?? ""), confidence: 0.93 },
+        sexo: { value: r.sexo ?? "", confidence: 0.96 },
+        categoria: { value: r.categoria ?? "", confidence: 0.92 },
+        dientes: { value: r.dientes ?? "", confidence: 0.9 },
+        lote_destino: { value: r.lote_destino ?? "", confidence: 0.9 },
+        observations: { value: r.observations ?? "", confidence: 0.88 },
+      });
 
+      if (preset.pages && preset.pages.length > 0) {
+        cact01.startWith(
+          cact01PageFromIdentifyResponse(
+            {
+              context: preset.pages[0].metadata,
+              data: [{ mapped_rows: preset.pages[0].rows.map(fakeRow) }],
+            },
+            preset.pages[0].fileName,
+            svgUrl,
+          ),
+        );
+
+        if (preset.pages[1]) {
+          const p2Svg = generateSimulationSvg(preset, 2, preset.pages.length);
+          cact01.addPage(
+            cact01PageFromIdentifyResponse(
+              {
+                context: preset.pages[1].metadata,
+                data: [{ mapped_rows: preset.pages[1].rows.map(fakeRow) }],
+              },
+              preset.pages[1].fileName,
+              p2Svg,
+            ),
+          );
+        }
+      } else {
+        cact01.startWith(
+          cact01PageFromIdentifyResponse(
+            {
+              context: preset.context,
+              data: [{ mapped_rows: preset.rows.map(fakeRow) }],
+            },
+            `simulacion-${preset.templateCode.toLowerCase()}.svg`,
+            svgUrl,
+          ),
+        );
+      }
+
+      // The REPAIR_ERROR preset loads a sheet built to fail. The repair screen opens by
+      // itself when the real 422 comes back from confirming it, which exercises the
+      // whole path instead of showing a dialog with nothing in it.
+      setIsProcessed(true);
+      return;
+    }
+
+    if (preset.templateCode === "LSER-01") {
+      lser01.clearRepair();
+      setLser01Metadata({
+        ...emptyLser01Metadata(),
+        ...preset.context,
+      });
+      setRows(
+        preset.rows.map((r: any, idx: number) => ({
+          id: r.id || idx + 1,
+          caravana: r.caravana,
+          observations: r.observations || "",
+          confidence: r.confidence || 0.98,
+        }))
+      );
+      if (preset.scenario === 'REPAIR_ERROR') {
+        setIsLser01RepairOpen(true);
+      }
+      setIsProcessed(true);
+      return;
+    }
+
+    if (preset.templateCode === "TOR-01") {
+      setTor01Metadata({
+        farm_name: preset.context.farm_name || "",
+        renspa: preset.context.renspa || "",
+        veterinarian_name: preset.context.veterinarian_name || "",
+        veterinarian_license: preset.context.veterinarian_license || "",
+        sample_round: preset.context.sample_round || 1,
+        evaluation_date: preset.context.evaluation_date || new Date().toISOString().slice(0, 10),
+      });
+      setRows(preset.rows);
+      setIsProcessed(true);
+      return;
+    }
+
+    // Generic / ING-01 / REP-01 / REP-02 / MON-01 / OP-01 / OP-02
+    setBatchName(preset.context.batch_name || preset.context.lote || `LOTE-${preset.templateCode}`);
+    setActivityName(preset.context.activity_name || preset.context.service_type || "CRIA");
+    setEntryDate(preset.context.entry_date || preset.context.fecha || new Date().toISOString().slice(0, 10));
+    setProviderCuit(preset.context.provider_cuit || preset.context.cuit || "30-71234567-9");
+    setProviderRenspa(preset.context.provider_renspa || preset.context.renspa || "02.123.4.56789/00");
+    setGuiaDte(preset.context.guia_dte || "DTE-884920");
+    setRows(preset.rows);
     setIsProcessed(true);
   };
+
+  const handleSimulateDocument = (targetCode?: string, scenario: SimulationScenario = 'HAPPY_PATH') => {
+    const selectedCode = targetCode || templateCode || "ING-01";
+    const preset = getSimulationPreset(selectedCode, scenario);
+    handleApplySimulationPreset(preset);
+  };
+
 
   // Handle file selection and upload
   const handleFileSelect = (selectedFile: File) => {
@@ -588,10 +819,53 @@ export const WorkTemplateScanView: React.FC = () => {
         identifiedTemplate?.title ||
           (detectedCode === "TOR-01"
             ? "Revisación Andrológica de Toros"
-            : "Ingreso de Compra Directa"),
+            : detectedCode === "LSER-01"
+              ? "Conformación de Lote de Servicio — Toro Único"
+              : "Ingreso de Compra Directa"),
       );
 
-      if (detectedCode === "TOR-01") {
+      if (detectedCode === DEST01_CODE) {
+        dest01Submission.clearRepair();
+        setIsDest01RepairOpen(false);
+        dest01.startWith(
+          pageFromIdentifyResponse(resData, docFile.name, URL.createObjectURL(docFile)),
+        );
+      } else if (detectedCode === CACT01_CODE) {
+        cact01Submission.clearRepair();
+        cact01Destinations.reset();
+        setIsCact01RepairOpen(false);
+        cact01.startWith(
+          cact01PageFromIdentifyResponse(
+            resData,
+            docFile.name,
+            URL.createObjectURL(docFile),
+          ),
+        );
+      } else if (detectedCode === "LSER-01") {
+        lser01.clearRepair();
+        setLser01Metadata({
+          lote: context.lote || "",
+          toro_caravana: context.toro_caravana || "",
+          planned_start_date: normalizeDateForInput(context.planned_start_date),
+          planned_end_date: context.planned_end_date
+            ? normalizeDateForInput(context.planned_end_date)
+            : "",
+          responsable: context.responsable || "",
+          observaciones: context.observaciones || "",
+        });
+
+        const mappedRows = tables[0]?.mapped_rows ?? [];
+        setRows(
+          mappedRows
+            .map((r: any, idx: number) => ({
+              id: idx + 1,
+              caravana: String(r.caravana?.value ?? "").trim(),
+              observations: r.observations?.value || "",
+              confidence: r.caravana?.confidence ?? 0.95,
+            }))
+            .filter((r: WorkTemplateScanRow) => r.caravana !== "")
+        );
+      } else if (detectedCode === "TOR-01") {
         setTor01Metadata({
           farm_name:
             context.farm_name ||
@@ -730,6 +1004,9 @@ export const WorkTemplateScanView: React.FC = () => {
     field: keyof CaravanRow,
     value: any,
   ) => {
+    if (templateCode === "LSER-01" && lser01.repair && rows[index]) {
+      lser01.markRowEdited(rows[index], index);
+    }
     setRows((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -738,6 +1015,11 @@ export const WorkTemplateScanView: React.FC = () => {
   };
 
   const handleAddRow = () => {
+    if (templateCode === "LSER-01") {
+      setRows((prev) => [...prev, { id: Date.now(), caravana: "", observations: "" }]);
+      return;
+    }
+
     if (templateCode === "TOR-01") {
       const nextNum = rows.length + 1;
       setRows((prev) => [
@@ -808,6 +1090,16 @@ export const WorkTemplateScanView: React.FC = () => {
     setErrorMessage(null);
     setSaveSuccessResult(null);
     setActivityName("");
+    setLser01Metadata(emptyLser01Metadata());
+    setIsLser01RepairOpen(false);
+    lser01.clearRepair();
+    dest01.reset();
+    setIsDest01RepairOpen(false);
+    dest01Submission.clearRepair();
+    cact01.reset();
+    cact01Destinations.reset();
+    setIsCact01RepairOpen(false);
+    cact01Submission.clearRepair();
     setZoomLevel(1);
     setRotation(0);
     setModalZoomLevel(1);
@@ -824,6 +1116,83 @@ export const WorkTemplateScanView: React.FC = () => {
   const handleSaveTransaction = async () => {
     setIsSaving(true);
     setErrorMessage(null);
+
+    if (templateCode === DEST01_CODE) {
+      try {
+        const result = await dest01Submission.submit(dest01.metadata, dest01.target, dest01.rows);
+        if (result) {
+          setIsDest01RepairOpen(false);
+          setSaveSuccessResult(result);
+          setIsSuccessDialogOpen(true);
+        } else {
+          // All or nothing: the load is blocked on the intermediate repair screen.
+          setIsDest01RepairOpen(true);
+        }
+      } catch (err: any) {
+        console.error("Error saving DEST-01 transaction:", err);
+        setErrorMessage(
+          err.response?.data?.message ||
+            err.message ||
+            "Error al procesar la planilla DEST-01.",
+        );
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
+    if (templateCode === CACT01_CODE) {
+      try {
+        const result = await cact01Submission.submit(
+          cact01.metadata,
+          cact01.sourceBatchId,
+          cact01Destinations.destinations,
+          cact01.rows,
+        );
+        if (result) {
+          setIsCact01RepairOpen(false);
+          setSaveSuccessResult(result);
+          setIsSuccessDialogOpen(true);
+        } else {
+          // All or nothing: the load is blocked on the intermediate repair screen.
+          setIsCact01RepairOpen(true);
+        }
+      } catch (err: any) {
+        console.error("Error saving CACT-01 transaction:", err);
+        setErrorMessage(
+          err.response?.data?.message ||
+            err.message ||
+            "Error al procesar la planilla CACT-01.",
+        );
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
+    if (templateCode === "LSER-01") {
+      try {
+        const result = await lser01.submit(lser01Metadata, rows);
+        if (result) {
+          setIsLser01RepairOpen(false);
+          setSaveSuccessResult(result);
+          setIsSuccessDialogOpen(true);
+        } else {
+          // All or nothing: the load is blocked on the intermediate repair screen.
+          setIsLser01RepairOpen(true);
+        }
+      } catch (err: any) {
+        console.error("Error saving LSER-01 transaction:", err);
+        setErrorMessage(
+          err.response?.data?.message ||
+            err.message ||
+            "Error al procesar la planilla LSER-01.",
+        );
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
 
     if (templateCode === "TOR-01") {
       const payload = {
@@ -950,27 +1319,34 @@ export const WorkTemplateScanView: React.FC = () => {
           >
             <MenuItem value="ING-01">ING-01 • Compra Directa</MenuItem>
             <MenuItem value="TOR-01">TOR-01 • Revisación Andrológica & Manga</MenuItem>
+            <MenuItem value="LSER-01">LSER-01 • Conformación de Lote de Servicio</MenuItem>
+            <MenuItem value="DEST-01">DEST-01 • Destete y Lote de Destete</MenuItem>
+            <MenuItem value="CACT-01">CACT-01 • Cambio de Actividad</MenuItem>
             <MenuItem value="REP-01">REP-01 • Tacto & Ecografía</MenuItem>
             <MenuItem value="REP-02">REP-02 • Parición</MenuItem>
+            <MenuItem value="MON-01">MON-01 • Servicio de Monta a Campo</MenuItem>
             <MenuItem value="OP-01">OP-01 • Control Mensual</MenuItem>
             <MenuItem value="OP-02">OP-02 • Invernada</MenuItem>
           </Select>
 
-          {!isProcessed ? (
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<AutoAwesomeIcon />}
-              onClick={() => handleSimulateDocument(templateCode)}
-              sx={{
-                textTransform: "none",
-                fontWeight: 800,
-                borderRadius: "6px",
-              }}
-            >
-              ⚡ Simular Documento ({templateCode})
-            </Button>
-          ) : (
+          {/* Simulation Center Trigger */}
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<AutoAwesomeIcon />}
+            onClick={() => setIsSimulationModalOpen(true)}
+            sx={{
+              textTransform: "none",
+              fontWeight: 800,
+              borderRadius: "6px",
+              boxShadow: "none",
+            }}
+          >
+            ⚡ Centro de Simulaciones
+          </Button>
+
+          {!isProcessed ? null : (
+
             <Stack direction="row" spacing={1} alignItems="center">
               <Chip
                 label={
@@ -1016,7 +1392,13 @@ export const WorkTemplateScanView: React.FC = () => {
                   borderRadius: "6px",
                 }}
               >
-                {isSaving ? "Guardando..." : `Confirmar Tropa (${rows.length})`}
+                {isSaving
+                  ? "Guardando..."
+                  : templateCode === DEST01_CODE
+                    ? `Confirmar Destete (${validationResult.validRowsCount})`
+                    : templateCode === CACT01_CODE
+                      ? `Confirmar Movimiento (${validationResult.validRowsCount})`
+                      : `Confirmar Tropa (${rows.length})`}
               </Button>
             </Stack>
           )}
@@ -1218,11 +1600,30 @@ export const WorkTemplateScanView: React.FC = () => {
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleSimulateDocument();
+                      setIsSimulationModalOpen(true);
                     }}
                   >
-                    ⚡ Cargar Simulación de Documento
+                    ⚡ Centro de Simulaciones (Probar Flujos sin AI)
                   </Button>
+
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    sx={{
+                      px: 2.5,
+                      py: 1.2,
+                      textTransform: "none",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSimulateDocument(templateCode);
+                    }}
+                  >
+                    Simulación Rápida ({templateCode})
+                  </Button>
+
                 </Stack>
               </Box>
             )}
@@ -1241,141 +1642,16 @@ export const WorkTemplateScanView: React.FC = () => {
           >
             {/* Left Column: Document Image Preview Panel */}
             {showPreview && filePreviewUrl && (
-              <Paper
-                elevation={0}
-                sx={{
-                  flex: { xs: "1 1 100%", lg: "0 0 420px" },
-                  width: { xs: "100%", lg: "420px" },
-                  border: "1px solid",
-                  borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#e2e8f0",
-                  borderRadius: "8px",
-                  p: 2,
-                  bgcolor: "background.paper",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                  position: "sticky",
-                  top: 24,
-                  maxHeight: "calc(100vh - 120px)",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 1.5,
-                  }}
-                >
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                    Documento Original
-                  </Typography>
-                  <Stack direction="row" spacing={0.5}>
-                    <Tooltip title="Acercar">
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          setZoomLevel((z) => Math.min(z + 0.25, 2.5))
-                        }
-                      >
-                        <ZoomInIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Alejar">
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          setZoomLevel((z) => Math.max(z - 0.25, 0.5))
-                        }
-                      >
-                        <ZoomOutIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Rotar">
-                      <IconButton
-                        size="small"
-                        onClick={() => setRotation((r) => (r + 90) % 360)}
-                      >
-                        <RotateRightIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Abrir en Preview Modal">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={handleOpenPreviewModal}
-                      >
-                        <FullscreenIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Ocultar Panel">
-                      <IconButton
-                        size="small"
-                        onClick={() => setShowPreview(false)}
-                      >
-                        <VisibilityOffIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </Box>
-
-                {/* Clickable Image Thumbnail Container */}
-                <Box
-                  onClick={handleOpenPreviewModal}
-                  sx={{
-                    flex: 1,
-                    overflow: "hidden",
-                    border: "1px solid",
-                    borderColor: isDark
-                      ? "rgba(255, 255, 255, 0.08)"
-                      : "#e2e8f0",
-                    borderRadius: "6px",
-                    bgcolor: "action.hover",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    minHeight: "400px",
-                    position: "relative",
-                    cursor: "pointer",
-                    "&:hover .preview-overlay": {
-                      opacity: 1,
-                    },
-                  }}
-                >
-                  <img
-                    src={filePreviewUrl}
-                    alt="Document Preview"
-                    style={{
-                      maxWidth: "100%",
-                      transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
-                      transformOrigin: "center center",
-                      transition: "transform 0.2s ease",
-                    }}
-                  />
-                  {/* Overlay text on hover */}
-                  <Box
-                    className="preview-overlay"
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      bgcolor: "rgba(0, 0, 0, 0.45)",
-                      color: "#ffffff",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 1,
-                      opacity: 0,
-                      transition: "opacity 0.2s ease",
-                    }}
-                  >
-                    <FullscreenIcon sx={{ fontSize: 36 }} />
-                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                      Haz clic para ampliar en Modal Preview
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
+              <ScanPreviewSidePanel
+                previewUrl={filePreviewUrl}
+                zoomLevel={zoomLevel}
+                rotation={rotation}
+                onZoomIn={() => setZoomLevel((z) => Math.min(z + 0.25, 2.5))}
+                onZoomOut={() => setZoomLevel((z) => Math.max(z - 0.25, 0.5))}
+                onRotate={() => setRotation((r) => (r + 90) % 360)}
+                onOpenModal={handleOpenPreviewModal}
+                onHide={() => setShowPreview(false)}
+              />
             )}
 
             {/* Toggle Preview Button if hidden */}
@@ -1410,7 +1686,41 @@ export const WorkTemplateScanView: React.FC = () => {
                 }}
               >
                 {/* SECTION 1: Integrated Collapsible Header Metadata Bar */}
-                {templateCode === "TOR-01" ? (
+                {templateCode === DEST01_CODE ? (
+                  <ScanDest01Workspace
+                    state={dest01}
+                    repair={dest01Submission.repair}
+                    isRepairOpen={isDest01RepairOpen}
+                    onOpenRepair={() => setIsDest01RepairOpen(true)}
+                    onRowChange={handleDest01RowChange}
+                    onPreviewPage={setFilePreviewUrl}
+                    isSaving={isSaving}
+                  />
+                ) : templateCode === CACT01_CODE ? (
+                  <ScanCact01Workspace
+                    state={cact01}
+                    destinationsState={cact01Destinations}
+                    batches={cact01Options.batches}
+                    activities={cact01Options.activities}
+                    batchTypes={cact01Options.batchTypes}
+                    sourceBatchOptions={cact01Options.sourceBatchOptions}
+                    sourceMatched={cact01Source.matched}
+                    repair={cact01Submission.repair}
+                    isRepairOpen={isCact01RepairOpen}
+                    onOpenRepair={() => setIsCact01RepairOpen(true)}
+                    onRowChange={handleCact01RowChange}
+                    onPreviewPage={setFilePreviewUrl}
+                    isSaving={isSaving}
+                  />
+                ) : templateCode === "LSER-01" ? (
+                  <ScanLser01MetadataHeader
+                    metadata={lser01Metadata}
+                    onChange={handleLser01MetadataChange}
+                    isOpen={isLser01MetadataOpen}
+                    onToggle={() => setIsLser01MetadataOpen((prev) => !prev)}
+                    headerErrors={lser01.repair?.headerErrors}
+                  />
+                ) : templateCode === "TOR-01" ? (
                   <ScanTor01MetadataHeader
                     metadata={tor01Metadata}
                     onChange={handleTor01MetadataChange}
@@ -1644,7 +1954,33 @@ export const WorkTemplateScanView: React.FC = () => {
                 )}
 
                 {/* SECTION 2: DataTable Section (Filter Bar + Table + Pagination) */}
-                {templateCode === "TOR-01" ? (
+                {templateCode === DEST01_CODE ||
+                templateCode === CACT01_CODE ? null : templateCode === "LSER-01" ? (
+                  <Box sx={{ p: 2 }}>
+                    {lser01.repair && !isLser01RepairOpen && (
+                      <Alert
+                        severity="error"
+                        sx={{ mb: 2, borderRadius: "6px" }}
+                        action={
+                          <Button color="inherit" size="small" onClick={() => setIsLser01RepairOpen(true)}>
+                            Abrir reparación
+                          </Button>
+                        }
+                      >
+                        La carga está bloqueada hasta reparar la planilla.
+                      </Alert>
+                    )}
+                    <ScanLser01Table
+                      rows={rows}
+                      onRowChange={handleCellChange}
+                      onAddRow={handleAddRow}
+                      onDeleteRow={handleDeleteRow}
+                      rowErrorsById={lser01.repair?.rowErrorsById}
+                      editedRowIds={lser01.repair?.editedRowIds}
+                      rowKey={lser01.rowKey}
+                    />
+                  </Box>
+                ) : templateCode === "TOR-01" ? (
                   <Box sx={{ p: 2 }}>
                     <ScanTor01Table
                       rows={rows}
@@ -2199,133 +2535,70 @@ export const WorkTemplateScanView: React.FC = () => {
         )}
 
         {/* ─── FULL-SCREEN / HIGH-RES DOCUMENT PREVIEW MODAL ─── */}
-        <Dialog
+        <ScanDocumentPreviewModal
           open={isPreviewModalOpen}
           onClose={() => setIsPreviewModalOpen(false)}
-          maxWidth="xl"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 0,
-              bgcolor: "background.paper",
-              maxHeight: "90vh",
-            },
+          previewUrl={filePreviewUrl}
+          zoomLevel={modalZoomLevel}
+          rotation={modalRotation}
+          onZoomIn={() => setModalZoomLevel((z) => Math.min(z + 0.25, 3.5))}
+          onZoomOut={() => setModalZoomLevel((z) => Math.max(z - 0.25, 0.5))}
+          onRotate={() => setModalRotation((r) => (r + 90) % 360)}
+          onReset={() => {
+            setModalZoomLevel(1);
+            setModalRotation(0);
           }}
-        >
-          <DialogTitle
-            sx={{
-              display: "flex",
-              justify: "space-between",
-              alignItems: "center",
-              borderBottom: 1,
-              borderColor: "divider",
-              py: 1.5,
-              px: 2,
-            }}
-          >
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <VisibilityIcon color="primary" />
-              <Typography variant="h6" sx={{ fontWeight: 900 }}>
-                Vista Previa del Documento Original Escaneado
-              </Typography>
-            </Stack>
+        />
 
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Tooltip title="Acercar (Zoom In)">
-                <IconButton
-                  onClick={() =>
-                    setModalZoomLevel((z) => Math.min(z + 0.25, 3.5))
-                  }
-                >
-                  <ZoomInIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Alejar (Zoom Out)">
-                <IconButton
-                  onClick={() =>
-                    setModalZoomLevel((z) => Math.max(z - 0.25, 0.5))
-                  }
-                >
-                  <ZoomOutIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Rotar 90°">
-                <IconButton
-                  onClick={() => setModalRotation((r) => (r + 90) % 360)}
-                >
-                  <RotateRightIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Restablecer Vista">
-                <IconButton
-                  onClick={() => {
-                    setModalZoomLevel(1);
-                    setModalRotation(0);
-                  }}
-                >
-                  <RestartAltIcon />
-                </IconButton>
-              </Tooltip>
-              <IconButton onClick={() => setIsPreviewModalOpen(false)}>
-                <CloseIcon />
-              </IconButton>
-            </Stack>
-          </DialogTitle>
+        {/* ─── SIMULATION SELECTOR MODAL ─── */}
+        <SimulationSelectorModal
+          open={isSimulationModalOpen}
+          onClose={() => setIsSimulationModalOpen(false)}
+          currentTemplateCode={templateCode}
+          onSelectPreset={handleApplySimulationPreset}
+        />
 
-          <DialogContent
-            dividers
-            sx={{
-              p: 3,
-              bgcolor: "action.hover",
-              display: "flex",
-              justify: "center",
-              alignItems: "center",
-              overflow: "auto",
-              minHeight: "550px",
-            }}
-          >
-            {filePreviewUrl ? (
-              <img
-                src={filePreviewUrl}
-                alt="Document Full Preview"
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "75vh",
-                  transform: `scale(${modalZoomLevel}) rotate(${modalRotation}deg)`,
-                  transformOrigin: "center center",
-                  transition: "transform 0.2s ease",
-                  border: "1px solid #cbd5e1",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-                }}
-              />
-            ) : (
-              <Typography color="text.secondary">
-                No hay documento cargado para previsualizar
-              </Typography>
-            )}
-          </DialogContent>
+        {/* ─── LSER-01 REPAIR SCREEN (all or nothing) ─── */}
+        <Lser01RepairDialog
+          open={templateCode === "LSER-01" && isLser01RepairOpen}
+          repair={lser01.repair}
+          metadata={lser01Metadata}
+          onMetadataChange={handleLser01MetadataChange}
+          rows={rows}
+          onRowChange={handleCellChange}
+          onDeleteRow={handleDeleteRow}
+          rowKey={lser01.rowKey}
+          isSaving={isSaving}
+          onRetry={handleSaveTransaction}
+          onBack={() => setIsLser01RepairOpen(false)}
+        />
 
-          <DialogActions
-            sx={{
-              p: 2,
-              borderTop: 1,
-              borderColor: "divider",
-              justifyContent: "space-between",
-            }}
-          >
-            <Typography variant="caption" color="text.secondary">
-              Controles: Usa Zoom y Rotación para verificar los datos extraídos
-              contra el manuscrito original.
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={() => setIsPreviewModalOpen(false)}
-              sx={{ borderRadius: 0, fontWeight: 700, px: 3 }}
-            >
-              Cerrar Previsualización
-            </Button>
-          </DialogActions>
-        </Dialog>
+        {/* ─── DEST-01 REPAIR SCREEN (all or nothing, every page) ─── */}
+        <Cact01RepairDialog
+          open={templateCode === CACT01_CODE && isCact01RepairOpen}
+          repair={cact01Submission.repair}
+          state={cact01}
+          destinationsState={cact01Destinations}
+          batches={cact01Options.batches}
+          activities={cact01Options.activities}
+          batchTypes={cact01Options.batchTypes}
+          sourceBatchOptions={cact01Options.sourceBatchOptions}
+          sourceMatched={cact01Source.matched}
+          onRowChange={handleCact01RowChange}
+          isSaving={isSaving}
+          onRetry={handleSaveTransaction}
+          onBack={() => setIsCact01RepairOpen(false)}
+        />
+
+        <Dest01RepairDialog
+          open={templateCode === DEST01_CODE && isDest01RepairOpen}
+          repair={dest01Submission.repair}
+          state={dest01}
+          onRowChange={handleDest01RowChange}
+          isSaving={isSaving}
+          onRetry={handleSaveTransaction}
+          onBack={() => setIsDest01RepairOpen(false)}
+        />
 
         {/* ─── SUCCESS MODAL (ScanSuccessDialog Component) ─── */}
         <ScanSuccessDialog

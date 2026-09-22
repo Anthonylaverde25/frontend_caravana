@@ -71,3 +71,14 @@ All dialogs, forms, and control panels must strictly adhere to the unified visua
    - Primary Button (Right): `variant="contained"`, `sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', px: 3.5, fontWeight: 700, borderRadius: '6px', textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: 'primary.dark' } }}` (`Siguiente` / `Crear` / `Confirmar`).
 4. **Notifications:**
    - Use `useSnackbar` from `notistack` (`enqueueSnackbar(msg, { variant: 'success' | 'warning' | 'error' })`).
+
+---
+
+## 5. Work Templates & Scanning Standards
+- **Mandatory Simulation Test Components:** Every time a new Work Template is created or modified in the system (backend seeder, frontend printable template, or OCR extraction pipeline), the developer MUST simultaneously create or update the corresponding simulation test fixtures, presets, and dynamic vector preview generator in `src/ui/work-templates/components/scan/simulation/`.
+- **Flow Coverage:** The simulation test suite for any work template must provide at least:
+  1. **Happy Path:** Valid standard flow ready to persist.
+  2. **Warning Flow:** Edge cases, alerts, and thresholds (e.g. low scrotal circumference, duplicate ear tags, zero weights).
+  3. **Repair / Error Flow:** Validation blockers, schema mismatches, and repair dialog activations.
+This guarantees rapid UI testing, robust regression verification, and complete decoupling from external AI microservices during day-to-day development.
+

@@ -122,11 +122,19 @@ const navigationConfig: FuseNavItemType[] = [
 					},
 					{
 						id: 'gestation.births',
-						title: 'Partossss',
+						title: 'Partos',
 						subtitle: 'Nacimientos',
 						type: 'item',
 						icon: 'heroicons-outline:sparkles',
 						url: '/gestation/births'
+					},
+					{
+						id: 'gestation.weaning-batches',
+						title: 'Lotes de Destete',
+						subtitle: 'Desmadre y Recría',
+						type: 'item',
+						icon: 'heroicons-outline:clock',
+						url: '/gestation/weaning-batches'
 					},
 					{
 						id: 'gestation.pedigree',

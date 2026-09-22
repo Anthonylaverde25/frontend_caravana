@@ -4,6 +4,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useNavigate } from 'react-router';
+import CompanyActivitiesConfigCard from '@/ui/activities/components/CompanyActivitiesConfigCard';
 
 /**
  * GeneralConfig Component
@@ -83,8 +84,22 @@ export default function GeneralConfig() {
       {/* 2. Cuerpo de la página */}
       <Box component="main" sx={{ p: 2 }}>
         <Grid container spacing={4}>
+          {/* Flujo Productivo & Actividades de la Empresa */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FuseSvgIcon size={18} className="text-primary">heroicons-outline:arrows-right-left</FuseSvgIcon>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Flujo Productivo & Actividades de la Empresa
+              </Typography>
+            </Box>
+
+            <Paper elevation={0} sx={{ border: '1px solid #f1f5f9', borderRadius: '12px', p: 3, bgcolor: '#ffffff' }}>
+              <CompanyActivitiesConfigCard />
+            </Paper>
+          </Grid>
+
           {/* Dentición */}
-          <Grid item xs={12} lg={4}>
+          <Grid size={{ xs: 12, lg: 4 }}>
             <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
               <FuseSvgIcon size={18} className="text-amber-600">heroicons-outline:identification</FuseSvgIcon>
               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -117,7 +132,7 @@ export default function GeneralConfig() {
           </Grid>
 
           {/* Catálogo de Razas */}
-          <Grid item xs={12} lg={8}>
+          <Grid size={{ xs: 12, lg: 8 }}>
             <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <FuseSvgIcon size={18} className="text-emerald-600">heroicons-outline:tag</FuseSvgIcon>

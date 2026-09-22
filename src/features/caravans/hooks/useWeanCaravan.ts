@@ -10,11 +10,17 @@ import { toast } from 'sonner';
  */
 export interface WeanCaravanPayload {
   caravanId: number;
-  targetBatchId: number;
+  targetBatchId?: number | null;
   weaningDate: string;
   weaningWeight: number;
   newCategory?: string | null;
   notes?: string | null;
+  newBatch?: {
+    name: string;
+    farm_id?: number | null;
+    activity_id?: number | null;
+    batch_type_id?: number | null;
+  } | null;
 }
 
 export function useWeanCaravan() {
@@ -24,7 +30,15 @@ export function useWeanCaravan() {
     mutationFn: async (payload: WeanCaravanPayload) => {
       const { caravanId, ...body } = payload;
       const response = await axiosInstance.patch(`/caravans/${caravanId}/wean`, {
-        target_batch_id: body.targetBatchId,
+        target_batch_id: body.targetBatchId || undefined,
+        new_batch: body.newBatch
+          ? {
+              name: body.newBatch.name,
+              farm_id: body.newBatch.farm_id ?? null,
+              activity_id: body.newBatch.activity_id ?? null,
+              batch_type_id: body.newBatch.batch_type_id ?? null,
+            }
+          : undefined,
         weaning_date: body.weaningDate,
         weaning_weight: body.weaningWeight,
         new_category: body.newCategory,
@@ -35,12 +49,13 @@ export function useWeanCaravan() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['births-history'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
       toast.success('Ternero destetado correctamente');
     },
     onError: (error: any) => {
       console.error('Error in useWeanCaravan:', error);
       const msg = error.response?.data?.message || 'Error al procesar el destete';
       toast.error(msg);
-    }
+    },
   });
 }

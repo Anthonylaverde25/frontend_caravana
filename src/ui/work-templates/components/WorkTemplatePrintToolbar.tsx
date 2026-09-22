@@ -15,6 +15,9 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TuneIcon from '@mui/icons-material/Tune';
 import { useWorkTemplatePrint } from '@/contexts/WorkTemplatePrintContext';
 
+/** Codes whose print view renders a config drawer (see WorkTemplatePrintView). */
+const CONFIGURABLE_CODES = ['ING-01', 'MON-01', 'SER-01', 'TOR-01', 'LSER-01', 'DEST-01', 'CACT-01'];
+
 interface WorkTemplatePrintToolbarProps {
   onOpenConfig: () => void;
   onTestAI: () => void;
@@ -63,8 +66,8 @@ export const WorkTemplatePrintToolbar: React.FC<WorkTemplatePrintToolbarProps> =
 
         {!isLoading && template && (
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {/* Config Drawer Trigger Button (Available for templates with config like ING-01) */}
-            {code === 'ING-01' && (
+            {/* Config Drawer Trigger Button (templates that render a config drawer) */}
+            {CONFIGURABLE_CODES.includes(code ?? '') && (
               <Button
                 variant="outlined"
                 startIcon={<TuneIcon sx={{ fontSize: '1.1rem !important', color: '#64748b' }} />}

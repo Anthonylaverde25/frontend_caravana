@@ -45,7 +45,6 @@ export default function MovementSheetView() {
             <ViewHeader
                 title="Generador de Planillas de Movimiento"
                 subtitle="Configura y genera documentos profesionales para el control de cambios de actividad."
-                icon="heroicons-outline:document-text"
                 actions={
                     <Button
                         variant="outlined"
@@ -107,7 +106,7 @@ export default function MovementSheetView() {
                                     <Typography variant="caption" sx={{ fontWeight: 900, color: '#64748b', mb: 1, display: 'block', textTransform: 'uppercase' }}>
                                         ETAPA ORIGEN (ACTUAL)
                                     </Typography>
-                                    <Typography sx={{ fontWeight: 800, color: '#32363a', fontSize: '1rem', pl: 1, borderLeft: `4px solid ${stage.color || '#999'}` }}>
+                                    <Typography sx={{ fontWeight: 800, color: '#32363a', fontSize: '1rem', pl: 1, borderLeft: `4px solid ${(stage as any).color || '#999'}` }}>
                                         {stage.name}
                                     </Typography>
                                     <Typography sx={{ fontSize: '0.7rem', color: '#64748b', pl: 1.5 }}>{stage.code}</Typography>

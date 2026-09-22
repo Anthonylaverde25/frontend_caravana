@@ -8,6 +8,9 @@ import FastApiAiTestDialog from '../components/FastApiAiTestDialog';
 import { TemplateING01, Ing01ConfigDrawer } from '../templates/ing01';
 import { TemplateMON01, Mon01ConfigDrawer } from '../templates/mon01';
 import { TemplateTOR01, Tor01ConfigDrawer } from '../templates/tor01';
+import { TemplateLSER01, Lser01ConfigDrawer, Lser01HeaderProvider } from '../templates/lser01';
+import { TemplateDEST01, Dest01ConfigDrawer, Dest01PrintProvider } from '../templates/dest01';
+import { TemplateCACT01, Cact01ConfigDrawer, Cact01PrintProvider } from '../templates/cact01';
 import { TemplateREP01 } from '../templates/rep01';
 import { TemplateREP02 } from '../templates/rep02';
 import { TemplateGeneric } from '../templates/generic';
@@ -51,6 +54,12 @@ const WorkTemplatePrintContent: React.FC = () => {
     switch (code) {
       case 'TOR-01':
         return <TemplateTOR01 />;
+      case 'LSER-01':
+        return <TemplateLSER01 />;
+      case 'DEST-01':
+        return <TemplateDEST01 />;
+      case 'CACT-01':
+        return <TemplateCACT01 />;
       case 'MON-01':
       case 'SER-01':
         return <TemplateMON01 />;
@@ -142,6 +151,24 @@ const WorkTemplatePrintContent: React.FC = () => {
           onClose={() => setIsConfigDrawerOpen(false)}
         />
       )}
+      {code === 'LSER-01' && (
+        <Lser01ConfigDrawer
+          open={isConfigDrawerOpen}
+          onClose={() => setIsConfigDrawerOpen(false)}
+        />
+      )}
+      {code === 'DEST-01' && (
+        <Dest01ConfigDrawer
+          open={isConfigDrawerOpen}
+          onClose={() => setIsConfigDrawerOpen(false)}
+        />
+      )}
+      {code === 'CACT-01' && (
+        <Cact01ConfigDrawer
+          open={isConfigDrawerOpen}
+          onClose={() => setIsConfigDrawerOpen(false)}
+        />
+      )}
     </Box>
   );
 };
@@ -154,7 +181,13 @@ const WorkTemplatePrintContent: React.FC = () => {
 const WorkTemplatePrintView: React.FC = () => {
   return (
     <WorkTemplatePrintProvider>
-      <WorkTemplatePrintContent />
+      <Lser01HeaderProvider>
+        <Dest01PrintProvider>
+          <Cact01PrintProvider>
+            <WorkTemplatePrintContent />
+          </Cact01PrintProvider>
+        </Dest01PrintProvider>
+      </Lser01HeaderProvider>
     </WorkTemplatePrintProvider>
   );
 };

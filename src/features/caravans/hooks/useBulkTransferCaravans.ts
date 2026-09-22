@@ -2,9 +2,20 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/utils/axios';
 import { toast } from 'sonner';
 
+/** Destination batch created in the same transaction as the transfer. */
+export interface NewTransferBatchPayload {
+  name: string;
+  activity_id?: number;
+  batch_type_id?: number;
+  is_confined?: boolean;
+  farm_id?: number | null;
+}
+
 export interface BulkTransferCaravansPayload {
   caravanIds: number[];
+  /** Mutually exclusive with `newBatch`. */
   targetBatchId?: number | null;
+  newBatch?: NewTransferBatchPayload | null;
   reason?: string | null;
   movementDate?: string | null;
 }
@@ -29,6 +40,7 @@ export function useBulkTransferCaravans() {
       const response = await axiosInstance.post('/caravans/bulk-transfer', {
         caravan_ids: payload.caravanIds,
         target_batch_id: payload.targetBatchId || null,
+        new_batch: payload.newBatch || null,
         reason: payload.reason || null,
         movement_date: payload.movementDate || null,
       });
@@ -37,7 +49,10 @@ export function useBulkTransferCaravans() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batch'] });
+      queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
       queryClient.invalidateQueries({ queryKey: ['caravan-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       toast.success(`Se transfirieron ${data.transferred_count} animales a "${data.target_batch_name}" correctamente`);
     },
     onError: (error: any) => {

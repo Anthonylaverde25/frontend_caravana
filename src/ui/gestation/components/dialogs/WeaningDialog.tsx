@@ -10,11 +10,15 @@ import {
   Box,
   Typography,
   CircularProgress,
+  Divider,
+  Chip,
   useTheme
 } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useWeanCaravan } from '@/features/caravans/hooks/useWeanCaravan';
 import { toast } from 'sonner';
+import QuickCreateWeaningBatchDialog, { DraftWeaningBatch } from '@/ui/batches/components/QuickCreateWeaningBatchDialog';
 
 interface WeaningDialogProps {
   open: boolean;
@@ -41,34 +45,36 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
 
   // Form states
   const [targetBatchId, setTargetBatchId] = useState<string>('');
+  const [draftBatch, setDraftBatch] = useState<DraftWeaningBatch | null>(null);
+  const [quickCreateBatchOpen, setQuickCreateBatchOpen] = useState(false);
   const [weaningDate, setWeaningDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [weaningWeight, setWeaningWeight] = useState<string>('');
-  const [newCategory, setNewCategory] = useState<string>('no_change');
   const [notes, setNotes] = useState<string>('');
 
-  // Set default category based on sex when dialog opens
+  const weaningBatches = batches.filter(
+    (b: any) =>
+      b.batch_type_code === 'WEANING' ||
+      b.name?.toLowerCase().includes('destete') ||
+      b.types?.some((t: any) => t.code === 'WEANING')
+  );
+
+  const hasWeaningBatches = weaningBatches.length > 0;
+
   useEffect(() => {
     if (open) {
-      if (calfSex === 'M') {
-        setNewCategory('novillito');
-      } else if (calfSex === 'H') {
-        setNewCategory('vaquillona');
-      } else {
-        setNewCategory('no_change');
-      }
-      // Reset other states
       setTargetBatchId('');
+      setDraftBatch(null);
       setWeaningWeight('');
       setNotes('');
       setWeaningDate(new Date().toISOString().split('T')[0]);
     }
-  }, [open, calfSex]);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!targetBatchId) {
-      toast.error('Debe seleccionar un lote de destino');
+      toast.error('Debe seleccionar un lote de destete');
       return;
     }
 
@@ -78,13 +84,22 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
       return;
     }
 
+    const isDraft = targetBatchId === '__DRAFT_NEW_BATCH__';
+    const effectiveTargetBatchId = isDraft ? null : parseInt(targetBatchId);
+
     try {
       await weanMutation.mutateAsync({
         caravanId: calfId,
-        targetBatchId: parseInt(targetBatchId),
+        targetBatchId: effectiveTargetBatchId,
+        newBatch: isDraft && draftBatch ? {
+          name: draftBatch.name,
+          farm_id: draftBatch.farm_id,
+          activity_id: draftBatch.activity_id,
+          batch_type_id: draftBatch.batch_type_id,
+        } : null,
         weaningDate,
         weaningWeight: weightNum,
-        newCategory: newCategory === 'no_change' ? null : newCategory,
+        newCategory: null,
         notes: notes.trim() || null
       });
       onClose();
@@ -103,10 +118,9 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 0,
-          border: '1px solid',
-          borderColor: theme.palette.divider,
-          boxShadow: 'none'
+          borderRadius: '8px',
+          boxShadow: 1,
+          bgcolor: 'background.paper',
         }
       }}
     >
@@ -157,19 +171,15 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
           {/* Form Fields */}
           <TextField
             select
-            label="Lote de Destino (Cría / Recría)"
+            label="Lote de Destete *"
             value={targetBatchId}
             onChange={(e) => {
               const newId = e.target.value;
-              setTargetBatchId(newId);
-              const b = batches.find((item: any) => item.id === parseInt(newId));
-              const isRecria = b?.activity_name?.toLowerCase().includes('recr') || 
-                               b?.activity_name?.toLowerCase().includes('inver');
-              if (isRecria) {
-                setNewCategory(calfSex === 'M' ? 'novillito' : calfSex === 'H' ? 'vaquillona' : 'no_change');
-              } else {
-                setNewCategory(calfSex === 'M' ? 'ternero' : calfSex === 'H' ? 'ternera' : 'no_change');
+              if (newId === '__NEW_WEANING_BATCH__') {
+                setQuickCreateBatchOpen(true);
+                return;
               }
+              setTargetBatchId(newId);
             }}
             required
             fullWidth
@@ -179,14 +189,37 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
             SelectProps={{ displayEmpty: true }}
           >
             <MenuItem value="" disabled>
-              Seleccione un lote de destino...
+              Seleccione un lote de destete...
             </MenuItem>
-            {batches.map((batch: any) => {
-              const isRecria = batch.activity_name?.toLowerCase().includes('recr');
-              const isCria = batch.activity_name?.toLowerCase().includes('cr');
-              return (
-                <MenuItem key={batch.id} value={batch.id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1.5 }}>
+            {draftBatch && (
+              <MenuItem value="__DRAFT_NEW_BATCH__">
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#8b5cf6' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#8b5cf6' }}>
+                      {draftBatch.name}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label="Nuevo (Al confirmar)"
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      bgcolor: 'rgba(139, 92, 246, 0.15)',
+                      color: '#8b5cf6',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                    }}
+                  />
+                </Box>
+              </MenuItem>
+            )}
+            {weaningBatches.map((batch: any) => (
+              <MenuItem key={batch.id} value={batch.id}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#8b5cf6' }} />
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
                       {batch.name}
                       {batch.farm_name && (
@@ -195,6 +228,9 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
                         </Typography>
                       )}
                     </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Box
                       component="span"
                       sx={{
@@ -202,23 +238,57 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
                         py: 0.25,
                         borderRadius: '4px',
                         fontSize: '0.65rem',
-                        fontWeight: 700,
-                        bgcolor: isRecria ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                        color: isRecria ? '#2563eb' : '#059669',
-                        border: '1px solid',
-                        borderColor: isRecria ? 'rgba(59, 130, 246, 0.3)' : 'rgba(16, 185, 129, 0.3)'
+                        fontWeight: 800,
+                        bgcolor: 'rgba(139, 92, 246, 0.15)',
+                        color: '#8b5cf6',
+                        border: '1px solid rgba(139, 92, 246, 0.3)'
                       }}
                     >
-                      {batch.activity_name || (isRecria ? 'Recría' : isCria ? 'Cría' : 'General')}
+                      Destete
                     </Box>
                   </Box>
-                </MenuItem>
-              );
-            })}
+                </Box>
+              </MenuItem>
+            ))}
+
+            <Divider />
+            <MenuItem
+              value="__NEW_WEANING_BATCH__"
+              sx={{
+                fontWeight: 800,
+                color: '#8b5cf6',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                py: 1,
+                '&:hover': { bgcolor: 'rgba(139, 92, 246, 0.08)' }
+              }}
+            >
+              <FuseSvgIcon size={18} sx={{ color: '#8b5cf6' }}>heroicons-outline:plus-circle</FuseSvgIcon>
+              + Crear Lote de Destete...
+            </MenuItem>
           </TextField>
 
+          {!hasWeaningBatches && !draftBatch && (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: -1, px: 0.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic', fontSize: '0.75rem' }}>
+                ¿No tienes un lote de destete creado?
+              </Typography>
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => setQuickCreateBatchOpen(true)}
+                startIcon={<FuseSvgIcon size={14}>heroicons-outline:plus</FuseSvgIcon>}
+                sx={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'none', color: '#8b5cf6', p: 0.2 }}
+              >
+                Crear Lote de Destete
+              </Button>
+            </Box>
+          )}
+
           {targetBatchId && (() => {
-            const b = batches.find((item: any) => item.id === parseInt(targetBatchId));
+            const isDraft = targetBatchId === '__DRAFT_NEW_BATCH__';
+            const b = isDraft ? draftBatch : batches.find((item: any) => item.id === parseInt(targetBatchId));
             if (!b) return null;
             return (
               <Box
@@ -227,13 +297,54 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
                   bgcolor: 'action.hover',
                   borderRadius: '6px',
                   borderLeft: '4px solid',
-                  borderColor: 'primary.main'
+                  borderColor: '#8b5cf6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 1,
                 }}
               >
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                  Lote: <strong>{b.name}</strong> • Actividad: <strong>{b.activity_name || 'Cría'}</strong>
-                  {b.farm_name ? ` • Establecimiento: ${b.farm_name}` : ''}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {b.name}
+                  </Typography>
+                  <Box
+                    component="span"
+                    sx={{
+                      px: 0.75,
+                      py: 0.2,
+                      borderRadius: '4px',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      bgcolor: 'rgba(139, 92, 246, 0.15)',
+                      color: '#8b5cf6',
+                    }}
+                  >
+                    LOTE DE DESTETE
+                  </Box>
+                  {isDraft && (
+                    <Box
+                      component="span"
+                      sx={{
+                        px: 0.75,
+                        py: 0.2,
+                        borderRadius: '4px',
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        bgcolor: 'rgba(16, 185, 129, 0.15)',
+                        color: '#059669',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                      }}
+                    >
+                      NUEVO (SE CREARÁ EN DB AL CONFIRMAR)
+                    </Box>
+                  )}
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    • Actividad: <strong>{b.activity_name || 'Cría'}</strong>
+                    {b.farm_name ? ` • Establecimiento: ${b.farm_name}` : ''}
+                  </Typography>
+                </Box>
               </Box>
             );
           })()}
@@ -265,23 +376,6 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
               InputLabelProps={{ shrink: true }}
             />
           </Box>
-
-          <TextField
-            select
-            label="Cambiar Categoría"
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            fullWidth
-            size="small"
-            disabled={isSubmitting}
-            InputLabelProps={{ shrink: true }}
-          >
-            <MenuItem value="no_change">No cambiar (Permanecer en categoría actual)</MenuItem>
-            <MenuItem value="ternero">Ternero de Destete (Macho - Actividad Cría)</MenuItem>
-            <MenuItem value="ternera">Ternera de Destete (Hembra - Actividad Cría)</MenuItem>
-            <MenuItem value="novillito">Novillito de Recría (Macho - Actividad Recría)</MenuItem>
-            <MenuItem value="vaquillona">Vaquillona de Recría (Hembra - Actividad Recría)</MenuItem>
-          </TextField>
 
           <TextField
             label="Observaciones"
@@ -332,6 +426,16 @@ const WeaningDialog: React.FC<WeaningDialogProps> = ({
           </Button>
         </DialogActions>
       </form>
+
+      <QuickCreateWeaningBatchDialog
+        open={quickCreateBatchOpen}
+        onClose={() => setQuickCreateBatchOpen(false)}
+        onCreated={(draft) => {
+          setDraftBatch(draft);
+          setTargetBatchId('__DRAFT_NEW_BATCH__');
+          setQuickCreateBatchOpen(false);
+        }}
+      />
     </Dialog>
   );
 };

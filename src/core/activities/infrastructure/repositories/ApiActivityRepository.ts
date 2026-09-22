@@ -1,6 +1,6 @@
 import axiosInstance from '@/utils/axios';
 import { Activity } from '../../domain/entities/Activity';
-import { IActivityRepository } from '../../domain/repositories/IActivityRepository';
+import { IActivityRepository, CompanyActivityConfigPayload } from '../../domain/repositories/IActivityRepository';
 import { ActivityMapper } from '../mappers/ActivityMapper';
 
 export class ApiActivityRepository implements IActivityRepository {
@@ -15,6 +15,11 @@ export class ApiActivityRepository implements IActivityRepository {
 
   async toggle(companyId: number, activityId: number, isEnabled: boolean): Promise<void> {
     const headers = { 'X-Company-ID': companyId.toString() };
-    await axiosInstance.post(`/activities/${activityId}/toggle`, { is_enabled: isEnabled }, { headers });
+    await axiosInstance.patch(`/activities/${activityId}/toggle`, { is_enabled: isEnabled }, { headers });
+  }
+
+  async updateConfig(companyId: number, config: CompanyActivityConfigPayload[]): Promise<void> {
+    const headers = { 'X-Company-ID': companyId.toString() };
+    await axiosInstance.put('/activities/config', { activities: config }, { headers });
   }
 }

@@ -17,6 +17,7 @@ import {
   Pets as PetsIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
+import Cact01SuccessSummary from './Cact01SuccessSummary';
 
 interface ScanSuccessDialogProps {
   open: boolean;
@@ -36,6 +37,9 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
   const navigate = useNavigate();
 
   const isTor01 = templateCode === 'TOR-01';
+  const isLser01 = templateCode === 'LSER-01';
+  const isDest01 = templateCode === 'DEST-01';
+  const isCact01 = templateCode === 'CACT-01';
 
   return (
     <Dialog
@@ -54,11 +58,79 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
         }}
       >
         <CheckCircleOutlineIcon sx={{ color: '#10b981', fontSize: 28 }} />
-        {isTor01 ? '¡Planilla Andrológica Procesada Exitosamente!' : '¡Tropa Ingresada Exitosamente!'}
+        {isCact01
+          ? '¡Cambio de Actividad Registrado Exitosamente!'
+          : isDest01
+          ? '¡Destete Registrado Exitosamente!'
+          : isLser01
+          ? '¡Lote de Servicio Creado Exitosamente!'
+          : isTor01
+            ? '¡Planilla Andrológica Procesada Exitosamente!'
+            : '¡Tropa Ingresada Exitosamente!'}
       </DialogTitle>
 
       <DialogContent dividers>
-        {result && isTor01 ? (
+        {result && isCact01 ? (
+          <Cact01SuccessSummary result={result} />
+        ) : result && isDest01 ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Alert severity="success" sx={{ borderRadius: '6px' }}>
+              Se destetaron <strong>{result.calves_count}</strong> cría(s) y quedaron en el lote de destete{' '}
+              <strong>{result.batch_name}</strong>{result.batch_created ? ', creado en esta carga' : ''}.
+            </Alert>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: '6px' }}>
+              <Stack spacing={1.2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Lote de destete:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                    {result.batch_name} {result.batch_created ? '(nuevo)' : '(existente)'}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Crías destetadas:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                    {result.calves_count} ({result.males_count} machos · {result.females_count} hembras)
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Crías pesadas:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>{result.weighed_count}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Peso promedio de las pesadas:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                    {result.average_weight != null ? `${result.average_weight} kg` : '—'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          </Box>
+        ) : result && isLser01 ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Alert severity="success" sx={{ borderRadius: '6px' }}>
+              Se creó el lote de servicio <strong>{result.batch_name}</strong> con{' '}
+              <strong>{result.females_count}</strong> vientre(s), su orden de servicio y los movimientos de hacienda.
+            </Alert>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: '6px' }}>
+              <Stack spacing={1.2}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Lote de servicio:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>{result.batch_name}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Orden de servicio:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, fontFamily: 'monospace' }}>
+                    {result.service_order_code ?? '—'}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Vientres ingresados:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>{result.females_count}</Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          </Box>
+        ) : result && isTor01 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Alert severity="success" sx={{ borderRadius: '6px' }}>
               Se procesó correctamente la revisación andrológica de{' '}
@@ -201,7 +273,27 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
           Escanear Otra Planilla
         </Button>
 
-        {isTor01 ? (
+        {isCact01 ? (
+          <Button
+            onClick={() => navigate('/activities')}
+            variant="contained"
+            color="primary"
+            startIcon={<AgricultureIcon />}
+            sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '6px' }}
+          >
+            Ver Planilla de Actividades
+          </Button>
+        ) : isDest01 ? (
+          <Button
+            onClick={() => navigate('/gestation/weaning-batches')}
+            variant="contained"
+            color="primary"
+            startIcon={<AgricultureIcon />}
+            sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '6px' }}
+          >
+            Ver Lotes de Destete
+          </Button>
+        ) : isTor01 || isLser01 ? (
           <Button
             onClick={() => navigate('/gestation/pre-service')}
             variant="contained"

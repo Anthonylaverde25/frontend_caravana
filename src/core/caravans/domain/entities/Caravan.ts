@@ -224,4 +224,14 @@ export class Caravan {
       this.entry_weight !== null
     );
   }
+
+  /** Whether the animal is a calf. */
+  public isCalf(): boolean {
+    const isCatCalf = Boolean(
+      (this.category && this.category.toUpperCase().includes('TERNER')) ||
+      (this.category_name && this.category_name.toUpperCase().includes('TERNER')) ||
+      (this.category_code && this.category_code.toUpperCase().includes('TERNER'))
+    );
+    return isCatCalf || this.lineage?.is_nursing === true || (this.lineage?.mother_id != null && this.lineage?.is_nursing !== false);
+  }
 }

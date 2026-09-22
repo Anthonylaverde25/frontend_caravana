@@ -32,12 +32,14 @@ export interface BatchDTO {
   min_weight?: number | null;
   max_weight?: number | null;
   knows_to_eat?: boolean;
+  is_confined?: boolean | null;
   age_in_months?: number | null;
   caravans_count?: number;
   observaciones?: string;
   is_active: boolean;
   is_system?: boolean;
   is_service_batch?: boolean;
+  is_weaning_batch?: boolean;
   service_detail?: ServiceBatchDetailDTO | null;
   created_at?: string;
 }
@@ -51,6 +53,12 @@ export interface CreateBatchRequest {
   min_weight?: number | null;
   max_weight?: number | null;
   knows_to_eat?: boolean;
+  /**
+   * Management system: true = confined (pen), false = extensive (pasture),
+   * null = nobody declared it yet. The null is load-bearing: collapsing it into
+   * false makes the screen assert a fact only the producer knows.
+   */
+  is_confined?: boolean | null;
   age_in_months?: number | null;
   observaciones?: string;
 }
@@ -93,11 +101,13 @@ export class Batch {
     public readonly min_weight?: number | null,
     public readonly max_weight?: number | null,
     public readonly knows_to_eat?: boolean,
+    public readonly is_confined?: boolean | null,
     public readonly age_in_months?: number | null,
     public readonly caravans_count?: number,
     public readonly observaciones?: string,
     public readonly is_system: boolean = false,
     public readonly is_service_batch: boolean = false,
+    public readonly is_weaning_batch: boolean = false,
     public readonly service_detail?: ServiceBatchDetailDTO | null,
     public readonly created_at?: string,
   ) { }
@@ -125,11 +135,13 @@ export class Batch {
       dto.min_weight,
       dto.max_weight,
       dto.knows_to_eat,
+      dto.is_confined ?? null,
       dto.age_in_months,
       dto.caravans_count,
       dto.observaciones,
       dto.is_system ?? false,
       dto.is_service_batch ?? dto.batch_type_code === 'SERVICE',
+      dto.is_weaning_batch ?? (dto.batch_type_code === 'WEANING' || (dto.name ? dto.name.toLowerCase().includes('destete') : false)),
       dto.service_detail ?? null,
       dto.created_at
     );
@@ -146,6 +158,10 @@ export class Batch {
 
   public isService(): boolean {
     return this.is_service_batch || this.batch_type_code === 'SERVICE';
+  }
+
+  public isWeaning(): boolean {
+    return this.is_weaning_batch || this.batch_type_code === 'WEANING' || (this.name ? this.name.toLowerCase().includes('destete') : false);
   }
 
   public getFarm() {

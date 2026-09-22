@@ -14,6 +14,9 @@ export const batchSchema = z.object({
   min_weight: z.preprocess((val) => (val === '' || val === null || val === undefined ? undefined : Number(val)), z.number().positive('El peso mínimo debe ser un número positivo').optional().nullable()),
   max_weight: z.preprocess((val) => (val === '' || val === null || val === undefined ? undefined : Number(val)), z.number().positive('El peso máximo debe ser un número positivo').optional().nullable()),
   knows_to_eat: z.boolean().default(false),
+  // Management system. Deliberately NOT defaulted: in Recría it is a fact the producer
+  // must declare, and a default would turn it into a guess made by the system.
+  is_confined: z.boolean().optional().nullable(),
   age_in_months: z.preprocess((val) => (val === '' || val === null || val === undefined ? undefined : Number(val)), z.number().int().nonnegative('La edad debe ser mayor o igual a 0').optional().nullable()),
   observaciones: z.string().optional().nullable(),
 }).superRefine((data, ctx) => {

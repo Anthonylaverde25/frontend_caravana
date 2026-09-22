@@ -3,26 +3,25 @@ import {
 	Typography,
 	Stack,
 	Button,
-	IconButton,
-	alpha,
 	Menu,
 	MenuItem,
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
-	TextField,
 } from '@mui/material';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { motion } from 'framer-motion';
 import ViewLayout from '@/components/ViewLayout';
 import { useNavigate } from 'react-router';
-import { toast } from 'sonner';
 
 import { useCompany } from '@/contexts/CompanyContext';
 import { useActivities } from '@/features/activities/hooks/useActivities';
-import { useChangeBatchActivity } from '@/features/batches/hooks/useChangeBatchActivity';
+import { ActivityBatch } from '@/core/activities/domain/entities/Activity';
+import ManageCompanyActivitiesDialog from '../dialogs/ManageCompanyActivitiesDialog';
+import ChangeBatchManagementDialog from '../dialogs/ChangeBatchManagementDialog';
+import BatchSheetRow from '../components/production-sheet/BatchSheetRow';
+import ProductionSheetFilters, {
+	ManagementFilter,
+} from '../components/production-sheet/ProductionSheetFilters';
+import { declaresManagementSystem } from '../components/production-sheet/managementSystem';
 
 const STAGE_UI_CONFIG = {
 	CRIA: { icon: 'heroicons-outline:home', color: '#4CAF50' },
@@ -46,72 +45,100 @@ const itemVariants = {
 /**
  * ActivitiesView Component
  * Production board showing livestock batches across different production stages.
- * Refactored to use ViewLayout for consistent full-width industrial design.
+ *
+ * Moving livestock forward is done by TRANSFERRING the animals to another batch, not
+ * by changing the activity of the batch: a batch is immutable in its (activity, type)
+ * pair, and a batch that migrated stage could not be split into several specialised
+ * child batches nor keep the individual traceability of each animal.
  */
 export default function ActivitiesView() {
 	const navigate = useNavigate();
 	const { activeCompanyId } = useCompany();
 	const { data: activities, isLoading } = useActivities(activeCompanyId);
-	const { mutate: changeActivity } = useChangeBatchActivity();
 
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-	const [selectedBatch, setSelectedBatch] = useState<any>(null);
-	const [targetStage, setTargetStage] = useState<any>(null);
-	const [weight, setWeight] = useState<string>('');
-	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [selectedBatch, setSelectedBatch] = useState<
+		(ActivityBatch & { activityName?: string; activityCode?: string }) | null
+	>(null);
+	const [isFlowDialogOpen, setIsFlowDialogOpen] = useState(false);
+	const [isManagementDialogOpen, setIsManagementDialogOpen] = useState(false);
 
-	const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, batch: any, stage: any) => {
+	const [managementFilter, setManagementFilter] = useState<ManagementFilter>('ALL');
+	const [hideEmptyBatches, setHideEmptyBatches] = useState(false);
+
+	const handleOpenMenu = (
+		event: React.MouseEvent<HTMLElement>,
+		batch: ActivityBatch,
+		stage: { name: string; code: string },
+	) => {
 		event.stopPropagation();
 		setAnchorEl(event.currentTarget);
-		setSelectedBatch({ ...batch, currentStage: stage });
+		setSelectedBatch({ ...batch, activityName: stage.name, activityCode: stage.code });
 	};
 
 	const handleCloseMenu = () => {
 		setAnchorEl(null);
 	};
 
-	const handleOpenMovementSheet = (stage: any) => {
+	const handleOpenMovementSheet = (stage: { id: number }) => {
 		navigate(`/activities/sheet/${stage.id}`);
 	};
 
-	const handleChangeActivity = (stage: any) => {
-		setTargetStage(stage);
-		setIsDialogOpen(true);
-		setWeight(selectedBatch?.current_weight?.toString() || '');
+	const handleTransfer = () => {
+		if (selectedBatch) {
+			navigate(`/activities/batches/${selectedBatch.id}/transfer`);
+		}
+
 		handleCloseMenu();
 	};
 
-	const handleConfirmMove = () => {
-		const parsedWeight = parseFloat(weight);
-
-		if (!weight || isNaN(parsedWeight) || parsedWeight <= 0) {
-			toast.error('Por favor, ingrese un peso válido mayor a 0');
-			return;
+	// The same movement, on paper. Whoever prefers to walk out to the chute with a sheet
+	// instead of loading the batch from memory starts here.
+	const handlePrintCact01 = () => {
+		if (selectedBatch) {
+			navigate(`/work-templates/CACT-01?sourceBatchId=${selectedBatch.id}`);
 		}
 
-		if (selectedBatch && targetStage) {
-			changeActivity({
-				id: selectedBatch.id,
-				activityId: targetStage.id,
-				weight: parsedWeight,
-			});
-			setIsDialogOpen(false);
-			setSelectedBatch(null);
-			setTargetStage(null);
-			setWeight('');
-		}
+		handleCloseMenu();
 	};
 
-	// Filter only enabled activities and sort by ID or predefined order
-	const stages =
-		activities
-			?.filter((a) => a.isEnabled)
-			.map((a) => ({
-				...a,
-				icon: STAGE_UI_CONFIG[a.code]?.icon || 'heroicons-outline:collection',
-				color: STAGE_UI_CONFIG[a.code]?.color || '#999',
-				tag: a.isFinal ? 'Etapa Final' : null,
-			})) || [];
+	const handleChangeManagement = () => {
+		setIsManagementDialogOpen(true);
+		handleCloseMenu();
+	};
+
+	// Filter only enabled activities and sort by sortOrder
+	const stages = useMemo(
+		() =>
+			activities
+				?.filter((a) => a.isEnabled)
+				.sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
+				.map((a) => ({
+					...a,
+					batches: (a.batches || []).filter((batch) => {
+						if (hideEmptyBatches && !batch.count) return false;
+
+						if (managementFilter === 'ALL') return true;
+
+						// A batch that never declared its management system is not an answer
+						// to "penned or grazing", so it is left out of both instead of being
+						// counted as extensive on the strength of a default nobody stated.
+						// It has its own option now, which is what turns the gap into a list
+						// of batches somebody still has to ask about.
+						const declared = declaresManagementSystem(batch);
+
+						if (managementFilter === 'UNDECLARED') return !declared;
+
+						if (!declared) return false;
+
+						return managementFilter === 'CONFINED' ? batch.isConfined : !batch.isConfined;
+					}),
+					icon: STAGE_UI_CONFIG[a.code]?.icon || 'heroicons-outline:collection',
+					color: STAGE_UI_CONFIG[a.code]?.color || '#999',
+					tag: a.isFinal ? 'Último Destino' : a.isInitial ? 'Origen / Entrada' : null,
+				})) || [],
+		[activities, hideEmptyBatches, managementFilter],
+	);
 
 	if (isLoading) {
 		return (
@@ -129,10 +156,18 @@ export default function ActivitiesView() {
 				<Stack
 					direction="row"
 					spacing={2}
+					alignItems="center"
 				>
+					<ProductionSheetFilters
+						managementFilter={managementFilter}
+						onManagementFilterChange={setManagementFilter}
+						hideEmptyBatches={hideEmptyBatches}
+						onHideEmptyBatchesChange={setHideEmptyBatches}
+					/>
 					<Button
 						variant="outlined"
 						size="small"
+						onClick={() => setIsFlowDialogOpen(true)}
 						startIcon={<FuseSvgIcon size={18}>heroicons-outline:check-circle</FuseSvgIcon>}
 						sx={{
 							textTransform: 'none',
@@ -150,6 +185,7 @@ export default function ActivitiesView() {
 						variant="contained"
 						color="primary"
 						size="small"
+						onClick={() => setIsFlowDialogOpen(true)}
 						startIcon={<FuseSvgIcon size={18}>heroicons-outline:arrows-right-left</FuseSvgIcon>}
 						sx={{
 							textTransform: 'none',
@@ -237,13 +273,14 @@ export default function ActivitiesView() {
 									<Typography
 										variant="caption"
 										sx={{
-											bgcolor: stage.color,
+											bgcolor: stage.isInitial ? '#10b981' : stage.isFinal ? '#f59e0b' : stage.color,
 											color: 'white',
 											px: 1,
-											py: 0.1,
-											borderRadius: '2px',
-											fontSize: '0.6rem',
+											py: 0.2,
+											borderRadius: '4px',
+											fontSize: '0.62rem',
 											fontWeight: 900,
+											letterSpacing: 0.5,
 										}}
 									>
 										{stage.tag.toUpperCase()}
@@ -329,91 +366,13 @@ export default function ActivitiesView() {
 
 								{/* Rows */}
 								{(stage.batches || []).map((batch) => (
-									<Box
+									<BatchSheetRow
 										key={batch.id}
-										sx={{
-											display: 'grid',
-											gridTemplateColumns: '1.5fr 1fr 0.8fr 0.4fr',
-											borderBottom: '1px solid #e0e0e0',
-											cursor: 'pointer',
-											transition: 'background 0.1s',
-											'&:hover': {
-												bgcolor: alpha(stage.color, 0.05),
-											},
-										}}
-									>
-										<Box
-											sx={{
-												p: 1,
-												borderRight: '1px solid #e0e0e0',
-												display: 'flex',
-												flexDirection: 'column',
-											}}
-										>
-											<Typography
-												variant="body2"
-												sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#333', lineHeight: 1.2 }}
-											>
-												{batch.name}
-											</Typography>
-											<Typography sx={{ fontSize: '0.6rem', color: '#888' }}>
-												{batch.farmName}
-											</Typography>
-										</Box>
-										<Box
-											sx={{
-												p: 1,
-												borderRight: '1px solid #e0e0e0',
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-											}}
-										>
-											<Typography
-												variant="body2"
-												sx={{ fontWeight: 900, fontSize: '0.85rem', color: stage.color }}
-											>
-												{batch.count}
-											</Typography>
-										</Box>
-										<Box
-											sx={{
-												p: 1,
-												borderRight: '1px solid #e0e0e0',
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-											}}
-										>
-											<Typography
-												variant="caption"
-												sx={{
-													fontWeight: 800,
-													fontSize: '0.7rem',
-													color: '#555',
-													bgcolor: '#f1f1f1',
-													px: 0.8,
-													py: 0.2,
-													borderRadius: '2px',
-												}}
-											>
-												{batch.current_weight ? `${batch.current_weight} KG` : '-'}
-											</Typography>
-										</Box>
-										<Box sx={{ p: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-											<IconButton
-												size="small"
-												onClick={(e) => handleOpenMenu(e, batch, stage)}
-												sx={{
-													p: 0.5,
-													color: '#bbb',
-													'&:hover': { color: stage.color, bgcolor: alpha(stage.color, 0.1) },
-												}}
-											>
-												<FuseSvgIcon size={16}>heroicons-outline:arrows-right-left</FuseSvgIcon>
-											</IconButton>
-										</Box>
-									</Box>
+										batch={batch}
+										stageColor={stage.color}
+										showManagementSystem={declaresManagementSystem(batch)}
+										onOpenMenu={(e, b) => handleOpenMenu(e, b, stage)}
+									/>
 								))}
 
 								{/* Empty Rows */}
@@ -472,9 +431,9 @@ export default function ActivitiesView() {
 					sx: {
 						boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
 						border: '1px solid #e0e0e0',
-						minWidth: 200,
+						minWidth: 240,
 						borderRadius: '8px',
-					}
+					},
 				}}
 			>
 				<Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #f0f0f0', mb: 1 }}>
@@ -482,231 +441,47 @@ export default function ActivitiesView() {
 						variant="caption"
 						sx={{ fontWeight: 900, color: '#999', textTransform: 'uppercase', fontSize: '0.65rem' }}
 					>
-						MOVER A ETAPA:
+						{selectedBatch?.name}
 					</Typography>
 				</Box>
-				{stages.map((stage) => (
-					<MenuItem
-						key={stage.id}
-						onClick={() => handleChangeActivity(stage)}
-						disabled={selectedBatch?.activityId === stage.id}
-						sx={{
-							fontSize: '0.8rem',
-							fontWeight: 700,
-							py: 1.2,
-							px: 2,
-							gap: 1.5,
-							'&:hover': { bgcolor: alpha(stage.color, 0.05) },
-						}}
-					>
-						<Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: stage.color }} />
-						{stage.name}
-					</MenuItem>
-				))}
+
+				<MenuItem
+					onClick={handleTransfer}
+					sx={{ fontSize: '0.8rem', fontWeight: 700, py: 1.2, px: 2, gap: 1.5 }}
+				>
+					<FuseSvgIcon size={18}>heroicons-outline:arrows-right-left</FuseSvgIcon>
+					Transferir animales
+				</MenuItem>
+
+				<MenuItem
+					onClick={handlePrintCact01}
+					sx={{ fontSize: '0.8rem', fontWeight: 700, py: 1.2, px: 2, gap: 1.5 }}
+				>
+					<FuseSvgIcon size={18}>heroicons-outline:printer</FuseSvgIcon>
+					Imprimir Planilla CACT-01
+				</MenuItem>
+
+				<MenuItem
+					onClick={handleChangeManagement}
+					sx={{ fontSize: '0.8rem', fontWeight: 700, py: 1.2, px: 2, gap: 1.5 }}
+				>
+					<FuseSvgIcon size={18}>
+						{selectedBatch?.isConfined === true ? 'heroicons-outline:sun' : 'heroicons-outline:home'}
+					</FuseSvgIcon>
+					Cambiar sistema de manejo
+				</MenuItem>
 			</Menu>
 
-			{/* Confirm Movement Dialog - Bulk Entry Style */}
-			<Dialog
-				open={isDialogOpen}
-				onClose={() => setIsDialogOpen(false)}
-				maxWidth="sm"
-				fullWidth
-				PaperProps={{
-					sx: {
-						borderRadius: '8px',
-						boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-						border: '1px solid #e0e0e0',
-					},
-				}}
-			>
-				<DialogTitle sx={{ p: 3, pb: 1 }}>
-					<Typography
-						variant="h6"
-						sx={{ fontWeight: 800, color: '#333' }}
-					>
-						Registrar Movimiento de Actividad
-					</Typography>
-				</DialogTitle>
+			<ChangeBatchManagementDialog
+				open={isManagementDialogOpen}
+				onClose={() => setIsManagementDialogOpen(false)}
+				batch={selectedBatch}
+			/>
 
-				<DialogContent sx={{ p: 3 }}>
-					<Stack spacing={3}>
-						{/* Thinner Origin & Destination Display */}
-						<Box
-							sx={{
-								py: 1.5,
-								px: 1,
-								borderBottom: '1px solid #f0f0f0',
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-								gap: 3,
-								bgcolor: '#fcfcfc',
-								borderRadius: '8px',
-							}}
-						>
-							<Stack
-								direction="row"
-								spacing={1.5}
-								alignItems="center"
-							>
-								<Box
-									sx={{
-										width: 32,
-										height: 32,
-										borderRadius: '50%',
-										bgcolor: alpha(selectedBatch?.currentStage?.color || '#999', 0.1),
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										color: selectedBatch?.currentStage?.color || '#999',
-									}}
-								>
-									<FuseSvgIcon size={16}>
-										{selectedBatch?.currentStage?.icon || 'heroicons-outline:home'}
-									</FuseSvgIcon>
-								</Box>
-								<Box>
-									<Typography
-										variant="caption"
-										sx={{
-											display: 'block',
-											color: '#999',
-											fontWeight: 600,
-											textTransform: 'uppercase',
-											fontSize: '0.6rem',
-										}}
-									>
-										Origen
-									</Typography>
-									<Typography
-										variant="body2"
-										sx={{
-											fontWeight: 800,
-											color: selectedBatch?.currentStage?.color || '#333',
-											fontSize: '0.85rem',
-										}}
-									>
-										{selectedBatch?.currentStage?.name}
-									</Typography>
-								</Box>
-							</Stack>
-
-							<FuseSvgIcon
-								size={20}
-								sx={{ color: '#ddd' }}
-							>
-								heroicons-outline:arrow-long-right
-							</FuseSvgIcon>
-
-							<Stack
-								direction="row"
-								spacing={1.5}
-								alignItems="center"
-							>
-								<Box
-									sx={{
-										width: 32,
-										height: 32,
-										borderRadius: '50%',
-										bgcolor: alpha(targetStage?.color || '#0a6ed1', 0.1),
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'center',
-										color: targetStage?.color || '#0a6ed1',
-									}}
-								>
-									<FuseSvgIcon size={16}>
-										{targetStage?.icon || 'heroicons-outline:arrow-path'}
-									</FuseSvgIcon>
-								</Box>
-								<Box>
-									<Typography
-										variant="caption"
-										sx={{
-											display: 'block',
-											color: '#999',
-											fontWeight: 600,
-											textTransform: 'uppercase',
-											fontSize: '0.6rem',
-										}}
-									>
-										Destino
-									</Typography>
-									<Typography
-										variant="body2"
-										sx={{ fontWeight: 800, color: targetStage?.color || '#0a6ed1', fontSize: '0.85rem' }}
-									>
-										{targetStage?.name}
-									</Typography>
-								</Box>
-							</Stack>
-						</Box>
-
-						<Box>
-							<TextField
-								fullWidth
-								label="Peso Promedio de Transferencia (kg/cab)"
-								variant="filled"
-								placeholder="0.00"
-								value={weight}
-								onChange={(e) => setWeight(e.target.value)}
-								autoFocus
-								InputProps={{
-									sx: {
-										fontWeight: 800,
-										fontSize: '1.1rem',
-										bgcolor: '#f5f7f9',
-										'&:hover': { bgcolor: '#f0f2f5' },
-										'&.Mui-focused': { bgcolor: '#f0f2f5' },
-									},
-									endAdornment: (
-										<Typography
-											variant="caption"
-											sx={{ fontWeight: 900, color: '#999', mt: 2 }}
-										>
-											KG
-										</Typography>
-									),
-								}}
-								sx={{
-									'& .MuiInputLabel-root': { fontWeight: 700, color: '#999' },
-									'& .MuiFilledInput-underline:before': { borderBottomColor: '#e0e0e0' },
-								}}
-							/>
-							<Typography
-								variant="caption"
-								sx={{ mt: 1, display: 'block', color: '#aaa', fontStyle: 'italic' }}
-							>
-								* Este peso cerrará la etapa actual y abrirá la nueva como peso inicial.
-							</Typography>
-						</Box>
-					</Stack>
-				</DialogContent>
-
-				<DialogActions sx={{ p: 3, pt: 1, gap: 1 }}>
-					<Button
-						onClick={() => setIsDialogOpen(false)}
-						sx={{ fontWeight: 700, textTransform: 'none', color: 'text.secondary' }}
-					>
-						Cancelar
-					</Button>
-					<Button
-						onClick={handleConfirmMove}
-						variant="contained"
-						disableElevation
-						disabled={!weight || isNaN(parseFloat(weight)) || parseFloat(weight) <= 0}
-						sx={{
-							fontWeight: 800,
-							textTransform: 'none',
-							px: 4,
-							borderRadius: '4px',
-							bgcolor: '#0a6ed1',
-						}}
-					>
-						Confirmar Movimiento
-					</Button>
-				</DialogActions>
-			</Dialog>
+			<ManageCompanyActivitiesDialog
+				open={isFlowDialogOpen}
+				onClose={() => setIsFlowDialogOpen(false)}
+			/>
 		</ViewLayout>
 	);
 }

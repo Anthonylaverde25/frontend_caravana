@@ -12,6 +12,9 @@ export interface BirthHistoryRecord {
   is_nursing: boolean;
   calf_sex: string | null;
   calf_batch_name: string | null;
+  calf_batch_id: number | null;
+  mother_batch_id: number | null;
+  mother_batch_name: string | null;
 }
 
 /**
