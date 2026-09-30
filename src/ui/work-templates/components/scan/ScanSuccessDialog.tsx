@@ -18,6 +18,9 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import Cact01SuccessSummary from './Cact01SuccessSummary';
+import Dest01SuccessSummary from './Dest01SuccessSummary';
+import Par01SuccessSummary from './Par01SuccessSummary';
+import ScanCact01Warnings from './ScanCact01Warnings';
 
 interface ScanSuccessDialogProps {
   open: boolean;
@@ -40,6 +43,7 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
   const isLser01 = templateCode === 'LSER-01';
   const isDest01 = templateCode === 'DEST-01';
   const isCact01 = templateCode === 'CACT-01';
+  const isPar01 = templateCode === 'PAR-01';
 
   return (
     <Dialog
@@ -58,7 +62,9 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
         }}
       >
         <CheckCircleOutlineIcon sx={{ color: '#10b981', fontSize: 28 }} />
-        {isCact01
+        {isPar01
+          ? '¡Recorrida de Parición Registrada!'
+          : isCact01
           ? '¡Cambio de Actividad Registrado Exitosamente!'
           : isDest01
           ? '¡Destete Registrado Exitosamente!'
@@ -70,41 +76,12 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
       </DialogTitle>
 
       <DialogContent dividers>
-        {result && isCact01 ? (
+        {result && isPar01 ? (
+          <Par01SuccessSummary result={result} />
+        ) : result && isCact01 ? (
           <Cact01SuccessSummary result={result} />
         ) : result && isDest01 ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Alert severity="success" sx={{ borderRadius: '6px' }}>
-              Se destetaron <strong>{result.calves_count}</strong> cría(s) y quedaron en el lote de destete{' '}
-              <strong>{result.batch_name}</strong>{result.batch_created ? ', creado en esta carga' : ''}.
-            </Alert>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: '6px' }}>
-              <Stack spacing={1.2}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Lote de destete:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                    {result.batch_name} {result.batch_created ? '(nuevo)' : '(existente)'}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Crías destetadas:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                    {result.calves_count} ({result.males_count} machos · {result.females_count} hembras)
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Crías pesadas:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800 }}>{result.weighed_count}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Peso promedio de las pesadas:</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                    {result.average_weight != null ? `${result.average_weight} kg` : '—'}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Paper>
-          </Box>
+          <Dest01SuccessSummary result={result} />
         ) : result && isLser01 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Alert severity="success" sx={{ borderRadius: '6px' }}>
@@ -273,7 +250,17 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
           Escanear Otra Planilla
         </Button>
 
-        {isCact01 ? (
+        {isPar01 ? (
+          <Button
+            onClick={() => navigate(result?.birth_order ? `/birth-orders?orderId=${result.birth_order.id}` : '/birth-orders')}
+            variant="contained"
+            color="primary"
+            startIcon={<AgricultureIcon />}
+            sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '6px' }}
+          >
+            Ver orden de parición
+          </Button>
+        ) : isCact01 ? (
           <Button
             onClick={() => navigate('/activities')}
             variant="contained"
@@ -285,13 +272,15 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
           </Button>
         ) : isDest01 ? (
           <Button
-            onClick={() => navigate('/gestation/weaning-batches')}
+            onClick={() =>
+              navigate(result?.weaning_order ? `/weaning-orders?orderId=${result.weaning_order.id}` : '/gestation/weaning-batches')
+            }
             variant="contained"
             color="primary"
             startIcon={<AgricultureIcon />}
             sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '6px' }}
           >
-            Ver Lotes de Destete
+            Ver orden de destete
           </Button>
         ) : isTor01 || isLser01 ? (
           <Button

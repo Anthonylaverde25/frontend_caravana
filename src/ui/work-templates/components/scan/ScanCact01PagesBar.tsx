@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Alert, Box, Button, Chip, CircularProgress, Stack, Typography } from '@mui/material';
 import { NoteAdd as NoteAddIcon } from '@mui/icons-material';
-import type { Cact01PagesState } from '../../hooks/useCact01Pages';
+import { headerDifferences, type Cact01PagesState } from '../../hooks/useCact01Pages';
 
 const ACCEPTED_FILE_TYPES = '.png,.jpg,.jpeg,.webp,.pdf';
 
@@ -102,8 +102,8 @@ export const ScanCact01PagesBar: React.FC<ScanCact01PagesBarProps> = ({ state, o
             </Stack>
           }
         >
-          La hoja <strong>{pendingPage.fileName}</strong> dice lote de origen "{pendingPage.metadata.lote_origen || 'sin nombre'}" y fecha{' '}
-          {pendingPage.metadata.fecha_movimiento}, distinto de la hoja 1. Si es del mismo movimiento, se agrega y vale el encabezado de la hoja 1.
+          La hoja <strong>{pendingPage.fileName}</strong> no coincide con la hoja 1:{' '}
+          {pages[0] ? headerDifferences(pendingPage, pages[0]).join('; ') : ''}. Si es del mismo movimiento, se agrega y vale el encabezado de la hoja 1.
         </Alert>
       )}
     </Box>

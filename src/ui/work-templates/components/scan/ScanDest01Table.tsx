@@ -15,8 +15,17 @@ import {
   Typography,
   alpha,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, ErrorOutline as ErrorOutlineIcon } from '@mui/icons-material';
+import type { Theme } from '@mui/material/styles';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
+import { useBirthHistory } from '@/features/gestation/hooks/useBirthHistory';
+import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
+import { labelOfPair } from '@/features/categories/categoryLabels';
 import { Dest01Error, Dest01Row } from './types';
+import { parseWeight, reviewWeightIssues } from '../../utils/weightOutliers';
+import { ScanDest01RowProblems } from './ScanDest01RowProblems';
 
 interface ScanDest01TableProps {
   rows: Dest01Row[];
@@ -27,6 +36,10 @@ interface ScanDest01TableProps {
   rowErrorsById?: Record<string, Dest01Error[]>;
   editedRowIds?: Set<string>;
   onlyWithErrors?: boolean;
+  /** Each calf has its own weaning batch: the Lote destino and M columns. */
+  perAnimal?: boolean;
+  /** The category may change: the C/S nueva column (blank = no change). */
+  showCategory?: boolean;
 }
 
 const cellSx = (hasErrors: boolean) => ({ borderBottom: hasErrors ? 'none' : undefined });
@@ -41,16 +54,37 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
   rowErrorsById = {},
   editedRowIds = new Set(),
   onlyWithErrors = false,
+  perAnimal = false,
+  showCategory = true,
 }) => {
+  const columnCount = 8 + (showCategory ? 1 : 0) + (perAnimal ? 2 : 0);
+
+  // The C/S each calf has now, known by its tag: the reference for the C/S nueva, never read off paper.
+  const { data: births = [] } = useBirthHistory();
+  const { categories } = useAnimalCategories();
+  const currentCategoryByTag = useMemo(
+    () =>
+      new Map(
+        births.map((b) => [
+          b.calf_identification.trim().toUpperCase(),
+          labelOfPair(categories, b.calf_category_id, b.calf_subcategory_id) ?? 'Sin categoría'
+        ])
+      ),
+    [births, categories]
+  );
   const totals = useMemo(() => {
     const calves = rows.filter((r) => r.caravana.trim() !== '');
-    const weights = calves.map((r) => Number(r.peso.replace(',', '.'))).filter((w) => isPositiveWeight(w));
+    const weights = calves.map((r) => parseWeight(r.peso)).filter((w): w is number => w !== null && w > 0);
     return {
       calves: calves.length,
       weighed: weights.length,
       average: weights.length ? weights.reduce((a, b) => a + b, 0) / weights.length : null,
     };
   }, [rows]);
+
+  // Zero is never a weight; a weight far from the troop may be a typo. Both are shown here,
+  // on the row, while the sheet is still being reviewed.
+  const weightIssues = useMemo(() => reviewWeightIssues(rows), [rows]);
 
   const visible = rows
     .map((row, index) => ({ row, index }))
@@ -70,14 +104,22 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
       </Stack>
 
       <Box sx={{ overflowX: 'auto' }}>
-        <Table size="small" sx={{ minWidth: 760, '& .MuiTableCell-root': { borderColor: 'divider' } }}>
+        <Table size="small" sx={{ minWidth: perAnimal ? 1100 : 860, '& .MuiTableCell-root': { borderColor: 'divider' } }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 56, fontWeight: 800 }}>Hoja</TableCell>
               <TableCell sx={{ width: 56, fontWeight: 800 }}>Fila</TableCell>
               <TableCell sx={{ width: 190, fontWeight: 800 }}>Caravana de la Cría</TableCell>
               <TableCell sx={{ width: 190, fontWeight: 800 }}>Caravana de la Madre</TableCell>
-              <TableCell sx={{ width: 120, fontWeight: 800 }}>Peso (kg)</TableCell>
+              <TableCell sx={{ width: 140, fontWeight: 800 }}>
+                <Tooltip title="La del sistema, según la caravana de la cría. No se lee de la planilla.">
+                  <span>C/S actual</span>
+                </Tooltip>
+              </TableCell>
+              {showCategory && <TableCell sx={{ width: 170, fontWeight: 800 }}>C/S nueva</TableCell>}
+              <TableCell sx={{ width: 110, fontWeight: 800 }}>Peso (kg)</TableCell>
+              {perAnimal && <TableCell sx={{ width: 190, fontWeight: 800 }}>Lote destino</TableCell>}
+              {perAnimal && <TableCell sx={{ width: 60, fontWeight: 800 }}>M</TableCell>}
               <TableCell sx={{ fontWeight: 800 }}>Observaciones</TableCell>
               <TableCell sx={{ width: 56 }} />
             </TableRow>
@@ -85,7 +127,7 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
           <TableBody>
             {visible.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={columnCount}>
                   <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                     {onlyWithErrors ? 'No quedan filas con errores.' : 'Sin crías cargadas.'}
                   </Typography>
@@ -95,11 +137,18 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
             {visible.map(({ row, index }) => {
               const errors = rowErrorsById[row.id] ?? [];
               const edited = editedRowIds.has(row.id);
-              const hasErrors = errors.length > 0;
+              const weightIssue = weightIssues[row.id];
+              const hasServerErrors = errors.length > 0;
+              const hasErrors = hasServerErrors || weightIssue !== undefined;
+              // Red for what blocks the load, amber for what only asks to be looked at again.
+              const rowTint = (t: Theme) =>
+                hasServerErrors || weightIssue?.severity === 'error'
+                  ? alpha(t.palette.error.main, 0.06)
+                  : alpha(t.palette.warning.main, 0.08);
 
               return (
                 <React.Fragment key={row.id}>
-                  <TableRow sx={{ bgcolor: hasErrors && !edited ? (t) => alpha(t.palette.error.main, 0.06) : undefined }}>
+                  <TableRow sx={{ bgcolor: (hasServerErrors && !edited) || weightIssue ? rowTint : undefined }}>
                     <TableCell sx={{ ...cellSx(hasErrors), fontWeight: 700, color: 'text.secondary' }}>
                       {pageLabelByKey[row.pageKey] ?? '—'}
                     </TableCell>
@@ -110,7 +159,7 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
                         onChange={(e) => onRowChange(row.id, 'caravana', e.target.value)}
                         size="small"
                         fullWidth
-                        error={hasErrors && !edited}
+                        error={hasServerErrors && !edited}
                         InputProps={{ sx: { fontFamily: 'monospace', fontWeight: 800 } }}
                       />
                     </TableCell>
@@ -124,6 +173,33 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
                       />
                     </TableCell>
                     <TableCell sx={cellSx(hasErrors)}>
+                      {(() => {
+                        const tag = row.caravana.trim().toUpperCase();
+                        const current = tag ? currentCategoryByTag.get(tag) : undefined;
+
+                        return (
+                          <Typography
+                            variant="body2"
+                            color={current ? 'text.primary' : 'text.disabled'}
+                            sx={{ fontWeight: current ? 600 : 400, fontStyle: current ? 'normal' : 'italic' }}
+                          >
+                            {current ?? (tag ? 'No es una cría' : '—')}
+                          </Typography>
+                        );
+                      })()}
+                    </TableCell>
+                    {showCategory && (
+                      <TableCell sx={cellSx(hasErrors)}>
+                        <TextField
+                          value={row.cs_nueva}
+                          onChange={(e) => onRowChange(row.id, 'cs_nueva', e.target.value)}
+                          size="small"
+                          fullWidth
+                          placeholder="No cambia"
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell sx={cellSx(hasErrors)}>
                       <TextField
                         value={row.peso}
                         onChange={(e) => onRowChange(row.id, 'peso', e.target.value)}
@@ -131,8 +207,37 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
                         fullWidth
                         placeholder="—"
                         inputProps={{ inputMode: 'decimal' }}
+                        error={weightIssue?.severity === 'error'}
+                        sx={
+                          weightIssue?.severity === 'warning'
+                            ? { '& .MuiOutlinedInput-notchedOutline': { borderColor: 'warning.main', borderWidth: 2 } }
+                            : undefined
+                        }
                       />
                     </TableCell>
+                    {perAnimal && (
+                      <TableCell sx={cellSx(hasErrors)}>
+                        <TextField
+                          value={row.lote_destino}
+                          onChange={(e) => onRowChange(row.id, 'lote_destino', e.target.value)}
+                          size="small"
+                          fullWidth
+                          // A calf without its batch is completed on its row, never from the header.
+                          error={row.caravana.trim() !== '' && row.lote_destino.trim() === ''}
+                          placeholder="Sin lote"
+                        />
+                      </TableCell>
+                    )}
+                    {perAnimal && (
+                      <TableCell sx={cellSx(hasErrors)}>
+                        <TextField
+                          value={row.manejo}
+                          onChange={(e) => onRowChange(row.id, 'manejo', e.target.value.toUpperCase().slice(0, 1))}
+                          size="small"
+                          inputProps={{ maxLength: 1, style: { textAlign: 'center', fontWeight: 800 } }}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell sx={cellSx(hasErrors)}>
                       <TextField
                         value={row.observations}
@@ -150,25 +255,10 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
                     </TableCell>
                   </TableRow>
                   {hasErrors && (
-                    <TableRow sx={{ bgcolor: !edited ? (t) => alpha(t.palette.error.main, 0.06) : undefined }}>
+                    <TableRow sx={{ bgcolor: !edited || weightIssue ? rowTint : undefined }}>
                       <TableCell colSpan={2} />
-                      <TableCell colSpan={5} sx={{ pt: 0 }}>
-                        {errors.map((error) => (
-                          <Box key={error.code} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <ErrorOutlineIcon sx={{ fontSize: 16, color: edited ? 'text.disabled' : 'error.main' }} />
-                            <Typography
-                              variant="caption"
-                              sx={{ fontWeight: 600, color: edited ? 'text.disabled' : 'error.main', textDecoration: edited ? 'line-through' : 'none' }}
-                            >
-                              {error.message}
-                            </Typography>
-                          </Box>
-                        ))}
-                        {edited && (
-                          <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 700 }}>
-                            Fila editada: se vuelve a validar al reintentar la carga.
-                          </Typography>
-                        )}
+                      <TableCell colSpan={columnCount - 2} sx={{ pt: 0 }}>
+                        <ScanDest01RowProblems errors={errors} weightIssue={weightIssue} edited={edited} />
                       </TableCell>
                     </TableRow>
                   )}
@@ -187,9 +277,5 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
     </Box>
   );
 };
-
-function isPositiveWeight(value: number): boolean {
-  return Number.isFinite(value) && value > 0;
-}
 
 export default ScanDest01Table;

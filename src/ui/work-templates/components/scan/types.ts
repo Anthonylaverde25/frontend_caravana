@@ -1,3 +1,6 @@
+import type { TransferOrderExecutionSummary } from '@/features/transfer-orders/types';
+
+
 export interface WorkTemplateScanRow {
   id?: string | number;
   caravana: string;
@@ -73,7 +76,11 @@ export interface Lser01ValidationErrors {
 }
 
 export interface Dest01Metadata {
+  /** The weaning order code as read off paper (DS-YYYYMMDD-NNNN); blank on a sheet printed blank. */
+  orden_destete: string;
   lote_destete: string;
+  /** The CORRAL / PASTURA box of the header, for the single weaning batch. */
+  sistema_manejo: string;
   fecha_destete: string;
   tipo_destete: string;
   lote_origen: string;
@@ -82,15 +89,21 @@ export interface Dest01Metadata {
 }
 
 /**
- * Destination of the weaned calves, declared by the operator. The first proposal comes from the
- * batch name read on the sheet; `touched` stops re-proposing once the operator has chosen.
+ * A weaning batch named on the sheet, as the operator resolved it: an existing weaning batch or a
+ * new one, with its management system when it is new. The first proposal comes from the name read
+ * on the sheet (or from the order); `touched` stops re-proposing once the operator has chosen.
  */
 export interface Dest01BatchTarget {
   mode: 'existing' | 'new';
   batchId: number | null;
   name: string;
+  /** Only for a new batch: corral, pasture, or not answered yet. */
+  isConfined: boolean | null;
   touched: boolean;
 }
+
+/** One weaning batch for every calf (the header names it), or a batch per calf (a column). */
+export type Dest01DestinationMode = 'single' | 'per_animal';
 
 export interface Dest01Row {
   id: string;
@@ -100,6 +113,12 @@ export interface Dest01Row {
   caravana_madre: string;
   peso: string;
   observations: string;
+  /** The C/S nueva cell as read: a category, a subcategory or both. Blank = no change. */
+  cs_nueva: string;
+  /** Per animal: the weaning batch of this calf, as written. Blank = a calf without destination. */
+  lote_destino: string;
+  /** Per animal: the C / P letter of the batch of this row. */
+  manejo: string;
 }
 
 export interface Dest01Page {
@@ -121,9 +140,25 @@ export type Dest01ValidationErrors = Lser01ValidationErrors;
 
 export interface Cact01Metadata {
   actividad_origen: string;
+  /**
+   * The destination activity, resolved against the catalogue.
+   *
+   * One per sheet, all its pages included, and the restriction every destination obeys: a
+   * batch written by hand at the chute has to belong to THIS activity. It is what the
+   * backend validates against; the text below is only what the paper said.
+   */
+  actividad_destino_id: number | null;
+  /** As read off the paper. Kept for the control message when it disagrees with the id. */
   actividad_destino: string;
   lote_origen: string;
+  /** The destination for ALL the animals. Blank on a per-animal sheet: it has none. */
   lote_destino: string;
+  /**
+   * The sheet carries a destination per animal. Then there is no sheet-wide destination: what
+   * the header says is not inherited, and a blank row cell is an animal with no destination
+   * yet, to be set in that very cell.
+   */
+  destino_por_animal: boolean;
   fecha_movimiento: string;
   /** 'CORRAL' | 'PASTURA' | '' */
   sistema_manejo: string;
@@ -131,6 +166,11 @@ export interface Cact01Metadata {
   peso_total: string;
   responsable: string;
   observaciones: string;
+  /**
+   * The transfer order code printed in the header box, as read. Blank on a sheet filled in
+   * without an order, which is still a valid sheet.
+   */
+  orden_transferencia: string;
 }
 
 /**
@@ -162,11 +202,32 @@ export interface Cact01Row {
   pageKey: string;
   caravana: string;
   peso_actual: string;
+  /** The animal's sex as the system knows it by its tag; the sheet's is only illustrative. */
   sexo: string;
   categoria: string;
   dientes: string;
   /** Normalised destination key: the row cell when written, the header otherwise. */
   destination_key: string;
+  /**
+   * The M cell: 'C' for corral, 'P' for pastura, '' when it was left blank.
+   *
+   * It describes the BATCH named in `destination_key`, not the animal. It rides on the row
+   * because that is where the paper has room for it, which is also why two rows naming the
+   * same new batch with different letters is a contradiction the operator has to settle.
+   */
+  manejo: string;
+  /**
+   * The C/S nueva cell: the new category or subcategory as written ("Novillito", "Reposición",
+   * "Vaquillona / Reposición"), '' for no change. Text on purpose: the backend resolves it
+   * against the catalog and reports what it cannot resolve on its own.
+   */
+  cs_nueva: string;
+  /**
+   * Cells the screen filled with what the system already knows of the animal. Shown as such and
+   * sent blank: the paper did not say them, so there is nothing to control. The sex is always
+   * the system's; a category the scan left blank is filled, and editing it makes it the operator's.
+   */
+  systemFilled?: { sexo?: boolean; categoria?: boolean };
   observations: string;
 }
 
@@ -211,4 +272,6 @@ export interface Cact01SuccessResult {
   };
   destinations: Cact01DestinationResult[];
   warnings: Cact01Warning[];
+  /** The order the movement fulfilled, when the sheet or the screen named one. */
+  transfer_order?: TransferOrderExecutionSummary | null;
 }

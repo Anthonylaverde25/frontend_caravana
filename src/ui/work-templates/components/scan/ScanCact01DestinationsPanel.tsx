@@ -22,7 +22,11 @@ interface ScanCact01DestinationsPanelProps {
   batches: Cact01BatchOption[];
   activities: ActivityOption[];
   batchTypes: BatchTypeOption[];
+  /** The sheet's destination activity: shown here and imposed on every card below. */
+  destinationActivityId: number | null;
   headerErrors?: Cact01HeaderError[];
+  /** The sheet carries a destination per animal: there is no sheet-wide one. */
+  perAnimal?: boolean;
 }
 
 /**
@@ -38,16 +42,23 @@ export const ScanCact01DestinationsPanel: React.FC<ScanCact01DestinationsPanelPr
   batches,
   activities,
   batchTypes,
+  destinationActivityId,
   headerErrors = [],
+  perAnimal = false,
 }) => {
+  const destinationActivityName = activities.find((activity) => activity.id === destinationActivityId)?.name;
   const destinationErrors = headerErrors.filter((error) => error.field === 'destinations');
+  // Rows with no destination are not a destination: they get no card to configure a batch for
+  // all of them at once. Each one is set in its own row, and the warning below says how many.
+  const cards = state.destinations.filter((destination) => destination.key !== '');
 
   return (
     <Box sx={{ px: 2, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <Box sx={{ pl: 1.5, borderLeft: '3px solid #0a6ed1' }}>
           <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}>
-            Destinos leídos ({state.destinations.length})
+            {perAnimal ? 'Destinos por animal' : 'Destinos leídos'} ({cards.length})
+            {destinationActivityName ? ` · ${destinationActivityName}` : ''}
           </Typography>
         </Box>
       </Stack>
@@ -57,6 +68,16 @@ export const ScanCact01DestinationsPanel: React.FC<ScanCact01DestinationsPanelPr
           <Stack spacing={0.5}>
             {destinationErrors.map((error) => (
               <span key={`${error.code}-${error.message}`}>{error.message}</span>
+            ))}
+          </Stack>
+        </Alert>
+      )}
+
+      {state.advisories.length > 0 && (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: '6px' }}>
+          <Stack spacing={0.5}>
+            {state.advisories.map((note) => (
+              <span key={note}>{note}</span>
             ))}
           </Stack>
         </Alert>
@@ -72,13 +93,13 @@ export const ScanCact01DestinationsPanel: React.FC<ScanCact01DestinationsPanelPr
         </Alert>
       )}
 
-      {state.destinations.length === 0 ? (
+      {cards.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           Todavía no se leyó ningún lote de destino. Cargá al menos una hoja.
         </Typography>
       ) : (
         <Stack spacing={1.5}>
-          {state.destinations.map((destination) => (
+          {cards.map((destination) => (
             <ScanCact01DestinationCard
               key={destination.key}
               destination={destination}
@@ -87,6 +108,7 @@ export const ScanCact01DestinationsPanel: React.FC<ScanCact01DestinationsPanelPr
               batches={batches}
               activities={activities}
               batchTypes={batchTypes}
+              destinationActivityId={destinationActivityId}
               onChange={(patch) => state.update(destination.key, patch)}
             />
           ))}

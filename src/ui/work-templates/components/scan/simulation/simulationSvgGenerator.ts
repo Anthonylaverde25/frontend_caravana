@@ -10,7 +10,7 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
   // Header metadata formatting
   const establishment = context.establecimiento || context.farm_name || 'ESTANCIA LA PRIMAVERA';
   const renspa = context.renspa || context.provider_renspa || '02.001.0.00001/01';
-  const date = context.fecha || context.evaluation_date || context.entry_date || context.fecha_destete || context.fecha_movimiento || context.planned_start_date || new Date().toISOString().slice(0, 10);
+  const date = context.fecha || context.evaluation_date || context.entry_date || context.fecha_destete || context.fecha_recorrida || context.fecha_movimiento || context.planned_start_date || new Date().toISOString().slice(0, 10);
 
   // Determine columns and cell format based on templateCode
   let columns: Array<{ label: string; width: number; align?: 'left' | 'center' | 'right' }> = [];
@@ -66,38 +66,66 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
       ];
       break;
 
-    case 'DEST-01':
-      secondaryContextText = `LOTE DESTETE: [ ${context.lote_destete || 'Destete Marzo 2026'} ] | TIPO: ${context.tipo_destete || 'TRADICIONAL'} | ORIGEN: ${context.lote_origen || 'Rodeo Cría 1'}`;
+    case 'DEST-01': {
+      // Per animal: the header box names no batch, each row carries its own with its M letter.
+      const perRow = (rows as any[]).some((r) => String(r.lote_destino || '').trim() !== '') || /por animal/i.test(String(context.lote_destete || ''));
+      const lote = perRow ? '— POR ANIMAL —' : context.lote_destete || 'Destete Marzo 2026';
+      const manejo = perRow
+        ? 'MANEJO: COL. M'
+        : context.sistema_manejo === 'CORRAL'
+          ? '[X] CORRAL [ ] PASTURA'
+          : context.sistema_manejo === 'PASTURA'
+            ? '[ ] CORRAL [X] PASTURA'
+            : '[ ] CORRAL [ ] PASTURA';
+      const orden = context.orden_destete ? `ORDEN: ${context.orden_destete} | ` : 'ORDEN: ______ | ';
+      secondaryContextText = `${orden}LOTE DESTETE: [ ${lote} ] | ${manejo} | TIPO: ${context.tipo_destete || '—'} | ORIGEN: ${context.lote_origen || '—'}`;
+
+      const withCategory = (rows as any[]).some((r) => r.cs_nueva !== undefined);
       columns = [
-        { label: '#', width: 45, align: 'center' },
-        { label: 'CARAVANA CRÍA', width: 160, align: 'left' },
-        { label: 'CARAVANA MADRE', width: 160, align: 'left' },
-        { label: 'PESO DESTETE (KG)', width: 140, align: 'right' },
-        { label: 'SEXO', width: 70, align: 'center' },
-        { label: 'OBSERVACIONES', width: 165, align: 'left' },
+        { label: '#', width: 35, align: 'center' },
+        { label: 'CARAVANA CRÍA', width: perRow ? 115 : 145, align: 'left' },
+        { label: 'CARAVANA MADRE', width: perRow ? 115 : 145, align: 'left' },
+        ...(withCategory ? [{ label: 'C/S NUEVA', width: 120, align: 'left' as const }] : []),
+        { label: 'PESO (KG)', width: 85, align: 'right' },
+        ...(perRow
+          ? [
+              { label: 'LOTE DESTINO', width: 150, align: 'left' as const },
+              { label: 'M', width: 35, align: 'center' as const },
+            ]
+          : []),
+        { label: 'OBSERVACIONES', width: perRow ? 90 : withCategory ? 130 : 250, align: 'left' },
       ];
       formatRowCells = (r, idx) => [
         String(idx + 1),
         r.caravana || '',
         r.caravana_madre || '-',
-        r.peso ? `${r.peso} kg` : '-',
-        r.sexo || 'M',
+        ...(withCategory ? [r.cs_nueva || ''] : []),
+        r.peso ? `${r.peso}` : '',
+        ...(perRow ? [r.lote_destino || '', r.manejo || ''] : []),
         r.observations || '',
       ];
       break;
+    }
 
     case 'CACT-01': {
       // The destination column is printed only when the sheet works per animal; when a
       // single destination applies it lives in the header, where the schema puts it.
       const perRow = (rows as any[]).some((r) => String(r.lote_destino || '').trim() !== '');
       const destino = perRow ? '— POR ANIMAL —' : context.lote_destino || 'Recría Otoño 2026';
-      const manejo = context.sistema_manejo === 'CORRAL'
+      // With one destination per animal the management system lives in the M column, the same
+      // way the batch name does: the header box has nothing single to say.
+      const manejo = perRow
+        ? '— POR ANIMAL (COL. M) —'
+        : context.sistema_manejo === 'CORRAL'
         ? '[X] CORRAL  [ ] PASTURA'
         : context.sistema_manejo === 'PASTURA'
           ? '[ ] CORRAL  [X] PASTURA'
           : '[ ] CORRAL  [ ] PASTURA';
 
       secondaryContextText = `ORIGEN: [ ${context.lote_origen || 'Rodeo Cría 1'} ] → DESTINO: [ ${destino} ] | ${context.actividad_origen || 'Cría'} → ${context.actividad_destino || 'Recría'} | ${manejo} | CABEZAS: ${context.total_cabezas ?? '__'} | KG: ${context.peso_total ?? '__'}`;
+
+      // The C/S nueva column only exists on sheets whose order says the category changes.
+      const withCategory = (rows as any[]).some((r) => r.cs_nueva !== undefined);
 
       columns = perRow
         ? [
@@ -107,8 +135,10 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
             { label: 'SEXO', width: 55, align: 'center' },
             { label: 'CATEGORÍA', width: 105, align: 'left' },
             { label: 'DENT.', width: 65, align: 'center' },
-            { label: 'LOTE DESTINO', width: 150, align: 'left' },
-            { label: 'OBSERV.', width: 130, align: 'left' },
+            { label: 'LOTE DESTINO', width: 140, align: 'left' },
+            { label: 'M', width: 40, align: 'center' },
+            ...(withCategory ? [{ label: 'C/S NUEVA', width: 100, align: 'left' as const }] : []),
+            { label: 'OBSERV.', width: withCategory ? 60 : 100, align: 'left' },
           ]
         : [
             { label: '#', width: 45, align: 'center' },
@@ -117,7 +147,8 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
             { label: 'SEXO', width: 70, align: 'center' },
             { label: 'CATEGORÍA', width: 130, align: 'left' },
             { label: 'DENTICIÓN', width: 100, align: 'center' },
-            { label: 'OBSERVACIONES', width: 140, align: 'left' },
+            ...(withCategory ? [{ label: 'C/S NUEVA', width: 120, align: 'left' as const }] : []),
+            { label: 'OBSERVACIONES', width: withCategory ? 80 : 140, align: 'left' },
           ];
 
       formatRowCells = (r, idx) =>
@@ -130,6 +161,8 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
               r.categoria || '-',
               r.dientes || '-',
               r.lote_destino || '-',
+              r.manejo || '',
+              ...(withCategory ? [r.cs_nueva || ''] : []),
               r.observations || '',
             ]
           : [
@@ -139,6 +172,7 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
               r.sexo || 'M',
               r.categoria || '-',
               r.dientes || '-',
+              ...(withCategory ? [r.cs_nueva || ''] : []),
               r.observations || '',
             ];
       break;
@@ -164,27 +198,40 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
       ];
       break;
 
-    case 'REP-02':
-      secondaryContextText = `PLANILLA DE PARICIÓN | POTRERO MATERNIDAD | REGISTRO AL NACER`;
+    case 'PAR-01': {
+      // Every row has the same columns; a calving outside the order is a free line with its box crossed.
+      const box = (on: boolean) => (on ? '[X]' : '[ ]');
+      const outcome = (r: any, mark: string) => box(String(r.resultado || '').toUpperCase().split(/[,\s]+/).includes(mark));
+      const orden = context.orden_paricion ? `ORDEN: ${context.orden_paricion}` : 'ORDEN: ______';
+      secondaryContextText = `${orden} | LOTE(S): ${context.lote || '—'} | RECORRIDA: ${context.fecha_recorrida || '__/__/____'} | CRÍAS: EN EL LOTE DE SU MADRE`;
       columns = [
-        { label: '#', width: 40, align: 'center' },
-        { label: 'MADRE', width: 120, align: 'left' },
-        { label: 'FECHA PARTO', width: 110, align: 'center' },
-        { label: 'CARAVANA CRÍA', width: 130, align: 'left' },
-        { label: 'SEXO', width: 60, align: 'center' },
-        { label: 'PESO (KG)', width: 90, align: 'right' },
-        { label: 'OBSERVACIONES', width: 190, align: 'left' },
+        { label: '#', width: 30, align: 'center' },
+        { label: 'MADRE', width: 100, align: 'left' },
+        { label: 'PARIÓ', width: 50, align: 'center' },
+        { label: 'MUERTO', width: 55, align: 'center' },
+        { label: 'ABORTO', width: 55, align: 'center' },
+        { label: 'CRÍA', width: 100, align: 'left' },
+        { label: 'SEXO', width: 45, align: 'center' },
+        { label: 'PESO', width: 50, align: 'right' },
+        { label: 'RAZA', width: 80, align: 'left' },
+        { label: 'FECHA NAC.', width: 85, align: 'center' },
+        { label: 'FUERA ORD.', width: 70, align: 'center' },
       ];
       formatRowCells = (r, idx) => [
         String(idx + 1),
-        r.caravana || '',
-        r.calving_date || date,
-        r.calf_caravan || '-',
-        r.calf_sex || 'H',
-        r.calf_weight ? `${r.calf_weight} kg` : '-',
-        r.observations || '',
+        r.caravana_madre || '',
+        outcome(r, 'V'),
+        outcome(r, 'M'),
+        outcome(r, 'A'),
+        r.caravana_cria || '',
+        r.sexo || '',
+        r.peso || '',
+        r.raza || '',
+        r.fecha_nacimiento || '',
+        box(String(r.fuera_de_orden || '') !== ''),
       ];
       break;
+    }
 
     case 'MON-01':
       secondaryContextText = `SERVICIO DE MONTA A CAMPO | POTRERO 4 | INICIO: ${context.planned_start_date || date}`;

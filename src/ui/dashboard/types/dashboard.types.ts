@@ -1,7 +1,15 @@
 import { ComponentType } from 'react';
 
-/** Grid footprint of a widget: S = 1 column, M = 2 columns, L = full row (4 columns). */
-export type WidgetSize = 'S' | 'M' | 'L';
+/** Grid footprint of a widget: S = 1 column, M = 2 columns, L = full row (4 columns), or CUSTOM. */
+export type WidgetSize = 'S' | 'M' | 'L' | 'CUSTOM';
+
+export type WidgetColSpan = 1 | 2 | 3 | 4;
+export type WidgetRowSpan = 1 | 2;
+
+export interface WidgetDimensions {
+	colSpan: WidgetColSpan;
+	rowSpan?: WidgetRowSpan;
+}
 
 export type WidgetCategory = 'STOCK' | 'REPRODUCTIVE' | 'WEIGHTS' | 'HEALTH' | 'GENETICS_OPERATIONS';
 
@@ -35,6 +43,8 @@ export interface BoardWidgetInstance {
 	instanceId: string;
 	widgetId: string;
 	size: WidgetSize;
+	colSpan?: WidgetColSpan;
+	rowSpan?: WidgetRowSpan;
 	title?: string;
 	/** Only the parameters the board scope does not already define. */
 	config?: Record<string, string>;
@@ -84,5 +94,31 @@ export interface WidgetDefinition {
 	/** Explains why a size is not offered (e.g. a histogram needs two columns). */
 	sizeHint?: string;
 	configFields?: WidgetConfigField[];
+	minCols?: WidgetColSpan;
+	maxCols?: WidgetColSpan;
+	minRows?: WidgetRowSpan;
+	maxRows?: WidgetRowSpan;
 	component?: ComponentType<WidgetRenderProps>;
+}
+
+/** Resolves effective colSpan and rowSpan from a widget instance. */
+export function getEffectiveDimensions(widget: {
+	size?: WidgetSize;
+	colSpan?: WidgetColSpan;
+	rowSpan?: WidgetRowSpan;
+}): { colSpan: WidgetColSpan; rowSpan: WidgetRowSpan } {
+	let colSpan: WidgetColSpan = 1;
+	let rowSpan: WidgetRowSpan = widget.rowSpan ?? 1;
+
+	if (widget.colSpan) {
+		colSpan = widget.colSpan;
+	} else if (widget.size === 'M') {
+		colSpan = 2;
+	} else if (widget.size === 'L') {
+		colSpan = 4;
+	} else {
+		colSpan = 1;
+	}
+
+	return { colSpan, rowSpan };
 }

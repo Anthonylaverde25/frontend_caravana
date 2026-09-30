@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -51,7 +51,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import axiosInstance from "@/utils/axios";
 import ViewLayout from "src/components/ViewLayout";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -91,8 +91,15 @@ import {
   useDest01Pages,
 } from "../hooks/useDest01Pages";
 import { useDest01Submission } from "../hooks/useDest01Submission";
+import { useDest01WeaningOrder } from "../hooks/useDest01WeaningOrder";
+import { PAR01_CODE, par01PageFromIdentifyResponse, usePar01Pages } from "../hooks/usePar01Pages";
+import { usePar01Submission } from "../hooks/usePar01Submission";
+import { usePar01BirthOrder } from "../hooks/usePar01BirthOrder";
+import { ScanPar01Workspace } from "../components/scan/ScanPar01Workspace";
+import { weaningTypeFromText } from "@/features/weaning-orders/types";
 import {
   CACT01_CODE,
+  normalizeDestinationKey,
   pageFromIdentifyResponse as cact01PageFromIdentifyResponse,
   useCact01Pages,
 } from "../hooks/useCact01Pages";
@@ -100,6 +107,9 @@ import { useCact01Destinations } from "../hooks/useCact01Destinations";
 import { useCact01Submission } from "../hooks/useCact01Submission";
 import { useCact01ScanOptions } from "../hooks/useCact01ScanOptions";
 import { useCact01SourceBatch } from "../hooks/useCact01SourceBatch";
+import { useCact01TransferOrder } from "../hooks/useCact01TransferOrder";
+import ScanCact01OrderBand from "../components/scan/ScanCact01OrderBand";
+import { reviewWeightIssues } from "../utils/weightOutliers";
 import { suggestedWeaningBatchName } from "../templates/dest01/Dest01PrintContext";
 
 type CaravanRow = WorkTemplateScanRow;
@@ -154,9 +164,26 @@ const normalizeDateForInput = (rawDate?: string | null): string => {
   return new Date().toISOString().slice(0, 10);
 };
 
+
+/** A DEST-01 simulation row, shaped like what the AI returns for a real page: every cell it reads. */
+const dest01SimulatedRow = (r: Record<string, unknown>) => {
+  const cell = (value: unknown, confidence = 0.95) => ({ value: value == null ? "" : String(value), confidence });
+
+  return {
+    caravana: cell(r.caravana, 0.98),
+    caravana_madre: cell(r.caravana_madre),
+    peso: cell(r.peso, 0.92),
+    observations: cell(r.observations),
+    cs_nueva: cell(r.cs_nueva),
+    lote_destino: cell(r.lote_destino),
+    manejo: cell(r.manejo),
+  };
+};
+
 export const WorkTemplateScanView: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { code: routeCode } = useParams<{ code?: string }>();
+  const [searchParams] = useSearchParams();
   const { activeCompanyId, companies } = useCompany();
   const { data: activities = [] } = useActivities(activeCompanyId);
 
@@ -171,15 +198,24 @@ export const WorkTemplateScanView: React.FC = () => {
   const [isSimulationModalOpen, setIsSimulationModalOpen] = useState(false);
 
 
-  // URL Query Param Template Code Sync
-  const urlTemplateCode = useMemo(() => {
-    return (
-      searchParams.get("template") ||
-      searchParams.get("templateCode") ||
-      searchParams.get("code") ||
-      "ING-01"
-    );
-  }, [searchParams]);
+  // The template analyzed is named by the path (/work-templates/scan/cact-01), so the rules of
+  // the review follow the URL. The old query params still arrive from saved links.
+  const legacyTemplateCode =
+    searchParams.get("template") ||
+    searchParams.get("templateCode") ||
+    searchParams.get("code");
+  const urlTemplateCode = (routeCode || legacyTemplateCode || "ING-01").toUpperCase();
+
+  const routeToTemplate = useCallback(
+    (code: string) => {
+      navigate(`/work-templates/scan/${code.toLowerCase()}`, { replace: true });
+    },
+    [navigate],
+  );
+
+  React.useEffect(() => {
+    if (!routeCode && legacyTemplateCode) routeToTemplate(legacyTemplateCode);
+  }, [routeCode, legacyTemplateCode, routeToTemplate]);
 
   // Extracted Result State
   const [isProcessed, setIsProcessed] = useState(false);
@@ -236,7 +272,13 @@ export const WorkTemplateScanView: React.FC = () => {
   // Context Fields (DEST-01): several scanned pages confirmed together
   const dest01 = useDest01Pages();
   const dest01Submission = useDest01Submission();
+  const dest01Order = useDest01WeaningOrder(dest01);
   const [isDest01RepairOpen, setIsDest01RepairOpen] = useState(false);
+
+  // Context Fields (PAR-01): a calving round, one or several pages, supervised in place
+  const par01 = usePar01Pages();
+  const par01Submission = usePar01Submission();
+  const par01Order = usePar01BirthOrder(par01);
 
   const cact01 = useCact01Pages();
   const cact01Submission = useCact01Submission();
@@ -249,16 +291,42 @@ export const WorkTemplateScanView: React.FC = () => {
       : cact01.metadata.sistema_manejo === "PASTURA"
         ? false
         : null,
+    // One destination activity for the whole sheet: it is what every destination name is
+    // resolved against, instead of against every batch of the company.
+    cact01.metadata.actividad_destino_id,
   );
-  // The sheet names its source batch at the top; proposing it here is what stops the
-  // validation from asking for something the header already answered.
-  const cact01Source = useCact01SourceBatch(
-    cact01.metadata.lote_origen,
-    cact01.sourceBatchId,
-    cact01.setSourceBatchId,
-    cact01Options.sourceBatchOptions,
-  );
+  // The destination activity written on the paper is PROPOSED against the catalogue, never
+  // trusted as an identifier. It saves the operator from re-choosing what the sheet already
+  // says, and leaves the field empty — and therefore blocking — when the name matches
+  // nothing, which is the only honest outcome for an unreadable stage.
+  useEffect(() => {
+    if (cact01.metadata.actividad_destino_id != null) return;
+
+    const written = normalizeDestinationKey(cact01.metadata.actividad_destino);
+
+    if (written === "") return;
+
+    const match = cact01Options.activities.find(
+      (activity) => normalizeDestinationKey(activity.name) === written,
+    );
+
+    if (match) cact01.setMetadataField("actividad_destino_id", match.id);
+  }, [
+    cact01.metadata.actividad_destino,
+    cact01.metadata.actividad_destino_id,
+    cact01Options.activities,
+  ]);
+
+  // The sheet names its source batch at the top, and its animals say where they are today;
+  // proposing it from both is what stops the validation from asking for something the sheet
+  // already answered, even when the handwritten name was misread.
+  const cact01Source = useCact01SourceBatch(cact01, cact01Options.sourceBatchOptions);
   const [isCact01RepairOpen, setIsCact01RepairOpen] = useState(false);
+  const cact01Order = useCact01TransferOrder(
+    cact01,
+    cact01Destinations,
+    templateCode === CACT01_CODE,
+  );
 
   const handleCact01RowChange = (
     id: string,
@@ -315,7 +383,7 @@ export const WorkTemplateScanView: React.FC = () => {
 
   // Change Template Code in URL
   const handleTemplateChange = (newCode: string) => {
-    setSearchParams({ template: newCode }, { replace: true });
+    routeToTemplate(newCode);
     setTemplateCode(newCode);
     templateService
       .getWorkTemplateByCode(newCode)
@@ -394,13 +462,69 @@ export const WorkTemplateScanView: React.FC = () => {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    if (templateCode === PAR01_CODE) {
+      const withMother = par01.rows.filter((r) => r.caravana_madre.trim() !== "");
+      const resolved = withMother.filter((r) => r.resultado.trim() !== "");
+
+      if (par01Order.notFound) {
+        errors.push(`La orden ${par01Order.code} no existe: corregí el código o borralo`);
+      } else if (par01Order.order && !par01Order.order.is_open) {
+        errors.push(`La orden ${par01Order.order.code} está ${par01Order.order.status_label.toLowerCase()}: no admite más partos`);
+      }
+
+      if (resolved.length === 0) {
+        errors.push("Ningún vientre tiene resultado marcado");
+      }
+
+      const withoutDate = resolved.filter((r) => !r.fecha_nacimiento).length;
+      if (withoutDate > 0) {
+        errors.push(`${withoutDate} vientre(s) con resultado y sin fecha`);
+      }
+
+      if (par01.missingPages.length > 0) {
+        warnings.push(`Faltan hojas: ${par01.missingPages.join(", ")}`);
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        validRowsCount: resolved.length,
+      };
+    }
+
     if (templateCode === DEST01_CODE) {
       const { target, metadata } = dest01;
-      if (target.mode === "existing" && !target.batchId) {
-        errors.push("Elegí el lote de destete existente");
+      const unresolved = (t: typeof target | undefined) =>
+        !t || (t.mode === "existing" ? !t.batchId : !t.name.trim() || t.isConfined === null);
+
+      if (dest01Order.notFound) {
+        errors.push(`La orden ${dest01Order.code} no existe: corregí el código o borralo`);
+      } else if (dest01Order.order && !dest01Order.order.is_open) {
+        errors.push(`La orden ${dest01Order.order.code} está ${dest01Order.order.status_label.toLowerCase()}: no admite más destetes`);
       }
-      if (target.mode === "new" && !target.name.trim()) {
-        errors.push("Nombre del lote de destete nuevo requerido");
+
+      if (dest01.destinationMode === "single") {
+        if (unresolved(target)) {
+          errors.push(
+            target.mode === "existing"
+              ? "Elegí el lote de destete existente"
+              : "Completá el lote de destete nuevo: nombre y manejo (corral o pastura)",
+          );
+        }
+      } else {
+        const withoutBatch = dest01.rows.filter((r) => r.caravana.trim() !== "" && r.lote_destino.trim() === "").length;
+        if (withoutBatch > 0) {
+          errors.push(`${withoutBatch} cría(s) sin lote de destete: completalo en su fila`);
+        }
+        const pendingTargets = dest01.perAnimalNames.filter((entry) => unresolved(dest01.perAnimalTargets[entry.key]));
+        if (pendingTargets.length > 0) {
+          errors.push(`Resolvé ${pendingTargets.length} lote(s) de destete: existente, o nuevo con su manejo`);
+        }
+      }
+
+      if (metadata.tipo_destete.trim() && !weaningTypeFromText(metadata.tipo_destete)) {
+        errors.push("El tipo de destete leído no es uno solo: elegí uno o dejalo vacío");
       }
       if (!metadata.fecha_destete) {
         errors.push("Fecha de destete requerida");
@@ -423,6 +547,15 @@ export const WorkTemplateScanView: React.FC = () => {
       );
       if (invalidWeights.length > 0) {
         errors.push(`${invalidWeights.length} peso(s) que no son un número`);
+      }
+      const weightIssues = Object.values(reviewWeightIssues(dest01.rows));
+      const zeroWeights = weightIssues.filter((issue) => issue.severity === "error").length;
+      const outlierWeights = weightIssues.length - zeroWeights;
+      if (zeroWeights > 0) {
+        errors.push(`${zeroWeights} peso(s) en cero o negativos: corríjalos o déjelos vacíos`);
+      }
+      if (outlierWeights > 0) {
+        warnings.push(`${outlierWeights} peso(s) muy lejos del resto de la tropa: revíselos en la tabla`);
       }
       if (dest01.missingPages.length > 0) {
         warnings.push(`Faltan hojas: ${dest01.missingPages.join(", ")}`);
@@ -584,11 +717,11 @@ export const WorkTemplateScanView: React.FC = () => {
       warnings,
       validRowsCount: rows.filter((r) => r.caravana.trim() !== "").length,
     };
-  }, [templateCode, batchName, rows, lser01Metadata, dest01, cact01, cact01Destinations]);
+  }, [templateCode, batchName, rows, lser01Metadata, dest01, dest01Order, cact01, cact01Destinations, par01, par01Order]);
 
   // Apply Structured Simulation Preset (Fast Testing Mode - Zero AI latency)
   const handleApplySimulationPreset = (preset: SimulationPreset) => {
-    setSearchParams({ template: preset.templateCode }, { replace: true });
+    routeToTemplate(preset.templateCode);
     setFile(null);
     setErrorMessage(null);
     setTemplateCode(preset.templateCode);
@@ -596,6 +729,21 @@ export const WorkTemplateScanView: React.FC = () => {
 
     const svgUrl = generateSimulationSvg(preset, 1, preset.pages ? preset.pages.length : 1);
     setFilePreviewUrl(svgUrl);
+
+    if (preset.templateCode === PAR01_CODE) {
+      par01Submission.clear();
+      // The same shape the AI returns for a real page: every cell as {value}.
+      const asRead = (rows: any[]) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { value: v }])));
+      const pages = preset.pages && preset.pages.length > 0 ? preset.pages : [{ fileName: preset.scenarioLabel, metadata: preset.context, rows: preset.rows }];
+      pages.forEach((page, index) => {
+        const svg = index === 0 ? svgUrl : generateSimulationSvg({ ...preset, context: page.metadata, rows: page.rows }, index + 1, pages.length);
+        const parsed = par01PageFromIdentifyResponse({ context: page.metadata, data: [{ mapped_rows: asRead(page.rows) }] }, page.fileName, svg);
+        if (index === 0) par01.startWith(parsed);
+        else par01.addPage(parsed);
+      });
+      setIsProcessed(true);
+      return;
+    }
 
     if (preset.templateCode === DEST01_CODE) {
       dest01Submission.clearRepair();
@@ -606,11 +754,7 @@ export const WorkTemplateScanView: React.FC = () => {
             context: preset.pages[0].metadata,
             data: [
               {
-                mapped_rows: preset.pages[0].rows.map((r: any) => ({
-                  caravana: { value: r.caravana, confidence: 0.98 },
-                  caravana_madre: { value: r.caravana_madre, confidence: 0.95 },
-                  peso: { value: String(r.peso), confidence: 0.95 },
-                })),
+                mapped_rows: preset.pages[0].rows.map(dest01SimulatedRow),
               },
             ],
           },
@@ -626,11 +770,7 @@ export const WorkTemplateScanView: React.FC = () => {
               context: preset.pages[1].metadata,
               data: [
                 {
-                  mapped_rows: preset.pages[1].rows.map((r: any) => ({
-                    caravana: { value: r.caravana, confidence: 0.98 },
-                    caravana_madre: { value: r.caravana_madre, confidence: 0.95 },
-                    peso: { value: String(r.peso), confidence: 0.95 },
-                  })),
+                  mapped_rows: preset.pages[1].rows.map(dest01SimulatedRow),
                 },
               ],
             },
@@ -640,18 +780,13 @@ export const WorkTemplateScanView: React.FC = () => {
           dest01.addPage(p2);
         }
       } else {
-        const fakeRow = (caravana: string, madre: string, peso: number | string) => ({
-          caravana: { value: caravana, confidence: 0.97 },
-          caravana_madre: { value: madre, confidence: 0.95 },
-          peso: { value: String(peso), confidence: 0.9 },
-        });
         dest01.startWith(
           pageFromIdentifyResponse(
             {
               context: preset.context,
               data: [
                 {
-                  mapped_rows: preset.rows.map((r: any) => fakeRow(r.caravana, r.caravana_madre, r.peso)),
+                  mapped_rows: preset.rows.map(dest01SimulatedRow),
                 },
               ],
             },
@@ -681,6 +816,9 @@ export const WorkTemplateScanView: React.FC = () => {
         categoria: { value: r.categoria ?? "", confidence: 0.92 },
         dientes: { value: r.dientes ?? "", confidence: 0.9 },
         lote_destino: { value: r.lote_destino ?? "", confidence: 0.9 },
+        // One handwritten letter: the lowest confidence on the sheet, and deliberately so.
+        manejo: { value: r.manejo ?? "", confidence: 0.82 },
+        cs_nueva: { value: r.cs_nueva ?? "", confidence: 0.86 },
         observations: { value: r.observations ?? "", confidence: 0.88 },
       });
 
@@ -814,6 +952,7 @@ export const WorkTemplateScanView: React.FC = () => {
       const tables = resData.data || [];
 
       const detectedCode = identifiedTemplate?.code || templateCode || "ING-01";
+      routeToTemplate(detectedCode);
       setTemplateCode(detectedCode);
       setTemplateTitle(
         identifiedTemplate?.title ||
@@ -824,7 +963,12 @@ export const WorkTemplateScanView: React.FC = () => {
               : "Ingreso de Compra Directa"),
       );
 
-      if (detectedCode === DEST01_CODE) {
+      if (detectedCode === PAR01_CODE) {
+        par01Submission.clear();
+        par01.startWith(
+          par01PageFromIdentifyResponse(resData, docFile.name, URL.createObjectURL(docFile)),
+        );
+      } else if (detectedCode === DEST01_CODE) {
         dest01Submission.clearRepair();
         setIsDest01RepairOpen(false);
         dest01.startWith(
@@ -1096,6 +1240,8 @@ export const WorkTemplateScanView: React.FC = () => {
     dest01.reset();
     setIsDest01RepairOpen(false);
     dest01Submission.clearRepair();
+    par01.reset();
+    par01Submission.clear();
     cact01.reset();
     cact01Destinations.reset();
     setIsCact01RepairOpen(false);
@@ -1112,14 +1258,74 @@ export const WorkTemplateScanView: React.FC = () => {
     setIsPreviewModalOpen(true);
   };
 
+  // "Obtener orden de transferencia": the code on paper found no order. One is generated from
+  // the sheet and its real code written into the header, so the review continues against it
+  // and "Confirmar Movimiento" executes it like any printed order.
+  const handleObtainCact01Order = async () => {
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    try {
+      const order = await cact01Submission.obtainOrder(
+        cact01.metadata,
+        cact01.sourceBatchId,
+        cact01Destinations.destinations,
+        cact01.rows,
+        "SHEET",
+        null,
+      );
+      if (order) {
+        setIsCact01RepairOpen(false);
+        cact01.setMetadataField("orden_transferencia", order.code);
+      } else {
+        setIsCact01RepairOpen(true);
+      }
+    } catch (err: any) {
+      console.error("Error obtaining CACT-01 transfer order:", err);
+      setErrorMessage(
+        err.response?.data?.message ||
+          err.message ||
+          "No se pudo generar la orden de transferencia.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Submit and Persist Transaction
   const handleSaveTransaction = async () => {
     setIsSaving(true);
     setErrorMessage(null);
 
+    if (templateCode === PAR01_CODE) {
+      try {
+        const result = await par01Submission.submit(par01.metadata, par01.rows, par01Order.order?.id ?? null);
+        if (result) {
+          setSaveSuccessResult(result);
+          setIsSuccessDialogOpen(true);
+        }
+      } catch (err: any) {
+        console.error("Error saving PAR-01 transaction:", err);
+        setErrorMessage(err.response?.data?.message || err.message || "Error al procesar la planilla PAR-01.");
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
     if (templateCode === DEST01_CODE) {
       try {
-        const result = await dest01Submission.submit(dest01.metadata, dest01.target, dest01.rows);
+        const result = await dest01Submission.submit(
+          dest01.metadata,
+          {
+            mode: dest01.destinationMode,
+            target: dest01.target,
+            perAnimalKeys: dest01.perAnimalNames.map((entry) => entry.key),
+            perAnimalTargets: dest01.perAnimalTargets,
+            weaningOrderId: dest01Order.order?.id ?? null,
+          },
+          dest01.rows,
+        );
         if (result) {
           setIsDest01RepairOpen(false);
           setSaveSuccessResult(result);
@@ -1148,6 +1354,8 @@ export const WorkTemplateScanView: React.FC = () => {
           cact01.sourceBatchId,
           cact01Destinations.destinations,
           cact01.rows,
+          "SHEET",
+          cact01Order.transferOrderId,
         );
         if (result) {
           setIsCact01RepairOpen(false);
@@ -1323,7 +1531,7 @@ export const WorkTemplateScanView: React.FC = () => {
             <MenuItem value="DEST-01">DEST-01 • Destete y Lote de Destete</MenuItem>
             <MenuItem value="CACT-01">CACT-01 • Cambio de Actividad</MenuItem>
             <MenuItem value="REP-01">REP-01 • Tacto & Ecografía</MenuItem>
-            <MenuItem value="REP-02">REP-02 • Parición</MenuItem>
+            <MenuItem value="PAR-01">PAR-01 • Planilla de Parición</MenuItem>
             <MenuItem value="MON-01">MON-01 • Servicio de Monta a Campo</MenuItem>
             <MenuItem value="OP-01">OP-01 • Control Mensual</MenuItem>
             <MenuItem value="OP-02">OP-02 • Invernada</MenuItem>
@@ -1372,6 +1580,29 @@ export const WorkTemplateScanView: React.FC = () => {
               >
                 Limpiar
               </Button>
+              {/* A disabled button used to look exactly like an enabled one on this header, so a
+                  click that could not happen read as a click that did nothing. It now looks
+                  disabled and says, on hover, what is still missing. */}
+              <Tooltip
+                arrow
+                title={
+                  !isSaving && !validationResult.isValid ? (
+                    <Box>
+                      <Typography variant="caption" sx={{ fontWeight: 800, display: "block" }}>
+                        Falta resolver antes de continuar:
+                      </Typography>
+                      {validationResult.errors.map((error) => (
+                        <Typography key={error} variant="caption" sx={{ display: "block" }}>
+                          • {error}
+                        </Typography>
+                      ))}
+                    </Box>
+                  ) : (
+                    ""
+                  )
+                }
+              >
+              <span>
               <Button
                 variant="contained"
                 color="primary"
@@ -1384,22 +1615,37 @@ export const WorkTemplateScanView: React.FC = () => {
                   )
                 }
                 disabled={isSaving || !validationResult.isValid}
-                onClick={handleSaveTransaction}
+                onClick={
+                  templateCode === CACT01_CODE && cact01Order.isNotFound
+                    ? handleObtainCact01Order
+                    : handleSaveTransaction
+                }
                 sx={{
                   textTransform: "none",
                   fontWeight: 800,
                   px: 2.5,
                   borderRadius: "6px",
+                  // The theme paints disabled buttons with the enabled colour; opacity is the
+                  // one property it leaves alone.
+                  "&.Mui-disabled": {
+                    opacity: 0.45,
+                  },
                 }}
               >
                 {isSaving
                   ? "Guardando..."
+                  : templateCode === PAR01_CODE
+                    ? `Confirmar Partos (${validationResult.validRowsCount})`
                   : templateCode === DEST01_CODE
                     ? `Confirmar Destete (${validationResult.validRowsCount})`
                     : templateCode === CACT01_CODE
-                      ? `Confirmar Movimiento (${validationResult.validRowsCount})`
+                      ? cact01Order.isNotFound
+                        ? `Obtener orden de transferencia (${validationResult.validRowsCount})`
+                        : `Confirmar Movimiento (${validationResult.validRowsCount})`
                       : `Confirmar Tropa (${rows.length})`}
               </Button>
+              </span>
+              </Tooltip>
             </Stack>
           )}
         </Stack>
@@ -1686,9 +1932,18 @@ export const WorkTemplateScanView: React.FC = () => {
                 }}
               >
                 {/* SECTION 1: Integrated Collapsible Header Metadata Bar */}
-                {templateCode === DEST01_CODE ? (
+                {templateCode === PAR01_CODE ? (
+                  <ScanPar01Workspace
+                    state={par01}
+                    order={par01Order}
+                    problems={par01Submission.problems}
+                    onPreviewPage={setFilePreviewUrl}
+                    isSaving={isSaving}
+                  />
+                ) : templateCode === DEST01_CODE ? (
                   <ScanDest01Workspace
                     state={dest01}
+                    order={dest01Order}
                     repair={dest01Submission.repair}
                     isRepairOpen={isDest01RepairOpen}
                     onOpenRepair={() => setIsDest01RepairOpen(true)}
@@ -1703,11 +1958,18 @@ export const WorkTemplateScanView: React.FC = () => {
                     batches={cact01Options.batches}
                     activities={cact01Options.activities}
                     batchTypes={cact01Options.batchTypes}
+                    destinationActivityId={cact01.metadata.actividad_destino_id}
                     sourceBatchOptions={cact01Options.sourceBatchOptions}
-                    sourceMatched={cact01Source.matched}
+                    sourceResolution={cact01Source}
                     repair={cact01Submission.repair}
                     isRepairOpen={isCact01RepairOpen}
                     onOpenRepair={() => setIsCact01RepairOpen(true)}
+                    orderBand={
+                      <ScanCact01OrderBand
+                        state={cact01Order}
+                        sourceBatchId={cact01.sourceBatchId}
+                      />
+                    }
                     onRowChange={handleCact01RowChange}
                     onPreviewPage={setFilePreviewUrl}
                     isSaving={isSaving}
@@ -1955,6 +2217,7 @@ export const WorkTemplateScanView: React.FC = () => {
 
                 {/* SECTION 2: DataTable Section (Filter Bar + Table + Pagination) */}
                 {templateCode === DEST01_CODE ||
+                templateCode === PAR01_CODE ||
                 templateCode === CACT01_CODE ? null : templateCode === "LSER-01" ? (
                   <Box sx={{ p: 2 }}>
                     {lser01.repair && !isLser01RepairOpen && (
@@ -2582,8 +2845,9 @@ export const WorkTemplateScanView: React.FC = () => {
           batches={cact01Options.batches}
           activities={cact01Options.activities}
           batchTypes={cact01Options.batchTypes}
+          destinationActivityId={cact01.metadata.actividad_destino_id}
           sourceBatchOptions={cact01Options.sourceBatchOptions}
-          sourceMatched={cact01Source.matched}
+          sourceResolution={cact01Source}
           onRowChange={handleCact01RowChange}
           isSaving={isSaving}
           onRetry={handleSaveTransaction}
@@ -2594,6 +2858,8 @@ export const WorkTemplateScanView: React.FC = () => {
           open={templateCode === DEST01_CODE && isDest01RepairOpen}
           repair={dest01Submission.repair}
           state={dest01}
+          orderCode={dest01Order.order?.code ?? null}
+          showCategory={dest01Order.order?.category_mode !== "KEEP"}
           onRowChange={handleDest01RowChange}
           isSaving={isSaving}
           onRetry={handleSaveTransaction}

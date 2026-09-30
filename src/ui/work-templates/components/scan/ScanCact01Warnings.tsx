@@ -11,9 +11,9 @@ const TITLES: Record<string, string> = {
   SHEET_TOTAL_MISMATCH: 'Los totales del recuadro no cierran con las filas',
   MANAGEMENT_SYSTEM_DIFFERS: 'El casillero difiere del manejo declarado del lote',
   MANAGEMENT_SYSTEM_UNDECLARED: 'Un lote de destino no tiene declarado el manejo',
-  SEX_MISMATCH: 'El sexo del papel no coincide con el del sistema',
   CATEGORY_MISMATCH: 'La categoría del papel no coincide con la del sistema',
   TEETH_REGRESSION: 'La dentición leída es menor que la registrada',
+  WEIGHT_OUTLIER: 'Un peso quedó muy lejos del resto de la tropa',
 };
 
 /**

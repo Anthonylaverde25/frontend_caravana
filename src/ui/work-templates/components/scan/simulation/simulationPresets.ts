@@ -1,3 +1,6 @@
+import { CACT01_SHEET_CASES } from './cact01SheetCasePresets';
+import { DEST01_SHEET_CASES } from './dest01SheetCasePresets';
+import { PAR01_SHEET_CASES, PAR01_WHOLE_ORDER } from './par01SheetCasePresets';
 import { SimulationPreset, SimulationScenario, SimulationTemplateInfo } from './types';
 
 export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
@@ -34,8 +37,8 @@ export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
     category: 'WEANING',
     categoryLabel: 'Destete / Desmadre',
     color: '#ea580c',
-    description: 'Desmadre de crías al pie hacia lote nuevo o existente con peso de balanza. Soporta múltiples hojas escaneadas en manga.',
-    availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'MULTI_PAGE', 'REPAIR_ERROR'],
+    description: 'Desmadre de crías al pie hacia un lote de destete o uno por cría, nuevo o existente, con peso de balanza y C/S nueva. Cumple una orden de destete o crea la suya. Soporta múltiples hojas.',
+    availableScenarios: ['HAPPY_PATH', 'PER_ANIMAL', 'WARNINGS', 'MULTI_PAGE', 'REPAIR_ERROR', 'SHEET_CASES'],
   },
   {
     code: 'CACT-01',
@@ -43,8 +46,8 @@ export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
     category: 'ACTIVITY',
     categoryLabel: 'Cambio de Actividad',
     color: '#0369a1',
-    description: 'Movimiento de hacienda entre actividades con pesaje en la manga. Admite un destino único o un destino por animal, en varias hojas.',
-    availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'MULTI_PAGE', 'REPAIR_ERROR'],
+    description: 'Movimiento de hacienda entre actividades con pesaje en la manga. Una sola actividad de destino por planilla; admite un destino único o un destino por animal, en varias hojas.',
+    availableScenarios: ['HAPPY_PATH', 'PER_ANIMAL', 'TRANSFER_ORDER', 'WARNINGS', 'MULTI_PAGE', 'REPAIR_ERROR', 'SHEET_CASES'],
   },
   {
     code: 'REP-01',
@@ -56,13 +59,13 @@ export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
     availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'REPAIR_ERROR'],
   },
   {
-    code: 'REP-02',
+    code: 'PAR-01',
     title: 'Planilla de Parición',
     category: 'REPRODUCTIVE',
     categoryLabel: 'Maternidad / Partos',
     color: '#e11d48',
-    description: 'Registro de partos en potrero, correlación madre-cría al nacer, sexo, peso al nacer y sanidad inicial.',
-    availableScenarios: ['HAPPY_PATH', 'WARNINGS'],
+    description: 'Recorrida de parición: resultado de cada vientre (parió, nacido muerto, aborto), caravana, sexo, peso, raza y fecha de la cría, y los partos fuera de la orden. Cumple una orden de parición en varias recorridas; la cría queda en el lote de su madre.',
+    availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'MULTI_PAGE', 'REPAIR_ERROR', 'SHEET_CASES'],
   },
   {
     code: 'MON-01',
@@ -96,7 +99,12 @@ export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
 /**
  * Catalog of high-fidelity simulation presets organized by Template Code and Scenario.
  */
-export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, SimulationPreset>> = {
+/**
+ * Partial per template: a scenario only exists where it means something. PER_ANIMAL, for
+ * instance, is a CACT-01 matter — no other template splits a troop into several destinations —
+ * and `getSimulationPreset` already falls back to the happy path for anything missing.
+ */
+export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenario, SimulationPreset>>> = {
   'ING-01': {
     HAPPY_PATH: {
       templateCode: 'ING-01',
@@ -331,6 +339,38 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
   },
 
   'CACT-01': {
+    // Against the order seeded by Cact01ActivityChangeScanTestSeeder (017..024 to "Test CACT
+    // Recría"): four of its eight head, so the load leaves it PARTIAL and names who is missing.
+    TRANSFER_ORDER: {
+      templateCode: 'CACT-01',
+      scenario: 'TRANSFER_ORDER',
+      scenarioLabel: '🔵 Con orden TR-20260615-0001, tanda parcial (4 de 8)',
+      scenarioDescription:
+        'Planilla impresa desde una orden de transferencia: el código del encabezado resuelve la orden, la carga hereda su lote de origen y su destino, y al confirmar queda PARCIAL con los cuatro animales que faltan. Requiere Cact01ActivityChangeScanTestSeeder.',
+      templateTitle: 'Cambio de Actividad de Hacienda',
+      category: 'ACTIVITY',
+      context: {
+        actividad_origen: 'Cría',
+        actividad_destino: 'Recría',
+        lote_origen: 'Test CACT Cría',
+        lote_destino: 'Test CACT Recría',
+        fecha_movimiento: new Date().toISOString().slice(0, 10),
+        sistema_manejo: 'PASTURA',
+        total_cabezas: 4,
+        peso_total: 1296,
+        responsable: 'Encargado de manga',
+        hoja_numero: 1,
+        hoja_total: 1,
+        orden_transferencia: 'TR-20260615-0001',
+        observaciones: 'Sólo pasaron cuatro por la manga.',
+      },
+      rows: [
+        { id: '1', caravana: 'GRO-001-CAR-017', peso_actual: '318.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', lote_destino: '', observations: '' },
+        { id: '2', caravana: 'GRO-001-CAR-018', peso_actual: '322.0', sexo: 'H', categoria: 'Ternero', dientes: '2D', lote_destino: '', observations: '' },
+        { id: '3', caravana: 'GRO-001-CAR-019', peso_actual: '326.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', lote_destino: '', observations: '' },
+        { id: '4', caravana: 'GRO-001-CAR-020', peso_actual: '330.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', lote_destino: '', observations: '' },
+      ],
+    },
     HAPPY_PATH: {
       templateCode: 'CACT-01',
       scenario: 'HAPPY_PATH',
@@ -367,11 +407,47 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
         { id: '12', caravana: 'CA-312', peso_actual: '244.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', lote_destino: '', observations: '' },
       ],
     },
+    PER_ANIMAL: {
+      templateCode: 'CACT-01',
+      scenario: 'PER_ANIMAL',
+      scenarioLabel: '🟢 Destino por animal, tres lotes de Recría (columna M)',
+      scenarioDescription:
+        'Una sola actividad de destino —Recría— repartida en tres lotes: dos existentes y uno a crear. Cada fila lleva su lote y su celda M, coherente para todas las filas del mismo lote. Al escanear sólo queda por preguntar el tipo del lote nuevo.',
+      templateTitle: 'Cambio de Actividad de Hacienda',
+      category: 'ACTIVITY',
+      context: {
+        actividad_origen: 'Cría',
+        actividad_destino: 'Recría',
+        lote_origen: 'Rodeo Cría 1',
+        lote_destino: '',
+        fecha_movimiento: new Date().toISOString().slice(0, 10),
+        // Nothing to mark here: with a destination per animal the letter lives in the M column.
+        sistema_manejo: '',
+        total_cabezas: 9,
+        peso_total: 2223,
+        responsable: 'Encargado de manga',
+        hoja_numero: 1,
+        hoja_total: 1,
+        observaciones: 'Se aparta por sexo y estado. Todos los destinos son lotes de Recría.',
+      },
+      rows: [
+        { id: '1', caravana: 'CA-501', peso_actual: '246.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', lote_destino: 'Recría Norte', manejo: 'P', observations: '' },
+        { id: '2', caravana: 'CA-502', peso_actual: '251.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', lote_destino: 'Recría Norte', manejo: 'P', observations: '' },
+        { id: '3', caravana: 'CA-503', peso_actual: '243.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', lote_destino: 'Recría Norte', manejo: 'P', observations: '' },
+        { id: '4', caravana: 'CA-504', peso_actual: '238.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', lote_destino: 'Recría Sur', manejo: 'P', observations: '' },
+        { id: '5', caravana: 'CA-505', peso_actual: '241.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', lote_destino: 'Recría Sur', manejo: 'P', observations: '' },
+        { id: '6', caravana: 'CA-506', peso_actual: '235.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', lote_destino: 'Recría Sur', manejo: 'P', observations: '' },
+        { id: '7', caravana: 'CA-507', peso_actual: '258.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', lote_destino: 'Recría Corral Nuevo', manejo: 'C', observations: 'Lote a crear, a corral' },
+        { id: '8', caravana: 'CA-508', peso_actual: '256.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', lote_destino: 'Recría Corral Nuevo', manejo: 'C', observations: 'Lote a crear, a corral' },
+        { id: '9', caravana: 'CA-509', peso_actual: '255.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', lote_destino: 'Recría Corral Nuevo', manejo: 'C', observations: 'Lote a crear, a corral' },
+      ],
+    },
     WARNINGS: {
       templateCode: 'CACT-01',
       scenario: 'WARNINGS',
       scenarioLabel: '🟡 Destino por animal + avisos que no bloquean',
-      scenarioDescription: 'Tres destinos distintos en la columna por fila, dos animales sin peso, uno con el sexo cambiado, uno con dentición menor a la registrada y el peso total del recuadro desfasado.',
+      scenarioDescription:
+        'Tres destinos de la misma actividad en la columna por fila, dos animales sin peso, uno con el sexo cambiado, uno con dentición menor a la registrada, el peso total del recuadro desfasado y una celda M que contradice el manejo declarado del lote existente.',
       templateTitle: 'Cambio de Actividad de Hacienda',
       category: 'ACTIVITY',
       context: {
@@ -380,7 +456,7 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
         lote_origen: 'Rodeo Cría 1',
         lote_destino: '',
         fecha_movimiento: new Date().toISOString().slice(0, 10),
-        sistema_manejo: 'PASTURA',
+        sistema_manejo: '',
         total_cabezas: 6,
         peso_total: 1800,
         responsable: 'Encargado de manga',
@@ -389,12 +465,12 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
         observaciones: 'Se reparte la tropa en tres destinos según destino comercial.',
       },
       rows: [
-        { id: '1', caravana: 'CA-401', peso_actual: '262.0', sexo: 'M', categoria: 'Novillito', dientes: '2D', lote_destino: 'Recría Norte', observations: '' },
-        { id: '2', caravana: 'CA-402', peso_actual: '', sexo: 'M', categoria: 'Novillito', dientes: '', lote_destino: 'Recría Norte', observations: 'No pasó por balanza' },
-        { id: '3', caravana: 'CA-403', peso_actual: '258.0', sexo: 'H', categoria: 'Vaquillona', dientes: '2D', lote_destino: 'Recría Sur', observations: 'El papel dice H, el sistema dice M' },
-        { id: '4', caravana: 'CA-404', peso_actual: '', sexo: 'M', categoria: 'Novillito', dientes: '2D', lote_destino: 'Recría Sur', observations: 'No pasó por balanza' },
-        { id: '5', caravana: 'CA-405', peso_actual: '271.0', sexo: 'M', categoria: 'Novillito', dientes: 'DL', lote_destino: 'Invernada Este', observations: 'Dentición leída menor que la registrada' },
-        { id: '6', caravana: 'CA-406', peso_actual: '266.0', sexo: 'M', categoria: 'Novillito', dientes: '4D', lote_destino: 'Invernada Este', observations: '' },
+        { id: '1', caravana: 'CA-401', peso_actual: '262.0', sexo: 'M', categoria: 'Novillito', dientes: '2D', lote_destino: 'Recría Norte', manejo: 'C', observations: 'La M dice corral y el lote está declarado a pastura' },
+        { id: '2', caravana: 'CA-402', peso_actual: '', sexo: 'M', categoria: 'Novillito', dientes: '', lote_destino: 'Recría Norte', manejo: 'C', observations: 'No pasó por balanza' },
+        { id: '3', caravana: 'CA-403', peso_actual: '258.0', sexo: 'H', categoria: 'Vaquillona', dientes: '2D', lote_destino: 'Recría Sur', manejo: 'P', observations: 'El papel dice H, el sistema dice M' },
+        { id: '4', caravana: 'CA-404', peso_actual: '', sexo: 'M', categoria: 'Novillito', dientes: '2D', lote_destino: 'Recría Sur', manejo: 'P', observations: 'No pasó por balanza' },
+        { id: '5', caravana: 'CA-405', peso_actual: '271.0', sexo: 'M', categoria: 'Novillito', dientes: 'DL', lote_destino: 'Recría Este', manejo: '', observations: 'Dentición leída menor que la registrada; celda M en blanco' },
+        { id: '6', caravana: 'CA-406', peso_actual: '266.0', sexo: 'M', categoria: 'Novillito', dientes: '4D', lote_destino: 'Recría Este', manejo: '', observations: '' },
       ],
     },
     MULTI_PAGE: {
@@ -443,10 +519,10 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
             observaciones: 'Hoja 1 de 2 del movimiento.',
           },
           rows: [
-            { id: '1', pageKey: 'page-1', caravana: 'CA-H1-01', peso_actual: '243.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', observations: '' },
-            { id: '2', pageKey: 'page-1', caravana: 'CA-H1-02', peso_actual: '251.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', observations: '' },
-            { id: '3', pageKey: 'page-1', caravana: 'CA-H1-03', peso_actual: '239.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', observations: '' },
-            { id: '4', pageKey: 'page-1', caravana: 'CA-H1-04', peso_actual: '256.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', destination_key: 'RECRÍA GENERAL 2026', observations: '' },
+            { id: '1', pageKey: 'page-1', caravana: 'CA-H1-01', peso_actual: '243.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', manejo: 'C', observations: '' },
+            { id: '2', pageKey: 'page-1', caravana: 'CA-H1-02', peso_actual: '251.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', manejo: 'C', observations: '' },
+            { id: '3', pageKey: 'page-1', caravana: 'CA-H1-03', peso_actual: '239.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', manejo: 'C', observations: '' },
+            { id: '4', pageKey: 'page-1', caravana: 'CA-H1-04', peso_actual: '256.0', sexo: 'M', categoria: 'Ternero', dientes: '2D', destination_key: 'RECRÍA GENERAL 2026', manejo: 'C', observations: '' },
           ],
         },
         {
@@ -467,9 +543,9 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
             observaciones: 'Hoja 2 de 2 del movimiento.',
           },
           rows: [
-            { id: '5', pageKey: 'page-2', caravana: 'CA-H2-05', peso_actual: '247.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', observations: '' },
-            { id: '6', pageKey: 'page-2', caravana: 'CA-H2-06', peso_actual: '245.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', observations: '' },
-            { id: '7', pageKey: 'page-2', caravana: 'CA-H2-07', peso_actual: '248.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', observations: '' },
+            { id: '5', pageKey: 'page-2', caravana: 'CA-H2-05', peso_actual: '247.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', manejo: 'C', observations: '' },
+            { id: '6', pageKey: 'page-2', caravana: 'CA-H2-06', peso_actual: '245.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', manejo: 'C', observations: '' },
+            { id: '7', pageKey: 'page-2', caravana: 'CA-H2-07', peso_actual: '248.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', destination_key: 'RECRÍA GENERAL 2026', manejo: 'C', observations: '' },
           ],
         },
       ],
@@ -478,7 +554,8 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
       templateCode: 'CACT-01',
       scenario: 'REPAIR_ERROR',
       scenarioLabel: '🔴 Flujo de Reparación (Cact01RepairDialog)',
-      scenarioDescription: 'Caravana duplicada entre hojas, una inexistente, una fuera del lote de origen, una dentición ilegible, un peso en cero y un lote nuevo de Cría sin declarar el manejo.',
+      scenarioDescription:
+        'Caravana duplicada entre hojas, una inexistente, una fuera del lote de origen, una dentición ilegible, un peso en cero, un lote nuevo de Cría sin declarar el manejo, un lote nuevo con dos celdas M contradictorias y un lote escrito que pertenece a otra actividad.',
       templateTitle: 'Cambio de Actividad de Hacienda',
       category: 'ACTIVITY',
       context: {
@@ -501,10 +578,15 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
         { id: '3', caravana: 'CA-NO-EXISTE-99', peso_actual: '238.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', lote_destino: '', observations: 'No existe en el sistema' },
         { id: '4', caravana: 'CA-OTRO-LOTE-77', peso_actual: '244.0', sexo: 'H', categoria: 'Ternera', dientes: 'xyz', lote_destino: '', observations: 'No está en el lote de origen y la dentición es ilegible' },
         { id: '5', caravana: 'CA-PESO-CERO-55', peso_actual: '0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', lote_destino: '', observations: 'Peso en cero' },
+        { id: '6', caravana: 'CA-MANEJO-C-11', peso_actual: '239.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', lote_destino: 'Cría Corral Contradictorio', manejo: 'C', observations: 'Mismo lote nuevo, M = C' },
+        { id: '7', caravana: 'CA-MANEJO-P-12', peso_actual: '241.0', sexo: 'M', categoria: 'Ternero', dientes: 'DL', lote_destino: 'Cría Corral Contradictorio', manejo: 'P', observations: 'Mismo lote nuevo, M = P' },
+        { id: '8', caravana: 'CA-OTRA-ACTIVIDAD-13', peso_actual: '243.0', sexo: 'H', categoria: 'Ternera', dientes: 'DL', lote_destino: 'Recría Norte', manejo: 'P', observations: 'Ese lote existe, pero es de Recría y la planilla declara Cría' },
       ],
       mockErrors: {
         headerErrors: [
           { field: 'destinations', code: 'MANAGEMENT_SYSTEM_MISSING', message: "Indicá si el lote nuevo 'Cría Nueva Sin Manejo' se maneja a corral o de forma extensiva." },
+          { field: 'destinations', code: 'MANAGEMENT_SYSTEM_CONFLICT', message: "El lote nuevo 'Cría Corral Contradictorio' aparece como corral en una fila y como pastura en otra. Un lote es una cosa o la otra." },
+          { field: 'destinations', code: 'DESTINATION_ACTIVITY_MISMATCH', message: "El lote 'Recría Norte' es de Recría, pero la planilla declara destino Cría." },
         ],
         rowErrors: [
           { row_index: 1, caravana: 'CA-DUPLICADA-01', errors: [{ code: 'DUPLICATED_IN_SHEET', message: "La caravana 'CA-DUPLICADA-01' ya figura en la fila 1." }] },
@@ -528,6 +610,7 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
       category: 'WEANING',
       context: {
         lote_destete: 'Destete Otoño 2026',
+        sistema_manejo: 'PASTURA',
         fecha_destete: new Date().toISOString().slice(0, 10),
         tipo_destete: 'TRADICIONAL',
         lote_origen: 'Rodeo Cría 1',
@@ -556,6 +639,7 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
       category: 'WEANING',
       context: {
         lote_destete: 'Destete Precoz',
+        sistema_manejo: 'PASTURA',
         fecha_destete: new Date().toISOString().slice(0, 10),
         tipo_destete: 'PRECOZ',
         lote_origen: 'Rodeo 2',
@@ -579,6 +663,7 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
       category: 'WEANING',
       context: {
         lote_destete: 'Destete Lote General Multi-Hoja',
+        sistema_manejo: 'PASTURA',
         fecha_destete: new Date().toISOString().slice(0, 10),
         tipo_destete: 'TRADICIONAL',
         lote_origen: 'Rodeo Cría General',
@@ -635,6 +720,33 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
         },
       ],
     },
+    PER_ANIMAL: {
+      templateCode: 'DEST-01',
+      scenario: 'PER_ANIMAL',
+      scenarioLabel: '🔀 Lote de Destete por Cría (columna Lote destino y M)',
+      scenarioDescription:
+        'Planilla en blanco con destino por animal: machos a un lote nuevo a pastura y hembras a otro a corral, con C/S nueva escrita en la manga. Al confirmar crea su orden registrada.',
+      templateTitle: 'Destete y Conformación de Lote de Destete',
+      category: 'WEANING',
+      context: {
+        orden_destete: '',
+        lote_destete: '— por animal —',
+        sistema_manejo: '',
+        fecha_destete: new Date().toISOString().slice(0, 10),
+        tipo_destete: 'TRADICIONAL',
+        lote_origen: 'Rodeo Cría 1',
+        responsable: 'Encargado de manga',
+        hoja_numero: 1,
+        hoja_total: 1,
+        observaciones: '',
+      },
+      rows: [
+        { id: '1', caravana: 'TE-301', caravana_madre: 'VC-301', peso: '182', sexo: 'M', cs_nueva: 'Novillito', lote_destino: 'Destete Machos Otoño', manejo: 'P', observations: '' },
+        { id: '2', caravana: 'TE-302', caravana_madre: 'VC-302', peso: '176', sexo: 'H', cs_nueva: 'Vaquillona / Reposición', lote_destino: 'Destete Hembras Otoño', manejo: 'C', observations: '' },
+        { id: '3', caravana: 'TE-303', caravana_madre: 'VC-303', peso: '188', sexo: 'M', cs_nueva: '', lote_destino: 'Destete Machos Otoño', manejo: 'P', observations: '' },
+        { id: '4', caravana: 'TE-304', caravana_madre: 'VC-304', peso: '171', sexo: 'H', cs_nueva: '', lote_destino: 'Destete Hembras Otoño', manejo: 'C', observations: '' },
+      ],
+    },
     REPAIR_ERROR: {
       templateCode: 'DEST-01',
       scenario: 'REPAIR_ERROR',
@@ -644,6 +756,7 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
       category: 'WEANING',
       context: {
         lote_destete: 'Destete Con Errores',
+        sistema_manejo: 'PASTURA',
         fecha_destete: new Date().toISOString().slice(0, 10),
         tipo_destete: 'TRADICIONAL',
         lote_origen: 'Rodeo 1',
@@ -715,44 +828,12 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
     MULTI_PAGE: {} as any,
   },
 
-  'REP-02': {
-    HAPPY_PATH: {
-      templateCode: 'REP-02',
-      scenario: 'HAPPY_PATH',
-      scenarioLabel: '🟢 Partos en Potrero Maternidad (8 Nacimientos)',
-      scenarioDescription: 'Madres con terneros nacidos, sexo M/H y pesos al nacer (28 a 36 kg).',
-      templateTitle: 'Planilla de Parición',
-      category: 'REPRODUCTIVE',
-      context: {
-        lote: 'Potrero Maternidad 1',
-        fecha: new Date().toISOString().slice(0, 10),
-        observaciones: 'Partos normales sin distocias. Crías mamando calostro.',
-      },
-      rows: [
-        { id: 1, caravana: 'VC-201', calving_date: new Date().toISOString().slice(0, 10), calf_caravan: 'TE-01', calf_sex: 'M', calf_weight: 32.5, observations: 'Parto natural' },
-        { id: 2, caravana: 'VC-202', calving_date: new Date().toISOString().slice(0, 10), calf_caravan: 'TE-02', calf_sex: 'H', calf_weight: 29.0, observations: 'Ternera vigorosa' },
-        { id: 3, caravana: 'VC-203', calving_date: new Date().toISOString().slice(0, 10), calf_caravan: 'TE-03', calf_sex: 'M', calf_weight: 35.0, observations: '' },
-        { id: 4, caravana: 'VC-204', calving_date: new Date().toISOString().slice(0, 10), calf_caravan: 'TE-04', calf_sex: 'H', calf_weight: 30.5, observations: '' },
-      ],
-    },
-    WARNINGS: {
-      templateCode: 'REP-02',
-      scenario: 'WARNINGS',
-      scenarioLabel: '🟡 Pesos Extremos al Nacer (> 42 kg)',
-      scenarioDescription: 'Alerta por distocia potencial o ternero de peso muy elevado al nacimiento.',
-      templateTitle: 'Planilla de Parición',
-      category: 'REPRODUCTIVE',
-      context: {
-        lote: 'Potrero Maternidad',
-        fecha: new Date().toISOString().slice(0, 10),
-        observaciones: 'Partos con ayuda veterinaria.',
-      },
-      rows: [
-        { id: 1, caravana: 'VC-201', calving_date: new Date().toISOString().slice(0, 10), calf_caravan: 'TE-91', calf_sex: 'M', calf_weight: 46.0, observations: 'Parto distócico asistido' },
-      ],
-    },
-    REPAIR_ERROR: {} as any,
-    MULTI_PAGE: {} as any,
+  // Built from the PAR-01 test sheets, so the scenario buttons and the sheet list show the same data.
+  'PAR-01': {
+    HAPPY_PATH: { ...PAR01_SHEET_CASES[1], scenario: 'HAPPY_PATH' },
+    WARNINGS: { ...PAR01_SHEET_CASES[8], scenario: 'WARNINGS' },
+    MULTI_PAGE: PAR01_WHOLE_ORDER,
+    REPAIR_ERROR: { ...PAR01_SHEET_CASES[7], scenario: 'REPAIR_ERROR' },
   },
 
   'MON-01': {
@@ -878,12 +959,29 @@ export const SIMULATION_PRESETS: Record<string, Record<SimulationScenario, Simul
 };
 
 /**
+ * The SHEET_CASES scenario: one preset per test sheet, for the templates that have a set of them.
+ */
+export const SIMULATION_SHEET_CASES: Record<string, SimulationPreset[]> = {
+  'CACT-01': CACT01_SHEET_CASES,
+  'DEST-01': DEST01_SHEET_CASES,
+  'PAR-01': PAR01_SHEET_CASES,
+};
+
+export function getSimulationSheetCases(templateCode: string): SimulationPreset[] {
+  return SIMULATION_SHEET_CASES[templateCode] ?? [];
+}
+
+/**
  * Returns a simulation preset for the given template code and scenario, with graceful fallbacks.
  */
 export function getSimulationPreset(templateCode: string, scenario: SimulationScenario = 'HAPPY_PATH'): SimulationPreset {
   const codePresets = SIMULATION_PRESETS[templateCode] || SIMULATION_PRESETS['ING-01'];
-  if (codePresets[scenario] && codePresets[scenario].templateCode) {
-    return codePresets[scenario];
+  const requested = codePresets[scenario];
+
+  if (requested && requested.templateCode) {
+    return requested;
   }
-  return codePresets['HAPPY_PATH'];
+
+  // Every template defines its happy path; it is the floor of this catalogue.
+  return codePresets['HAPPY_PATH'] as SimulationPreset;
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import {
   Autocomplete,
   Box,
@@ -14,22 +14,11 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useCompany } from '@/contexts/CompanyContext';
-import { useActivities } from '@/features/activities/hooks/useActivities';
-import { useCaravans } from '@/features/caravans/hooks/useCaravans';
-import {
-  TransferableCaravan,
-  figuresOfSelection,
-  formatAverage,
-  formatKg,
-} from '@/ui/activities/components/transfer/transferMath';
+import { formatAverage, formatKg } from '@/ui/activities/components/transfer/transferMath';
 import { useCact01Print } from './Cact01PrintContext';
+import { useCact01SourceAnimals } from '../../hooks/useCact01SourceAnimals';
 
 const DENTITION_LABELS: Record<number, string> = { 0: 'DL', 2: '2D', 4: '4D', 6: '6D', 8: '8D' };
-
-interface SourceCaravan extends TransferableCaravan {
-  teeth?: number | null;
-}
 
 /**
  * Picks the source batch and the animals to pre-load.
@@ -38,67 +27,22 @@ interface SourceCaravan extends TransferableCaravan {
  * whole batch is the usual case and the partial move is the exception. The figures come
  * from `figuresOfSelection` rather than a second arithmetic written here, so the paper
  * and the transfer screen can never disagree about what the troop weighs.
+ *
+ * When a work order arrives from the transfer screen it overrides that default: the sheet
+ * is an order to fulfil, so it lists the animals that screen chose and no others.
  */
 export const Cact01SourcePicker: React.FC = () => {
-  const { activeCompanyId } = useCompany();
-  const { data: activities = [] } = useActivities(activeCompanyId);
-  const { data: caravans = [] } = useCaravans(activeCompanyId, 'own');
-
   const {
     sourceBatchId,
     setSourceBatchId,
     excludedCaravanIds: excludedIds,
     setExcludedCaravanIds: setExcludedIds,
-    setAnimals,
     setHeaderField,
   } = useCact01Print();
 
-  const batchOptions = useMemo(
-    () =>
-      activities
-        .filter((activity) => activity.isEnabled !== false)
-        .flatMap((activity) =>
-          (activity.batches ?? []).map((batch) => ({
-            id: batch.id,
-            name: batch.name,
-            count: batch.count,
-            activityName: activity.name,
-          }))
-        )
-        .filter((batch) => batch.count > 0)
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [activities]
-  );
-
-  const candidates = useMemo<SourceCaravan[]>(
-    () =>
-      (caravans as unknown as SourceCaravan[])
-        .filter((caravan) => caravan.batch_id === sourceBatchId)
-        .sort((a, b) => a.identification.localeCompare(b.identification)),
-    [caravans, sourceBatchId]
-  );
-
-  const selectedIds = useMemo(
-    () => candidates.filter((c) => !excludedIds.has(c.id)).map((c) => c.id),
-    [candidates, excludedIds]
-  );
-
-  const figures = useMemo(() => figuresOfSelection(candidates, selectedIds), [candidates, selectedIds]);
-
-  useEffect(() => {
-    setAnimals(
-      candidates
-        .filter((caravan) => !excludedIds.has(caravan.id))
-        .map((caravan) => ({
-          caravanId: caravan.id,
-          identification: caravan.identification,
-          sex: caravan.sex ?? null,
-          category: caravan.category_name ?? caravan.category ?? null,
-          teeth: caravan.teeth != null ? DENTITION_LABELS[caravan.teeth] ?? String(caravan.teeth) : null,
-          currentWeight: caravan.current_weight != null ? Number(caravan.current_weight) : null,
-        }))
-    );
-  }, [candidates, excludedIds, setAnimals]);
+  // Presentation only: the loading and the publishing belong to the hook, called once by
+  // the printable sheet, which is mounted whether or not this drawer was ever opened.
+  const { batchOptions, candidates, figures } = useCact01SourceAnimals();
 
   // The header names of origin travel to the paper so that a loose page still says
   // where the troop came from.

@@ -11,6 +11,8 @@ interface ScanDest01MetadataHeaderProps {
   isOpen?: boolean;
   onToggle?: () => void;
   headerErrors?: Dest01HeaderError[];
+  /** The weaning order declares the type: shown, not asked again. */
+  weaningTypeFromOrder?: string | null;
 }
 
 const errorFor = (errors: Dest01HeaderError[], field: keyof Dest01Metadata): string | undefined =>
@@ -23,7 +25,13 @@ export const ScanDest01MetadataHeader: React.FC<ScanDest01MetadataHeaderProps> =
   isOpen = true,
   onToggle,
   headerErrors = [],
+  weaningTypeFromOrder = null,
 }) => {
+  const typeRead = metadata.tipo_destete.trim();
+  const typeIsKnown = WEANING_TYPES.includes(typeRead as (typeof WEANING_TYPES)[number]);
+  // Two boxes crossed, or a word that is none of the three: marked on its cell, to choose one.
+  const typeProblem = typeRead !== '' && !typeIsKnown ? `Se leyó «${typeRead}»: elegí un solo tipo o dejalo vacío.` : undefined;
+
   const fields = (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2, pt: 2.5 }}>
       <TextField
@@ -39,12 +47,27 @@ export const ScanDest01MetadataHeader: React.FC<ScanDest01MetadataHeaderProps> =
         InputLabelProps={{ shrink: true }}
       />
       <TextField
+        label="Orden de Destete (código)"
+        value={metadata.orden_destete}
+        onChange={(e) => onChange('orden_destete', e.target.value.toUpperCase())}
+        size="small"
+        fullWidth
+        placeholder="Sin orden: planilla en blanco"
+        error={Boolean(errorFor(headerErrors, 'orden_destete'))}
+        helperText={errorFor(headerErrors, 'orden_destete')}
+        InputLabelProps={{ shrink: true }}
+        InputProps={{ sx: { fontFamily: 'monospace', fontWeight: 700 } }}
+      />
+      <TextField
         select
         label="Tipo de Destete"
-        value={WEANING_TYPES.includes(metadata.tipo_destete as (typeof WEANING_TYPES)[number]) ? metadata.tipo_destete : ''}
+        value={typeIsKnown ? metadata.tipo_destete : ''}
         onChange={(e) => onChange('tipo_destete', e.target.value)}
         size="small"
         fullWidth
+        disabled={Boolean(weaningTypeFromOrder)}
+        error={Boolean(typeProblem || errorFor(headerErrors, 'tipo_destete'))}
+        helperText={weaningTypeFromOrder ? `Lo declara la orden: ${weaningTypeFromOrder}` : typeProblem ?? errorFor(headerErrors, 'tipo_destete')}
         InputLabelProps={{ shrink: true }}
       >
         <MenuItem value="">Sin indicar</MenuItem>

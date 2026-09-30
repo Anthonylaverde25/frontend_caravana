@@ -8,6 +8,7 @@ import type { Cact01PagesState } from '../../hooks/useCact01Pages';
 import type { Cact01BatchOption, Cact01DestinationsState } from '../../hooks/useCact01Destinations';
 import type { Cact01RepairState } from '../../hooks/useCact01Submission';
 import type { Cact01Row } from './types';
+import type { Cact01SourceBatchState } from '../../hooks/useCact01SourceBatch';
 
 interface ActivityOption {
   id: number;
@@ -35,14 +36,18 @@ interface ScanCact01WorkspaceProps {
   batches: Cact01BatchOption[];
   activities: ActivityOption[];
   batchTypes: BatchTypeOption[];
+  /** Destination activity of the sheet: every destination card is confined to it. */
+  destinationActivityId: number | null;
   sourceBatchOptions: SourceBatchOption[];
-  sourceMatched: boolean;
+  sourceResolution: Cact01SourceBatchState;
   repair: Cact01RepairState | null;
   isRepairOpen: boolean;
   onOpenRepair: () => void;
   onRowChange: (id: string, field: keyof Cact01Row, value: string) => void;
   onPreviewPage: (previewUrl: string) => void;
   isSaving: boolean;
+  /** The transfer order the sheet names, once resolved. Absent for a sheet without one. */
+  orderBand?: React.ReactNode;
 }
 
 /**
@@ -55,27 +60,32 @@ export const ScanCact01Workspace: React.FC<ScanCact01WorkspaceProps> = ({
   batches,
   activities,
   batchTypes,
+  destinationActivityId,
   sourceBatchOptions,
-  sourceMatched,
+  sourceResolution,
   repair,
   isRepairOpen,
   onOpenRepair,
   onRowChange,
   onPreviewPage,
   isSaving,
+  orderBand,
 }) => {
   const [isHeaderOpen, setIsHeaderOpen] = useState(true);
 
   return (
     <>
       <ScanCact01PagesBar state={state} onPreviewPage={onPreviewPage} disabled={isSaving} />
+      {orderBand}
       <ScanCact01MetadataHeader
         metadata={state.metadata}
         onChange={state.setMetadataField}
+        activities={activities}
         sourceBatchId={state.sourceBatchId}
         onSourceBatchChange={state.setSourceBatchId}
         sourceBatchOptions={sourceBatchOptions}
-        sourceMatched={sourceMatched}
+        sourceResolution={sourceResolution}
+        perAnimal={state.perAnimal}
         isOpen={isHeaderOpen}
         onToggle={() => setIsHeaderOpen((prev) => !prev)}
         headerErrors={repair?.headerErrors}
@@ -85,6 +95,8 @@ export const ScanCact01Workspace: React.FC<ScanCact01WorkspaceProps> = ({
         batches={batches}
         activities={activities}
         batchTypes={batchTypes}
+        destinationActivityId={destinationActivityId}
+        perAnimal={state.perAnimal}
         headerErrors={repair?.headerErrors}
       />
       <Box sx={{ p: 2 }}>

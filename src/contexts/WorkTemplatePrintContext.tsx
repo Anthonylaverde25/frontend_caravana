@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useMemo, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router';
 import { useReactToPrint } from 'react-to-print';
 // @ts-ignore
@@ -28,6 +28,18 @@ interface WorkTemplatePrintContextType {
   handlePrint: () => void;
   handleDownload: () => void;
   handleBack: () => void;
+  /**
+   * Lets a template learn that its sheet actually went out — printed or downloaded — so it can
+   * record the fact (CACT-01 stamps its transfer order). One listener; null removes it.
+   */
+  setOnPrinted: (listener: (() => void) | null) => void;
+  /**
+   * Why the sheet cannot go out on paper right now, or null when it can. A template sets it when
+   * what it shows is only a preview (CACT-01 with a draft order): printing and downloading are
+   * disabled and the configuration is hidden, so no loose paper leaves the system.
+   */
+  printLock: string | null;
+  setPrintLock: (reason: string | null) => void;
   batchId: number | null;
   // Interactive supplier & farm selection
   selectedProviderId: number | null;
@@ -56,6 +68,11 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const onPrintedRef = useRef<(() => void) | null>(null);
+  const setOnPrinted = useCallback((listener: (() => void) | null) => {
+    onPrintedRef.current = listener;
+  }, []);
+  const [printLock, setPrintLock] = useState<string | null>(null);
 
   const orderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
   const batchId = searchParams.get('batchId') ? Number(searchParams.get('batchId')) : null;
@@ -139,6 +156,7 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
         body { -webkit-print-color-adjust: exact; }
       }
     `,
+    onAfterPrint: () => onPrintedRef.current?.(),
   });
 
   // Setup PDF download configuration
@@ -160,7 +178,11 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
       pagebreak: { mode: ['css', 'legacy'], before: '.print-page', avoid: '.print-page' }
     };
 
-    html2pdf().set(opt).from(element).save();
+    html2pdf()
+      .set(opt)
+      .from(element)
+      .save()
+      .then(() => onPrintedRef.current?.());
   };
 
   const handleBack = () => {
@@ -188,6 +210,9 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
       handlePrint,
       handleDownload,
       handleBack,
+      setOnPrinted,
+      printLock,
+      setPrintLock,
       batchId,
       selectedProviderId,
       setSelectedProviderId,
@@ -219,6 +244,7 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
       handlePrint,
       handleDownload,
       handleBack,
+      printLock,
       batchId,
       selectedProviderId,
       setSelectedProviderId,

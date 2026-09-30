@@ -246,7 +246,7 @@ function TemplatesView() {
 							<IconButton
 								size="small"
 								component={Link}
-								to={`/work-templates/scan?templateCode=${template.code}`}
+								to={`/work-templates/scan/${template.code.toLowerCase()}`}
 								onClick={(e: React.MouseEvent) => e.stopPropagation()}
 								sx={{
 									color: '#6366f1',

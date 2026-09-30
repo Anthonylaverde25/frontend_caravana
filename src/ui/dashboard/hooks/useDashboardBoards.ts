@@ -4,13 +4,16 @@ import {
 	BoardTemplateType,
 	BoardWidgetInstance,
 	DashboardBoard,
+	WidgetColSpan,
+	WidgetRowSpan,
 	WidgetSize
 } from '../types/dashboard.types';
 import { SYSTEM_BOARDS, buildTemplateWidgets, newInstanceId } from '../registry/boardTemplates';
 import { getWidgetDefinition } from '../registry/widgetRegistry';
 
-/** v3: only user boards are persisted; system boards always come from code. */
+/** v3: user boards and system board customizations are persisted in localStorage. */
 const STORAGE_KEY = 'rxna_dashboard_boards_v3';
+const SYSTEM_OVERRIDE_KEY = 'rxna_dashboard_system_overrides_v3';
 
 export interface CreateBoardInput {
 	name: string;
@@ -22,6 +25,8 @@ export interface CreateBoardInput {
 export interface NewWidgetInput {
 	widgetId: string;
 	size: WidgetSize;
+	colSpan?: WidgetColSpan;
+	rowSpan?: WidgetRowSpan;
 	title?: string;
 	config?: Record<string, string>;
 }
@@ -49,6 +54,21 @@ function loadUserBoards(): DashboardBoard[] {
 	}
 }
 
+function loadSystemOverrides(): Record<string, BoardWidgetInstance[]> {
+	try {
+		const raw = localStorage.getItem(SYSTEM_OVERRIDE_KEY);
+		const parsed: unknown = raw ? JSON.parse(raw) : {};
+
+		if (parsed && typeof parsed === 'object') {
+			return parsed as Record<string, BoardWidgetInstance[]>;
+		}
+
+		return {};
+	} catch {
+		return {};
+	}
+}
+
 function move<T>(list: T[], from: number, to: number): T[] {
 	if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
 
@@ -60,11 +80,14 @@ function move<T>(list: T[], from: number, to: number): T[] {
 }
 
 /**
- * Board state for the dashboard. Editing works on a draft of the active board's widgets:
+ * Board state for the dashboard.
+ * Supports customizing both system boards (persisting overrides) and custom user boards.
+ * Editing works on a draft of the active board's widgets:
  * nothing is persisted until `saveEdit`, and `discardEdit` restores the last saved layout.
  */
 export function useDashboardBoards() {
 	const [userBoards, setUserBoards] = useState<DashboardBoard[]>(loadUserBoards);
+	const [systemOverrides, setSystemOverrides] = useState<Record<string, BoardWidgetInstance[]>>(loadSystemOverrides);
 	const [activeBoardId, setActiveBoardId] = useState<string>(SYSTEM_BOARDS[0].id);
 	const [draft, setDraft] = useState<BoardWidgetInstance[] | null>(null);
 	const [lastAddedId, setLastAddedId] = useState<string | null>(null);
@@ -73,13 +96,36 @@ export function useDashboardBoards() {
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(userBoards));
 		} catch {
-			// Storage can be unavailable (private mode); boards then live for the session only.
+			// Storage can be unavailable (private mode)
 		}
 	}, [userBoards]);
 
-	const boards = useMemo(() => [...SYSTEM_BOARDS, ...userBoards], [userBoards]);
+	useEffect(() => {
+		try {
+			localStorage.setItem(SYSTEM_OVERRIDE_KEY, JSON.stringify(systemOverrides));
+		} catch {
+			// Storage can be unavailable
+		}
+	}, [systemOverrides]);
+
+	const systemBoardsWithOverrides = useMemo(() => {
+		return SYSTEM_BOARDS.map((b) => {
+			const customWidgets = systemOverrides[b.id];
+			if (customWidgets && Array.isArray(customWidgets)) {
+				return {
+					...b,
+					widgets: customWidgets.filter((w) => getWidgetDefinition(w.widgetId)?.component)
+				};
+			}
+
+			return b;
+		});
+	}, [systemOverrides]);
+
+	const boards = useMemo(() => [...systemBoardsWithOverrides, ...userBoards], [systemBoardsWithOverrides, userBoards]);
 	const savedActive = boards.find((b) => b.id === activeBoardId) ?? boards[0];
 	const isEditing = draft !== null;
+	const isCustomized = Boolean(savedActive.isSystem && systemOverrides[savedActive.id]);
 	const activeBoard: DashboardBoard = isEditing ? { ...savedActive, widgets: draft } : savedActive;
 
 	const selectBoard = useCallback(
@@ -108,22 +154,37 @@ export function useDashboardBoards() {
 	}, []);
 
 	const startEdit = useCallback(() => {
-		if (savedActive.isSystem) return;
-
 		setDraft(savedActive.widgets);
 	}, [savedActive]);
 
 	const saveEdit = useCallback(() => {
 		if (!draft) return;
 
-		setUserBoards((prev) => prev.map((b) => (b.id === savedActive.id ? { ...b, widgets: draft } : b)));
+		if (savedActive.isSystem) {
+			setSystemOverrides((prev) => ({
+				...prev,
+				[savedActive.id]: draft
+			}));
+		} else {
+			setUserBoards((prev) => prev.map((b) => (b.id === savedActive.id ? { ...b, widgets: draft } : b)));
+		}
+
 		setDraft(null);
 		setLastAddedId(null);
-	}, [draft, savedActive.id]);
+	}, [draft, savedActive]);
 
 	const discardEdit = useCallback(() => {
 		setDraft(null);
 		setLastAddedId(null);
+	}, []);
+
+	const resetBoard = useCallback((boardId: string) => {
+		setSystemOverrides((prev) => {
+			const next = { ...prev };
+			delete next[boardId];
+			return next;
+		});
+		setDraft(null);
 	}, []);
 
 	const addWidget = useCallback((input: NewWidgetInput) => {
@@ -138,9 +199,29 @@ export function useDashboardBoards() {
 		setDraft((prev) => (prev ?? []).filter((w) => w.instanceId !== instanceId));
 	}, []);
 
-	const resizeWidget = useCallback((instanceId: string, size: WidgetSize) => {
-		setDraft((prev) => (prev ?? []).map((w) => (w.instanceId === instanceId ? { ...w, size } : w)));
-	}, []);
+	const resizeWidget = useCallback(
+		(
+			instanceId: string,
+			input: WidgetSize | { colSpan: WidgetColSpan; rowSpan?: WidgetRowSpan; size?: WidgetSize }
+		) => {
+			setDraft((prev) =>
+				(prev ?? []).map((w) => {
+					if (w.instanceId !== instanceId) return w;
+					if (typeof input === 'string') {
+						return { ...w, size: input };
+					}
+
+					return {
+						...w,
+						colSpan: input.colSpan,
+						rowSpan: input.rowSpan ?? w.rowSpan ?? 1,
+						size: input.size ?? w.size
+					};
+				})
+			);
+		},
+		[]
+	);
 
 	const moveWidget = useCallback((from: number, to: number) => {
 		setDraft((prev) => move(prev ?? [], from, to));
@@ -160,12 +241,14 @@ export function useDashboardBoards() {
 		boards,
 		activeBoard,
 		isEditing,
+		isCustomized,
 		lastAddedId,
 		selectBoard,
 		createBoard,
 		startEdit,
 		saveEdit,
 		discardEdit,
+		resetBoard,
 		addWidget,
 		removeWidget,
 		resizeWidget,

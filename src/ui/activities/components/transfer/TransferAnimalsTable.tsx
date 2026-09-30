@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { ReactNode, useMemo, useState } from 'react';
 import {
 	Box,
 	Button,
@@ -6,6 +6,7 @@ import {
 	Chip,
 	IconButton,
 	InputAdornment,
+	MenuItem,
 	Paper,
 	Stack,
 	Table,
@@ -25,12 +26,57 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useTransferPalette } from './transferPalette';
 import { TransferableCaravan, formatAverage } from './transferMath';
 
+import TransferDestinationCell from './TransferDestinationCell';
+import type { Cact01Destination } from '@/ui/work-templates/components/scan/types';
+
 interface TransferAnimalsTableProps {
 	caravans: TransferableCaravan[];
 	isLoading?: boolean;
 	selectedIds: number[];
 	onSelectionChange: (ids: number[]) => void;
+	/**
+	 * Per-animal destinations. Absent in single-destination mode, where the column is not
+	 * rendered at all and this table behaves exactly as it always did.
+	 */
+	destinations?: Cact01Destination[];
+	assignments?: Record<number, string>;
+	onAssign?: (caravanIds: number[], key: string | null) => void;
+	/**
+	 * An issued order freezes what it ordered: the selection and the destinations are shown and
+	 * cannot be touched. Changing them is an explicit act — cancelling the order — never a
+	 * silent edit that leaves the screen and the order saying different things.
+	 */
+	readOnly?: boolean;
+	/**
+	 * Inline editing of the selected rows. Only "Registrar transferencia" passes it: a planned
+	 * transfer never edits the animals, and without it this table is exactly what it was.
+	 */
+	fieldEditor?: TransferFieldEditor;
 }
+
+/**
+ * What a registered transfer lets the operator write for each selected animal, rendered by the
+ * caller. The table only decides where it goes; it knows nothing about weights or categories.
+ */
+export interface TransferFieldEditor {
+	renderWeight: (caravanId: number) => ReactNode;
+	renderCategory: (caravanId: number) => ReactNode;
+	renderTeeth: (caravanId: number) => ReactNode;
+	renderObservations: (caravanId: number) => ReactNode;
+	/** The dentition of a row that is not selected, read-only. */
+	teethOf: (caravanId: number) => string;
+	/** What the server refused for this animal, shown under its row. */
+	errorOf: (caravanId: number) => string | null;
+	/**
+	 * Per-animal destination picked right in the row (search, or create a batch). Replaces the
+	 * select over declared destinations, and the bulk "Asignar seleccionados" with its own.
+	 */
+	renderDestination?: (caravanId: number) => ReactNode;
+	renderBulkDestination?: (caravanIds: number[]) => ReactNode;
+}
+
+/** Distinct from the empty placeholder, which would otherwise share its value. */
+const CLEAR_DESTINATION = '__clear__';
 
 type SexFilter = 'ALL' | 'H' | 'M';
 type SortField = 'identification' | 'weight';
@@ -45,8 +91,17 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 	caravans,
 	isLoading = false,
 	selectedIds,
-	onSelectionChange
+	onSelectionChange,
+	destinations,
+	assignments = {},
+	onAssign,
+	readOnly = false,
+	fieldEditor
 }) => {
+	const showDestinationColumn = Boolean(destinations && onAssign);
+	// Registering replaces the two informative columns with the two it lets you write.
+	const editing = Boolean(fieldEditor);
+	const columnCount = 7 + (showDestinationColumn ? 1 : 0);
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const palette = useTransferPalette();
@@ -117,10 +172,14 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 		currentPageIds.some((id) => selectedSet.has(id)) && !allCurrentSelected;
 
 	const toggle = (id: number) => {
+		if (readOnly) return;
+
 		onSelectionChange(selectedSet.has(id) ? selectedIds.filter((v) => v !== id) : [...selectedIds, id]);
 	};
 
 	const togglePage = () => {
+		if (readOnly) return;
+
 		if (allCurrentSelected) {
 			onSelectionChange(selectedIds.filter((id) => !currentPageIds.includes(id)));
 			return;
@@ -310,11 +369,39 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 
 						{/* Quick Actions */}
 						<Stack direction="row" spacing={0.75} alignItems="center">
+							{/* Assigning two hundred head one at a time is not work: the selection
+							    already in hand is the natural unit to assign in one go. */}
+							{showDestinationColumn && fieldEditor?.renderBulkDestination && (
+								<Box sx={{ minWidth: 240 }}>{fieldEditor.renderBulkDestination(selectedIds)}</Box>
+							)}
+							{showDestinationColumn && !fieldEditor?.renderBulkDestination && (
+								<TextField
+									select
+									size="small"
+									value=""
+									disabled={readOnly || selectedIds.length === 0 || (destinations?.length ?? 0) === 0}
+									onChange={(e) => onAssign?.(selectedIds, e.target.value === CLEAR_DESTINATION ? null : e.target.value)}
+									SelectProps={{ displayEmpty: true }}
+									sx={{ minWidth: 210 }}
+								>
+									<MenuItem value="" disabled>
+										Asignar seleccionados ({selectedIds.length})…
+									</MenuItem>
+									{(destinations ?? []).map((destination) => (
+										<MenuItem key={destination.key} value={destination.key}>
+											{destination.name.trim() || 'Destino sin nombre'}
+											{destination.mode === 'new' ? ' (nuevo)' : ''}
+										</MenuItem>
+									))}
+									<MenuItem value={CLEAR_DESTINATION}>Quitar destino (se decide en la manga)</MenuItem>
+								</TextField>
+							)}
+
 							<Tooltip title="Limpiar selección">
 								<span>
 									<IconButton
 										size="small"
-										disabled={selectedIds.length === 0}
+										disabled={readOnly || selectedIds.length === 0}
 										onClick={() => onSelectionChange([])}
 										sx={{
 											border: '1px solid',
@@ -365,6 +452,7 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 									size="small"
 									checked={allCurrentSelected}
 									indeterminate={someCurrentSelected}
+									disabled={readOnly}
 									onChange={togglePage}
 									sx={{
 										color: isDark ? '#64748b' : '#94a3b8',
@@ -422,33 +510,53 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 								</Stack>
 							</TableCell>
 
-							{/* Categoría */}
-							<TableCell sx={{ ...headerCellStyle, minWidth: 180 }}>
-								<span>Categoría</span>
+							{/* Categoría: while editing, the current C/S is a reference and the new one is declared. */}
+							<TableCell sx={{ ...headerCellStyle, minWidth: editing ? 240 : 180 }}>
+								<span>{editing ? 'C/S actual → nueva' : 'Categoría'}</span>
 							</TableCell>
 
-							{/* Estado Sanitario */}
-							<TableCell sx={{ ...headerCellStyle, width: 180, textAlign: 'center' }}>
-								<span>Estado Sanitario</span>
-							</TableCell>
+							{editing ? (
+								<>
+									<TableCell sx={{ ...headerCellStyle, width: 150 }}>
+										<span>Dientes</span>
+									</TableCell>
+									<TableCell sx={{ ...headerCellStyle, minWidth: 200, borderRight: showDestinationColumn ? undefined : 0 }}>
+										<span>Observaciones</span>
+									</TableCell>
+								</>
+							) : (
+								<>
+									{/* Estado Sanitario */}
+									<TableCell sx={{ ...headerCellStyle, width: 180, textAlign: 'center' }}>
+										<span>Estado Sanitario</span>
+									</TableCell>
 
-							{/* Condición */}
-							<TableCell sx={{ ...headerCellStyle, width: 120, textAlign: 'center', borderRight: 0 }}>
-								<span>Condición</span>
-							</TableCell>
+									{/* Condición */}
+									<TableCell sx={{ ...headerCellStyle, width: 120, textAlign: 'center', borderRight: showDestinationColumn ? undefined : 0 }}>
+										<span>Condición</span>
+									</TableCell>
+								</>
+							)}
+
+							{/* Lote destino, sólo en modo por animal */}
+							{showDestinationColumn && (
+								<TableCell sx={{ ...headerCellStyle, width: 200, borderRight: 0 }}>
+									<span>Lote destino</span>
+								</TableCell>
+							)}
 						</TableRow>
 					</TableHead>
 
 					<TableBody>
 						{isLoading ? (
 							<TableRow>
-								<TableCell colSpan={7} sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
+								<TableCell colSpan={columnCount} sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
 									Cargando animales del lote…
 								</TableCell>
 							</TableRow>
 						) : visible.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={7} sx={{ py: 6, textAlign: 'center' }}>
+								<TableCell colSpan={columnCount} sx={{ py: 6, textAlign: 'center' }}>
 									<Box
 										sx={{
 											width: 48,
@@ -484,9 +592,14 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 								const isEven = idx % 2 === 1;
 								const category = caravan.category_name ?? caravan.category;
 
+								const isEditable = editing && isSelected && !readOnly;
+								const rowError = editing && isSelected ? fieldEditor?.errorOf(caravan.id) : null;
+								// Typing in a cell must not toggle the row it sits in.
+								const stop = (e: React.MouseEvent) => e.stopPropagation();
+
 								return (
+									<React.Fragment key={caravan.id}>
 									<TableRow
-										key={caravan.id}
 										hover
 										selected={isSelected}
 										onClick={() => toggle(caravan.id)}
@@ -522,6 +635,7 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 											<Checkbox
 												size="small"
 												checked={isSelected}
+												disabled={readOnly}
 												onChange={() => toggle(caravan.id)}
 												sx={{
 													color: isDark ? '#64748b' : '#94a3b8',
@@ -626,18 +740,54 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 												color: caravan.current_weight == null ? 'text.disabled' : 'text.primary'
 											}}
 										>
-											{caravan.current_weight != null
-												? `${formatAverage(Number(caravan.current_weight))} kg`
-												: '—'}
+											{isEditable ? (
+												<Box onClick={stop}>{fieldEditor?.renderWeight(caravan.id)}</Box>
+											) : caravan.current_weight != null ? (
+												`${formatAverage(Number(caravan.current_weight))} kg`
+											) : (
+												'—'
+											)}
 										</TableCell>
 
 										{/* Categoría */}
-										<TableCell sx={{ ...bodyCellStyle }}>
-											<Typography variant="body2" noWrap sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-												{category || 'Sin categoría'}
-											</Typography>
+										<TableCell sx={{ ...bodyCellStyle }} onClick={isEditable ? stop : undefined}>
+											{isEditable ? (
+												fieldEditor?.renderCategory(caravan.id)
+											) : (
+												<Typography variant="body2" noWrap sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+													{category || 'Sin categoría'}
+												</Typography>
+											)}
 										</TableCell>
 
+										{editing && (
+											<>
+												<TableCell sx={{ ...bodyCellStyle }} onClick={isEditable ? stop : undefined}>
+													{isEditable ? (
+														fieldEditor?.renderTeeth(caravan.id)
+													) : (
+														<Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+															{fieldEditor?.teethOf(caravan.id)}
+														</Typography>
+													)}
+												</TableCell>
+												<TableCell
+													sx={{ ...bodyCellStyle, borderRight: showDestinationColumn ? undefined : 0 }}
+													onClick={isEditable ? stop : undefined}
+												>
+													{isEditable ? (
+														fieldEditor?.renderObservations(caravan.id)
+													) : (
+														<Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>
+															—
+														</Typography>
+													)}
+												</TableCell>
+											</>
+										)}
+
+										{!editing && (
+										<>
 										{/* Estado Sanitario */}
 										<TableCell sx={{ ...bodyCellStyle, textAlign: 'center' }}>
 											<Chip
@@ -658,7 +808,7 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 										</TableCell>
 
 										{/* Condición */}
-										<TableCell sx={{ ...bodyCellStyle, textAlign: 'center', borderRight: 0 }}>
+										<TableCell sx={{ ...bodyCellStyle, textAlign: 'center', borderRight: showDestinationColumn ? undefined : 0 }}>
 											<Chip
 												size="small"
 												variant="outlined"
@@ -673,7 +823,43 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 												}}
 											/>
 										</TableCell>
+										</>
+										)}
+
+										{showDestinationColumn && (
+											<TableCell sx={{ ...bodyCellStyle, borderRight: 0, minWidth: 220 }} onClick={isEditable ? stop : undefined}>
+												{fieldEditor?.renderDestination ? (
+													isEditable ? (
+														fieldEditor.renderDestination(caravan.id)
+													) : (
+														<Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>
+															—
+														</Typography>
+													)
+												) : (
+												<TransferDestinationCell
+													caravanId={caravan.id}
+													assignedKey={assignments[caravan.id]}
+													destinations={destinations as Cact01Destination[]}
+													onAssign={(id, key) => onAssign?.([id], key)}
+													disabled={readOnly}
+												/>
+												)}
+											</TableCell>
+										)}
 									</TableRow>
+
+									{rowError && (
+										<TableRow>
+											<TableCell
+												colSpan={columnCount}
+												sx={{ py: 0.75, pl: 9, color: 'error.main', fontSize: '0.75rem', fontWeight: 600, borderRight: 0 }}
+											>
+												{rowError}
+											</TableCell>
+										</TableRow>
+									)}
+									</React.Fragment>
 								);
 							})
 						)}

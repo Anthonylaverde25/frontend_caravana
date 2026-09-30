@@ -15,7 +15,7 @@ interface WidgetConfigPanelProps {
 }
 
 const SIZES: WidgetSize[] = ['S', 'M', 'L'];
-const PREVIEW_WIDTH: Record<WidgetSize, number> = { S: 320, M: 660, L: 1100 };
+const PREVIEW_WIDTH: Record<WidgetSize, number> = { S: 320, M: 660, L: 1100, CUSTOM: 660 };
 
 function SectionLabel({ children }: { children: string }) {
 	return <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>{children}</Typography>;

@@ -381,18 +381,18 @@ function GestationListView() {
                       size="small"
                       variant="contained"
                       color="primary"
-                      startIcon={<FuseSvgIcon size={16}>heroicons-outline:printer</FuseSvgIcon>}
-                      onClick={() => navigate(`/work-templates/REP-02?batchId=${row.original.id}`)}
+                      startIcon={<FuseSvgIcon size={16}>heroicons-outline:clipboard-document-list</FuseSvgIcon>}
+                      onClick={() => navigate(`/birth-orders/new?batchId=${row.original.id}`)}
                       sx={{ textTransform: 'none', py: 0.5, px: 1.5, fontSize: '0.75rem', borderRadius: '4px', color: '#fff', fontWeight: 700 }}
                     >
-                      Planilla de Parición
+                      Nueva Orden de Parición
                     </Button>
                     <Button
                       size="small"
                       variant="contained"
                       color="primary"
                       startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus-circle</FuseSvgIcon>}
-                      onClick={() => navigate(`/gestation/batches/${row.original.id}/bulk-birth`)}
+                      onClick={() => navigate(`/birth-orders/register?batchId=${row.original.id}`)}
                       sx={{ textTransform: 'none', py: 0.5, px: 1.5, fontSize: '0.75rem', borderRadius: '4px', color: '#fff', fontWeight: 700 }}
                     >
                       Registrar Partos

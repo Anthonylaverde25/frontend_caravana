@@ -11,6 +11,12 @@ interface TransferSummaryCardsProps {
 	isNewDestination: boolean;
 	/** False until there is a batch to receive the animals. */
 	isDestinationChosen: boolean;
+	/**
+	 * How many destinations the movement has. With more than one there is no single
+	 * "destination batch" to report an average for, and pretending otherwise would put a
+	 * number on this card that belongs to no batch at all.
+	 */
+	destinationCount?: number;
 	moved: BatchFigures;
 	sourceBefore: BatchFigures;
 	sourceAfter: BatchFigures;
@@ -37,6 +43,7 @@ export const TransferSummaryCards: React.FC<TransferSummaryCardsProps> = ({
 	destinationName,
 	isNewDestination,
 	isDestinationChosen,
+	destinationCount = 1,
 	moved,
 	sourceBefore,
 	sourceAfter,
@@ -46,6 +53,8 @@ export const TransferSummaryCards: React.FC<TransferSummaryCardsProps> = ({
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const palette = useTransferPalette();
+
+	const isSplit = destinationCount > 1;
 
 	const sourceDelta = averageDelta(sourceBefore.average, sourceAfter.average);
 	const destinationDelta = isNewDestination
@@ -97,17 +106,25 @@ export const TransferSummaryCards: React.FC<TransferSummaryCardsProps> = ({
 		},
 		{
 			id: 'destination',
-			label: isNewDestination ? 'Lote nuevo · peso base' : 'Destino al recibir',
-			value: isDestinationChosen && destinationAfter.average != null ? formatAverage(destinationAfter.average) : '—',
-			unit: isDestinationChosen ? 'kg/cab' : undefined,
+			label: isSplit ? 'Destinos del movimiento' : isNewDestination ? 'Lote nuevo · peso base' : 'Destino al recibir',
+			value: isSplit
+				? String(destinationCount)
+				: isDestinationChosen && destinationAfter.average != null
+					? formatAverage(destinationAfter.average)
+					: '—',
+			unit: isSplit ? 'lotes' : isDestinationChosen ? 'kg/cab' : undefined,
 			icon: isNewDestination ? 'heroicons-outline:cube' : 'heroicons-outline:arrow-trending-up',
 			accent: isNewDestination ? palette.success : palette.active,
-			subtitle: !isDestinationChosen
+			subtitle: isSplit
+				? 'El promedio se lee por lote, no en conjunto'
+				: !isDestinationChosen
 				? 'Elegí el lote de destino'
 				: isNewDestination
 					? `${moved.count} cab · curva arranca acá`
 					: deltaLine(destinationDelta),
-			footer: !isDestinationChosen
+			footer: isSplit
+				? `${moved.count} cab repartidas en ${destinationCount} lotes`
+				: !isDestinationChosen
 				? 'Todavía no hay destino'
 				: isNewDestination
 					? 'Primer peso registrado del lote'

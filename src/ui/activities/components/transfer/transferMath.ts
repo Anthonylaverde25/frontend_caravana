@@ -7,6 +7,11 @@ export interface TransferableCaravan {
 	current_weight?: number | null;
 	category_name?: string | null;
 	category?: string | null;
+	category_id?: number | null;
+	subcategory_id?: number | null;
+	subcategory_name?: string | null;
+	/** The current gestation, when one is recorded. */
+	active_gestation?: { gestation_months?: number | null } | null;
 	batch_id?: number | null;
 }
 

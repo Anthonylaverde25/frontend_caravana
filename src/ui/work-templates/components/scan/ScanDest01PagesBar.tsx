@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Alert, Box, Button, Chip, CircularProgress, Stack, Typography } from '@mui/material';
 import { NoteAdd as NoteAddIcon } from '@mui/icons-material';
-import type { Dest01PagesState } from '../../hooks/useDest01Pages';
+import { headerDifferences, type Dest01PagesState } from '../../hooks/useDest01Pages';
 
 const ACCEPTED_FILE_TYPES = '.png,.jpg,.jpeg,.webp,.pdf';
 
@@ -99,8 +99,8 @@ export const ScanDest01PagesBar: React.FC<ScanDest01PagesBarProps> = ({ state, o
             </Stack>
           }
         >
-          La hoja <strong>{pendingPage.fileName}</strong> dice lote "{pendingPage.metadata.lote_destete || 'sin nombre'}" y fecha{' '}
-          {pendingPage.metadata.fecha_destete}, distinto de la hoja 1. Si es del mismo destete, se agrega y vale el encabezado de la hoja 1.
+          La hoja <strong>{pendingPage.fileName}</strong> no coincide con la hoja 1:{' '}
+          {pages[0] ? headerDifferences(pendingPage, pages[0]).join('; ') : ''}. Si es del mismo destete, se agrega y vale el encabezado de la hoja 1.
         </Alert>
       )}
     </Box>

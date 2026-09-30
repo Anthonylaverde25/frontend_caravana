@@ -31,13 +31,18 @@ interface CreateBatchDialogProps {
   onClose: () => void;
   onSuccess?: (createdBatch: any) => void;
   initialFarmId?: number;
+  /**
+   * Creates a batch of this catalogue type only (e.g. WEANING): the type and its activity are
+   * fixed and shown, not chosen.
+   */
+  batchTypeCode?: string;
 }
 
 /**
  * CreateBatchDialog Component
  * Modal for quick creation of own batches associated with the active company.
  */
-function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBatchDialogProps) {
+function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId, batchTypeCode }: CreateBatchDialogProps) {
   const { enqueueSnackbar } = useSnackbar();
   const { activeCompanyId } = useCompany();
   const { data: activities = [], isLoading: isLoadingActivities } = useActivities(activeCompanyId);
@@ -69,6 +74,11 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
       observaciones: ''
     }
   });
+
+  const lockedType = useMemo(
+    () => (batchTypeCode ? batchTypes.find((t) => t.code === batchTypeCode) : undefined),
+    [batchTypes, batchTypeCode]
+  );
 
   const selectedActivityId = watch('activity_id');
   const selectedBatchTypeId = watch('batch_type_id');
@@ -106,7 +116,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
   // is available: whoever does not want to classify does not have to. If the type
   // already chosen is still compatible it is respected.
   useEffect(() => {
-    if (filteredBatchTypes.length === 0) return;
+    if (batchTypeCode || filteredBatchTypes.length === 0) return;
 
     const stillCompatible = filteredBatchTypes.some((t) => t.id === selectedBatchTypeId);
 
@@ -118,8 +128,19 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
     setValue('batch_type_id', fallback.id);
   }, [filteredBatchTypes, selectedBatchTypeId, setValue]);
 
+  // A fixed type brings its own activity.
+  useEffect(() => {
+    if (!open || !lockedType) return;
+
+    setValue('batch_type_id', lockedType.id);
+
+    if (lockedType.activity_id) setValue('activity_id', lockedType.activity_id);
+  }, [open, lockedType, setValue]);
+
   // Automatically preselect the company's initial activity
   useEffect(() => {
+    if (batchTypeCode) return;
+
     if (activities.length > 0) {
       const initialActivity = activities.find((a) => a.isEnabled && a.isInitial) || activities.find((a) => a.isEnabled);
       if (initialActivity) {
@@ -194,7 +215,7 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
         }}
       >
         <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: 'text.primary' }}>
-          Alta Rápida de Lote
+          {lockedType ? `Nuevo ${lockedType.name.toLowerCase()}` : 'Alta Rápida de Lote'}
         </Typography>
         <IconButton onClick={handleClose} size="small" sx={{ color: 'primary.main' }}>
           <FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon>
@@ -215,6 +236,13 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               sx={{ bgcolor: 'action.hover' }}
             />
 
+            {lockedType ? (
+              <Alert severity="info" icon={<FuseSvgIcon size={18}>heroicons-outline:tag</FuseSvgIcon>} sx={{ borderRadius: '6px' }}>
+                {lockedType.name}
+                {selectedActivity ? ` · ${selectedActivity.name}` : ''}
+              </Alert>
+            ) : (
+            <>
             <TextField
               select
               label="Etapa / Actividad Inicial"
@@ -241,6 +269,8 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId }: CreateBa
               isLoading={isLoadingBatchTypes}
               error={errors.batch_type_id?.message?.toString()}
             />
+            </>
+            )}
 
             {declaresManagement && (
               <ManagementSystemSelector

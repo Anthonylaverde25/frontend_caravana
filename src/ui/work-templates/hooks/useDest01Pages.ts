@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import axiosInstance from '@/utils/axios';
-import type { Dest01BatchTarget, Dest01Metadata, Dest01Page, Dest01Row } from '../components/scan/types';
+import type { Dest01BatchTarget, Dest01DestinationMode, Dest01Metadata, Dest01Page, Dest01Row } from '../components/scan/types';
+import { normalizeDestinationKey } from './useCact01Pages';
 
 export const DEST01_CODE = 'DEST-01';
 const MANUAL_PAGE_KEY = 'manual';
@@ -8,7 +9,9 @@ const MANUAL_PAGE_KEY = 'manual';
 const today = (): string => new Date().toISOString().slice(0, 10);
 
 export const emptyDest01Metadata = (): Dest01Metadata => ({
+  orden_destete: '',
   lote_destete: '',
+  sistema_manejo: '',
   fecha_destete: today(),
   tipo_destete: '',
   lote_origen: '',
@@ -16,7 +19,21 @@ export const emptyDest01Metadata = (): Dest01Metadata => ({
   observaciones: '',
 });
 
-export const emptyDest01Target = (): Dest01BatchTarget => ({ mode: 'new', batchId: null, name: '', touched: false });
+export const emptyDest01Target = (): Dest01BatchTarget => ({ mode: 'new', batchId: null, name: '', isConfined: null, touched: false });
+
+/** The header box printed on a per-animal sheet: it names no batch. */
+const PER_ANIMAL_BOX = /por\s*animal/i;
+
+/**
+ * Whether the sheet names one weaning batch for all its calves or one per calf. The box of the
+ * header says "— por animal —" on a per-animal sheet; a blank box with batches written on the rows
+ * means the same.
+ */
+export const destinationModeOfPage = (page: Dest01Page): Dest01DestinationMode =>
+  PER_ANIMAL_BOX.test(page.metadata.lote_destete) ||
+  (page.metadata.lote_destete.trim() === '' && page.rows.some((r) => r.lote_destino.trim() !== ''))
+    ? 'per_animal'
+    : 'single';
 
 /** Accepts the DD/MM/YYYY written on the sheet or an ISO date; anything else falls back to today. */
 const normalizeDate = (raw?: string | null): string => {
@@ -79,7 +96,9 @@ export const pageFromIdentifyResponse = (
     hojaNumero: toNumberOrNull(context.hoja_numero),
     hojaTotal: toNumberOrNull(context.hoja_total),
     metadata: {
+      orden_destete: String(context.orden_destete ?? '').trim(),
       lote_destete: String(context.lote_destete ?? '').trim(),
+      sistema_manejo: String(context.sistema_manejo ?? '').trim().toUpperCase(),
       fecha_destete: normalizeDate(String(context.fecha_destete ?? '')),
       tipo_destete: String(context.tipo_destete ?? '').trim().toUpperCase(),
       lote_origen: String(context.lote_origen ?? '').trim(),
@@ -94,12 +113,38 @@ export const pageFromIdentifyResponse = (
         caravana_madre: String(r.caravana_madre?.value ?? '').trim(),
         peso: cleanWeight(r.peso?.value),
         observations: String(r.observations?.value ?? '').trim(),
+        cs_nueva: String(r.cs_nueva?.value ?? '').trim().replace(/^[-–—]$/, ''),
+        lote_destino: String(r.lote_destino?.value ?? '').trim(),
+        manejo: String(r.manejo?.value ?? '').trim().toUpperCase().slice(0, 1),
       }))
       .filter((r) => r.caravana !== ''),
   };
 };
 
 export type AddPageOutcome = 'added' | 'pending_mismatch' | 'wrong_template';
+
+/**
+ * What a page declares differently from the first one. The one list both decides the mismatch
+ * and explains it, so the warning never names a field that agrees.
+ */
+export const headerDifferences = (page: Dest01Page, first: Dest01Page): string[] => {
+  const differences: string[] = [];
+  const show = (value: string) => (value ? `"${value}"` : 'nada');
+
+  if (!sameText(page.metadata.lote_destete, first.metadata.lote_destete)) {
+    differences.push(`lote ${show(page.metadata.lote_destete)} (hoja 1: ${show(first.metadata.lote_destete)})`);
+  }
+
+  if (page.metadata.fecha_destete !== first.metadata.fecha_destete) {
+    differences.push(`fecha ${show(page.metadata.fecha_destete)} (hoja 1: ${show(first.metadata.fecha_destete)})`);
+  }
+
+  if (!sameText(page.metadata.orden_destete, first.metadata.orden_destete)) {
+    differences.push(`orden ${show(page.metadata.orden_destete)} (hoja 1: ${show(first.metadata.orden_destete)})`);
+  }
+
+  return differences;
+};
 
 /**
  * State of a DEST-01 load: one weaning spread across several scanned pages that are confirmed
@@ -111,6 +156,9 @@ export function useDest01Pages() {
   const [manualRows, setManualRows] = useState<Dest01Row[]>([]);
   const [metadata, setMetadata] = useState<Dest01Metadata>(emptyDest01Metadata);
   const [target, setTarget] = useState<Dest01BatchTarget>(emptyDest01Target);
+  const [destinationMode, setDestinationMode] = useState<Dest01DestinationMode>('single');
+  /** Per animal: how each batch name written on the rows was resolved, by its normalised key. */
+  const [perAnimalTargets, setPerAnimalTargets] = useState<Record<string, Dest01BatchTarget>>({});
   const [pendingPage, setPendingPage] = useState<Dest01Page | null>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -125,6 +173,7 @@ export function useDest01Pages() {
     (page: Dest01Page) => {
       if (pagesRef.current.length === 0) {
         setMetadata(page.metadata);
+        setDestinationMode(destinationModeOfPage(page));
       }
       setPages((prev) => [...prev, page]);
     },
@@ -136,11 +185,7 @@ export function useDest01Pages() {
     (page: Dest01Page): AddPageOutcome => {
       setPageError(null);
       const first = pagesRef.current[0];
-      if (
-        first &&
-        (!sameText(page.metadata.lote_destete, first.metadata.lote_destete) ||
-          page.metadata.fecha_destete !== first.metadata.fecha_destete)
-      ) {
+      if (first && headerDifferences(page, first).length > 0) {
         setPendingPage(page);
         return 'pending_mismatch';
       }
@@ -235,8 +280,42 @@ export function useDest01Pages() {
   const addRow = useCallback(() => {
     setManualRows((prev) => [
       ...prev,
-      { id: `manual-${Date.now()}`, pageKey: MANUAL_PAGE_KEY, caravana: '', caravana_madre: '', peso: '', observations: '' },
+      {
+        id: `manual-${Date.now()}`,
+        pageKey: MANUAL_PAGE_KEY,
+        caravana: '',
+        caravana_madre: '',
+        peso: '',
+        observations: '',
+        cs_nueva: '',
+        lote_destino: '',
+        manejo: '',
+      },
     ]);
+  }, []);
+
+  /** Per animal: every distinct batch name written on the rows, with the name as first written. */
+  const perAnimalNames = useMemo<{ key: string; name: string; count: number; letters: string[] }[]>(() => {
+    const byKey = new Map<string, { key: string; name: string; count: number; letters: string[] }>();
+
+    rows.forEach((row) => {
+      const key = normalizeDestinationKey(row.lote_destino);
+
+      if (!key || row.caravana.trim() === '') return;
+
+      const entry = byKey.get(key) ?? { key, name: row.lote_destino.trim(), count: 0, letters: [] };
+      entry.count += 1;
+
+      if (row.manejo && !entry.letters.includes(row.manejo)) entry.letters.push(row.manejo);
+
+      byKey.set(key, entry);
+    });
+
+    return [...byKey.values()];
+  }, [rows]);
+
+  const setPerAnimalTarget = useCallback((key: string, next: Dest01BatchTarget) => {
+    setPerAnimalTargets((prev) => ({ ...prev, [key]: next }));
   }, []);
 
   const setMetadataField = useCallback(<K extends keyof Dest01Metadata>(field: K, value: Dest01Metadata[K]) => {
@@ -248,6 +327,8 @@ export function useDest01Pages() {
     setManualRows([]);
     setMetadata(emptyDest01Metadata());
     setTarget(emptyDest01Target());
+    setDestinationMode('single');
+    setPerAnimalTargets({});
     setPendingPage(null);
     setPageError(null);
   }, [setPages]);
@@ -266,6 +347,11 @@ export function useDest01Pages() {
     rows,
     metadata,
     target,
+    destinationMode,
+    setDestinationMode,
+    perAnimalNames,
+    perAnimalTargets,
+    setPerAnimalTarget,
     pendingPage,
     isIdentifying,
     pageError,

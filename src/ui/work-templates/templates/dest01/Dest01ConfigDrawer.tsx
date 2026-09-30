@@ -5,7 +5,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useDest01Print } from './Dest01PrintContext';
 import Dest01ModeSelector from './Dest01ModeSelector';
-import Dest01CalfPicker from './Dest01CalfPicker';
 import Dest01HeaderSection from './Dest01HeaderSection';
 
 interface Dest01ConfigDrawerProps {
@@ -21,9 +20,9 @@ const sectionTitleSx = {
   letterSpacing: '0.5px',
 } as const;
 
-/** Thin orchestrator of the DEST-01 print setup: mode, calves to pre-load and header. */
+/** Thin orchestrator of the DEST-01 print setup: blank sheet or the sheet of an order, and the header. */
 export const Dest01ConfigDrawer: React.FC<Dest01ConfigDrawerProps> = ({ open, onClose }) => {
-  const { mode, reset } = useDest01Print();
+  const { reset } = useDest01Print();
 
   return (
     <Drawer
@@ -42,7 +41,7 @@ export const Dest01ConfigDrawer: React.FC<Dest01ConfigDrawerProps> = ({ open, on
               Configuración DEST-01
             </Typography>
             <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500 }}>
-              Planilla en blanco o pre-cargada desde un lote de cría
+              Planilla en blanco o la de una orden de destete
             </Typography>
           </Box>
         </Stack>
@@ -57,20 +56,10 @@ export const Dest01ConfigDrawer: React.FC<Dest01ConfigDrawerProps> = ({ open, on
           <Dest01ModeSelector />
         </Box>
 
-        {mode === 'from_batch' && (
-          <>
-            <Divider sx={{ borderColor: '#e2e8f0' }} />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="subtitle2" sx={sectionTitleSx}>2. Crías al pie</Typography>
-              <Dest01CalfPicker />
-            </Box>
-          </>
-        )}
-
         <Divider sx={{ borderColor: '#e2e8f0' }} />
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Typography variant="subtitle2" sx={sectionTitleSx}>{mode === 'from_batch' ? '3' : '2'}. Encabezado</Typography>
+          <Typography variant="subtitle2" sx={sectionTitleSx}>2. Encabezado</Typography>
           <Dest01HeaderSection />
         </Box>
 
@@ -81,7 +70,9 @@ export const Dest01ConfigDrawer: React.FC<Dest01ConfigDrawerProps> = ({ open, on
           <Typography variant="caption" sx={{ color: '#64748b', display: 'block', lineHeight: 1.4, fontSize: '0.7rem' }}>
             • Se escanean todas las hojas y se confirman juntas.
             <br />
-            • Las crías pasan al lote de destete indicado (existente o nuevo) con su movimiento.
+            • La planilla de una orden la cumple (entera o en partes); una en blanco crea su orden al confirmarse.
+            <br />
+            • Las crías pasan a su lote de destete (existente o nuevo) con su movimiento y, si corresponde, su C/S nueva.
             <br />
             • El peso y la caravana de la madre son opcionales.
             <br />

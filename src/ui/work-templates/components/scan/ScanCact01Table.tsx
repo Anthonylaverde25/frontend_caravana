@@ -16,7 +16,11 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, ErrorOutline as ErrorOutlineIcon } from '@mui/icons-material';
 import ScanCact01Totals from './ScanCact01Totals';
+import ScanCact01CategoryCell, { systemFilledInputSx } from './ScanCact01CategoryCell';
 import type { Cact01Destination, Cact01Error, Cact01Metadata, Cact01Row } from './types';
+
+const SEX_FROM_TAG_HINT = 'Sexo del animal según su caravana. El de la planilla es sólo ilustrativo.';
+const SEX_UNKNOWN_HINT = 'Se completa cuando la caravana identifica a un animal del sistema.';
 
 interface ScanCact01TableProps {
   rows: Cact01Row[];
@@ -33,14 +37,46 @@ interface ScanCact01TableProps {
 
 const cellSx = (hasErrors: boolean) => ({ borderBottom: hasErrors ? 'none' : undefined });
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 11;
+
+/**
+ * The management system a row's destination already has, when it has one: the M cell then
+ * has nothing left to say and is shown fixed instead of offered for review.
+ *
+ * - An existing batch that declares it: the batch wins, the paper never reconfigures it.
+ * - A batch to be created when the header box is marked: the box is the proposal for every
+ *   batch of the sheet, so the cell of each row only repeats it.
+ *
+ * Null when it is still unknown — an existing batch without it, or a new one with the header
+ * blank — which is the only case where the letter written on the row decides something.
+ */
+const knownManagement = (
+  destination: Cact01Destination | undefined,
+  headerMarked: boolean
+): { letter: 'C' | 'P'; source: string } | null => {
+  if (!destination || destination.isConfined == null) return null;
+
+  const letter = destination.isConfined ? 'C' : 'P';
+
+  if (destination.mode === 'existing' && destination.batchId != null) {
+    return { letter, source: 'del lote' };
+  }
+
+  if (destination.mode === 'new' && headerMarked) {
+    return { letter, source: 'encabezado' };
+  }
+
+  return null;
+};
 
 /**
  * Editable table of the animals read on every CACT-01 page.
  *
- * Sex and category are editable but advisory: they identify the animal, and a difference
- * with the system comes back as a warning rather than an overwrite. The weight and the
- * dentition are the measurements of the day, and the only two columns the sheet writes.
+ * The sex is the animal's, known by its tag: the sheet prints it only to be read in the field,
+ * so the cell shows the system's and is not editable. The category is editable but advisory:
+ * a difference with the system comes back as a warning rather than an overwrite. The weight and the
+ * dentition are the measurements of the day. The C/S nueva cell is the one way the sheet
+ * changes a category, and only when its order said the category changes.
  */
 export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
   rows,
@@ -54,6 +90,9 @@ export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
   editedRowIds = new Set(),
   onlyWithErrors = false,
 }) => {
+  const headerMarked = metadata.sistema_manejo === 'CORRAL' || metadata.sistema_manejo === 'PASTURA';
+  const destinationByKey = new Map(destinations.map((destination) => [destination.key, destination]));
+
   const visible = rows
     .map((row, index) => ({ row, index }))
     .filter(({ row }) => !onlyWithErrors || rowErrorsById[row.id]);
@@ -63,7 +102,7 @@ export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
       <ScanCact01Totals rows={rows} metadata={metadata} />
 
       <Box sx={{ overflowX: 'auto' }}>
-        <Table size="small" sx={{ minWidth: 1080, '& .MuiTableCell-root': { borderColor: 'divider' } }}>
+        <Table size="small" sx={{ minWidth: 1280, '& .MuiTableCell-root': { borderColor: 'divider' } }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 56, fontWeight: 800 }}>Hoja</TableCell>
@@ -74,6 +113,16 @@ export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
               <TableCell sx={{ width: 140, fontWeight: 800 }}>Categoría</TableCell>
               <TableCell sx={{ width: 110, fontWeight: 800 }}>Dentición</TableCell>
               <TableCell sx={{ width: 190, fontWeight: 800 }}>Lote destino</TableCell>
+              <TableCell sx={{ width: 96, fontWeight: 800 }}>
+                <Tooltip title="Sistema de manejo del lote destino: C corral, P pastura">
+                  <span>M</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell sx={{ width: 200, fontWeight: 800 }}>
+                <Tooltip title="Categoría o subcategoría nueva, como se escribió en la manga. Vacía = no cambia.">
+                  <span>C/S nueva</span>
+                </Tooltip>
+              </TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Observaciones</TableCell>
               <TableCell sx={{ width: 56 }} />
             </TableRow>
@@ -121,21 +170,26 @@ export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
                       />
                     </TableCell>
                     <TableCell sx={cellSx(hasErrors)}>
-                      <TextField
-                        value={row.sexo}
-                        onChange={(e) => onRowChange(row.id, 'sexo', e.target.value)}
-                        size="small"
-                        fullWidth
-                        placeholder="—"
-                      />
+                      <Tooltip title={row.systemFilled?.sexo ? SEX_FROM_TAG_HINT : SEX_UNKNOWN_HINT}>
+                        <TextField
+                          value={row.sexo}
+                          size="small"
+                          fullWidth
+                          placeholder="—"
+                          sx={row.systemFilled?.sexo ? systemFilledInputSx : undefined}
+                          InputProps={{ readOnly: true }}
+                        />
+                      </Tooltip>
                     </TableCell>
                     <TableCell sx={cellSx(hasErrors)}>
-                      <TextField
+                      <ScanCact01CategoryCell
                         value={row.categoria}
-                        onChange={(e) => onRowChange(row.id, 'categoria', e.target.value)}
-                        size="small"
-                        fullWidth
+                        onChange={(value) => onRowChange(row.id, 'categoria', value)}
+                        sex={row.sexo}
+                        errors={[]}
+                        edited={false}
                         placeholder="—"
+                        fromSystem={row.systemFilled?.categoria === true}
                       />
                     </TableCell>
                     <TableCell sx={cellSx(hasErrors)}>
@@ -154,6 +208,11 @@ export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
                         onChange={(e) => onRowChange(row.id, 'destination_key', e.target.value)}
                         size="small"
                         fullWidth
+                        // An animal without a destination is set here, in its own cell: there is
+                        // no sheet-wide destination to fall back on.
+                        error={row.destination_key === ''}
+                        helperText={row.destination_key === '' ? 'Definí el destino de este animal' : undefined}
+                        SelectProps={{ displayEmpty: true }}
                       >
                         <MenuItem value="">(sin destino)</MenuItem>
                         {destinations
@@ -164,6 +223,60 @@ export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
                             </MenuItem>
                           ))}
                       </TextField>
+                    </TableCell>
+                    <TableCell sx={cellSx(hasErrors)}>
+                      {/* The letter of the destination BATCH, not of the animal. Fixed when the
+                          destination already has it; editable only while it is unknown, because
+                          a one-letter handwritten cell is the likeliest thing on the sheet for
+                          the OCR to miss. */}
+                      {(() => {
+                        const known = knownManagement(destinationByKey.get(row.destination_key), headerMarked);
+
+                        if (known) {
+                          return (
+                            <Tooltip
+                              title={
+                                known.source === 'del lote'
+                                  ? 'El lote destino ya tiene declarado su sistema de manejo. La celda del papel no lo cambia.'
+                                  : 'Lote nuevo: toma el sistema de manejo marcado en el encabezado.'
+                              }
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 800, color: 'text.secondary', whiteSpace: 'nowrap', px: 0.5 }}
+                              >
+                                {known.letter}
+                                <Typography component="span" variant="caption" sx={{ ml: 0.5 }}>
+                                  · {known.source}
+                                </Typography>
+                              </Typography>
+                            </Tooltip>
+                          );
+                        }
+
+                        return (
+                          <TextField
+                            select
+                            value={row.manejo === 'C' || row.manejo === 'P' ? row.manejo : ''}
+                            onChange={(e) => onRowChange(row.id, 'manejo', e.target.value)}
+                            size="small"
+                            fullWidth
+                          >
+                            <MenuItem value="">—</MenuItem>
+                            <MenuItem value="C">C · corral</MenuItem>
+                            <MenuItem value="P">P · pastura</MenuItem>
+                          </TextField>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell sx={cellSx(hasErrors)}>
+                      <ScanCact01CategoryCell
+                        value={row.cs_nueva}
+                        onChange={(value) => onRowChange(row.id, 'cs_nueva', value)}
+                        sex={row.sexo}
+                        errors={errors}
+                        edited={edited}
+                      />
                     </TableCell>
                     <TableCell sx={cellSx(hasErrors)}>
                       <TextField

@@ -1,25 +1,36 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/utils/axios';
+import type { WeaningResult } from '@/features/weaning-orders/types';
 import type {
   Dest01BatchTarget,
+  Dest01DestinationMode,
   Dest01Error,
   Dest01HeaderError,
   Dest01Metadata,
   Dest01Row,
   Dest01ValidationErrors,
 } from '../components/scan/types';
+import { normalizeDestinationKey } from './useCact01Pages';
 
-export interface Dest01SuccessResult {
-  batch_id: number;
-  batch_name: string;
-  batch_created: boolean;
-  calves_count: number;
-  males_count: number;
-  females_count: number;
-  weighed_count: number;
-  average_weight: number | null;
+/** The DEST-01 result: the same one executing a weaning order from the screen answers with. */
+export type Dest01SuccessResult = WeaningResult;
+
+/** Where the calves of the sheet go, as the operator resolved it, and the order the paper fulfils. */
+export interface Dest01Destinations {
+  mode: Dest01DestinationMode;
+  /** Single mode: the one weaning batch. */
+  target: Dest01BatchTarget;
+  /** Per animal: each batch name written on the rows, by its normalised key. */
+  perAnimalKeys: string[];
+  perAnimalTargets: Record<string, Dest01BatchTarget>;
+  weaningOrderId: number | null;
 }
+
+const destinationOf = (key: string, target: Dest01BatchTarget) =>
+  target.mode === 'existing'
+    ? { key, target_batch_id: target.batchId, new_batch: null }
+    : { key, target_batch_id: null, new_batch: { name: target.name.trim(), is_confined: target.isConfined } };
 
 /**
  * Errors keyed by row id instead of by position, so deleting or editing a row in the repair
@@ -35,7 +46,7 @@ export interface Dest01RepairState {
 /** Laravel FormRequest 422 (`errors: {field: [msg]}`) as header errors of the repair screen. */
 const fromFormRequestErrors = (errors: Record<string, string[]>): Dest01HeaderError[] =>
   Object.entries(errors).map(([field, messages]) => ({
-    field: field === 'target_batch_id' || field === 'new_batch_name' ? 'lote_destete' : field,
+    field: field === 'target_batch_id' || field === 'new_batch_name' || field.startsWith('destinations') ? 'lote_destete' : field,
     code: 'INVALID_FIELD',
     message: messages[0] ?? 'Dato inválido.',
   }));
@@ -47,10 +58,18 @@ export function useDest01Submission() {
   const [repair, setRepair] = useState<Dest01RepairState | null>(null);
 
   const submit = useCallback(
-    async (metadata: Dest01Metadata, target: Dest01BatchTarget, rows: Dest01Row[]): Promise<Dest01SuccessResult | null> => {
+    async (metadata: Dest01Metadata, where: Dest01Destinations, rows: Dest01Row[]): Promise<Dest01SuccessResult | null> => {
+      const perAnimal = where.mode === 'per_animal';
+      const singleKey = normalizeDestinationKey(where.target.name) || 'DESTETE';
       const payload = {
-        target_batch_id: target.mode === 'existing' ? target.batchId : null,
-        new_batch_name: target.mode === 'new' ? nullIfBlank(target.name) : null,
+        weaning_order_id: where.weaningOrderId,
+        // The code as read: a code that found no order is rejected, a blank one creates it.
+        orden_destete: nullIfBlank(metadata.orden_destete),
+        destination_mode: where.mode,
+        destinations: perAnimal
+          ? where.perAnimalKeys.filter((key) => where.perAnimalTargets[key]).map((key) => destinationOf(key, where.perAnimalTargets[key]))
+          : [destinationOf(singleKey, where.target)],
+        sistema_manejo: nullIfBlank(metadata.sistema_manejo),
         fecha_destete: metadata.fecha_destete,
         tipo_destete: nullIfBlank(metadata.tipo_destete),
         lote_origen: nullIfBlank(metadata.lote_origen),
@@ -62,15 +81,19 @@ export function useDest01Submission() {
           caravana_madre: nullIfBlank(r.caravana_madre),
           peso: r.peso.trim() === '' ? null : r.peso.trim().replace(',', '.'),
           observations: nullIfBlank(r.observations),
+          cs_nueva: nullIfBlank(r.cs_nueva),
+          // A blank batch on a per-animal sheet is a calf without destination: never the header's.
+          destination_key: perAnimal ? normalizeDestinationKey(r.lote_destino) : '',
+          manejo: nullIfBlank(r.manejo),
         })),
       };
 
       try {
         const response = await axiosInstance.post('/work-templates/dest-01/process', payload);
         setRepair(null);
-        queryClient.invalidateQueries({ queryKey: ['births-history'] });
-        queryClient.invalidateQueries({ queryKey: ['caravans'] });
-        queryClient.invalidateQueries({ queryKey: ['batches'] });
+        ['births-history', 'caravans', 'batches', 'weaning-orders'].forEach((key) =>
+          queryClient.invalidateQueries({ queryKey: [key] })
+        );
         return response.data.data as Dest01SuccessResult;
       } catch (err) {
         const error = err as { response?: { status?: number; data?: { message?: string } } };

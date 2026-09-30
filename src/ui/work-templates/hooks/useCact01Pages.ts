@@ -9,15 +9,18 @@ const today = (): string => new Date().toISOString().slice(0, 10);
 
 export const emptyCact01Metadata = (): Cact01Metadata => ({
   actividad_origen: '',
+  actividad_destino_id: null,
   actividad_destino: '',
   lote_origen: '',
   lote_destino: '',
+  destino_por_animal: false,
   fecha_movimiento: today(),
   sistema_manejo: '',
   total_cabezas: '',
   peso_total: '',
   responsable: '',
   observaciones: '',
+  orden_transferencia: '',
 });
 
 /**
@@ -70,7 +73,42 @@ const normalizeManagement = (raw: unknown): string => {
   return '';
 };
 
+/**
+ * The M cell of a row: one handwritten letter, read as 'C', 'P' or nothing.
+ *
+ * Anything else comes back blank rather than guessed. A wrong letter would have a new batch
+ * born asserting a management system nobody declared, and a blank cell is a question the
+ * destinations panel still knows how to ask.
+ */
+const normalizeManagementLetter = (raw: unknown): string => {
+  const value = String(raw ?? '')
+    .trim()
+    .toUpperCase();
+
+  if (value === '') return '';
+  if (value.includes('CORRAL') || value === 'C') return 'C';
+  if (value.includes('PASTURA') || value.includes('CAMPO') || value.includes('EXTENSIV') || value === 'P') return 'P';
+
+  return '';
+};
+
+/**
+ * The C/S nueva cell as read, with the printed "no change" marks turned into blank. Nothing else
+ * is touched: what the text means is for the backend to resolve against the catalog.
+ */
+const normalizeCategoryCell = (raw: unknown): string => {
+  const value = String(raw ?? '').trim();
+
+  return ['-', '—', '–', '--', '/'].includes(value) ? '' : value;
+};
+
 const sameText = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * The transfer order code as read: compacted and uppercased, nothing guessed. The server is the
+ * one that corrects an O read where a zero must be, so both sides of the lookup agree.
+ */
+const normalizeOrderCode = (raw: unknown): string => String(raw ?? '').replace(/\s+/g, '').toUpperCase();
 
 interface ExtractedCell {
   value?: unknown;
@@ -102,7 +140,16 @@ export const pageFromIdentifyResponse = (
   pageSequence += 1;
   const key = `page-${Date.now()}-${pageSequence}`;
 
-  const headerDestination = normalizeDestinationKey(context.lote_destino);
+  // A per-animal sheet has no sheet-wide destination. It is told by the mark it prints in the
+  // header box ("— por animal —", "ver columna por animal") or by any row carrying its own
+  // destination. Then the header is not inherited: a scan that filled it with the most repeated
+  // batch — or transcribed the mark itself — would otherwise hand that batch to every row whose
+  // cell came back blank, as if the paper had said so.
+  const writtenHeader = normalizeDestinationKey(context.lote_destino);
+  const perAnimal =
+    /POR ANIMAL|VER COLUMNA/.test(writtenHeader) ||
+    mappedRows.some((r) => normalizeDestinationKey(r.lote_destino?.value) !== '');
+  const headerDestination = perAnimal ? '' : writtenHeader;
 
   return {
     key,
@@ -112,20 +159,25 @@ export const pageFromIdentifyResponse = (
     hojaTotal: toNumberOrNull(context.hoja_total),
     metadata: {
       actividad_origen: String(context.actividad_origen ?? '').trim(),
+      // The paper carries a name; the id is resolved against the catalogue on screen, where
+      // somebody can be held to it. OCR text is not an identifier.
+      actividad_destino_id: null,
       actividad_destino: String(context.actividad_destino ?? '').trim(),
       lote_origen: String(context.lote_origen ?? '').trim(),
-      lote_destino: String(context.lote_destino ?? '').trim(),
+      lote_destino: perAnimal ? '' : String(context.lote_destino ?? '').trim(),
+      destino_por_animal: perAnimal,
       fecha_movimiento: normalizeDate(String(context.fecha_movimiento ?? '')),
       sistema_manejo: normalizeManagement(context.sistema_manejo),
       total_cabezas: String(context.total_cabezas ?? '').trim(),
       peso_total: cleanWeight(context.peso_total),
       responsable: String(context.responsable ?? '').trim(),
       observaciones: String(context.observaciones ?? '').trim(),
+      orden_transferencia: normalizeOrderCode(context.orden_transferencia),
     },
     rows: mappedRows
       .map((r, idx) => {
         // The rule that makes one template cover both ways of working: the row cell
-        // wins, the header is the default.
+        // wins, the header is the default — on a single-destination sheet only.
         const rowDestination = normalizeDestinationKey(r.lote_destino?.value);
 
         return {
@@ -133,10 +185,14 @@ export const pageFromIdentifyResponse = (
           pageKey: key,
           caravana: String(r.caravana?.value ?? '').trim(),
           peso_actual: cleanWeight(r.peso_actual?.value),
-          sexo: String(r.sexo?.value ?? '').trim().toUpperCase(),
+          // A transfer moves animals the business already has: their sex is the one the tag
+          // identifies. The sheet prints it only to be read in the field, so it is not taken.
+          sexo: '',
           categoria: String(r.categoria?.value ?? '').trim(),
           dientes: String(r.dientes?.value ?? '').trim(),
           destination_key: rowDestination || headerDestination,
+          manejo: normalizeManagementLetter(r.manejo?.value),
+          cs_nueva: normalizeCategoryCell(r.cs_nueva?.value),
           observations: String(r.observations?.value ?? '').trim(),
         };
       })
@@ -145,6 +201,40 @@ export const pageFromIdentifyResponse = (
 };
 
 export type AddPageOutcome = 'added' | 'pending_mismatch' | 'wrong_template';
+
+/**
+ * What a page declares differently from the first one, as the operator reads it. The one list
+ * both decides the mismatch and explains it, so the warning can never name the fields that
+ * agree while hiding the one that does not.
+ */
+export const headerDifferences = (page: Cact01Page, first: Cact01Page): string[] => {
+  const differences: string[] = [];
+  const show = (value: string) => (value ? `"${value}"` : 'nada');
+
+  if (!sameText(page.metadata.lote_origen, first.metadata.lote_origen)) {
+    differences.push(`lote de origen ${show(page.metadata.lote_origen)} (hoja 1: ${show(first.metadata.lote_origen)})`);
+  }
+
+  if (page.metadata.fecha_movimiento !== first.metadata.fecha_movimiento) {
+    differences.push(`fecha ${show(page.metadata.fecha_movimiento)} (hoja 1: ${show(first.metadata.fecha_movimiento)})`);
+  }
+
+  if (!sameText(page.metadata.actividad_destino, first.metadata.actividad_destino)) {
+    differences.push(`actividad de destino ${show(page.metadata.actividad_destino)} (hoja 1: ${show(first.metadata.actividad_destino)})`);
+  }
+
+  if (page.metadata.orden_transferencia !== first.metadata.orden_transferencia) {
+    differences.push(`orden ${show(page.metadata.orden_transferencia)} (hoja 1: ${show(first.metadata.orden_transferencia)})`);
+  }
+
+  return differences;
+};
+
+/**
+ * Who chose the source batch on screen. The operator outranks the transfer order, and the order
+ * outranks what the scanned animals suggest: a proposal never undoes a decision.
+ */
+export type Cact01SourceOrigin = 'operator' | 'order' | 'proposal';
 
 /**
  * State of a CACT-01 load: one change of activity spread across several scanned pages
@@ -156,7 +246,14 @@ export function useCact01Pages() {
   const pagesRef = useRef<Cact01Page[]>([]);
   const [manualRows, setManualRows] = useState<Cact01Row[]>([]);
   const [metadata, setMetadata] = useState<Cact01Metadata>(emptyCact01Metadata);
-  const [sourceBatchId, setSourceBatchId] = useState<number | null>(null);
+  const [sourceBatchId, setSourceBatchIdState] = useState<number | null>(null);
+  const [sourceBatchOrigin, setSourceBatchOrigin] = useState<Cact01SourceOrigin | null>(null);
+
+  /** The operator's choice unless said otherwise; clearing it leaves the field open to proposals again. */
+  const setSourceBatchId = useCallback((batchId: number | null, origin: Cact01SourceOrigin = 'operator') => {
+    setSourceBatchIdState(batchId);
+    setSourceBatchOrigin(batchId == null ? null : origin);
+  }, []);
   const [pendingPage, setPendingPage] = useState<Cact01Page | null>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -183,11 +280,11 @@ export function useCact01Pages() {
       setPageError(null);
       const first = pagesRef.current[0];
 
-      if (
-        first &&
-        (!sameText(page.metadata.lote_origen, first.metadata.lote_origen) ||
-          page.metadata.fecha_movimiento !== first.metadata.fecha_movimiento)
-      ) {
+      // The destination activity joins the source batch and the date: it is one per sheet,
+      // all its pages included, so a page declaring another one belongs to a different
+      // movement and not to this set. So does the order: two pages of different orders are
+      // not the same set, however alike the rest of their header reads.
+      if (first && headerDifferences(page, first).length > 0) {
         setPendingPage(page);
         return 'pending_mismatch';
       }
@@ -253,6 +350,9 @@ export function useCact01Pages() {
     return [...ordered.flatMap(({ page }) => page.rows), ...manualRows];
   }, [pages, manualRows]);
 
+  /** Any page of the load is per animal: they share one header, so one saying it is enough. */
+  const perAnimal = useMemo(() => pages.some((page) => page.metadata.destino_por_animal), [pages]);
+
   const pageLabelByKey = useMemo<Record<string, string>>(() => {
     const labels: Record<string, string> = { [MANUAL_PAGE_KEY]: '—' };
     pages.forEach((page, idx) => {
@@ -271,9 +371,71 @@ export function useCact01Pages() {
 
   const updateRow = useCallback(
     (id: string, field: keyof Cact01Row, value: string) => {
-      const patch = (list: Cact01Row[]) => list.map((r) => (r.id === id ? { ...r, [field]: value } : r));
+      // Touching a cell filled from the system makes it the operator's: it is sent and controlled.
+      const patch = (list: Cact01Row[]) =>
+        list.map((r) =>
+          r.id !== id
+            ? r
+            : {
+                ...r,
+                [field]: value,
+                ...(field === 'categoria'
+                  ? { systemFilled: { ...r.systemFilled, [field]: false } }
+                  : {}),
+              }
+        );
       setManualRows(patch);
       setPages((prev) => prev.map((page) => ({ ...page, rows: patch(page.rows) })));
+    },
+    [setPages]
+  );
+
+  /**
+   * Fills the sex and current category from what the system knows of each animal. The sex is
+   * always the system's: the tag identifies an animal whose sex is already a fact, and a tag that
+   * is not an animal has none. The category fills only blank cells, or cells it filled itself:
+   * what was read, or typed, is never touched. A cell it filled whose tag was since corrected is
+   * refilled for the right animal, or emptied when the new tag is not an animal.
+   */
+  const fillFromSystem = useCallback(
+    (animals: Record<string, { sex: string; category_label: string | null }>) => {
+      const fill = (row: Cact01Row): Cact01Row => {
+        const animal = animals[row.caravana.trim().toUpperCase()];
+        let next = row;
+
+        (
+          [
+            ['sexo', animal?.sex ?? ''],
+            ['categoria', animal?.category_label ?? ''],
+          ] as const
+        ).forEach(([field, known]) => {
+          const filled = row.systemFilled?.[field] === true;
+          const ours = filled || field === 'sexo';
+
+          if ((row[field] !== '' && !ours) || (row[field] === known && filled === (known !== ''))) return;
+
+          next = { ...next, [field]: known, systemFilled: { ...next.systemFilled, [field]: known !== '' } };
+        });
+
+        return next;
+      };
+
+      const fillAll = (list: Cact01Row[]) => {
+        const filled = list.map(fill);
+
+        return filled.some((row, i) => row !== list[i]) ? filled : list;
+      };
+
+      setManualRows(fillAll);
+      setPages((prev) => {
+        const next = prev.map((page) => {
+          const rows = fillAll(page.rows);
+
+          return rows === page.rows ? page : { ...page, rows };
+        });
+
+        return next.some((page, i) => page !== prev[i]) ? next : prev;
+      });
     },
     [setPages]
   );
@@ -298,6 +460,8 @@ export function useCact01Pages() {
         categoria: '',
         dientes: '',
         destination_key: '',
+        manejo: '',
+        cs_nueva: '',
         observations: '',
       },
     ]);
@@ -314,7 +478,7 @@ export function useCact01Pages() {
     setSourceBatchId(null);
     setPendingPage(null);
     setPageError(null);
-  }, [setPages]);
+  }, [setPages, setSourceBatchId]);
 
   /** Starts a new load with its first page (the file dropped on the scanner). */
   const startWith = useCallback(
@@ -329,7 +493,9 @@ export function useCact01Pages() {
     pages,
     rows,
     metadata,
+    perAnimal,
     sourceBatchId,
+    sourceBatchOrigin,
     pendingPage,
     isIdentifying,
     pageError,
@@ -341,6 +507,7 @@ export function useCact01Pages() {
     discardPendingPage,
     removePage,
     updateRow,
+    fillFromSystem,
     deleteRow,
     addRow,
     setMetadataField,

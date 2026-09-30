@@ -121,13 +121,13 @@ export const WeaningBatchesView: React.FC = () => {
               px: 2,
             }}
           >
-            Imprimir Planilla DEST-01
+            Planilla DEST-01 en blanco
           </Button>
 
           <Button
             variant="outlined"
-            onClick={() => navigate('/gestation/births')}
-            startIcon={<FuseSvgIcon size={18}>heroicons-outline:sparkles</FuseSvgIcon>}
+            onClick={() => navigate('/weaning-orders')}
+            startIcon={<FuseSvgIcon size={18}>heroicons-outline:clipboard-document-check</FuseSvgIcon>}
             sx={{
               fontWeight: 600,
               textTransform: 'none',
@@ -135,7 +135,7 @@ export const WeaningBatchesView: React.FC = () => {
               px: 2,
             }}
           >
-            Registrar Destete (Partos)
+            Órdenes de Destete
           </Button>
 
           <Button

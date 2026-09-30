@@ -1,6 +1,7 @@
 import React from 'react';
-import { Alert, Box, FormControlLabel, Radio, RadioGroup, TextField, Typography } from '@mui/material';
+import { Alert, Box, FormControlLabel, MenuItem, Radio, RadioGroup, TextField, Typography } from '@mui/material';
 import { useCact01Print } from './Cact01PrintContext';
+import { useCact01ScanOptions } from '../../hooks/useCact01ScanOptions';
 
 /**
  * One destination for the whole troop, or one per animal.
@@ -8,12 +9,41 @@ import { useCact01Print } from './Cact01PrintContext';
  * This switch only decides what gets PRINTED. The schema and the endpoint are the same
  * either way: the row cell wins, the header is the default. That is what lets a single
  * template cover both ways of working without a second code.
+ *
+ * The destination ACTIVITY, above the switch, is not part of that choice: it is declared
+ * once for the whole sheet in both modes. It is what makes the handwritten batch cell
+ * verifiable — whatever is written at the chute has to be a batch of this stage.
  */
 export const Cact01DestinationSelector: React.FC = () => {
   const { destinationMode, setDestinationMode, header, setHeaderField } = useCact01Print();
+  const { activities } = useCact01ScanOptions();
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <TextField
+        select
+        label="Actividad de destino"
+        size="small"
+        required
+        value={header.actividad_destino_id ?? ''}
+        onChange={(e) => {
+          const id = e.target.value === '' ? null : Number(e.target.value);
+
+          setHeaderField('actividad_destino_id', id);
+          setHeaderField('actividad_destino', activities.find((a) => a.id === id)?.name ?? '');
+        }}
+        helperText="Una por planilla, valga una hoja o varias. Todo lote de destino pertenece a esta etapa."
+      >
+        <MenuItem value="">
+          <em>Seleccionar etapa destino…</em>
+        </MenuItem>
+        {activities.map((activity) => (
+          <MenuItem key={activity.id} value={activity.id}>
+            {activity.name}
+          </MenuItem>
+        ))}
+      </TextField>
+
       <RadioGroup
         value={destinationMode}
         onChange={(e) => setDestinationMode(e.target.value as typeof destinationMode)}
@@ -55,8 +85,9 @@ export const Cact01DestinationSelector: React.FC = () => {
         />
       ) : (
         <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-          La configuración de cada lote nuevo —actividad, tipo y sistema de manejo— se completa al escanear,
-          no en el papel. La planilla sólo lleva el nombre.
+          Cada fila lleva el nombre del lote y su celda M —C de corral, P de pastura—. La actividad ya la
+          declara el encabezado, así que al escanear sólo se pregunta el tipo de lote, y únicamente para los
+          nombres que todavía no existan en esa etapa.
         </Alert>
       )}
     </Box>

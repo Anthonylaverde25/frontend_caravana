@@ -23,3 +23,4 @@ export * from './Cact01RepairDialog';
 export * from './ScanPreviewSidePanel';
 export * from './ScanDocumentPreviewModal';
 export * from './simulation';
+export * from './ScanPar01Workspace';

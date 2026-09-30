@@ -1,10 +1,24 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
+import type { WeaningOrderCategoryMode } from '@/features/weaning-orders/types';
 
-export type Dest01PrintMode = 'blank' | 'from_batch';
+/**
+ * A blank sheet filled entirely at the chute, or the sheet of a weaning order. There is no third
+ * way: a sheet printed with calves on it is an order to fulfil, and it carries its code.
+ */
+export type Dest01PrintMode = 'blank' | 'from_order';
+
+/** One weaning batch for every calf (header), or a batch per calf (a column). */
+export type Dest01DestinationMode = 'single' | 'per_animal';
 
 export interface Dest01PrintHeader {
+  /** DS-YYYYMMDD-NNNN, blank on a sheet printed without an order or for a draft. */
+  orden_destete: string;
+  orden_es_borrador: boolean;
   lote_destete: string;
+  /** CORRAL | PASTURA | '' — the box of the header, for the single weaning batch. */
+  sistema_manejo: string;
   fecha_destete: string;
+  /** The printed word: TRADICIONAL | ANTICIPADO | PRECOZ | ''. */
   tipo_destete: string;
   lote_origen: string;
   responsable: string;
@@ -15,7 +29,18 @@ export interface Dest01PrintCalf {
   calfIdentification: string;
   motherIdentification: string;
   calfSex: string | null;
+  /** Printed greyed: only to find the calf. */
+  currentCategory: string | null;
+  /** Printed by a DECLARED order; blank otherwise. */
+  targetCategory: string | null;
+  /** Per-animal orders: the batch of this calf, blank when it is decided at the chute. */
+  destinationLabel: string | null;
+  /** Per-animal orders: C, P or blank. */
+  management: 'C' | 'P' | '';
 }
+
+/** Which C/S column the sheet prints: none (the category does not change), declared, or blank. */
+export type Dest01CategoryColumn = 'none' | 'declared' | 'at_chute';
 
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -24,7 +49,10 @@ export const suggestedWeaningBatchName = (date = new Date()): string =>
   `Destete ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
 
 const EMPTY_HEADER: Dest01PrintHeader = {
+  orden_destete: '',
+  orden_es_borrador: false,
   lote_destete: '',
+  sistema_manejo: '',
   fecha_destete: '',
   tipo_destete: '',
   lote_origen: '',
@@ -36,12 +64,16 @@ interface Dest01PrintContextValue {
   setMode: (mode: Dest01PrintMode) => void;
   blankPages: number;
   setBlankPages: (pages: number) => void;
-  sourceBatchId: number | null;
-  setSourceBatchId: (batchId: number | null) => void;
-  /** Calves of the source batch the operator unticked; kept here so closing the drawer keeps them. */
-  excludedCalfIds: Set<number>;
-  setExcludedCalfIds: (ids: Set<number>) => void;
-  /** Calves to print pre-loaded (only in `from_batch` mode). */
+  destinationMode: Dest01DestinationMode;
+  setDestinationMode: (mode: Dest01DestinationMode) => void;
+  /** The order the sheet prints, by id: what `printed_at` is stamped on. */
+  weaningOrderId: number | null;
+  setWeaningOrderId: (id: number | null) => void;
+  categoryMode: WeaningOrderCategoryMode | null;
+  setCategoryMode: (mode: WeaningOrderCategoryMode | null) => void;
+  /** Why this order's sheet can be looked at but not printed: a draft, or a closed order. */
+  orderLockReason: string | null;
+  setOrderLockReason: (reason: string | null) => void;
   calves: Dest01PrintCalf[];
   setCalves: (calves: Dest01PrintCalf[]) => void;
   header: Dest01PrintHeader;
@@ -52,14 +84,16 @@ interface Dest01PrintContextValue {
 const Dest01PrintContext = createContext<Dest01PrintContextValue | null>(null);
 
 /**
- * Shares the DEST-01 print setup between the config drawer and the printable sheet. Nothing here
- * is persisted: "armar desde el programa" only pre-loads the printed sheet.
+ * Shares the DEST-01 print setup between the config drawer and the printable sheet. Nothing here is
+ * persisted: the order lives in the database and arrives by id.
  */
 export const Dest01PrintProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setMode] = useState<Dest01PrintMode>('blank');
   const [blankPages, setBlankPages] = useState(1);
-  const [sourceBatchId, setSourceBatchId] = useState<number | null>(null);
-  const [excludedCalfIds, setExcludedCalfIds] = useState<Set<number>>(new Set());
+  const [destinationMode, setDestinationMode] = useState<Dest01DestinationMode>('single');
+  const [weaningOrderId, setWeaningOrderId] = useState<number | null>(null);
+  const [categoryMode, setCategoryMode] = useState<WeaningOrderCategoryMode | null>(null);
+  const [orderLockReason, setOrderLockReason] = useState<string | null>(null);
   const [calves, setCalves] = useState<Dest01PrintCalf[]>([]);
   const [header, setHeader] = useState<Dest01PrintHeader>(EMPTY_HEADER);
 
@@ -69,10 +103,14 @@ export const Dest01PrintProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setMode,
       blankPages,
       setBlankPages: (pages) => setBlankPages(Math.min(20, Math.max(1, Math.round(pages) || 1))),
-      sourceBatchId,
-      setSourceBatchId,
-      excludedCalfIds,
-      setExcludedCalfIds,
+      destinationMode,
+      setDestinationMode,
+      weaningOrderId,
+      setWeaningOrderId,
+      categoryMode,
+      setCategoryMode,
+      orderLockReason,
+      setOrderLockReason,
       calves,
       setCalves,
       header,
@@ -80,13 +118,15 @@ export const Dest01PrintProvider: React.FC<{ children: React.ReactNode }> = ({ c
       reset: () => {
         setMode('blank');
         setBlankPages(1);
-        setSourceBatchId(null);
-        setExcludedCalfIds(new Set());
+        setDestinationMode('single');
+        setWeaningOrderId(null);
+        setCategoryMode(null);
+        setOrderLockReason(null);
         setCalves([]);
         setHeader(EMPTY_HEADER);
       },
     }),
-    [mode, blankPages, sourceBatchId, excludedCalfIds, calves, header]
+    [mode, blankPages, destinationMode, weaningOrderId, categoryMode, orderLockReason, calves, header]
   );
 
   return <Dest01PrintContext.Provider value={value}>{children}</Dest01PrintContext.Provider>;
@@ -99,3 +139,11 @@ export const useDest01Print = (): Dest01PrintContextValue => {
   }
   return context;
 };
+
+/**
+ * The C/S nueva column of the sheet: printed by a declared order, blank when it is decided at the
+ * chute — which a sheet without an order always is — and left out when the order says it does not
+ * change.
+ */
+export const categoryColumnOf = (mode: Dest01PrintMode, categoryMode: WeaningOrderCategoryMode | null): Dest01CategoryColumn =>
+  mode === 'blank' || categoryMode === null ? 'at_chute' : categoryMode === 'DECLARED' ? 'declared' : categoryMode === 'KEEP' ? 'none' : 'at_chute';

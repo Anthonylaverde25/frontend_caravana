@@ -10,6 +10,11 @@ import type {
   Cact01SuccessResult,
   Cact01ValidationErrors,
 } from '../components/scan/types';
+import type { TransferOrder } from '@/features/transfer-orders/types';
+
+type Cact01SendOutcome =
+  | { kind: 'movement'; result: Cact01SuccessResult }
+  | { kind: 'order'; order: TransferOrder };
 
 /**
  * Errors keyed by row id instead of by position, so deleting or editing a row in the
@@ -42,17 +47,34 @@ export function useCact01Submission() {
   const queryClient = useQueryClient();
   const [repair, setRepair] = useState<Cact01RepairState | null>(null);
 
-  const submit = useCallback(
+  const send = useCallback(
     async (
+      obtainOrder: boolean,
       metadata: Cact01Metadata,
       sourceBatchId: number | null,
       destinations: Cact01Destination[],
-      rows: Cact01Row[]
-    ): Promise<Cact01SuccessResult | null> => {
+      rows: Cact01Row[],
+      /** Where the order was born. Only reaches the notes of the movement, but it matters there. */
+      origin: 'SHEET' | 'SCREEN' = 'SHEET',
+      /**
+       * The transfer order the sheet fulfils, once resolved from the code in its header. Null is
+       * a valid answer: the order is not mandatory.
+       */
+      transferOrderId: number | null = null
+    ): Promise<Cact01SendOutcome | null> => {
       const payload = {
+        origin,
+        transfer_order_id: transferOrderId,
+        // What the paper carries, resolved or not. Blank: the server creates the order on
+        // confirming. A code that did not resolve: the server rejects it instead. Obtaining an
+        // order never sends it: the order is asked for precisely because that code found none.
+        orden_transferencia: obtainOrder ? null : nullIfBlank(metadata.orden_transferencia),
         source_batch_id: sourceBatchId,
         fecha_movimiento: metadata.fecha_movimiento,
         actividad_origen: nullIfBlank(metadata.actividad_origen),
+        // The id is what the backend validates every destination against; the text below is
+        // only what the paper said, kept for the control message.
+        actividad_destino_id: metadata.actividad_destino_id,
         actividad_destino: nullIfBlank(metadata.actividad_destino),
         sistema_manejo: nullIfBlank(metadata.sistema_manejo),
         total_cabezas: numberOrNull(metadata.total_cabezas),
@@ -79,23 +101,35 @@ export function useCact01Submission() {
         rows: rows.map((r) => ({
           caravana: r.caravana.trim(),
           peso_actual: numberOrNull(r.peso_actual),
-          sexo: nullIfBlank(r.sexo),
-          categoria: nullIfBlank(r.categoria),
+          // Filled from the system, not read: sending it would "control" the animal against itself.
+          // The sex is never sent: in a transfer it is the animal's, not the sheet's.
+          categoria: r.systemFilled?.categoria ? null : nullIfBlank(r.categoria),
           dientes: nullIfBlank(r.dientes),
           destination_key: r.destination_key,
+          manejo: nullIfBlank(r.manejo),
+          cs_nueva: nullIfBlank(r.cs_nueva),
           observations: nullIfBlank(r.observations),
         })),
       };
 
       try {
+        if (obtainOrder) {
+          const response = await axiosInstance.post('/work-templates/cact-01/order', payload);
+          setRepair(null);
+          queryClient.invalidateQueries({ queryKey: ['transfer-orders'] });
+
+          return { kind: 'order', order: response.data.data as TransferOrder };
+        }
+
         const response = await axiosInstance.post('/work-templates/cact-01/process', payload);
         setRepair(null);
         queryClient.invalidateQueries({ queryKey: ['caravans'] });
         queryClient.invalidateQueries({ queryKey: ['batches'] });
         queryClient.invalidateQueries({ queryKey: ['activities'] });
         queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
+        queryClient.invalidateQueries({ queryKey: ['transfer-orders'] });
 
-        return response.data.data as Cact01SuccessResult;
+        return { kind: 'movement', result: response.data.data as Cact01SuccessResult };
       } catch (err) {
         const error = err as { response?: { status?: number; data?: { message?: string } } };
         const status = error.response?.status;
@@ -155,5 +189,31 @@ export function useCact01Submission() {
 
   const clearRepair = useCallback(() => setRepair(null), []);
 
-  return { repair, submit, markRowEdited, clearRepair };
+  type SendArgs = Parameters<typeof send> extends [boolean, ...infer Rest] ? Rest : never;
+
+  /** "Confirmar movimiento": moves the animals. Null when the sheet went to the repair screen. */
+  const submit = useCallback(
+    async (...args: SendArgs): Promise<Cact01SuccessResult | null> => {
+      const outcome = await send(false, ...args);
+
+      return outcome?.kind === 'movement' ? outcome.result : null;
+    },
+    [send]
+  );
+
+  /**
+   * "Obtener orden de transferencia": the code on paper found no order, and one is generated
+   * from the sheet — checked exactly as confirming it would be — without moving anything. Null
+   * when the sheet went to the repair screen.
+   */
+  const obtainOrder = useCallback(
+    async (...args: SendArgs): Promise<TransferOrder | null> => {
+      const outcome = await send(true, ...args);
+
+      return outcome?.kind === 'order' ? outcome.order : null;
+    },
+    [send]
+  );
+
+  return { repair, submit, obtainOrder, markRowEdited, clearRepair };
 }

@@ -16,18 +16,22 @@ import {
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Replay as ReplayIcon } from '@mui/icons-material';
 import { ScanDest01BatchTarget } from './ScanDest01BatchTarget';
+import { ScanDest01PerAnimalTargets } from './ScanDest01PerAnimalTargets';
 import { ScanDest01MetadataHeader } from './ScanDest01MetadataHeader';
 import { ScanDest01Table } from './ScanDest01Table';
 import type { Dest01RepairState } from '../../hooks/useDest01Submission';
 import type { Dest01PagesState } from '../../hooks/useDest01Pages';
 import type { Dest01Row } from './types';
 
-const HEADER_FIELDS = ['lote_destete', 'fecha_destete'];
+const HEADER_FIELDS = ['lote_destete', 'fecha_destete', 'tipo_destete', 'orden_destete'];
 
 interface Dest01RepairDialogProps {
   open: boolean;
   repair: Dest01RepairState | null;
   state: Dest01PagesState;
+  /** The weaning order the sheet fulfils, when it resolved: what it declared is not asked again. */
+  orderCode?: string | null;
+  showCategory?: boolean;
   onRowChange: (id: string, field: keyof Dest01Row, value: string) => void;
   isSaving: boolean;
   onRetry: () => void;
@@ -38,7 +42,17 @@ interface Dest01RepairDialogProps {
  * Intermediate screen of the all-or-nothing DEST-01 load: nothing was saved, and the operator
  * repairs the destination, the header and the offending rows of every page before retrying.
  */
-export const Dest01RepairDialog: React.FC<Dest01RepairDialogProps> = ({ open, repair, state, onRowChange, isSaving, onRetry, onBack }) => {
+export const Dest01RepairDialog: React.FC<Dest01RepairDialogProps> = ({
+  open,
+  repair,
+  state,
+  orderCode = null,
+  showCategory = true,
+  onRowChange,
+  isSaving,
+  onRetry,
+  onBack,
+}) => {
   const [showAllRows, setShowAllRows] = useState(false);
 
   if (!repair) {
@@ -92,12 +106,18 @@ export const Dest01RepairDialog: React.FC<Dest01RepairDialogProps> = ({ open, re
         ))}
 
         <Paper variant="outlined" sx={{ borderRadius: '8px', overflow: 'hidden' }}>
-          <ScanDest01BatchTarget
-            sheetName={state.metadata.lote_destete}
-            target={state.target}
-            onChange={state.setTarget}
-            headerErrors={repair.headerErrors}
-          />
+          {state.destinationMode === 'per_animal' ? (
+            <ScanDest01PerAnimalTargets state={state} orderCode={orderCode} headerErrors={repair.headerErrors} />
+          ) : (
+            <ScanDest01BatchTarget
+              sheetName={state.metadata.lote_destete}
+              sheetManagement={state.metadata.sistema_manejo}
+              inheritedFromOrder={orderCode}
+              target={state.target}
+              onChange={state.setTarget}
+              headerErrors={repair.headerErrors}
+            />
+          )}
           <Box sx={{ p: 2 }}>
             <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary' }}>
               Encabezado
@@ -124,6 +144,8 @@ export const Dest01RepairDialog: React.FC<Dest01RepairDialogProps> = ({ open, re
             rowErrorsById={repair.rowErrorsById}
             editedRowIds={repair.editedRowIds}
             onlyWithErrors={!showAllRows}
+            perAnimal={state.destinationMode === 'per_animal'}
+            showCategory={showCategory}
           />
         </Paper>
       </Box>

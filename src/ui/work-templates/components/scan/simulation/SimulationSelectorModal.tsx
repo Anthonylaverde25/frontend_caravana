@@ -18,7 +18,8 @@ import {
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { AVAILABLE_SIMULATION_TEMPLATES, getSimulationPreset } from './simulationPresets';
+import { AVAILABLE_SIMULATION_TEMPLATES, getSimulationPreset, getSimulationSheetCases } from './simulationPresets';
+import { SimulationSheetCaseSelect } from './SimulationSheetCaseSelect';
 import { SimulationPreset, SimulationScenario } from './types';
 
 interface SimulationSelectorModalProps {
@@ -33,6 +34,9 @@ const SCENARIO_LABELS: Record<SimulationScenario, { label: string; color: 'succe
   WARNINGS: { label: 'Con Advertencias (Warnings)', color: 'warning', icon: 'heroicons-outline:exclamation-triangle' },
   REPAIR_ERROR: { label: 'Errores / Reparación', color: 'error', icon: 'heroicons-outline:x-circle' },
   MULTI_PAGE: { label: 'Multi-Página (Múltiples Hojas)', color: 'info', icon: 'heroicons-outline:document-duplicate' },
+  PER_ANIMAL: { label: 'Destino por Animal (columna M)', color: 'success', icon: 'heroicons-outline:arrows-pointing-out' },
+  TRANSFER_ORDER: { label: 'Con Orden de Transferencia', color: 'info', icon: 'heroicons-outline:clipboard-document-check' },
+  SHEET_CASES: { label: 'Casos de planilla (image_test)', color: 'info', icon: 'heroicons-outline:queue-list' },
 };
 
 export const SimulationSelectorModal: React.FC<SimulationSelectorModalProps> = ({
@@ -43,6 +47,7 @@ export const SimulationSelectorModal: React.FC<SimulationSelectorModalProps> = (
 }) => {
   const [selectedCode, setSelectedCode] = useState<string>(currentTemplateCode);
   const [selectedScenario, setSelectedScenario] = useState<SimulationScenario>('HAPPY_PATH');
+  const [selectedCaseIndex, setSelectedCaseIndex] = useState(0);
 
   // Keep selectedCode synced when dialog opens with a specific template
   React.useEffect(() => {
@@ -63,9 +68,15 @@ export const SimulationSelectorModal: React.FC<SimulationSelectorModalProps> = (
     }
   }, [selectedTemplateInfo, selectedScenario]);
 
+  const sheetCases = useMemo(() => getSimulationSheetCases(selectedCode), [selectedCode]);
+
   const activePreset = useMemo(() => {
+    if (selectedScenario === 'SHEET_CASES' && sheetCases.length > 0) {
+      return sheetCases[Math.min(selectedCaseIndex, sheetCases.length - 1)];
+    }
+
     return getSimulationPreset(selectedCode, selectedScenario);
-  }, [selectedCode, selectedScenario]);
+  }, [selectedCode, selectedScenario, sheetCases, selectedCaseIndex]);
 
   const handleApply = () => {
     onSelectPreset(activePreset);
@@ -202,6 +213,9 @@ export const SimulationSelectorModal: React.FC<SimulationSelectorModalProps> = (
               );
             })}
           </Stack>
+          {selectedScenario === 'SHEET_CASES' && sheetCases.length > 0 && (
+            <SimulationSheetCaseSelect cases={sheetCases} selectedIndex={selectedCaseIndex} onChange={setSelectedCaseIndex} />
+          )}
         </Box>
 
         {/* 3. Preset Summary Card */}

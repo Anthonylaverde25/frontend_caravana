@@ -6,7 +6,8 @@ import {
   Typography,
   Button,
   Stack,
-  CircularProgress
+  CircularProgress,
+  Tooltip
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintIcon from '@mui/icons-material/Print';
@@ -22,12 +23,18 @@ interface WorkTemplatePrintToolbarProps {
   onOpenConfig: () => void;
   onTestAI: () => void;
   isTestingAI: boolean;
+  /**
+   * Actions of the document the template shows, placed before the generic ones. CACT-01 puts its
+   * transfer order here: code, current status and, for a draft, "Aprobar y emitir".
+   */
+  extraActions?: React.ReactNode;
 }
 
 export const WorkTemplatePrintToolbar: React.FC<WorkTemplatePrintToolbarProps> = ({
   onOpenConfig,
   onTestAI,
-  isTestingAI
+  isTestingAI,
+  extraActions
 }) => {
   const {
     code,
@@ -36,7 +43,8 @@ export const WorkTemplatePrintToolbar: React.FC<WorkTemplatePrintToolbarProps> =
     isLoading,
     handlePrint,
     handleDownload,
-    handleBack
+    handleBack,
+    printLock
   } = useWorkTemplatePrint();
 
   return (
@@ -66,8 +74,11 @@ export const WorkTemplatePrintToolbar: React.FC<WorkTemplatePrintToolbarProps> =
 
         {!isLoading && template && (
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {/* Config Drawer Trigger Button (templates that render a config drawer) */}
-            {CONFIGURABLE_CODES.includes(code ?? '') && (
+            {extraActions}
+
+            {/* Config Drawer Trigger Button (templates that render a config drawer). A locked
+                sheet is not configured: it shows an order decided elsewhere. */}
+            {CONFIGURABLE_CODES.includes(code ?? '') && !printLock && (
               <Button
                 variant="outlined"
                 startIcon={<TuneIcon sx={{ fontSize: '1.1rem !important', color: '#64748b' }} />}
@@ -127,12 +138,17 @@ export const WorkTemplatePrintToolbar: React.FC<WorkTemplatePrintToolbarProps> =
               Test IA
             </Button>
 
+            {/* Why the sheet cannot go out on paper is told where it matters: on the buttons. */}
+            <Tooltip title={printLock ?? ''}>
+            <span>
             {/* Botón Minimalista: Descargar PDF */}
             <Button
               variant="outlined"
               startIcon={<DownloadIcon sx={{ fontSize: '1.1rem !important', color: '#64748b' }} />}
               onClick={handleDownload}
+              disabled={Boolean(printLock)}
               sx={{
+                '&.Mui-disabled': { opacity: 0.4 },
                 borderColor: '#e2e8f0',
                 color: '#334155',
                 fontWeight: 600,
@@ -152,14 +168,20 @@ export const WorkTemplatePrintToolbar: React.FC<WorkTemplatePrintToolbarProps> =
             >
               Descargar PDF
             </Button>
+            </span>
+            </Tooltip>
 
+            <Tooltip title={printLock ?? ''}>
+            <span>
             {/* Botón Minimalista CTA: Imprimir Planilla */}
             <Button
               variant="contained"
               disableElevation
               startIcon={<PrintIcon sx={{ fontSize: '1.1rem !important' }} />}
               onClick={handlePrint}
+              disabled={Boolean(printLock)}
               sx={{
+                '&.Mui-disabled': { opacity: 0.4 },
                 bgcolor: '#0f172a',
                 color: '#ffffff',
                 fontWeight: 700,
@@ -176,6 +198,8 @@ export const WorkTemplatePrintToolbar: React.FC<WorkTemplatePrintToolbarProps> =
             >
               Imprimir Planilla
             </Button>
+            </span>
+            </Tooltip>
           </Stack>
         )}
       </Toolbar>

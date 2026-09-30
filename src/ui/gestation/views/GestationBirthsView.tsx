@@ -19,9 +19,8 @@ import {
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ViewLayout from 'src/components/ViewLayout';
+import { useNavigate } from 'react-router';
 import { useBirthHistory } from '@/features/gestation/hooks/useBirthHistory';
-import WeaningDialog from '../components/dialogs/WeaningDialog';
-import BulkWeaningDialog from '../components/dialogs/BulkWeaningDialog';
 
 function GestationBirthsView() {
 	const theme = useTheme();
@@ -33,15 +32,15 @@ function GestationBirthsView() {
 	// Search filter state
 	const [searchQuery, setSearchQuery] = useState('');
 
-	// Selection state for bulk weaning
+	// Calves chosen to wean: they go to a weaning order, issued now or registered after the fact.
 	const [selectedCalfIds, setSelectedCalfIds] = useState<number[]>([]);
 
-	// Dialogs states
-	const [weaningDialog, setWeaningDialog] = useState<{ open: boolean; calf: any | null }>({
-		open: false,
-		calf: null
-	});
-	const [bulkWeaningDialogOpen, setBulkWeaningDialogOpen] = useState(false);
+	const navigate = useNavigate();
+
+	/** Every weaning has its order: ordered before the chute, or registered after it. The chosen
+	 * calves arrive ticked in the dialog that starts it. */
+	const goWean = (target: 'new' | 'register', calfIds: number[]) =>
+		navigate(`/weaning-orders/${target}`, { state: { calfIds } });
 
 	// Filter history records
 	const filteredHistory = useMemo(() => {
@@ -52,22 +51,10 @@ function GestationBirthsView() {
 		});
 	}, [birthHistory, searchQuery]);
 
-	// Filter active nursing calves that are eligible for selection
+	// Calves at foot not already held by an open order: the ones a new order can take.
 	const eligibleCalves = useMemo(() => {
-		return filteredHistory.filter((record) => record.is_nursing);
+		return filteredHistory.filter((record) => record.is_nursing && !record.open_order_code);
 	}, [filteredHistory]);
-
-	// Memoize selected calves details
-	const selectedCalvesData = useMemo(() => {
-		return birthHistory
-			.filter((record) => selectedCalfIds.includes(record.calf_id))
-			.map((record) => ({
-				calf_id: record.calf_id,
-				calf_identification: record.calf_identification,
-				calf_sex: record.calf_sex,
-				mother_identification: record.mother_identification
-			}));
-	}, [birthHistory, selectedCalfIds]);
 
 	// Handlers for selection
 	const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,27 +179,27 @@ function GestationBirthsView() {
 						}}
 					/>
 
-					{/* Bulk Weaning Button */}
+					{/* Weaning of the chosen calves: an order to fulfil at the chute, or one already done */}
 					{selectedCalfIds.length > 0 && (
-						<Button
-							variant="contained"
-							color="warning"
-							onClick={() => setBulkWeaningDialogOpen(true)}
-							startIcon={<FuseSvgIcon size={16}>heroicons-outline:adjustments-horizontal</FuseSvgIcon>}
-							sx={{
-								textTransform: 'none',
-								fontWeight: 800,
-								borderRadius: '8px',
-								boxShadow: 'none',
-								color: '#ffffff',
-								bgcolor: isDark ? '#ed6c02' : '#ff9800',
-								'&:hover': {
-									bgcolor: isDark ? '#e65100' : '#f57c00'
-								}
-							}}
-						>
-							Destete Masivo ({selectedCalfIds.length})
-						</Button>
+						<Box sx={{ display: 'flex', gap: 1 }}>
+							<Button
+								variant="outlined"
+								onClick={() => goWean('register', selectedCalfIds)}
+								startIcon={<FuseSvgIcon size={16}>heroicons-outline:clipboard-document-check</FuseSvgIcon>}
+								sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+							>
+								Registrar destete ({selectedCalfIds.length})
+							</Button>
+							<Button
+								variant="contained"
+								disableElevation
+								onClick={() => goWean('new', selectedCalfIds)}
+								startIcon={<FuseSvgIcon size={16}>heroicons-outline:document-plus</FuseSvgIcon>}
+								sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+							>
+								Nueva orden de destete ({selectedCalfIds.length})
+							</Button>
+						</Box>
 					)}
 				</Box>
 
@@ -304,7 +291,7 @@ function GestationBirthsView() {
 												<Checkbox
 													size="small"
 													checked={isSelected}
-													disabled={!record.is_nursing}
+													disabled={!record.is_nursing || Boolean(record.open_order_code)}
 													onChange={() => handleSelectOne(record.calf_id)}
 												/>
 											</TableCell>
@@ -353,6 +340,17 @@ function GestationBirthsView() {
 																: '1px solid #d1d5db'
 													}}
 												/>
+												{record.open_order_code && (
+													<Tooltip title="Comprometida en una orden abierta: se desteta con esa orden.">
+														<Chip
+															label={`En orden ${record.open_order_code}`}
+															size="small"
+															variant="outlined"
+															color="primary"
+															sx={{ ml: 0.75, fontWeight: 700, fontSize: '0.7rem', height: 22, fontFamily: 'monospace' }}
+														/>
+													</Tooltip>
+												)}
 											</TableCell>
 											<TableCell
 												sx={{
@@ -364,18 +362,13 @@ function GestationBirthsView() {
 												{record.notes || 'Sin observaciones'}
 											</TableCell>
 											<TableCell sx={{ ...cellStyle, textAlign: 'right' }}>
-												{record.is_nursing ? (
-													<Tooltip title="Registrar destete del ternero">
+												{record.is_nursing && !record.open_order_code ? (
+													<Tooltip title="Registrar el destete de esta cría (queda con su orden, ya ejecutada)">
 														<Button
 															size="small"
 															variant="outlined"
 															color="warning"
-															onClick={() =>
-																setWeaningDialog({
-																	open: true,
-																	calf: record
-																})
-															}
+															onClick={() => goWean('register', [record.calf_id])}
 															sx={{
 																borderRadius: 0,
 																textTransform: 'none',
@@ -383,17 +376,16 @@ function GestationBirthsView() {
 																fontSize: '0.75rem',
 																py: 0.5,
 																px: 2,
-																borderColor: 'warning.main',
-																'&:hover': {
-																	bgcolor: isDark
-																		? 'rgba(237, 108, 2, 0.08)'
-																		: 'rgba(237, 108, 2, 0.04)'
-																}
+																borderColor: 'warning.main'
 															}}
 														>
-															Destetar
+															Registrar destete
 														</Button>
 													</Tooltip>
+												) : record.is_nursing ? (
+													<Typography variant="caption" color="primary" sx={{ fontWeight: 700, pr: 2, fontFamily: 'monospace' }}>
+														{record.open_order_code}
+													</Typography>
 												) : (
 													<Typography
 														variant="caption"
@@ -412,26 +404,6 @@ function GestationBirthsView() {
 					</Table>
 				</TableContainer>
 			</Box>
-
-			{/* Individual Weaning Dialog */}
-			<WeaningDialog
-				open={weaningDialog.open}
-				onClose={() => setWeaningDialog({ open: false, calf: null })}
-				calfId={weaningDialog.calf?.calf_id || 0}
-				calfIdentification={weaningDialog.calf?.calf_identification || ''}
-				motherIdentification={weaningDialog.calf?.mother_identification || ''}
-				calfSex={weaningDialog.calf?.calf_sex || null}
-			/>
-
-			{/* Bulk Weaning Dialog */}
-			<BulkWeaningDialog
-				open={bulkWeaningDialogOpen}
-				onClose={() => {
-					setBulkWeaningDialogOpen(false);
-					setSelectedCalfIds([]);
-				}}
-				selectedCalves={selectedCalvesData}
-			/>
 		</ViewLayout>
 	);
 }

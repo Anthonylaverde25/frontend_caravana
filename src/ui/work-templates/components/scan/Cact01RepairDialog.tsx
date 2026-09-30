@@ -22,6 +22,7 @@ import type { Cact01RepairState } from '../../hooks/useCact01Submission';
 import type { Cact01PagesState } from '../../hooks/useCact01Pages';
 import type { Cact01BatchOption, Cact01DestinationsState } from '../../hooks/useCact01Destinations';
 import type { Cact01Row } from './types';
+import type { Cact01SourceBatchState } from '../../hooks/useCact01SourceBatch';
 
 const FIELD_ERRORS = ['lote_origen', 'fecha_movimiento', 'destinations'];
 
@@ -53,8 +54,10 @@ interface Cact01RepairDialogProps {
   batches: Cact01BatchOption[];
   activities: ActivityOption[];
   batchTypes: BatchTypeOption[];
+  /** Destination activity of the sheet being repaired. */
+  destinationActivityId: number | null;
   sourceBatchOptions: SourceBatchOption[];
-  sourceMatched: boolean;
+  sourceResolution: Cact01SourceBatchState;
   onRowChange: (id: string, field: keyof Cact01Row, value: string) => void;
   isSaving: boolean;
   onRetry: () => void;
@@ -74,8 +77,9 @@ export const Cact01RepairDialog: React.FC<Cact01RepairDialogProps> = ({
   batches,
   activities,
   batchTypes,
+  destinationActivityId,
   sourceBatchOptions,
-  sourceMatched,
+  sourceResolution,
   onRowChange,
   isSaving,
   onRetry,
@@ -137,10 +141,12 @@ export const Cact01RepairDialog: React.FC<Cact01RepairDialogProps> = ({
           <ScanCact01MetadataHeader
             metadata={state.metadata}
             onChange={state.setMetadataField}
+            activities={activities}
             sourceBatchId={state.sourceBatchId}
             onSourceBatchChange={state.setSourceBatchId}
             sourceBatchOptions={sourceBatchOptions}
-            sourceMatched={sourceMatched}
+            sourceResolution={sourceResolution}
+            perAnimal={state.perAnimal}
             headerErrors={repair.headerErrors}
           />
           <ScanCact01DestinationsPanel
@@ -148,6 +154,8 @@ export const Cact01RepairDialog: React.FC<Cact01RepairDialogProps> = ({
             batches={batches}
             activities={activities}
             batchTypes={batchTypes}
+            destinationActivityId={destinationActivityId}
+            perAnimal={state.perAnimal}
             headerErrors={repair.headerErrors}
           />
         </Paper>

@@ -129,6 +129,22 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/gestation/births'
 					},
 					{
+						id: 'gestation.birth-orders',
+						title: 'Órdenes de Parición',
+						subtitle: 'PAR-01',
+						type: 'item',
+						icon: 'heroicons-outline:clipboard-document-list',
+						url: '/birth-orders'
+					},
+					{
+						id: 'gestation.weaning-orders',
+						title: 'Órdenes de Destete',
+						subtitle: 'DEST-01',
+						type: 'item',
+						icon: 'heroicons-outline:clipboard-document-check',
+						url: '/weaning-orders'
+					},
+					{
 						id: 'gestation.weaning-batches',
 						title: 'Lotes de Destete',
 						subtitle: 'Desmadre y Recría',
@@ -226,6 +242,13 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:clipboard-document-list',
 						url: '/activities'
+					},
+					{
+						id: 'gestion.transfer-orders',
+						title: 'Órdenes de Transferencia',
+						type: 'item',
+						icon: 'heroicons-outline:clipboard-document-check',
+						url: '/transfer-orders'
 					},
 					{
 						id: 'livestock.upload',

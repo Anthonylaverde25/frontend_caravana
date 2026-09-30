@@ -1,4 +1,4 @@
-import { Box, Button, Chip, Typography } from '@mui/material';
+import { Box, Button, Chip } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { DashboardBoard } from '../../types/dashboard.types';
 import { BATCH_TYPE_SCOPE_OPTIONS } from '../../registry/boardTemplates';
@@ -6,12 +6,17 @@ import { BATCH_TYPE_SCOPE_OPTIONS } from '../../registry/boardTemplates';
 interface BoardHeaderProps {
 	board: DashboardBoard;
 	isEditing: boolean;
+	isCustomized?: boolean;
 	onEdit: () => void;
 	onDelete: () => void;
+	onReset?: () => void;
 }
 
-/** Board scope chips plus the actions available for user boards. System boards are read-only. */
-export function BoardHeader({ board, isEditing, onEdit, onDelete }: BoardHeaderProps) {
+/**
+ * Board scope chips plus direct actions for customizing layout,
+ * resizing widgets, deleting custom boards or restoring defaults.
+ */
+export function BoardHeader({ board, isEditing, isCustomized, onEdit, onDelete, onReset }: BoardHeaderProps) {
 	const batchType =
 		BATCH_TYPE_SCOPE_OPTIONS.find((o) => o.value === board.scope.batchTypeCode)?.label ?? 'Todos los tipos de lote';
 
@@ -28,30 +33,52 @@ export function BoardHeader({ board, isEditing, onEdit, onDelete }: BoardHeaderP
 					variant="outlined"
 					label={batchType}
 				/>
-				{board.isSystem && (
-					<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-						Tablero del sistema · para personalizarlo, creá una copia
-					</Typography>
+				{board.isSystem && isCustomized && (
+					<Chip
+						size="small"
+						color="primary"
+						variant="outlined"
+						label="Diseño personalizado"
+					/>
 				)}
 			</Box>
-			{!board.isSystem && !isEditing && (
-				<Box sx={{ display: 'flex', gap: 1 }}>
+			{!isEditing && (
+				<Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+					{board.isSystem && isCustomized && onReset && (
+						<Button
+							variant="text"
+							color="inherit"
+							onClick={onReset}
+							startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-path</FuseSvgIcon>}
+							sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.8125rem' }}
+						>
+							Restablecer diseño
+						</Button>
+					)}
+					{!board.isSystem && (
+						<Button
+							variant="text"
+							color="error"
+							onClick={onDelete}
+							startIcon={<FuseSvgIcon size={16}>heroicons-outline:trash</FuseSvgIcon>}
+							sx={{ textTransform: 'none', fontWeight: 600 }}
+						>
+							Eliminar
+						</Button>
+					)}
 					<Button
-						variant="text"
-						color="error"
-						onClick={onDelete}
-						startIcon={<FuseSvgIcon size={16}>heroicons-outline:trash</FuseSvgIcon>}
-						sx={{ textTransform: 'none', fontWeight: 600 }}
-					>
-						Eliminar
-					</Button>
-					<Button
-						variant="outlined"
+						variant="contained"
+						color="primary"
 						onClick={onEdit}
 						startIcon={<FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>}
-						sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}
+						sx={{
+							textTransform: 'none',
+							fontWeight: 600,
+							borderRadius: '8px',
+							boxShadow: 1
+						}}
 					>
-						Editar tablero
+						Personalizar tablero
 					</Button>
 				</Box>
 			)}

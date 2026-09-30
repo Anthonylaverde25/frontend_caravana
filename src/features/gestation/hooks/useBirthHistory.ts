@@ -13,8 +13,13 @@ export interface BirthHistoryRecord {
   calf_sex: string | null;
   calf_batch_name: string | null;
   calf_batch_id: number | null;
+  /** The calf's current C/S: the reference a new one is chosen against. */
+  calf_category_id: number | null;
+  calf_subcategory_id: number | null;
   mother_batch_id: number | null;
   mother_batch_name: string | null;
+  /** The open order — of weaning or of transfer — that already holds this calf. */
+  open_order_code: string | null;
 }
 
 /**

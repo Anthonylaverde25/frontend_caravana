@@ -3,6 +3,7 @@ import {
   Autocomplete,
   Box,
   FormControlLabel,
+  MenuItem,
   Radio,
   RadioGroup,
   Stack,
@@ -12,9 +13,23 @@ import {
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import type { Dest01BatchTarget, Dest01HeaderError } from './types';
 
+/** CORRAL / PASTURA as marked on the sheet, as the three states of a batch. */
+export const managementOf = (written: string): boolean | null => {
+  const value = written.trim().toUpperCase();
+
+  if (value === 'C' || value.includes('CORRAL')) return true;
+  if (value === 'P' || value.includes('PASTURA')) return false;
+
+  return null;
+};
+
 interface ScanDest01BatchTargetProps {
   /** Batch name read on the sheet. */
   sheetName: string;
+  /** The management box of the header, as read. */
+  sheetManagement?: string;
+  /** The weaning order already declared it: shown, not asked again. */
+  inheritedFromOrder?: string | null;
   target: Dest01BatchTarget;
   onChange: (target: Dest01BatchTarget) => void;
   headerErrors?: Dest01HeaderError[];
@@ -26,7 +41,14 @@ const normalize = (name: string): string => name.trim().replace(/\s+/g, ' ').toL
  * Where the weaned calves go. The name read on the sheet proposes an existing weaning batch when
  * it matches one, or a new batch otherwise; what is sent is only what the operator leaves selected.
  */
-export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({ sheetName, target, onChange, headerErrors = [] }) => {
+export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
+  sheetName,
+  sheetManagement = '',
+  inheritedFromOrder = null,
+  target,
+  onChange,
+  headerErrors = [],
+}) => {
   const { data: batches = [], isLoading } = useBatches(undefined, 'WEANING');
 
   const weaningBatches = useMemo(
@@ -37,13 +59,19 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({ sh
   useEffect(() => {
     if (target.touched || isLoading) return;
     const match = weaningBatches.find((b) => normalize(b.name) === normalize(sheetName));
+    if (inheritedFromOrder) return;
     const proposal: Dest01BatchTarget = match
-      ? { mode: 'existing', batchId: match.id, name: match.name, touched: false }
-      : { mode: 'new', batchId: null, name: sheetName.trim(), touched: false };
-    if (proposal.mode !== target.mode || proposal.batchId !== target.batchId || proposal.name !== target.name) {
+      ? { mode: 'existing', batchId: match.id, name: match.name, isConfined: null, touched: false }
+      : { mode: 'new', batchId: null, name: sheetName.trim(), isConfined: managementOf(sheetManagement), touched: false };
+    if (
+      proposal.mode !== target.mode ||
+      proposal.batchId !== target.batchId ||
+      proposal.name !== target.name ||
+      proposal.isConfined !== target.isConfined
+    ) {
       onChange(proposal);
     }
-  }, [sheetName, weaningBatches, isLoading, target, onChange]);
+  }, [sheetName, sheetManagement, inheritedFromOrder, weaningBatches, isLoading, target, onChange]);
 
   const selectedBatch = weaningBatches.find((b) => b.id === target.batchId) ?? null;
   const error = headerErrors.filter((e) => e.field === 'lote_destete').map((e) => e.message).join(' ');
@@ -56,7 +84,15 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({ sh
             Lote de destete
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            En la planilla: <strong>{sheetName || 'sin nombre'}</strong>
+            {inheritedFromOrder ? (
+              <>
+                Lo declara la orden <strong>{inheritedFromOrder}</strong>
+              </>
+            ) : (
+              <>
+                En la planilla: <strong>{sheetName || 'sin nombre'}</strong>
+              </>
+            )}
           </Typography>
         </Box>
 
@@ -64,6 +100,7 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({ sh
           row
           value={target.mode}
           onChange={(e) => onChange({ ...target, mode: e.target.value as Dest01BatchTarget['mode'], touched: true })}
+          sx={inheritedFromOrder ? { pointerEvents: 'none', opacity: 0.7 } : undefined}
         >
           <FormControlLabel value="existing" control={<Radio size="small" />} label="Lote existente" disabled={weaningBatches.length === 0} />
           <FormControlLabel value="new" control={<Radio size="small" />} label="Crear lote nuevo" />
@@ -83,16 +120,32 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({ sh
               )}
             />
           ) : (
-            <TextField
-              size="small"
-              fullWidth
-              required
-              label="Nombre del lote nuevo"
-              value={target.name}
-              onChange={(e) => onChange({ ...target, name: e.target.value, touched: true })}
-              error={Boolean(error)}
-              helperText={error || 'Se crea como lote de destete al confirmar.'}
-            />
+            <Stack direction="row" spacing={1.5}>
+              <TextField
+                size="small"
+                fullWidth
+                required
+                label="Nombre del lote nuevo"
+                value={target.name}
+                onChange={(e) => onChange({ ...target, name: e.target.value, touched: true })}
+                error={Boolean(error)}
+                helperText={error || 'Se crea como lote de destete al confirmar.'}
+              />
+              <TextField
+                select
+                size="small"
+                required
+                label="Manejo"
+                value={target.isConfined === null ? '' : target.isConfined ? 'C' : 'P'}
+                onChange={(e) => onChange({ ...target, isConfined: e.target.value === 'C', touched: true })}
+                error={target.isConfined === null}
+                helperText={target.isConfined === null ? 'Corral o pastura' : ' '}
+                sx={{ minWidth: 140 }}
+              >
+                <MenuItem value="C">Corral</MenuItem>
+                <MenuItem value="P">Pastura</MenuItem>
+              </TextField>
+            </Stack>
           )}
         </Box>
       </Stack>

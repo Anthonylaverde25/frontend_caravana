@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import type { Cact01PrintHeader } from './Cact01PrintContext';
+import type { Cact01CategoryColumn } from './Cact01Page';
 
 const headCellStyle: React.CSSProperties = {
   border: '1px solid #000',
@@ -33,6 +34,7 @@ export interface Cact01PageHeaderProps {
   establishment: string;
   header: Cact01PrintHeader;
   showDestinationColumn: boolean;
+  categoryColumn: Cact01CategoryColumn;
   totalHead: number | null;
   totalWeight: number | null;
   pageNumber: number | null;
@@ -53,6 +55,7 @@ export const Cact01PageHeader: React.FC<Cact01PageHeaderProps> = ({
   establishment,
   header,
   showDestinationColumn,
+  categoryColumn,
   totalHead,
   totalWeight,
   pageNumber,
@@ -81,9 +84,10 @@ export const Cact01PageHeader: React.FC<Cact01PageHeaderProps> = ({
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', border: '2px solid #000', color: '#000' }}>
         <tbody>
           <tr>
-            <td style={{ ...headCellStyle, width: '58%' }}><HeadLabel>Establecimiento ganadero</HeadLabel></td>
-            <td style={{ ...headCellStyle, backgroundColor: '#000', width: '20%', textAlign: 'center' }}><HeadLabel color="#fff">Template code</HeadLabel></td>
-            <td style={{ ...headCellStyle, width: '22%', textAlign: 'center' }}><HeadLabel>Hoja N de M</HeadLabel></td>
+            <td style={{ ...headCellStyle, width: '40%' }}><HeadLabel>Establecimiento ganadero</HeadLabel></td>
+            <td style={{ ...headCellStyle, backgroundColor: '#000', width: '14%', textAlign: 'center' }}><HeadLabel color="#fff">Template code</HeadLabel></td>
+            <td style={{ ...headCellStyle, width: '26%', textAlign: 'center' }}><HeadLabel>Orden de transferencia</HeadLabel></td>
+            <td style={{ ...headCellStyle, width: '20%', textAlign: 'center' }}><HeadLabel>Hoja N de M</HeadLabel></td>
           </tr>
           <tr style={{ height: 28 }}>
             <td style={valueCellStyle}>
@@ -91,6 +95,14 @@ export const Cact01PageHeader: React.FC<Cact01PageHeaderProps> = ({
             </td>
             <td style={{ ...valueCellStyle, textAlign: 'center', backgroundColor: '#fafafa' }}>
               <Typography sx={{ fontWeight: 900, fontSize: '0.9rem', color: '#000', fontFamily: 'monospace', letterSpacing: '1px' }}>{code}</Typography>
+            </td>
+            {/* The code is what the scan finds the order by. Digits and dashes only after the
+                prefix, printed large and monospaced: no letter that reads as a number. Blank on
+                a sheet printed without an order, which is still a valid sheet. */}
+            <td style={{ ...valueCellStyle, textAlign: 'center', border: '2px solid #000' }}>
+              <Typography sx={{ fontWeight: 900, fontSize: '0.95rem', color: '#000', fontFamily: 'monospace', letterSpacing: '1px', whiteSpace: 'nowrap' }}>
+                {header.orden_es_borrador ? 'BORRADOR — SIN EMITIR' : header.orden_transferencia || '\u00a0'}
+              </Typography>
             </td>
             <td style={{ ...valueCellStyle, textAlign: 'center', border: '2px solid #000' }}>
               <Typography sx={{ fontWeight: 900, fontSize: '0.9rem', color: '#000', fontFamily: 'monospace' }}>
@@ -133,8 +145,12 @@ export const Cact01PageHeader: React.FC<Cact01PageHeaderProps> = ({
             <td style={valueCellStyle}><Typography sx={valueSx}>{header.actividad_origen}</Typography></td>
             <td style={valueCellStyle}><Typography sx={valueSx}>{header.actividad_destino}</Typography></td>
             <td style={valueCellStyle}>
+              {/* With one destination per animal there is no single answer here: the letter
+                  goes in the M column of each row, the same way the batch name does. */}
               <Typography sx={{ ...valueSx, fontFamily: 'monospace', fontSize: '0.66rem', whiteSpace: 'nowrap' }}>
-                {`${penned ? '☒' : '☐'} CORRAL  ${pasture ? '☒' : '☐'} PASTURA`}
+                {showDestinationColumn
+                  ? '— por animal (col. M) —'
+                  : `${penned ? '☒' : '☐'} CORRAL  ${pasture ? '☒' : '☐'} PASTURA`}
               </Typography>
             </td>
           </tr>
@@ -169,7 +185,12 @@ export const Cact01PageHeader: React.FC<Cact01PageHeaderProps> = ({
           UN ANIMAL POR FILA • Anotar el PESO DEL DÍA con el que entra a la nueva actividad • Dentición sólo si cambió
         </Typography>
         <Typography sx={{ fontSize: '0.52rem', color: '#78350f' }}>
-          Sexo y categoría vienen del sistema y son para identificar al animal: no los corrige esta planilla. Escanear todas las hojas juntas.
+          {categoryColumn === 'none'
+            ? 'Sexo y categoría vienen del sistema y son para identificar al animal: no los corrige esta planilla.'
+            : categoryColumn === 'declared'
+              ? 'Sexo y C/S actual identifican al animal. La C/S nueva la fija la orden; corregirla sólo si en la manga se decide otra.'
+              : 'Sexo y C/S actual identifican al animal. En C/S nueva anotar la categoría o subcategoría SÓLO si cambia.'}{' '}
+          Escanear todas las hojas juntas.
         </Typography>
       </Box>
     </>

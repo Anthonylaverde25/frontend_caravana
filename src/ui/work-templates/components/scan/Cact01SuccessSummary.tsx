@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Box, Chip, Paper, Stack, Typography } from '@mui/material';
 import ScanCact01Warnings from './ScanCact01Warnings';
+import TransferOrderStatusChip from '@/ui/transfer-orders/components/TransferOrderStatusChip';
 import type { Cact01SuccessResult } from './types';
 
 interface Cact01SuccessSummaryProps {
@@ -13,6 +14,9 @@ const kg = (value: number | null | undefined): string =>
 const average = (value: number | null | undefined): string =>
   value == null ? '—' : `${value.toFixed(1)} kg`;
 
+/** Tags of the pending animals shown inline before the list is summarised. */
+const PENDING_SHOWN = 30;
+
 /**
  * What the load left behind, per batch.
  *
@@ -23,6 +27,7 @@ const average = (value: number | null | undefined): string =>
  */
 export const Cact01SuccessSummary: React.FC<Cact01SuccessSummaryProps> = ({ result }) => {
   const moved = result.destinations.reduce((sum, destination) => sum + destination.count, 0);
+  const order = result.transfer_order ?? null;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -33,6 +38,53 @@ export const Cact01SuccessSummary: React.FC<Cact01SuccessSummaryProps> = ({ resu
           ? `, con ${result.source.weighed_in_sheet} pesaje(s) registrado(s) antes del movimiento.`
           : '. La planilla no traía pesos, así que no se registró ningún pesaje.'}
       </Alert>
+
+      {/* What the order now says. A partial order names who is missing: that list is what the
+          next round at the chute has to bring. */}
+      {/* The paper of a blank sheet has no code yet. Written by hand now, it ties the archived
+          sheet to its order and a second scan of it is recognised as already loaded. */}
+      {order?.created_from_sheet && (
+        <Alert severity="info" sx={{ borderRadius: '6px' }}>
+          La planilla no traía orden: se creó la{' '}
+          <Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1.05rem' }}>
+            {order.code}
+          </Box>
+          . Anotá este código en el casillero ORDEN DE TRANSFERENCIA del papel antes de archivarlo.
+        </Alert>
+      )}
+
+      {order && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: '6px' }}>
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary' }}>
+              Orden {order.code}
+            </Typography>
+            <TransferOrderStatusChip status={order.status} />
+            <Typography variant="body2" color="text.secondary">
+              {order.moved_now} en esta carga · {order.moved_head_count} de {order.planned_head_count} movidas
+            </Typography>
+          </Stack>
+          {order.pending_head_count > 0 ? (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                Faltan {order.pending_head_count} cabeza(s). La orden sigue abierta para otra tanda:
+              </Typography>
+              <Stack direction="row" spacing={0.5} sx={{ mt: 0.75 }} flexWrap="wrap" useFlexGap>
+                {order.pending_identifications.slice(0, PENDING_SHOWN).map((tag) => (
+                  <Chip key={tag} size="small" label={tag} sx={{ fontFamily: 'monospace', fontWeight: 700 }} />
+                ))}
+                {order.pending_identifications.length > PENDING_SHOWN && (
+                  <Chip size="small" variant="outlined" label={`+${order.pending_identifications.length - PENDING_SHOWN} más`} />
+                )}
+              </Stack>
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Todos los animales ordenados se movieron: la orden queda ejecutada.
+            </Typography>
+          )}
+        </Paper>
+      )}
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: '6px' }}>
         <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary' }}>

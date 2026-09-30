@@ -31,6 +31,14 @@ function getNavigationItem(url: string, navigationItems: FuseNavItemType[]): Fus
   return null;
 }
 
+/**
+ * Titles for pages that live under a menu entry but are not entries themselves, so the crumb
+ * does not fall back to the raw (English) URL segment.
+ */
+const ROUTE_TITLES: Record<string, string> = {
+  '/transfer-orders/register': 'Registrar transferencia'
+};
+
 export function PageBreadcrumb(props: PageBreadcrumbProps) {
   const {
     className,
@@ -49,7 +57,7 @@ export function PageBreadcrumb(props: PageBreadcrumbProps) {
       (acc: { title: string; url: string }[], part, index, array) => {
         const url = `/${array.slice(0, index + 1).join('/')}`;
         const navItem = getNavigationItem(url, navigation);
-        const title = navItem?.title || part.replace(/-/g, ' ');
+        const title = navItem?.title || ROUTE_TITLES[url] || part.replace(/-/g, ' ');
 
         acc.push({ title, url });
         return acc;

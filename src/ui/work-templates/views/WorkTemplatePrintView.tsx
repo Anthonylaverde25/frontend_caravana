@@ -11,6 +11,10 @@ import { TemplateTOR01, Tor01ConfigDrawer } from '../templates/tor01';
 import { TemplateLSER01, Lser01ConfigDrawer, Lser01HeaderProvider } from '../templates/lser01';
 import { TemplateDEST01, Dest01ConfigDrawer, Dest01PrintProvider } from '../templates/dest01';
 import { TemplateCACT01, Cact01ConfigDrawer, Cact01PrintProvider } from '../templates/cact01';
+import Cact01OrderToolbarActions from '../templates/cact01/Cact01OrderToolbarActions';
+import Dest01OrderToolbarActions from '../templates/dest01/Dest01OrderToolbarActions';
+import { TemplatePAR01, Par01ConfigDrawer, Par01PrintProvider } from '../templates/par01';
+import Par01OrderToolbarActions from '../templates/par01/Par01OrderToolbarActions';
 import { TemplateREP01 } from '../templates/rep01';
 import { TemplateREP02 } from '../templates/rep02';
 import { TemplateGeneric } from '../templates/generic';
@@ -60,6 +64,8 @@ const WorkTemplatePrintContent: React.FC = () => {
         return <TemplateDEST01 />;
       case 'CACT-01':
         return <TemplateCACT01 />;
+      case 'PAR-01':
+        return <TemplatePAR01 />;
       case 'MON-01':
       case 'SER-01':
         return <TemplateMON01 />;
@@ -105,6 +111,15 @@ const WorkTemplatePrintContent: React.FC = () => {
         onOpenConfig={() => setIsConfigDrawerOpen(true)}
         onTestAI={handleTestAI}
         isTestingAI={isTestingAI}
+        extraActions={
+          code === 'CACT-01' ? (
+            <Cact01OrderToolbarActions />
+          ) : code === 'DEST-01' ? (
+            <Dest01OrderToolbarActions />
+          ) : code === 'PAR-01' ? (
+            <Par01OrderToolbarActions />
+          ) : null
+        }
       />
 
       {/* Main Clean Printable Canvas */}
@@ -163,6 +178,12 @@ const WorkTemplatePrintContent: React.FC = () => {
           onClose={() => setIsConfigDrawerOpen(false)}
         />
       )}
+      {code === 'PAR-01' && (
+        <Par01ConfigDrawer
+          open={isConfigDrawerOpen}
+          onClose={() => setIsConfigDrawerOpen(false)}
+        />
+      )}
       {code === 'CACT-01' && (
         <Cact01ConfigDrawer
           open={isConfigDrawerOpen}
@@ -184,7 +205,9 @@ const WorkTemplatePrintView: React.FC = () => {
       <Lser01HeaderProvider>
         <Dest01PrintProvider>
           <Cact01PrintProvider>
-            <WorkTemplatePrintContent />
+            <Par01PrintProvider>
+              <WorkTemplatePrintContent />
+            </Par01PrintProvider>
           </Cact01PrintProvider>
         </Dest01PrintProvider>
       </Lser01HeaderProvider>

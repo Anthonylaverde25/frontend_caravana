@@ -2,6 +2,7 @@ import React from 'react';
 import { Autocomplete, Box, Chip, Collapse, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { ExpandLess as ExpandLessIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import type { Cact01HeaderError, Cact01Metadata, Cact01Warning } from './types';
+import type { Cact01SourceBatchState } from '../../hooks/useCact01SourceBatch';
 
 interface SourceBatchOption {
   id: number;
@@ -10,18 +11,96 @@ interface SourceBatchOption {
   count: number;
 }
 
+interface ActivityOption {
+  id: number;
+  name: string;
+  code: string;
+}
+
 interface ScanCact01MetadataHeaderProps {
   metadata: Cact01Metadata;
   onChange: <K extends keyof Cact01Metadata>(field: K, value: Cact01Metadata[K]) => void;
+  /** Catalogue the destination activity is resolved against. */
+  activities: ActivityOption[];
   sourceBatchId: number | null;
   onSourceBatchChange: (batchId: number | null) => void;
   sourceBatchOptions: SourceBatchOption[];
-  /** False when the name printed on the sheet matched no batch of the company. */
-  sourceMatched?: boolean;
+  /** What the name on the sheet and its animals say about the source batch. */
+  sourceResolution?: Cact01SourceBatchState;
+  /** The sheet carries a destination per animal: there is no sheet-wide one. */
+  perAnimal?: boolean;
   warnings?: Cact01Warning[];
   isOpen?: boolean;
   onToggle?: () => void;
   headerErrors?: Cact01HeaderError[];
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+interface SourceHint {
+  text: string;
+  tone: 'normal' | 'warning' | 'error';
+  /** The batches to pick from when the name and the animals disagree. */
+  choices?: { id: number; name: string }[];
+}
+
+/**
+ * The line under the source batch selector. It always quotes the paper, and says out loud when
+ * the batch was inferred from the animals or when the paper and the animals disagree.
+ */
+function sourceHint(
+  written: string,
+  selectedId: number | null,
+  source: Cact01SourceBatchState | undefined
+): SourceHint {
+  const paper = `El papel dice: "${written || 'sin nombre'}"`;
+  const r = source?.resolution;
+
+  if (!r) {
+    return { text: source?.isResolving ? `${paper}. Buscando el lote…` : paper, tone: 'normal' };
+  }
+
+  const notFound = r.caravans_not_found > 0 ? `; ${plural(r.caravans_not_found, 'no se encontró', 'no se encontraron')}` : '';
+
+  if (r.basis === 'caravans' && r.proposed && selectedId === r.proposed.id) {
+    return {
+      text: `${paper}, que no coincide con ningún lote. ${r.caravans_in_match} de ${plural(r.caravans_read, 'caravana está', 'caravanas están')} en "${r.proposed.name}"${notFound}. Confirmá que sea el lote correcto.`,
+      tone: 'warning',
+    };
+  }
+
+  if (r.basis === 'conflict' && r.name_match && r.caravans_match) {
+    const settled = selectedId === r.name_match.id || selectedId === r.caravans_match.id;
+
+    return {
+      text: `El papel dice "${written}", pero ${r.caravans_in_match} de ${plural(r.caravans_found, 'caravana encontrada está', 'caravanas encontradas están')} en "${r.caravans_match.name}". Elegí cuál es el origen.`,
+      tone: settled ? 'warning' : 'error',
+      choices: [r.name_match, r.caravans_match].filter((batch) => source!.offered(batch)),
+    };
+  }
+
+  const inferred = r.proposed ?? r.caravans_match;
+
+  if (inferred && !source!.offered(inferred) && selectedId == null) {
+    return {
+      text: `${paper}. Las caravanas están en "${inferred.name}", pero ese lote no se ofrece como origen. Elegilo de la lista.`,
+      tone: 'error',
+    };
+  }
+
+  if (r.basis === 'none' && selectedId == null && (written || r.caravans_read > 0)) {
+    const spread =
+      r.distribution.length > 1
+        ? ` Las caravanas están repartidas: ${r.distribution.map((d) => `${d.name} (${d.count})`).join(', ')}.`
+        : '';
+
+    return {
+      text: `${written ? `No encontramos un lote llamado "${written}"` : 'La planilla no trae el lote de origen'}, ni uno donde estén la mayoría de las caravanas.${spread} Elegilo de la lista.`,
+      tone: 'error',
+    };
+  }
+
+  return { text: paper, tone: 'normal' };
 }
 
 const errorFor = (errors: Cact01HeaderError[], field: string): string | undefined =>
@@ -38,10 +117,12 @@ const errorFor = (errors: Cact01HeaderError[], field: string): string | undefine
 export const ScanCact01MetadataHeader: React.FC<ScanCact01MetadataHeaderProps> = ({
   metadata,
   onChange,
+  activities,
   sourceBatchId,
   onSourceBatchChange,
   sourceBatchOptions,
-  sourceMatched = true,
+  sourceResolution,
+  perAnimal = false,
   warnings = [],
   isOpen = true,
   onToggle,
@@ -49,31 +130,48 @@ export const ScanCact01MetadataHeader: React.FC<ScanCact01MetadataHeaderProps> =
 }) => {
   const activityWarning = warnings.find((w) => w.code === 'ACTIVITY_MISMATCH');
   const selected = sourceBatchOptions.find((option) => option.id === sourceBatchId) ?? null;
+  const sourceError = errorFor(headerErrors, 'lote_origen');
+  const hint = sourceHint(metadata.lote_origen, sourceBatchId, sourceResolution);
+  const sourceTone = sourceError ? 'error' : hint.tone;
 
   const fields = (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2, pt: 2.5 }}>
-      <Autocomplete
-        options={sourceBatchOptions}
-        value={selected}
-        onChange={(_, option) => onSourceBatchChange(option?.id ?? null)}
-        getOptionLabel={(option) => `${option.name} (${option.count} cab.)`}
-        isOptionEqualToValue={(option, value) => option.id === value.id}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Lote de origen"
-            size="small"
-            required
-            error={Boolean(errorFor(headerErrors, 'lote_origen')) || Boolean(metadata.lote_origen && !sourceMatched)}
-            helperText={
-              errorFor(headerErrors, 'lote_origen') ??
-              (metadata.lote_origen && !sourceMatched
-                ? `No encontramos un lote llamado "${metadata.lote_origen}". Elegilo de la lista.`
-                : `El papel dice: "${metadata.lote_origen || 'sin nombre'}"`)
-            }
-          />
+      <Box>
+        <Autocomplete
+          options={sourceBatchOptions}
+          value={selected}
+          onChange={(_, option) => onSourceBatchChange(option?.id ?? null)}
+          getOptionLabel={(option) => `${option.name} (${option.count} cab.)`}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Lote de origen"
+              size="small"
+              required
+              error={sourceTone === 'error'}
+              color={sourceTone === 'warning' ? 'warning' : undefined}
+              focused={sourceTone === 'warning' ? true : undefined}
+              helperText={sourceError ?? hint.text}
+              FormHelperTextProps={sourceTone === 'warning' ? { sx: { color: 'warning.dark' } } : undefined}
+            />
+          )}
+        />
+        {!sourceError && hint.choices && hint.choices.length > 0 && (
+          <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+            {hint.choices.map((choice) => (
+              <Chip
+                key={choice.id}
+                size="small"
+                label={choice.name}
+                color={choice.id === sourceBatchId ? 'primary' : 'default'}
+                variant={choice.id === sourceBatchId ? 'filled' : 'outlined'}
+                onClick={() => onSourceBatchChange(choice.id)}
+              />
+            ))}
+          </Stack>
         )}
-      />
+      </Box>
 
       <TextField
         label="Fecha del Movimiento"
@@ -113,13 +211,69 @@ export const ScanCact01MetadataHeader: React.FC<ScanCact01MetadataHeaderProps> =
         helperText={activityWarning?.message ?? 'Se compara con la actividad del lote elegido.'}
       />
 
+      {/* Not a control field like the origin one: this is the restriction itself. Every
+          destination of the sheet is resolved inside the activity chosen here, so it is
+          picked from the catalogue and never typed. What the paper said stays visible
+          underneath, which is how a disagreement becomes noticeable instead of silent. */}
       <TextField
-        label="Actividad de Destino (control)"
-        value={metadata.actividad_destino}
-        onChange={(e) => onChange('actividad_destino', e.target.value)}
+        select
+        required
+        label="Actividad de Destino"
+        value={metadata.actividad_destino_id ?? ''}
+        onChange={(e) => {
+          const id = e.target.value === '' ? null : Number(e.target.value);
+
+          onChange('actividad_destino_id', id);
+          onChange('actividad_destino', activities.find((a) => a.id === id)?.name ?? metadata.actividad_destino);
+        }}
         size="small"
         fullWidth
-        helperText="Se compara con la actividad de cada lote de destino."
+        error={metadata.actividad_destino_id == null}
+        helperText={
+          metadata.actividad_destino_id == null
+            ? metadata.actividad_destino
+              ? `La planilla dice "${metadata.actividad_destino}". Confirmá la etapa productiva.`
+              : 'Todo lote de destino tiene que pertenecer a esta etapa.'
+            : `La planilla decía: ${metadata.actividad_destino || '—'}`
+        }
+      >
+        <MenuItem value="">
+          <em>Seleccionar etapa destino…</em>
+        </MenuItem>
+        {activities.map((activity) => (
+          <MenuItem key={activity.id} value={activity.id}>
+            {activity.name}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      {/* Read only: what the paper declares about the destination, so a per-animal sheet is never
+          mistaken for one with a destination for everybody. Destinations are resolved below. */}
+      <TextField
+        label="Lote de destino"
+        value={perAnimal ? 'Por animal' : metadata.lote_destino || '—'}
+        size="small"
+        fullWidth
+        InputProps={{ readOnly: true }}
+        helperText={
+          perAnimal
+            ? 'No hay un lote destino para toda la planilla: se define en la fila de cada animal.'
+            : 'El papel lo declara para todos los animales.'
+        }
+      />
+
+      {/* The code the sheet was printed with. Editable because it is read off paper: a code
+          misread here is an order that never gets its execution recorded. */}
+      <TextField
+        label="Orden de Transferencia"
+        value={metadata.orden_transferencia}
+        onChange={(e) => onChange('orden_transferencia', e.target.value.replace(/\s+/g, '').toUpperCase())}
+        size="small"
+        fullWidth
+        placeholder="TR-AAAAMMDD-NNNN"
+        error={Boolean(errorFor(headerErrors, 'orden_transferencia'))}
+        helperText={errorFor(headerErrors, 'orden_transferencia') ?? 'Vacío si la planilla se llenó sin orden.'}
+        inputProps={{ style: { fontFamily: 'monospace' } }}
       />
 
       <TextField

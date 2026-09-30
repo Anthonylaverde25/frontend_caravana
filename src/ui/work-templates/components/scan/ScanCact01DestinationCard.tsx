@@ -24,6 +24,8 @@ interface ScanCact01DestinationCardProps {
   batches: Cact01BatchOption[];
   activities: ActivityOption[];
   batchTypes: BatchTypeOption[];
+  /** The destination activity of the whole sheet. Every batch on this card lives inside it. */
+  destinationActivityId: number | null;
   onChange: (patch: Partial<Cact01Destination>) => void;
 }
 
@@ -36,8 +38,12 @@ const NON_PRODUCTIVE_ACTIVITY = 'INTERNAL';
  * a misread batch name announces itself before anything is written.
  *
  * A batch that already exists is never reconfigured from here — the sheet does not get
- * to change what a batch is. A batch to be created gets its activity, type and
- * management system here, because the paper only ever carried a name.
+ * to change what a batch is. A batch to be created gets its type and management system
+ * here, because the paper only ever carried a name.
+ *
+ * What the card does NOT ask is the activity. That is declared once for the whole sheet and
+ * every destination inherits it, so the batches of one movement cannot end up scattered
+ * across productive stages. It is shown, not chosen.
  */
 export const ScanCact01DestinationCard: React.FC<ScanCact01DestinationCardProps> = ({
   destination,
@@ -46,16 +52,25 @@ export const ScanCact01DestinationCard: React.FC<ScanCact01DestinationCardProps>
   batches,
   activities,
   batchTypes,
+  destinationActivityId,
   onChange,
 }) => {
-  const selectedBatch = batches.find((batch) => batch.id === destination.batchId) ?? null;
-  const selectedActivity = activities.find((activity) => activity.id === destination.activityId);
+  // Only batches of the destination activity can be picked. This is the rule itself, not a
+  // convenience: a flat list of every batch of the company is how a movement used to land in
+  // the wrong productive stage without anybody declaring it.
+  const eligibleBatches = batches.filter(
+    (batch) => destinationActivityId == null || batch.activityId === destinationActivityId
+  );
+
+  const selectedBatch = eligibleBatches.find((batch) => batch.id === destination.batchId) ?? null;
+  const activityId = destinationActivityId ?? destination.activityId;
+  const selectedActivity = activities.find((activity) => activity.id === activityId);
   const declaresManagement = Boolean(selectedActivity) && selectedActivity?.code !== NON_PRODUCTIVE_ACTIVITY;
 
   const compatibleTypes = batchTypes.filter(
     (type) =>
       type.is_selectable !== false &&
-      (destination.activityId == null || type.activity_id === destination.activityId || type.activity_id == null)
+      (activityId == null || type.activity_id === activityId || type.activity_id == null)
   );
 
   return (
@@ -70,7 +85,16 @@ export const ScanCact01DestinationCard: React.FC<ScanCact01DestinationCardProps>
           size="small"
           exclusive
           value={destination.mode}
-          onChange={(_, mode) => mode && onChange({ mode })}
+          // Switching to "create" carries the sheet's activity into the new batch: the card
+          // no longer asks for it, so nothing else would put it there.
+          onChange={(_, mode) =>
+            mode &&
+            onChange(
+              mode === 'new'
+                ? { mode, batchId: null, activityId: destinationActivityId ?? destination.activityId }
+                : { mode }
+            )
+          }
         >
           <ToggleButton value="existing" sx={{ textTransform: 'none', fontWeight: 700 }}>Lote existente</ToggleButton>
           <ToggleButton value="new" sx={{ textTransform: 'none', fontWeight: 700 }}>Crear lote nuevo</ToggleButton>
@@ -86,14 +110,32 @@ export const ScanCact01DestinationCard: React.FC<ScanCact01DestinationCardProps>
       {destination.mode === 'existing' ? (
         <Stack spacing={1.5}>
           <Autocomplete
-            options={batches}
+            options={eligibleBatches}
             value={selectedBatch}
             onChange={(_, batch) =>
               onChange({ batchId: batch?.id ?? null, name: batch?.name ?? '', activityId: batch?.activityId ?? null, isConfined: batch?.isConfined ?? null })
             }
-            getOptionLabel={(option) => `${option.name} — ${option.activityName}`}
+            // Every option belongs to the same activity, so naming it in the label says
+            // nothing. The management system does: it is what tells two of them apart.
+            getOptionLabel={(option) =>
+              `${option.name}${option.isConfined === true ? ' — corral' : option.isConfined === false ? ' — pastura' : ''}`
+            }
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderInput={(params) => <TextField {...params} label="Lote de destino" size="small" />}
+            noOptionsText={
+              destinationActivityId == null
+                ? 'Primero declará la actividad de destino'
+                : `No hay lotes abiertos en ${selectedActivity?.name ?? 'esa actividad'}`
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Lote de destino"
+                size="small"
+                helperText={
+                  selectedActivity ? `Sólo lotes de ${selectedActivity.name}` : 'Declará la actividad de destino'
+                }
+              />
+            )}
           />
 
           {selectedBatch && selectedBatch.isConfined == null && (
@@ -112,19 +154,17 @@ export const ScanCact01DestinationCard: React.FC<ScanCact01DestinationCardProps>
             onChange={(e) => onChange({ name: e.target.value })}
           />
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
+            {/* The activity is the sheet's, not this card's: shown so it is unmistakable
+                where the batch is being born, and not editable here. */}
             <TextField
-              select
               label="Actividad"
               size="small"
               fullWidth
-              value={destination.activityId ?? ''}
-              onChange={(e) => onChange({ activityId: Number(e.target.value) || null, batchTypeId: null })}
-            >
-              {activities.map((activity) => (
-                <MenuItem key={activity.id} value={activity.id}>{activity.name}</MenuItem>
-              ))}
-            </TextField>
+              value={selectedActivity?.name ?? 'Sin declarar'}
+              InputProps={{ readOnly: true }}
+              helperText="Definida para toda la planilla"
+            />
 
             <TextField
               select
@@ -133,7 +173,10 @@ export const ScanCact01DestinationCard: React.FC<ScanCact01DestinationCardProps>
               fullWidth
               value={destination.batchTypeId ?? ''}
               onChange={(e) => onChange({ batchTypeId: Number(e.target.value) || null })}
-              disabled={destination.activityId == null}
+              disabled={activityId == null}
+              helperText={
+                activityId == null ? 'Falta la actividad de destino' : 'Lo único que el papel no puede traer'
+              }
             >
               {compatibleTypes.map((type) => (
                 <MenuItem key={type.id} value={type.id}>{type.name}</MenuItem>
