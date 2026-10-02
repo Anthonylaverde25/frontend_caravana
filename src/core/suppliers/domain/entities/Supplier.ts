@@ -9,7 +9,7 @@ export interface SupplierDTO {
   email: string | null;
   phone: string | null;
   is_active: boolean;
-  farms?: Farm[];
+  farms?: (Farm | any)[];
   created_at?: string;
 }
 
@@ -23,7 +23,7 @@ export class Supplier {
     public readonly location: string | null,
     public readonly email: string | null,
     public readonly phone: string | null,
-    public readonly farms?: Farm[],
+    public readonly farms?: (Farm | any)[],
     public readonly created_at?: string,
   ) {}
 

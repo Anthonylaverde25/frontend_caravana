@@ -18,8 +18,9 @@ function FarmCard({ farm, onRemove }: FarmCardProps) {
       sx={{
         p: 1.5,
         px: 2,
-        bgcolor: '#f8f9fa',
-        border: '1px solid #d8dde6',
+        bgcolor: 'background.default',
+        border: 1,
+        borderColor: 'divider',
         borderRadius: '6px',
         display: 'flex',
         alignItems: 'center',
@@ -33,14 +34,14 @@ function FarmCard({ farm, onRemove }: FarmCardProps) {
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
           {farm.city}{farm.province ? `, ${farm.province}` : ''}
         </Typography>
-        <Typography variant="caption" sx={{ color: '#0a6ed1', fontWeight: 600 }}>
+        <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
           RENSPA: {farm.renspa}
         </Typography>
       </Box>
       <IconButton 
         size="small" 
         onClick={onRemove}
-        sx={{ color: '#e53935' }}
+        sx={{ color: 'error.main' }}
       >
         <FuseSvgIcon size={18}>heroicons-outline:trash</FuseSvgIcon>
       </IconButton>

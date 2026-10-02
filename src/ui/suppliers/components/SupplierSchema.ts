@@ -19,9 +19,10 @@ export const supplierSchema = z.object({
   name: z.string().min(1, 'La razón social es requerida'),
   commercial_name: z.string().optional().nullable(),
   cuit: z.string().min(1, 'El CUIT es requerido'),
+  location: z.string().optional().nullable(),
   email: z.string().email('Email inválido').optional().nullable().or(z.literal('')),
   phone: z.string().optional().nullable(),
-  farms: z.array(farmSchema).min(1, 'Debe agregar al menos un establecimiento asociada'),
+  farms: z.array(farmSchema).optional().default([]),
 });
 
 export type FarmFormValues = z.infer<typeof farmSchema>;

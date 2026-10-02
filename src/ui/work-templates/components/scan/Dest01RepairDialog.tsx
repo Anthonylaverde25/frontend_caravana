@@ -122,7 +122,7 @@ export const Dest01RepairDialog: React.FC<Dest01RepairDialogProps> = ({
             <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary' }}>
               Encabezado
             </Typography>
-            <ScanDest01MetadataHeader metadata={state.metadata} onChange={state.setMetadataField} headerErrors={repair.headerErrors} />
+            <ScanDest01MetadataHeader metadata={state.metadata} onChange={state.setMetadataField} headerErrors={repair.headerErrors} rows={state.rows} />
           </Box>
         </Paper>
 

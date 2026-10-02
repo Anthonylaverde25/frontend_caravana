@@ -211,6 +211,14 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/batches/external'
 					},
 					{
+						id: 'gestion.batches.entry-orders',
+						title: 'Órdenes de Ingreso',
+						subtitle: 'ING-02 · Espera de DTE',
+						type: 'item',
+						icon: 'heroicons-outline:truck',
+						url: '/entry-orders'
+					},
+					{
 						id: 'gestion.batches.assignment',
 						title: 'Asignar a Lote Propio',
 						subtitle: 'Ingreso de Hacienda',

@@ -32,6 +32,7 @@ export class BatchMapper {
       is_active: raw.is_active !== undefined ? Boolean(raw.is_active) : true,
       is_service_batch: raw.is_service_batch ?? raw.batch_type_code === 'SERVICE',
       service_detail: raw.service_detail ?? null,
+      entry_order: raw.entry_order ?? null,
       created_at: raw.created_at,
     };
     return Batch.create(dto);

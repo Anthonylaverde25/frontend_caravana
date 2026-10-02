@@ -18,13 +18,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateBatch } from '@/features/batches/hooks/useCreateBatch';
 import { useSnackbar } from 'notistack';
-import { useEffect, useMemo } from 'react';
-import { useActivities } from '@/features/activities/hooks/useActivities';
-import { useCompany } from '@/contexts/CompanyContext';
-import { useBatchTypes } from '@/features/batch-types/hooks/useBatchTypes';
+import { useCallback } from 'react';
 import { batchSchema, BatchFormValues } from './BatchSchema';
 import BatchTypeSelector from './create/BatchTypeSelector';
 import ManagementSystemSelector from './create/ManagementSystemSelector';
+import { useBatchClassification } from './create/useBatchClassification';
 
 interface CreateBatchDialogProps {
   open: boolean;
@@ -44,9 +42,6 @@ interface CreateBatchDialogProps {
  */
 function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId, batchTypeCode }: CreateBatchDialogProps) {
   const { enqueueSnackbar } = useSnackbar();
-  const { activeCompanyId } = useCompany();
-  const { data: activities = [], isLoading: isLoadingActivities } = useActivities(activeCompanyId);
-  const { data: batchTypes = [], isLoading: isLoadingBatchTypes } = useBatchTypes();
   const { mutate, isPending } = useCreateBatch();
 
   const {
@@ -75,79 +70,29 @@ function CreateBatchDialog({ open, onClose, onSuccess, initialFarmId, batchTypeC
     }
   });
 
-  const lockedType = useMemo(
-    () => (batchTypeCode ? batchTypes.find((t) => t.code === batchTypeCode) : undefined),
-    [batchTypes, batchTypeCode]
-  );
-
   const selectedActivityId = watch('activity_id');
   const selectedBatchTypeId = watch('batch_type_id');
   const isConfined = watch('is_confined');
 
-  const selectedActivity = useMemo(
-    () => activities.find((a) => a.id === selectedActivityId),
-    [activities, selectedActivityId]
-  );
+  const setActivityId = useCallback((id: number) => setValue('activity_id', id), [setValue]);
+  const setBatchTypeId = useCallback((id: number) => setValue('batch_type_id', id), [setValue]);
 
-  // The management system is a fact of the batch, not of the stage: a Cría batch can
-  // be penned just like a Recría one. It is asked for in every productive activity.
-  // INTERNAL is excluded because it is not a stage, it is where the system's own
-  // batches live, and it is not offered by the picker anyway.
-  const declaresManagement = Boolean(selectedActivity) && selectedActivity?.code !== 'INTERNAL';
-
-  // Catalogue rules, resolved in memory: the catalogue is twelve rows cached for an
-  // hour, so changing activity re-filters instantly without a refetch, and the other
-  // dialogs that resolve a type by code keep reading the unfiltered list.
-  //
-  // Two rules apply. The type must fit the activity, unless it is cross-cutting; and
-  // it must be one that is picked by hand at all, which is why the reserve batch type
-  // does not show up here even though it is cross-cutting.
-  const filteredBatchTypes = useMemo(() => {
-    const selectable = batchTypes.filter((t) => t.is_selectable !== false);
-
-    if (!selectedActivityId) return selectable;
-
-    return selectable.filter(
-      (t) => t.activity_id === selectedActivityId || t.activity_id == null
-    );
-  }, [batchTypes, selectedActivityId]);
-
-  // Visible preselection of the first compatible type, preferring OPERATIONAL when it
-  // is available: whoever does not want to classify does not have to. If the type
-  // already chosen is still compatible it is respected.
-  useEffect(() => {
-    if (batchTypeCode || filteredBatchTypes.length === 0) return;
-
-    const stillCompatible = filteredBatchTypes.some((t) => t.id === selectedBatchTypeId);
-
-    if (stillCompatible) return;
-
-    const fallback =
-      filteredBatchTypes.find((t) => t.code === 'OPERATIONAL') || filteredBatchTypes[0];
-
-    setValue('batch_type_id', fallback.id);
-  }, [filteredBatchTypes, selectedBatchTypeId, setValue]);
-
-  // A fixed type brings its own activity.
-  useEffect(() => {
-    if (!open || !lockedType) return;
-
-    setValue('batch_type_id', lockedType.id);
-
-    if (lockedType.activity_id) setValue('activity_id', lockedType.activity_id);
-  }, [open, lockedType, setValue]);
-
-  // Automatically preselect the company's initial activity
-  useEffect(() => {
-    if (batchTypeCode) return;
-
-    if (activities.length > 0) {
-      const initialActivity = activities.find((a) => a.isEnabled && a.isInitial) || activities.find((a) => a.isEnabled);
-      if (initialActivity) {
-        setValue('activity_id', initialActivity.id);
-      }
-    }
-  }, [activities, setValue]);
+  const {
+    activities,
+    isLoadingActivities,
+    filteredBatchTypes,
+    isLoadingBatchTypes,
+    lockedType,
+    selectedActivity,
+    declaresManagement
+  } = useBatchClassification({
+    open,
+    activityId: selectedActivityId,
+    batchTypeId: selectedBatchTypeId,
+    setActivityId,
+    setBatchTypeId,
+    batchTypeCode
+  });
 
   const handleOnSuccess = (data: BatchFormValues) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

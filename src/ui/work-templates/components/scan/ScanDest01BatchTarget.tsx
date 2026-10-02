@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import {
+  Alert,
   Autocomplete,
   Box,
+  Chip,
   FormControlLabel,
   MenuItem,
   Radio,
@@ -40,6 +42,8 @@ const normalize = (name: string): string => name.trim().replace(/\s+/g, ' ').toL
 /**
  * Where the weaned calves go. The name read on the sheet proposes an existing weaning batch when
  * it matches one, or a new batch otherwise; what is sent is only what the operator leaves selected.
+ * A new batch named like a batch of another type (the breeding batch itself, say) is allowed: the
+ * screen says so before confirming and advises another name, without forcing it.
  */
 export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
   sheetName,
@@ -50,6 +54,7 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
   headerErrors = [],
 }) => {
   const { data: batches = [], isLoading } = useBatches(undefined, 'WEANING');
+  const { data: allBatches = [] } = useBatches();
 
   const weaningBatches = useMemo(
     () => batches.filter((b) => b.is_active && b.batch_type_code === 'WEANING'),
@@ -74,6 +79,18 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
   }, [sheetName, sheetManagement, inheritedFromOrder, weaningBatches, isLoading, target, onChange]);
 
   const selectedBatch = weaningBatches.find((b) => b.id === target.batchId) ?? null;
+
+  // Batches of another type that share the name of the batch about to be created. They can never
+  // receive the calves, so the new one is still created, as a weaning batch, beside them.
+  const sameNameOthers = useMemo(
+    () =>
+      target.mode === 'new' && target.name.trim() !== ''
+        ? allBatches.filter(
+            (b) => b.is_active && b.batch_type_code !== 'WEANING' && normalize(b.name) === normalize(target.name)
+          )
+        : [],
+    [allBatches, target.mode, target.name]
+  );
   const error = headerErrors.filter((e) => e.field === 'lote_destete').map((e) => e.message).join(' ');
 
   return (
@@ -120,7 +137,7 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
               )}
             />
           ) : (
-            <Stack direction="row" spacing={1.5}>
+            <Stack direction="row" spacing={1.5} alignItems="flex-start">
               <TextField
                 size="small"
                 fullWidth
@@ -129,7 +146,16 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
                 value={target.name}
                 onChange={(e) => onChange({ ...target, name: e.target.value, touched: true })}
                 error={Boolean(error)}
-                helperText={error || 'Se crea como lote de destete al confirmar.'}
+                helperText={error || 'Se crea al confirmar.'}
+                color={sameNameOthers.length > 0 ? 'warning' : undefined}
+                focused={sameNameOthers.length > 0 || undefined}
+              />
+              <Chip
+                label="Tipo: Destete"
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ mt: 1, flexShrink: 0, fontWeight: 600 }}
               />
               <TextField
                 select
@@ -149,6 +175,17 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
           )}
         </Box>
       </Stack>
+
+      {sameNameOthers.map((other) => (
+        <Alert key={other.id} severity="warning" sx={{ mt: 1.5, borderRadius: '6px' }}>
+          Ya existe un lote llamado <strong>{other.name}</strong>
+          {other.activity_name ? ` (${other.activity_name}${other.batch_type_name ? ` · ${other.batch_type_name}` : ''})` : ''}
+          {other.caravans_count != null ? `, con ${other.caravans_count} animales` : ''}. <strong>No es un lote de destete</strong>{' '}
+          y no puede recibir las crías.
+          Al confirmar se crea <strong>otro lote, de tipo Destete</strong>, con el mismo nombre. Conviene cambiarle el
+          nombre para no confundir los dos lotes.
+        </Alert>
+      ))}
     </Box>
   );
 };

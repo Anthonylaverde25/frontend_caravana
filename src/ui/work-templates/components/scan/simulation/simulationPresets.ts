@@ -1,6 +1,7 @@
 import { CACT01_SHEET_CASES } from './cact01SheetCasePresets';
 import { DEST01_SHEET_CASES } from './dest01SheetCasePresets';
 import { PAR01_SHEET_CASES, PAR01_WHOLE_ORDER } from './par01SheetCasePresets';
+import { ING02_PRESETS } from './ing02SheetCasePresets';
 import { SimulationPreset, SimulationScenario, SimulationTemplateInfo } from './types';
 
 export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
@@ -11,6 +12,15 @@ export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
     categoryLabel: 'Ingreso Ganadero',
     color: '#16a34a',
     description: 'Registro de compra/ingreso de tropa, tipificación zootécnica (categoría, sexo, raza, dentición) y pesaje inicial.',
+    availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'REPAIR_ERROR'],
+  },
+  {
+    code: 'ING-02',
+    title: 'Orden de Ingreso de Hacienda Externa',
+    category: 'ENTRY',
+    categoryLabel: 'Ingreso Ganadero',
+    color: '#0d9488',
+    description: 'Documento de una compra de hacienda externa: proveedor, establecimiento, subasta, cabezas, categoría, sexo, razas, pesos, estado, edad, sabe comer, garrapata y desbaste. Crea la orden en espera de DTE.',
     availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'REPAIR_ERROR'],
   },
   {
@@ -827,6 +837,9 @@ export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenari
     REPAIR_ERROR: {} as any,
     MULTI_PAGE: {} as any,
   },
+
+  // Simulated readings of a hand-filled ING-02 (no AI): see ing02SheetCasePresets.
+  'ING-02': ING02_PRESETS,
 
   // Built from the PAR-01 test sheets, so the scenario buttons and the sheet list show the same data.
   'PAR-01': {

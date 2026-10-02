@@ -2,9 +2,10 @@ import { Box, Button, Stack, Paper } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useState } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { BatchesTable } from '../components/BatchesTable';
 import CreateBatchDialog from '../components/CreateBatchDialog';
+import EntryStartActions from '@/ui/entry-orders/components/EntryStartActions';
 
 /**
  * BatchesView Component
@@ -14,6 +15,7 @@ import CreateBatchDialog from '../components/CreateBatchDialog';
 function BatchesView() {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const location = useLocation();
+	const navigate = useNavigate();
 
 	const filter = location.pathname.includes('/own')
 		? 'own'
@@ -30,7 +32,7 @@ function BatchesView() {
 	const subtitle = filter === 'own'
 		? 'Control centralizado de tropas y lotes generados en finca propia.'
 		: filter === 'external'
-			? 'Control de lotes asociados a proveedores externos.'
+			? 'Compras de hacienda por proveedor: cada lote nace de una orden de ingreso y recibe sus caravanas con el DTE.'
 			: 'Control centralizado de agrupaciones de ganado por establecimiento.';
 
 	return (
@@ -38,32 +40,51 @@ function BatchesView() {
 			title={title}
 			subtitle={subtitle}
 			actions={
-				<Stack
-					direction="row"
-					spacing={1.5}
-				>
-					<Button
-						variant="text"
-						startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
-						sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
+				filter === 'external' ? (
+					// A batch of a provider is a purchase: it starts as an entry order, waiting for its DTE.
+					<Stack
+						direction="row"
+						spacing={1.5}
+						alignItems="center"
 					>
-						Exportar
-					</Button>
-					<Button
-						variant="contained"
-						startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
-						onClick={() => setIsDialogOpen(true)}
-						sx={{
-							bgcolor: 'primary.main',
-							borderRadius: '6px',
-							px: 3,
-							fontWeight: 700,
-							textTransform: 'none',
-						}}
+						<Button
+							variant="text"
+							onClick={() => navigate('/entry-orders')}
+							startIcon={<FuseSvgIcon size={20}>heroicons-outline:truck</FuseSvgIcon>}
+							sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
+						>
+							Órdenes de ingreso
+						</Button>
+						<EntryStartActions newLabel="Nuevo lote externo" />
+					</Stack>
+				) : (
+					<Stack
+						direction="row"
+						spacing={1.5}
 					>
-						Nuevo Lote
-					</Button>
-				</Stack>
+						<Button
+							variant="text"
+							startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
+							sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
+						>
+							Exportar
+						</Button>
+						<Button
+							variant="contained"
+							startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
+							onClick={() => setIsDialogOpen(true)}
+							sx={{
+								bgcolor: 'primary.main',
+								borderRadius: '6px',
+								px: 3,
+								fontWeight: 700,
+								textTransform: 'none',
+							}}
+						>
+							Nuevo Lote
+						</Button>
+					</Stack>
+				)
 			}
 		>
 			<Box component="main">

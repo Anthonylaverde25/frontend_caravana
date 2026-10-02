@@ -91,11 +91,17 @@ import {
   useDest01Pages,
 } from "../hooks/useDest01Pages";
 import { useDest01Submission } from "../hooks/useDest01Submission";
+import { useDest01SourceBatch } from "../hooks/useDest01SourceBatch";
 import { useDest01WeaningOrder } from "../hooks/useDest01WeaningOrder";
 import { PAR01_CODE, par01PageFromIdentifyResponse, usePar01Pages } from "../hooks/usePar01Pages";
 import { usePar01Submission } from "../hooks/usePar01Submission";
 import { usePar01BirthOrder } from "../hooks/usePar01BirthOrder";
 import { ScanPar01Workspace } from "../components/scan/ScanPar01Workspace";
+import { ScanIng02Workspace } from "../components/scan/ScanIng02Workspace";
+import type { Ing02ScanReading } from "../components/scan/ing02/ing02ScanToForm";
+
+/** ING-02 is reviewed in the "Alta de Lote Externo" dialog: it creates an entry order, not rows. */
+const ING02_CODE = "ING-02";
 import { weaningTypeFromText } from "@/features/weaning-orders/types";
 import {
   CACT01_CODE,
@@ -272,8 +278,13 @@ export const WorkTemplateScanView: React.FC = () => {
   // Context Fields (DEST-01): several scanned pages confirmed together
   const dest01 = useDest01Pages();
   const dest01Submission = useDest01Submission();
+  // The calves leave from the batch they sit in: that batch, not the paper's text, is the note.
+  const dest01Source = useDest01SourceBatch(dest01.rows, dest01.metadata.lote_origen);
   const dest01Order = useDest01WeaningOrder(dest01);
   const [isDest01RepairOpen, setIsDest01RepairOpen] = useState(false);
+
+  // Context Fields (ING-02): the reading of a hand-filled purchase document
+  const [ing02Reading, setIng02Reading] = useState<Ing02ScanReading | null>(null);
 
   // Context Fields (PAR-01): a calving round, one or several pages, supervised in place
   const par01 = usePar01Pages();
@@ -461,6 +472,11 @@ export const WorkTemplateScanView: React.FC = () => {
   const validationResult = useMemo(() => {
     const errors: string[] = [];
     const warnings: string[] = [];
+
+    // ING-02 has no rows and no save button here: its review dialog validates the troop.
+    if (templateCode === ING02_CODE) {
+      return { isValid: true, errors, warnings, validRowsCount: 0 };
+    }
 
     if (templateCode === PAR01_CODE) {
       const withMother = par01.rows.filter((r) => r.caravana_madre.trim() !== "");
@@ -730,6 +746,12 @@ export const WorkTemplateScanView: React.FC = () => {
     const svgUrl = generateSimulationSvg(preset, 1, preset.pages ? preset.pages.length : 1);
     setFilePreviewUrl(svgUrl);
 
+    if (preset.templateCode === ING02_CODE) {
+      setIng02Reading({ context: preset.context, rows: preset.rows });
+      setIsProcessed(true);
+      return;
+    }
+
     if (preset.templateCode === PAR01_CODE) {
       par01Submission.clear();
       // The same shape the AI returns for a real page: every cell as {value}.
@@ -963,7 +985,9 @@ export const WorkTemplateScanView: React.FC = () => {
               : "Ingreso de Compra Directa"),
       );
 
-      if (detectedCode === PAR01_CODE) {
+      if (detectedCode === ING02_CODE) {
+        setIng02Reading({ context, rows: tables[0]?.mapped_rows ?? [] });
+      } else if (detectedCode === PAR01_CODE) {
         par01Submission.clear();
         par01.startWith(
           par01PageFromIdentifyResponse(resData, docFile.name, URL.createObjectURL(docFile)),
@@ -1242,6 +1266,7 @@ export const WorkTemplateScanView: React.FC = () => {
     dest01Submission.clearRepair();
     par01.reset();
     par01Submission.clear();
+    setIng02Reading(null);
     cact01.reset();
     cact01Destinations.reset();
     setIsCact01RepairOpen(false);
@@ -1316,7 +1341,7 @@ export const WorkTemplateScanView: React.FC = () => {
     if (templateCode === DEST01_CODE) {
       try {
         const result = await dest01Submission.submit(
-          dest01.metadata,
+          { ...dest01.metadata, lote_origen: dest01Source.noteName },
           {
             mode: dest01.destinationMode,
             target: dest01.target,
@@ -1526,6 +1551,7 @@ export const WorkTemplateScanView: React.FC = () => {
             }}
           >
             <MenuItem value="ING-01">ING-01 • Compra Directa</MenuItem>
+            <MenuItem value="ING-02">ING-02 • Orden de Ingreso Externo</MenuItem>
             <MenuItem value="TOR-01">TOR-01 • Revisación Andrológica & Manga</MenuItem>
             <MenuItem value="LSER-01">LSER-01 • Conformación de Lote de Servicio</MenuItem>
             <MenuItem value="DEST-01">DEST-01 • Destete y Lote de Destete</MenuItem>
@@ -1583,6 +1609,8 @@ export const WorkTemplateScanView: React.FC = () => {
               {/* A disabled button used to look exactly like an enabled one on this header, so a
                   click that could not happen read as a click that did nothing. It now looks
                   disabled and says, on hover, what is still missing. */}
+              {/* ING-02 is confirmed from its own review dialog: it creates an order, not rows. */}
+              {templateCode !== ING02_CODE && (
               <Tooltip
                 arrow
                 title={
@@ -1646,6 +1674,7 @@ export const WorkTemplateScanView: React.FC = () => {
               </Button>
               </span>
               </Tooltip>
+              )}
             </Stack>
           )}
         </Stack>
@@ -1932,7 +1961,17 @@ export const WorkTemplateScanView: React.FC = () => {
                 }}
               >
                 {/* SECTION 1: Integrated Collapsible Header Metadata Bar */}
-                {templateCode === PAR01_CODE ? (
+                {templateCode === ING02_CODE ? (
+                  <Box sx={{ p: 2.5 }}>
+                    {ing02Reading ? (
+                      <ScanIng02Workspace reading={ing02Reading} />
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Sin lectura de la planilla.
+                      </Typography>
+                    )}
+                  </Box>
+                ) : templateCode === PAR01_CODE ? (
                   <ScanPar01Workspace
                     state={par01}
                     order={par01Order}
@@ -2218,6 +2257,7 @@ export const WorkTemplateScanView: React.FC = () => {
                 {/* SECTION 2: DataTable Section (Filter Bar + Table + Pagination) */}
                 {templateCode === DEST01_CODE ||
                 templateCode === PAR01_CODE ||
+                templateCode === ING02_CODE ||
                 templateCode === CACT01_CODE ? null : templateCode === "LSER-01" ? (
                   <Box sx={{ p: 2 }}>
                     {lser01.repair && !isLser01RepairOpen && (

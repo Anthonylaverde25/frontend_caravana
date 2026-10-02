@@ -1,31 +1,29 @@
 import { Box, Button, Stack, Paper } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router';
 import { SuppliersTable } from '@/ui/suppliers/components/SuppliersTable';
 import CreateSupplierDialog from '@/ui/suppliers/components/CreateSupplierDialog';
 
 /**
- * SuppliersView
- * Standardized header with Providers management and dual add actions.
- * Refactored to use ViewLayout for consistency.
+ * SuppliersView Component
+ * Main page for managing suppliers and associated establishments.
+ * Standardized using ViewLayout with canonical modal creation flow.
  */
 function SuppliersView() {
-	const navigate = useNavigate();
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [searchParams, setSearchParams] = useSearchParams();
 
-	const handleAddProviderPage = () => {
-		navigate('/suppliers/create');
-	};
-
-	const handleOpenDialog = () => {
-		setIsDialogOpen(true);
-	};
-
-	const handleCloseDialog = () => {
-		setIsDialogOpen(false);
-	};
+	useEffect(() => {
+		if (searchParams.get('action') === 'create' || searchParams.get('new') === 'true') {
+			setIsDialogOpen(true);
+			const newParams = new URLSearchParams(searchParams);
+			newParams.delete('action');
+			newParams.delete('new');
+			setSearchParams(newParams, { replace: true });
+		}
+	}, [searchParams, setSearchParams]);
 
 	return (
 		<ViewLayout
@@ -34,32 +32,30 @@ function SuppliersView() {
 			actions={
 				<Stack
 					direction="row"
-					spacing={2}
+					spacing={1.5}
 				>
 					<Button
 						variant="text"
-						color="primary"
-						startIcon={<FuseSvgIcon size={20}>heroicons-outline:bolt</FuseSvgIcon>}
-						onClick={handleOpenDialog}
-						sx={{ fontWeight: 600, textTransform: 'none', color: '#0a6ed1' }}
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
+						sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
 					>
-						Alta Rápida
+						Exportar
 					</Button>
 					<Button
 						variant="contained"
-						color="primary"
-						startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus</FuseSvgIcon>}
-						onClick={handleAddProviderPage}
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
+						onClick={() => setIsDialogOpen(true)}
 						sx={{
-							bgcolor: '#0a6ed1',
+							bgcolor: 'primary.main',
 							borderRadius: '6px',
+							px: 3,
 							fontWeight: 700,
 							textTransform: 'none',
 							boxShadow: 'none',
-							'&:hover': { bgcolor: '#0854a1', boxShadow: 'none' },
+							'&:hover': { bgcolor: 'primary.dark' }
 						}}
 					>
-						Agregar Proveedor
+						Nuevo Proveedor
 					</Button>
 				</Stack>
 			}
@@ -69,23 +65,20 @@ function SuppliersView() {
 					elevation={0}
 					sx={{
 						borderRadius: '8px',
-						border: '1px solid #d8dde6',
+						border: 1,
+						borderColor: 'divider',
 						overflow: 'hidden',
-						bgcolor: '#ffffff',
+						bgcolor: 'background.paper',
 					}}
 				>
 					<SuppliersTable />
 				</Paper>
 			</Box>
 
-			{/* Dialog para Alta Rápida */}
+			{/* Dialog modal para Alta de Proveedor */}
 			<CreateSupplierDialog
 				open={isDialogOpen}
-				onClose={handleCloseDialog}
-				onSuccess={() => {
-					// Aquí se podría disparar un refresh de la tabla si fuera necesario
-					console.log('Proveedor creado con éxito');
-				}}
+				onClose={() => setIsDialogOpen(false)}
 			/>
 		</ViewLayout>
 	);

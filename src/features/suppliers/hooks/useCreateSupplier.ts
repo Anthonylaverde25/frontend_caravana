@@ -14,7 +14,7 @@ export const useCreateSupplier = () => {
   const createSupplierUseCase = new CreateSupplierUseCase(repository);
 
   return useMutation({
-    mutationFn: (supplierData: Partial<Supplier>) => createSupplierUseCase.execute(supplierData),
+    mutationFn: (supplierData: any) => createSupplierUseCase.execute(supplierData),
     onSuccess: () => {
       // Invalidar la lista de proveedores para forzar un refresco
       queryClient.invalidateQueries({ queryKey: ['suppliers', 'list'] });

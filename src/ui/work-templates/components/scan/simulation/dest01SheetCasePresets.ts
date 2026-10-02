@@ -118,7 +118,7 @@ export const DEST01_SHEET_CASES: SimulationPreset[] = [
   ),
   sheetCase(
     '11 · Lote de destino que no es de destete',
-    'El lote escrito es el propio lote de cría. Se espera un rechazo: no es un lote de destete, ni se puede crear con ese nombre.',
+    'El lote escrito es el propio lote de cría. La revisión avisa que no es de destete y que se crea otro lote, de tipo Destete, con ese nombre; aconseja cambiarlo sin obligar.',
     four,
     header({ lote_destete: 'Lote Testing Cría (destete)' })
   ),

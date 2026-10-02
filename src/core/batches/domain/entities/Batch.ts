@@ -15,6 +15,16 @@ export interface ServiceBatchDetailDTO {
   notes?: string | null;
 }
 
+/** The entry order an external batch was born from (a purchase waiting for, or fed by, its DTEs). */
+export interface BatchEntryOrderSummary {
+  id: number;
+  code: string;
+  status: 'DRAFT' | 'AWAITING_DTE' | 'PARTIAL' | 'COMPLETED' | 'CLOSED_INCOMPLETE' | 'CANCELLED';
+  status_label: string;
+  head_count: number;
+  entered_count: number;
+}
+
 export interface BatchDTO {
   id?: number;
   name: string;
@@ -41,6 +51,7 @@ export interface BatchDTO {
   is_service_batch?: boolean;
   is_weaning_batch?: boolean;
   service_detail?: ServiceBatchDetailDTO | null;
+  entry_order?: BatchEntryOrderSummary | null;
   created_at?: string;
 }
 
@@ -110,6 +121,7 @@ export class Batch {
     public readonly is_weaning_batch: boolean = false,
     public readonly service_detail?: ServiceBatchDetailDTO | null,
     public readonly created_at?: string,
+    public readonly entry_order: BatchEntryOrderSummary | null = null,
   ) { }
 
   public static create(dto: BatchDTO): Batch {
@@ -143,7 +155,8 @@ export class Batch {
       dto.is_service_batch ?? dto.batch_type_code === 'SERVICE',
       dto.is_weaning_batch ?? (dto.batch_type_code === 'WEANING' || (dto.name ? dto.name.toLowerCase().includes('destete') : false)),
       dto.service_detail ?? null,
-      dto.created_at
+      dto.created_at,
+      dto.entry_order ?? null
     );
   }
 

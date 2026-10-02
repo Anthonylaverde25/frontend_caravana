@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Button,
   Chip,
   IconButton,
+  InputAdornment,
   Stack,
   Table,
   TableBody,
@@ -19,13 +20,16 @@ import type { Theme } from '@mui/material/styles';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
+  ListAlt as ListAltIcon,
 } from '@mui/icons-material';
+import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useBirthHistory } from '@/features/gestation/hooks/useBirthHistory';
 import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
 import { labelOfPair } from '@/features/categories/categoryLabels';
 import { Dest01Error, Dest01Row } from './types';
 import { parseWeight, reviewWeightIssues } from '../../utils/weightOutliers';
 import { ScanDest01RowProblems } from './ScanDest01RowProblems';
+import { Dest01BatchPickerDialog } from './Dest01BatchPickerDialog';
 
 interface ScanDest01TableProps {
   rows: Dest01Row[];
@@ -43,6 +47,8 @@ interface ScanDest01TableProps {
 }
 
 const cellSx = (hasErrors: boolean) => ({ borderBottom: hasErrors ? 'none' : undefined });
+
+const normalizeName = (name: string): string => name.trim().replace(/\s+/g, ' ').toLowerCase();
 
 /** Editable table of the calves read on every DEST-01 page, with live totals and the problems of each row. */
 export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
@@ -81,6 +87,25 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
       average: weights.length ? weights.reduce((a, b) => a + b, 0) / weights.length : null,
     };
   }, [rows]);
+
+  // The batch of a calf is picked from the active weaning batches, or created, in a dialog.
+  const [pickerRowId, setPickerRowId] = useState<string | null>(null);
+  const pickerRow = rows.find((r) => r.id === pickerRowId) ?? null;
+  const { data: weaningBatches = [] } = useBatches(undefined, 'WEANING');
+  // New batches already written on the rows, so the next calf can join them without retyping.
+  const sheetNewNames = useMemo(() => {
+    if (!perAnimal) return [];
+    const existing = new Set(
+      weaningBatches.filter((b) => b.is_active && b.batch_type_code === 'WEANING').map((b) => normalizeName(b.name))
+    );
+    const byKey = new Map<string, { name: string; manejo: string }>();
+    rows.forEach((r) => {
+      const key = normalizeName(r.lote_destino);
+      if (!key || existing.has(key) || byKey.has(key)) return;
+      byKey.set(key, { name: r.lote_destino.trim(), manejo: r.manejo });
+    });
+    return [...byKey.values()];
+  }, [perAnimal, rows, weaningBatches]);
 
   // Zero is never a weight; a weight far from the troop may be a typo. Both are shown here,
   // on the row, while the sheet is still being reviewed.
@@ -217,15 +242,38 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
                     </TableCell>
                     {perAnimal && (
                       <TableCell sx={cellSx(hasErrors)}>
-                        <TextField
-                          value={row.lote_destino}
-                          onChange={(e) => onRowChange(row.id, 'lote_destino', e.target.value)}
-                          size="small"
-                          fullWidth
+                        {row.lote_destino.trim() === '' ? (
                           // A calf without its batch is completed on its row, never from the header.
-                          error={row.caravana.trim() !== '' && row.lote_destino.trim() === ''}
-                          placeholder="Sin lote"
-                        />
+                          <Button
+                            variant="outlined"
+                            color={row.caravana.trim() !== '' ? 'error' : 'inherit'}
+                            size="small"
+                            fullWidth
+                            startIcon={<ListAltIcon fontSize="small" />}
+                            onClick={() => setPickerRowId(row.id)}
+                            sx={{ textTransform: 'none', fontWeight: 700, justifyContent: 'flex-start', height: 40 }}
+                          >
+                            Elegir lote
+                          </Button>
+                        ) : (
+                          <TextField
+                            value={row.lote_destino}
+                            onChange={(e) => onRowChange(row.id, 'lote_destino', e.target.value)}
+                            size="small"
+                            fullWidth
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <Tooltip title="Elegir otro lote o crear uno nuevo">
+                                    <IconButton size="small" edge="end" onClick={() => setPickerRowId(row.id)}>
+                                      <ListAltIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </InputAdornment>
+                              ),
+                            }}
+                          />
+                        )}
                       </TableCell>
                     )}
                     {perAnimal && (
@@ -268,6 +316,22 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
           </TableBody>
         </Table>
       </Box>
+
+      {perAnimal && (
+        <Dest01BatchPickerDialog
+          open={pickerRow !== null}
+          caravana={pickerRow?.caravana ?? ''}
+          currentName={pickerRow?.lote_destino ?? ''}
+          currentManejo={pickerRow?.manejo ?? ''}
+          sheetNewNames={sheetNewNames}
+          onClose={() => setPickerRowId(null)}
+          onPick={({ name, manejo }) => {
+            if (!pickerRow) return;
+            onRowChange(pickerRow.id, 'lote_destino', name);
+            onRowChange(pickerRow.id, 'manejo', manejo);
+          }}
+        />
+      )}
 
       {onAddRow && (
         <Button startIcon={<AddIcon />} onClick={onAddRow} size="small" sx={{ mt: 1.5, textTransform: 'none', fontWeight: 700 }}>

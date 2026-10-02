@@ -1,7 +1,9 @@
 import React from 'react';
-import { Box, Chip, Collapse, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Box, Chip, Collapse, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { ExpandLess as ExpandLessIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
-import { Dest01HeaderError, Dest01Metadata } from './types';
+import { Dest01HeaderError, Dest01Metadata, Dest01Row } from './types';
+import { systemFilledInputSx } from './ScanCact01CategoryCell';
+import { useDest01SourceBatch, type Dest01SourceBatch } from '../../hooks/useDest01SourceBatch';
 
 export const WEANING_TYPES = ['TRADICIONAL', 'ANTICIPADO', 'PRECOZ'] as const;
 
@@ -13,7 +15,87 @@ interface ScanDest01MetadataHeaderProps {
   headerErrors?: Dest01HeaderError[];
   /** The weaning order declares the type: shown, not asked again. */
   weaningTypeFromOrder?: string | null;
+  /** The calves read: where they sit today is the source batch. */
+  rows?: Dest01Row[];
 }
+
+/** Shown when the paper left the source blank and the screen filled it. */
+const SOURCE_FILLED_HINT = 'No lo leyó el escaneo: es el lote en el que el sistema tiene a las crías.';
+
+const plural = (count: number, one: string, many: string): string => `${count} ${count === 1 ? one : many}`;
+
+/** The calves the source batch does not account for: unknown tags and calves in no batch. */
+const leftOut = (source: Dest01SourceBatch): string =>
+  [
+    source.notFound > 0 ? `${plural(source.notFound, 'caravana no existe', 'caravanas no existen')} en el sistema` : null,
+    source.withoutBatch > 0 ? `${plural(source.withoutBatch, 'cría no está', 'crías no están')} en ningún lote` : null,
+  ]
+    .filter(Boolean)
+    .join(' y ');
+
+/**
+ * The source batch field. When the calves share one batch, that batch is the answer: shown
+ * read only (grey when the paper left it blank, so it is not taken for what was written), and
+ * with a warning when the paper names another one. Otherwise it stays the paper's free text.
+ */
+const SourceBatchField: React.FC<{ value: string; onChange: (value: string) => void; source: Dest01SourceBatch }> = ({
+  value,
+  onChange,
+  source,
+}) => {
+  const missing = leftOut(source);
+
+  if (source.status === 'single' && source.batch) {
+    const blankOnPaper = value.trim() === '';
+    const inBatch = source.distribution[0]?.count ?? 0;
+    const helper = [
+      source.writtenDiffers
+        ? `En la planilla dice «${value.trim()}», pero las crías están en este lote y salen de él.`
+        : inBatch === 1
+          ? 'La cría está en este lote.'
+          : `Las ${inBatch} crías están en este lote.`,
+      missing ? `${missing.charAt(0).toUpperCase()}${missing.slice(1)}.` : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    return (
+      <Tooltip title={blankOnPaper ? SOURCE_FILLED_HINT : ''}>
+        <TextField
+          label="Lote de Cría (Origen)"
+          value={source.batch.name}
+          size="small"
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          InputProps={{ readOnly: true }}
+          color={source.writtenDiffers ? 'warning' : undefined}
+          focused={source.writtenDiffers || undefined}
+          helperText={helper}
+          FormHelperTextProps={{ sx: source.writtenDiffers ? { color: 'warning.main' } : undefined }}
+          sx={blankOnPaper ? systemFilledInputSx : undefined}
+        />
+      </Tooltip>
+    );
+  }
+
+  const helper =
+    source.status === 'mixed'
+      ? `Las crías están en varios lotes: ${source.distribution.map((share) => `${share.name} (${share.count})`).join(' · ')}.${missing ? ` Además, ${missing}.` : ''}`
+      : undefined;
+
+  return (
+    <TextField
+      label="Lote de Cría (Origen)"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      size="small"
+      fullWidth
+      placeholder={source.status === 'mixed' ? 'Varios lotes' : undefined}
+      helperText={helper}
+      InputLabelProps={{ shrink: true }}
+    />
+  );
+};
 
 const errorFor = (errors: Dest01HeaderError[], field: keyof Dest01Metadata): string | undefined =>
   errors.filter((e) => e.field === field).map((e) => e.message).join(' ') || undefined;
@@ -26,7 +108,9 @@ export const ScanDest01MetadataHeader: React.FC<ScanDest01MetadataHeaderProps> =
   onToggle,
   headerErrors = [],
   weaningTypeFromOrder = null,
+  rows = [],
 }) => {
+  const source = useDest01SourceBatch(rows, metadata.lote_origen);
   const typeRead = metadata.tipo_destete.trim();
   const typeIsKnown = WEANING_TYPES.includes(typeRead as (typeof WEANING_TYPES)[number]);
   // Two boxes crossed, or a word that is none of the three: marked on its cell, to choose one.
@@ -77,14 +161,7 @@ export const ScanDest01MetadataHeader: React.FC<ScanDest01MetadataHeaderProps> =
           </MenuItem>
         ))}
       </TextField>
-      <TextField
-        label="Lote de Cría (Origen)"
-        value={metadata.lote_origen}
-        onChange={(e) => onChange('lote_origen', e.target.value)}
-        size="small"
-        fullWidth
-        InputLabelProps={{ shrink: true }}
-      />
+      <SourceBatchField value={metadata.lote_origen} onChange={(value) => onChange('lote_origen', value)} source={source} />
       <TextField
         label="Responsable"
         value={metadata.responsable}

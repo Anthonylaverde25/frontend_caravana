@@ -1,11 +1,13 @@
 import { Typography, Chip, Avatar, Stack, Box } from '@mui/material';
+import { MRT_ColumnDef } from 'material-react-table';
 import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
 
 /**
  * Helper to get initials from a name.
  */
 const getInitials = (name: string) => {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  if (!name) return '??';
+  return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().substring(0, 2);
 };
 
 /**
@@ -16,35 +18,39 @@ export const getSupplierColumns = (): MRT_ColumnDef<Supplier>[] => [
     accessorKey: 'name',
     header: 'Nombre / Razón Social',
     size: 280,
-    Cell: ({ row, cell }) => (
-      <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar
-          sx={{
-            bgcolor: '#0a6ed1',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            width: 32,
-            height: 32
-          }}
-        >
-          {getInitials(cell.getValue<string>())}
-        </Avatar>
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
-            {cell.getValue<string>()}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontWeight: 500 }}>
-            CUIT: {row.original.cuit}
-          </Typography>
-        </Box>
-      </Stack>
-    ),
+    Cell: ({ row, cell }) => {
+      const val = cell.getValue<string>() || '';
+      return (
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Avatar
+            sx={{
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              width: 32,
+              height: 32
+            }}
+          >
+            {getInitials(val)}
+          </Avatar>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+              {val}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontWeight: 500 }}>
+              CUIT: {row.original.cuit}
+            </Typography>
+          </Box>
+        </Stack>
+      );
+    },
   },
   {
     accessorKey: 'commercial_name',
     header: 'Nombre Comercial',
     size: 200,
-    Cell: ({ cell }) => cell.getValue() || '-',
+    Cell: ({ cell }) => cell.getValue<string>() || '-',
   },
   {
     accessorKey: 'cuit',
@@ -60,11 +66,13 @@ export const getSupplierColumns = (): MRT_ColumnDef<Supplier>[] => [
     accessorKey: 'email',
     header: 'Email',
     size: 200,
+    Cell: ({ cell }) => cell.getValue<string>() || '-',
   },
   {
     accessorKey: 'phone',
     header: 'Teléfono',
     size: 150,
+    Cell: ({ cell }) => cell.getValue<string>() || '-',
   },
   {
     accessorKey: 'is_active',

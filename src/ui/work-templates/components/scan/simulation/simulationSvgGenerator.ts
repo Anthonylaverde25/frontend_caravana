@@ -295,6 +295,16 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
       ];
       break;
 
+    case 'ING-02':
+      secondaryContextText = `PROVEEDOR: ${context.proveedor || '—'} | CAMPO: ${context.establecimiento || '—'} | ${context.cabezas || '—'} ${context.categoria || ''} · ${context.sexo || '—'} | ESTADO: ${context.estado || '—'} | EDAD: ${context.edad || '—'}`;
+      columns = [
+        { label: 'LETRA', width: 70, align: 'center' },
+        { label: 'RAZA', width: 330, align: 'left' },
+        { label: 'PELAJE', width: 330, align: 'left' },
+      ];
+      formatRowCells = (r, idx) => [String.fromCharCode(65 + idx), r.raza || '', r.pelaje || ''];
+      break;
+
     case 'ING-01':
     default:
       secondaryContextText = `PROVEEDOR: ${context.provider_name || 'Estancia Las Lilas'} | CUIT: ${context.provider_cuit || '30-71234567-9'} | GUIA: ${context.guia_dte || 'DTE-884920'}`;

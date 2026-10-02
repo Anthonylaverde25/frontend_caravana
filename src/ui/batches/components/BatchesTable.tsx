@@ -25,6 +25,8 @@ import { getSupplierColumns } from '../../suppliers/components/SupplierColumns';
 import AddCaravansDialog from './AddCaravansDialog';
 import { useNavigate } from 'react-router';
 import { BatchDetailsDialog } from './BatchDetailsDialog';
+import EntryOrderStatusChip from '@/ui/entry-orders/components/EntryOrderStatusChip';
+import LoadDteDialog from '@/ui/entry-orders/components/dte/LoadDteDialog';
 
 interface BatchesTableProps {
 	filter?: 'own' | 'external' | 'all';
@@ -84,6 +86,7 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 	const [addCaravansDialogOpen, setAddCaravansDialogOpen] = useState(false);
 	const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 	const [selectedBatch, setSelectedBatch] = useState<any>(null);
+	const [dteOrderId, setDteOrderId] = useState<number | null>(null);
 
 	const handleAddCaravans = (batch: any) => {
 		setSelectedBatch(batch);
@@ -508,20 +511,31 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 															{batch.batch_type_name || '-'}
 														</TableCell>
 														<TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>
-															{batch.caravans_count ?? '-'}
+															{batch.entry_order
+																? `${batch.entry_order.entered_count} / ${batch.entry_order.head_count}`
+																: (batch.caravans_count ?? '-')}
 														</TableCell>
 														<TableCell sx={{ ...bodyCellStyle, textAlign: 'center' }}>
-															<Chip
-																size="small"
-																label={batch.is_active ? 'Activo' : 'Inactivo'}
-																color={batch.is_active ? 'success' : 'default'}
-																variant="outlined"
-																sx={{
-																	fontWeight: 700,
-																	fontSize: '0.68rem',
-																	height: 22
-																}}
-															/>
+															{batch.entry_order ? (
+																// A batch of a purchase is "waiting for its DTE", not "empty".
+																<Tooltip title={`Orden ${batch.entry_order.code}`}>
+																	<Box sx={{ display: 'inline-flex' }}>
+																		<EntryOrderStatusChip status={batch.entry_order.status} />
+																	</Box>
+																</Tooltip>
+															) : (
+																<Chip
+																	size="small"
+																	label={batch.is_active ? 'Activo' : 'Inactivo'}
+																	color={batch.is_active ? 'success' : 'default'}
+																	variant="outlined"
+																	sx={{
+																		fontWeight: 700,
+																		fontSize: '0.68rem',
+																		height: 22
+																	}}
+																/>
+															)}
 														</TableCell>
 														<TableCell
 															sx={{
@@ -546,6 +560,34 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 																		</FuseSvgIcon>
 																	</IconButton>
 																</Tooltip>
+																{batch.entry_order && (
+																	<Tooltip title={`Ver orden de ingreso ${batch.entry_order.code}`}>
+																		<IconButton
+																			size="small"
+																			onClick={() => navigate(`/entry-orders?orderId=${batch.entry_order?.id}`)}
+																			sx={{ color: 'primary.main' }}
+																		>
+																			<FuseSvgIcon size={18}>heroicons-outline:truck</FuseSvgIcon>
+																		</IconButton>
+																	</Tooltip>
+																)}
+																{batch.entry_order &&
+																	['AWAITING_DTE', 'PARTIAL'].includes(batch.entry_order.status) && (
+																		<Tooltip title="Cargar DTE">
+																			<IconButton
+																				size="small"
+																				onClick={() => setDteOrderId(batch.entry_order?.id ?? null)}
+																				sx={{ color: 'secondary.main' }}
+																			>
+																				<FuseSvgIcon size={18}>
+																					heroicons-outline:document-arrow-down
+																				</FuseSvgIcon>
+																			</IconButton>
+																		</Tooltip>
+																	)}
+																{/* The caravans of a purchase enter only with its DTE. */}
+																{!batch.entry_order && (
+																<>
 																<Tooltip title="Ingreso Múltiple (Manual)">
 																	<IconButton
 																		size="small"
@@ -570,6 +612,8 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 																		</FuseSvgIcon>
 																	</IconButton>
 																</Tooltip>
+																</>
+																)}
 															</Stack>
 														</TableCell>
 													</TableRow>
@@ -638,6 +682,10 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 				open={detailsDialogOpen}
 				onClose={() => setDetailsDialogOpen(false)}
 				batch={selectedBatch}
+			/>
+			<LoadDteDialog
+				orderId={dteOrderId}
+				onClose={() => setDteOrderId(null)}
 			/>
 		</Box>
 	);

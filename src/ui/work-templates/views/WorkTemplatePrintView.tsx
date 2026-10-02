@@ -14,6 +14,7 @@ import { TemplateCACT01, Cact01ConfigDrawer, Cact01PrintProvider } from '../temp
 import Cact01OrderToolbarActions from '../templates/cact01/Cact01OrderToolbarActions';
 import Dest01OrderToolbarActions from '../templates/dest01/Dest01OrderToolbarActions';
 import { TemplatePAR01, Par01ConfigDrawer, Par01PrintProvider } from '../templates/par01';
+import { TemplateING02, Ing02ConfigDrawer, Ing02PrintProvider, Ing02OrderToolbarActions } from '../templates/ing02';
 import Par01OrderToolbarActions from '../templates/par01/Par01OrderToolbarActions';
 import { TemplateREP01 } from '../templates/rep01';
 import { TemplateREP02 } from '../templates/rep02';
@@ -75,6 +76,8 @@ const WorkTemplatePrintContent: React.FC = () => {
         return <TemplateREP02 />;
       case 'ING-01':
         return <TemplateING01 />;
+      case 'ING-02':
+        return <TemplateING02 />;
       default:
         return <TemplateGeneric />;
     }
@@ -118,6 +121,8 @@ const WorkTemplatePrintContent: React.FC = () => {
             <Dest01OrderToolbarActions />
           ) : code === 'PAR-01' ? (
             <Par01OrderToolbarActions />
+          ) : code === 'ING-02' ? (
+            <Ing02OrderToolbarActions />
           ) : null
         }
       />
@@ -184,6 +189,12 @@ const WorkTemplatePrintContent: React.FC = () => {
           onClose={() => setIsConfigDrawerOpen(false)}
         />
       )}
+      {code === 'ING-02' && (
+        <Ing02ConfigDrawer
+          open={isConfigDrawerOpen}
+          onClose={() => setIsConfigDrawerOpen(false)}
+        />
+      )}
       {code === 'CACT-01' && (
         <Cact01ConfigDrawer
           open={isConfigDrawerOpen}
@@ -206,7 +217,9 @@ const WorkTemplatePrintView: React.FC = () => {
         <Dest01PrintProvider>
           <Cact01PrintProvider>
             <Par01PrintProvider>
-              <WorkTemplatePrintContent />
+              <Ing02PrintProvider>
+                <WorkTemplatePrintContent />
+              </Ing02PrintProvider>
             </Par01PrintProvider>
           </Cact01PrintProvider>
         </Dest01PrintProvider>

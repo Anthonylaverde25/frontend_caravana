@@ -86,6 +86,7 @@ export const ScanDest01Workspace: React.FC<ScanDest01WorkspaceProps> = ({
         onToggle={() => setIsHeaderOpen((prev) => !prev)}
         headerErrors={repair?.headerErrors}
         weaningTypeFromOrder={order.order?.weaning_type_label ?? null}
+        rows={state.rows}
       />
       <Box sx={{ p: 2 }}>
         {repair && !isRepairOpen && (

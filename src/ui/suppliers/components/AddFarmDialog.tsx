@@ -1,14 +1,15 @@
 import { 
   Dialog, 
-  DialogTitle, 
   DialogContent, 
   DialogActions, 
   Button, 
   TextField, 
   Stack, 
   Typography, 
-  Box 
+  Box,
+  IconButton
 } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { farmSchema, FarmFormValues } from './SupplierSchema';
@@ -22,6 +23,7 @@ interface AddFarmDialogProps {
 /**
  * AddFarmDialog Component
  * Secondary modal to capture farm details with validation.
+ * Styled adhering to canonical design tokens.
  */
 function AddFarmDialog({ open, onClose, onAdd }: AddFarmDialogProps) {
   const {
@@ -32,7 +34,12 @@ function AddFarmDialog({ open, onClose, onAdd }: AddFarmDialogProps) {
   } = useForm<FarmFormValues>({
     resolver: zodResolver(farmSchema),
     defaultValues: {
-      country: 'Argentina'
+      name: '',
+      renspa: '',
+      city: '',
+      province: '',
+      country: 'Argentina',
+      zip: ''
     }
   });
 
@@ -53,86 +60,126 @@ function AddFarmDialog({ open, onClose, onAdd }: AddFarmDialogProps) {
       onClose={handleClose}
       fullWidth
       maxWidth="xs"
-      PaperProps={{ sx: { borderRadius: '8px' } }}
+      PaperProps={{
+        sx: {
+          borderRadius: '8px',
+          boxShadow: 1,
+          bgcolor: 'background.paper'
+        }
+      }}
     >
-      <Box sx={{ p: 2, px: 3, borderBottom: '1px solid #e5e5e5' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+      <Box
+        sx={{
+          p: 2,
+          px: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper'
+        }}
+      >
+        <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: 'text.primary' }}>
           Nuevo Establecimiento
         </Typography>
+        <IconButton onClick={handleClose} size="small" sx={{ color: 'primary.main' }}>
+          <FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon>
+        </IconButton>
       </Box>
+
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ p: 3, bgcolor: 'background.paper' }}>
           <Stack spacing={2.5}>
             <TextField
               {...register('name')}
               label="Nombre del Establecimiento"
               fullWidth
               variant="filled"
+              required
               error={!!errors.name}
               helperText={errors.name?.message}
-              sx={{ bgcolor: '#f7f7f7' }}
+              sx={{ bgcolor: 'action.hover' }}
             />
             <TextField
               {...register('renspa')}
               label="RENSPA"
               fullWidth
               variant="filled"
+              required
               error={!!errors.renspa}
               helperText={errors.renspa?.message}
               placeholder="XX.XXX.X.XXXXX/XX"
-              sx={{ bgcolor: '#f7f7f7' }}
+              sx={{ bgcolor: 'action.hover' }}
             />
-            <div className="flex gap-16">
+            <Stack direction="row" spacing={2}>
               <TextField
                 {...register('city')}
                 label="Ciudad"
                 fullWidth
                 variant="filled"
+                required
                 error={!!errors.city}
                 helperText={errors.city?.message}
-                sx={{ bgcolor: '#f7f7f7' }}
+                sx={{ bgcolor: 'action.hover' }}
               />
               <TextField
                 {...register('province')}
                 label="Provincia"
                 fullWidth
                 variant="filled"
-                sx={{ bgcolor: '#f7f7f7' }}
+                sx={{ bgcolor: 'action.hover' }}
               />
-            </div>
-            <div className="flex gap-16">
+            </Stack>
+            <Stack direction="row" spacing={2}>
               <TextField
                 {...register('country')}
                 label="País"
                 fullWidth
                 variant="filled"
+                required
                 error={!!errors.country}
-                sx={{ bgcolor: '#f7f7f7' }}
+                sx={{ bgcolor: 'action.hover' }}
               />
               <TextField
                 {...register('zip')}
-                label="CP"
+                label="Código Postal"
                 fullWidth
                 variant="filled"
-                sx={{ bgcolor: '#f7f7f7' }}
+                sx={{ bgcolor: 'action.hover' }}
               />
-            </div>
+            </Stack>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ p: 2, px: 3, bgcolor: '#f8f9fa' }}>
-          <Button onClick={handleClose} sx={{ textTransform: 'none', fontWeight: 600 }}>
+
+        <DialogActions
+          sx={{
+            p: 2,
+            px: 3,
+            bgcolor: 'background.default',
+            borderTop: 1,
+            borderColor: 'divider',
+            gap: 1.5
+          }}
+        >
+          <Button
+            onClick={handleClose}
+            variant="text"
+            sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
+          >
             Cancelar
           </Button>
           <Button
             variant="contained"
             type="submit"
             sx={{
-              bgcolor: '#0a6ed1',
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
               borderRadius: '6px',
               textTransform: 'none',
               fontWeight: 700,
               boxShadow: 'none',
-              '&:hover': { bgcolor: '#0854a1' }
+              '&:hover': { bgcolor: 'primary.dark' }
             }}
           >
             Añadir
