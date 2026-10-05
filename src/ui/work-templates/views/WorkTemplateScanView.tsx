@@ -98,6 +98,8 @@ import { usePar01Submission } from "../hooks/usePar01Submission";
 import { usePar01BirthOrder } from "../hooks/usePar01BirthOrder";
 import { ScanPar01Workspace } from "../components/scan/ScanPar01Workspace";
 import { ScanIng02Workspace } from "../components/scan/ScanIng02Workspace";
+import { ScanIng03Workspace } from "../components/scan/ScanIng03Workspace";
+import { ING03_CODE, ing03PageFromIdentifyResponse, useIng03Pages } from "../hooks/useIng03Pages";
 import type { Ing02ScanReading } from "../components/scan/ing02/ing02ScanToForm";
 
 /** ING-02 is reviewed in the "Alta de Lote Externo" dialog: it creates an entry order, not rows. */
@@ -288,6 +290,7 @@ export const WorkTemplateScanView: React.FC = () => {
 
   // Context Fields (PAR-01): a calving round, one or several pages, supervised in place
   const par01 = usePar01Pages();
+  const ing03 = useIng03Pages();
   const par01Submission = usePar01Submission();
   const par01Order = usePar01BirthOrder(par01);
 
@@ -473,8 +476,9 @@ export const WorkTemplateScanView: React.FC = () => {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // ING-02 has no rows and no save button here: its review dialog validates the troop.
-    if (templateCode === ING02_CODE) {
+    // ING-02 has no rows and no save button here: its review dialog validates the troop. ING-03
+    // registers its reception from its own workspace.
+    if (templateCode === ING02_CODE || templateCode === ING03_CODE) {
       return { isValid: true, errors, warnings, validRowsCount: 0 };
     }
 
@@ -752,6 +756,19 @@ export const WorkTemplateScanView: React.FC = () => {
       return;
     }
 
+    if (preset.templateCode === ING03_CODE) {
+      // The same shape the AI returns for a real page: every cell as {value}.
+      const asRead = (rows: any[]) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, { value: v }])));
+      const pages = preset.pages && preset.pages.length > 0 ? preset.pages : [{ fileName: preset.scenarioLabel, metadata: preset.context, rows: preset.rows }];
+      ing03.reset();
+      pages.forEach((page, index) => {
+        const svg = index === 0 ? svgUrl : generateSimulationSvg({ ...preset, context: page.metadata, rows: page.rows }, index + 1, pages.length);
+        ing03.addPage(ing03PageFromIdentifyResponse({ context: page.metadata, data: [{ mapped_rows: asRead(page.rows) }] }, page.fileName, svg));
+      });
+      setIsProcessed(true);
+      return;
+    }
+
     if (preset.templateCode === PAR01_CODE) {
       par01Submission.clear();
       // The same shape the AI returns for a real page: every cell as {value}.
@@ -987,6 +1004,8 @@ export const WorkTemplateScanView: React.FC = () => {
 
       if (detectedCode === ING02_CODE) {
         setIng02Reading({ context, rows: tables[0]?.mapped_rows ?? [] });
+      } else if (detectedCode === ING03_CODE) {
+        ing03.startWith(ing03PageFromIdentifyResponse(resData, docFile.name, URL.createObjectURL(docFile)));
       } else if (detectedCode === PAR01_CODE) {
         par01Submission.clear();
         par01.startWith(
@@ -1267,6 +1286,7 @@ export const WorkTemplateScanView: React.FC = () => {
     par01.reset();
     par01Submission.clear();
     setIng02Reading(null);
+    ing03.reset();
     cact01.reset();
     cact01Destinations.reset();
     setIsCact01RepairOpen(false);
@@ -1552,6 +1572,7 @@ export const WorkTemplateScanView: React.FC = () => {
           >
             <MenuItem value="ING-01">ING-01 • Compra Directa</MenuItem>
             <MenuItem value="ING-02">ING-02 • Orden de Ingreso Externo</MenuItem>
+            <MenuItem value="ING-03">ING-03 • Recepción de DTE (anexo de ING-02)</MenuItem>
             <MenuItem value="TOR-01">TOR-01 • Revisación Andrológica & Manga</MenuItem>
             <MenuItem value="LSER-01">LSER-01 • Conformación de Lote de Servicio</MenuItem>
             <MenuItem value="DEST-01">DEST-01 • Destete y Lote de Destete</MenuItem>
@@ -1610,7 +1631,7 @@ export const WorkTemplateScanView: React.FC = () => {
                   click that could not happen read as a click that did nothing. It now looks
                   disabled and says, on hover, what is still missing. */}
               {/* ING-02 is confirmed from its own review dialog: it creates an order, not rows. */}
-              {templateCode !== ING02_CODE && (
+              {templateCode !== ING02_CODE && templateCode !== ING03_CODE && (
               <Tooltip
                 arrow
                 title={
@@ -1971,6 +1992,16 @@ export const WorkTemplateScanView: React.FC = () => {
                       </Typography>
                     )}
                   </Box>
+                ) : templateCode === ING03_CODE ? (
+                  ing03.pages.length > 0 ? (
+                    <ScanIng03Workspace key={ing03.pages[0]?.key} state={ing03} onPreviewPage={setFilePreviewUrl} />
+                  ) : (
+                    <Box sx={{ p: 2.5 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Sin lectura de la planilla.
+                      </Typography>
+                    </Box>
+                  )
                 ) : templateCode === PAR01_CODE ? (
                   <ScanPar01Workspace
                     state={par01}
@@ -2258,6 +2289,7 @@ export const WorkTemplateScanView: React.FC = () => {
                 {templateCode === DEST01_CODE ||
                 templateCode === PAR01_CODE ||
                 templateCode === ING02_CODE ||
+                templateCode === ING03_CODE ||
                 templateCode === CACT01_CODE ? null : templateCode === "LSER-01" ? (
                   <Box sx={{ p: 2 }}>
                     {lser01.repair && !isLser01RepairOpen && (

@@ -120,15 +120,10 @@ class TemplateService {
 	async getWorkTemplates(): Promise<WorkTemplate[]> {
 		try {
 			const response = await axiosInstance.get<WorkTemplate[]>('/work-templates');
-			const templates = response.data;
-			
-			// Append mock templates if they don't already exist in backend response
-			MOCK_TEMPLATES.forEach((mock) => {
-				if (!templates.some((t) => t.code === mock.code)) {
-					templates.push(mock);
-				}
-			});
-			return templates;
+			if (Array.isArray(response.data) && response.data.length > 0) {
+				return response.data;
+			}
+			return MOCK_TEMPLATES;
 		} catch (error) {
 			console.error('Failed fetching templates from backend, falling back to mocks.', error);
 			return MOCK_TEMPLATES;

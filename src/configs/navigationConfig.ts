@@ -342,10 +342,10 @@ const navigationConfig: FuseNavItemType[] = [
 		children: [
 			{
 				id: 'work-templates',
-				title: 'Lista de Plantillas',
-				subtitle: 'Explorar y Editar',
+				title: 'Galería de Plantillas',
+				subtitle: 'Biblioteca Zootécnica',
 				type: 'item',
-				icon: 'heroicons-outline:table',
+				icon: 'heroicons-outline:squares-2x2',
 				url: 'work-templates'
 			},
 			{

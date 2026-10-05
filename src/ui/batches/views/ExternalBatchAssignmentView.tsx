@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  InputLabel,
   MenuItem,
   Paper,
   Select,
@@ -34,6 +33,7 @@ import {
   useTheme
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { useSearchParams } from 'react-router';
 import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -42,6 +42,31 @@ import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useAssignExternalCaravans } from '@/features/batches/hooks/useAssignExternalCaravans';
 import CreateBatchDialog from 'src/ui/batches/components/CreateBatchDialog';
+import OwnBatchPickerDialog from 'src/ui/batches/components/external/OwnBatchPickerDialog';
+
+/**
+ * A caravan of a purchase that has not arrived (or never will) is listed but cannot be moved: it
+ * is ours by the DTE, not in the field. Its checkbox is replaced by a padlock that says why.
+ */
+const SelectCell: React.FC<{ canSelect: boolean; checked: boolean; inTransit: boolean }> = ({ canSelect, checked, inTransit }) =>
+  canSelect ? (
+    <Checkbox checked={checked} size="small" sx={{ p: 0.5 }} />
+  ) : (
+    <Tooltip title={inTransit ? 'En tránsito: se puede asignar cuando se reciba' : 'Se declaró que no llegará'}>
+      <Box component="span" sx={{ display: 'inline-flex', p: 0.5, color: 'text.disabled' }}>
+        <FuseSvgIcon size={16}>heroicons-outline:lock-closed</FuseSvgIcon>
+      </Box>
+    </Tooltip>
+  );
+
+const PossessionChip: React.FC<{ inTransit: boolean; inPossession: boolean }> = ({ inTransit, inPossession }) =>
+  inTransit ? (
+    <Chip size="small" label="En tránsito" color="warning" sx={{ fontWeight: 700 }} />
+  ) : !inPossession ? (
+    <Chip size="small" label="No llegará" variant="outlined" />
+  ) : (
+    <Chip size="small" label="En Lote Externo" color="warning" variant="outlined" />
+  );
 
 export default function ExternalBatchAssignmentView() {
   const theme = useTheme();
@@ -79,17 +104,23 @@ export default function ExternalBatchAssignmentView() {
   const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers();
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId, 'external');
+  // Every caravan of the purchase is shown in its batch, but only what is in the field can go to
+  // an own batch: one in transit (or that will never arrive) is listed without a checkbox.
+  const selectable = useMemo(() => new Set(caravans.filter((c) => c.in_possession).map((c) => c.id)), [caravans]);
   const assignMutation = useAssignExternalCaravans();
 
 
   const [selectedSupplierId, setSelectedSupplierId] = useState<number | ''>('');
-  const [selectedBatchId, setSelectedBatchId] = useState<number | ''>('');
+  // Coming from an entry order ("Asignar a lote propio") opens on its batch.
+  const [searchParams] = useSearchParams();
+  const [selectedBatchId, setSelectedBatchId] = useState<number | ''>(() => Number(searchParams.get('batchId')) || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCaravanIds, setSelectedCaravanIds] = useState<number[]>([]);
   const [targetOwnBatchId, setTargetOwnBatchId] = useState<number | ''>('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'flat' | 'hierarchy'>('flat');
 
   const handleCreateBatchSuccess = async (createdBatch: any) => {
@@ -118,7 +149,7 @@ export default function ExternalBatchAssignmentView() {
 
   // 1. Lotes Propios de la Empresa (Destinos válidos)
   const ownBatches = useMemo(() => {
-    return batches.filter(b => b.provider_id === null || b.provider_id === undefined);
+    return batches.filter(b => (b.provider_id === null || b.provider_id === undefined) && b.is_active);
   }, [batches]);
 
   // 2. Lotes Externos (de Proveedor) filtrados
@@ -162,13 +193,16 @@ export default function ExternalBatchAssignmentView() {
     return rows;
   }, [externalBatches, caravans, searchTerm, selectedBatchId]);
 
+  // Counted over what is listed, so a filtered batch tells its own caravans in transit.
+  const inTransitCount = useMemo(() => flatExternalCaravans.filter((r) => r.caravan.in_transit).length, [flatExternalCaravans]);
+
   // 4. Filas paginadas
   const paginatedRows = useMemo(() => {
     const start = page * rowsPerPage;
     return flatExternalCaravans.slice(start, start + rowsPerPage);
   }, [flatExternalCaravans, page, rowsPerPage]);
 
-  const pageIds = useMemo(() => paginatedRows.map(r => r.caravan.id), [paginatedRows]);
+  const pageIds = useMemo(() => paginatedRows.map(r => r.caravan.id).filter(id => selectable.has(id)), [paginatedRows, selectable]);
 
   // 5. Estructura jerárquica Proveedor → Lotes → Caravanas
   const hierarchy = useMemo(() => {
@@ -224,14 +258,15 @@ export default function ExternalBatchAssignmentView() {
 
   // Total de caravanas externas elegibles
   const allEligibleCaravanIds = useMemo(() => {
-    return flatExternalCaravans.map(r => r.caravan.id);
-  }, [flatExternalCaravans]);
+    return flatExternalCaravans.map(r => r.caravan.id).filter(id => selectable.has(id));
+  }, [flatExternalCaravans, selectable]);
 
   const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedCaravanIds.includes(id));
   const somePageSelected = pageIds.some(id => selectedCaravanIds.includes(id)) && !allPageSelected;
 
   // Toggle individual
   const handleToggleCaravan = (id: number) => {
+    if (!selectable.has(id)) return;
     setSelectedCaravanIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
@@ -294,6 +329,8 @@ export default function ExternalBatchAssignmentView() {
     }
   };
 
+  const targetOwnBatch = ownBatches.find((b) => b.id === targetOwnBatchId);
+
   const isLoading = isLoadingSuppliers || isLoadingBatches || isLoadingCaravans;
 
   return (
@@ -305,6 +342,12 @@ export default function ExternalBatchAssignmentView() {
         {successMessage && (
           <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
             {successMessage}
+          </Alert>
+        )}
+        {inTransitCount > 0 && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            {inTransitCount === 1 ? 'Hay 1 caravana en tránsito' : `Hay ${inTransitCount} caravanas en tránsito`}: ya son tuyas por el DTE, pero
+            todavía no se recibieron. Se muestran en su lote sin poder seleccionarse; se habilitan cuando se reciben desde su orden de ingreso.
           </Alert>
         )}
 
@@ -552,46 +595,11 @@ export default function ExternalBatchAssignmentView() {
             </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <FormControl size="small" sx={{ minWidth: 260 }}>
-                <InputLabel>Lote Propio Destino</InputLabel>
-                <Select
-                  value={targetOwnBatchId}
-                  label="Lote Propio Destino"
-                  onChange={e => setTargetOwnBatchId(e.target.value as number | '')}
-                >
-                  <MenuItem value="">-- Seleccionar Lote Propio --</MenuItem>
-                  {ownBatches.map(b => (
-                    <MenuItem key={b.id} value={b.id}>
-                      {b.name} (Finca: {b.farm_name || 'Propia'})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <Tooltip title="Alta Rápida de Lote (Propio)">
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="small"
-                  onClick={() => setIsCreateBatchOpen(true)}
-                  startIcon={<FuseSvgIcon size={16}>heroicons-outline:folder-plus</FuseSvgIcon>}
-                  sx={{
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    px: 1.25,
-                    whiteSpace: 'nowrap',
-                    height: 30,
-                  }}
-                >
-                  Crear Lote
-                </Button>
-              </Tooltip>
-
               <Button
                 variant="contained"
                 size="small"
-                disabled={targetOwnBatchId === '' || assignMutation.isPending}
-                onClick={() => setIsConfirmOpen(true)}
+                disabled={assignMutation.isPending}
+                onClick={() => setIsPickerOpen(true)}
                 startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-right-start-on-rectangle</FuseSvgIcon>}
                 sx={{
                   fontWeight: 700,
@@ -601,7 +609,7 @@ export default function ExternalBatchAssignmentView() {
                   height: 30,
                 }}
               >
-                {assignMutation.isPending ? 'Transfiriendo...' : 'Transferir'}
+                {assignMutation.isPending ? 'Transfiriendo...' : 'Transferir a lote propio…'}
               </Button>
 
               <Tooltip title="Limpiar Selección">
@@ -706,7 +714,7 @@ export default function ExternalBatchAssignmentView() {
                   {/* Lotes del Proveedor */}
                   <Stack spacing={0}>
                   {group.batches.map(({ batch, caravans: bCaravans }) => {
-                    const batchIds = bCaravans.map(c => c.id);
+                    const batchIds = bCaravans.map(c => c.id).filter(id => selectable.has(id));
                     const selectedCountInBatch = batchIds.filter(id => selectedCaravanIds.includes(id)).length;
 
                     return (
@@ -795,6 +803,7 @@ export default function ExternalBatchAssignmentView() {
                             <TableBody>
                               {bCaravans.map((caravan, index) => {
                                 const isSelected = selectedCaravanIds.includes(caravan.id);
+                                const canSelect = selectable.has(caravan.id);
                                 const rowBg = isSelected
                                   ? (isDark ? 'rgba(99, 102, 241, 0.22)' : '#e0e7ff')
                                   : index % 2 === 1
@@ -805,10 +814,10 @@ export default function ExternalBatchAssignmentView() {
                                     key={caravan.id}
                                     hover
                                     onClick={() => handleToggleCaravan(caravan.id)}
-                                    sx={{ cursor: 'pointer', bgcolor: rowBg, transition: 'background-color 0.15s ease' }}
+                                    sx={{ cursor: canSelect ? 'pointer' : 'default', bgcolor: rowBg, opacity: canSelect ? 1 : 0.6, transition: 'background-color 0.15s ease' }}
                                   >
                                     <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', p: 0.5 }}>
-                                      <Checkbox checked={isSelected} size="small" sx={{ p: 0.5 }} />
+                                      <SelectCell canSelect={canSelect} checked={isSelected} inTransit={caravan.in_transit} />
                                     </TableCell>
                                     <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 600 }}>
                                       {index + 1}
@@ -845,7 +854,7 @@ export default function ExternalBatchAssignmentView() {
                                     <TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>{caravan.entry_weight ? `${caravan.entry_weight} kg` : '-'}</TableCell>
                                     <TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>{caravan.renspa || 'NO_DEFINIDO'}</TableCell>
                                     <TableCell sx={{ ...bodyCellStyle, borderRight: 0 }}>
-                                      <Chip size="small" label="En Lote Externo" color="warning" variant="outlined" />
+                                      <PossessionChip inTransit={caravan.in_transit} inPossession={caravan.in_possession} />
                                     </TableCell>
                                   </TableRow>
                                 );
@@ -921,6 +930,7 @@ export default function ExternalBatchAssignmentView() {
                 <TableBody>
                   {paginatedRows.map(({ caravan, batch }, index) => {
                     const isSelected = selectedCaravanIds.includes(caravan.id);
+                    const canSelect = selectable.has(caravan.id);
                     const rowBg = isSelected
                       ? (isDark ? 'rgba(99, 102, 241, 0.22)' : '#e0e7ff')
                       : index % 2 === 1
@@ -932,13 +942,14 @@ export default function ExternalBatchAssignmentView() {
                         hover
                         onClick={() => handleToggleCaravan(caravan.id)}
                         sx={{
-                          cursor: 'pointer',
+                          cursor: canSelect ? 'pointer' : 'default',
                           bgcolor: rowBg,
+                          opacity: canSelect ? 1 : 0.6,
                           transition: 'background-color 0.15s ease',
                         }}
                       >
                         <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', p: 0.5 }}>
-                          <Checkbox checked={isSelected} size="small" sx={{ p: 0.5 }} />
+                          <SelectCell canSelect={canSelect} checked={isSelected} inTransit={caravan.in_transit} />
                         </TableCell>
                         <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 600 }}>
                           {page * rowsPerPage + index + 1}
@@ -985,7 +996,7 @@ export default function ExternalBatchAssignmentView() {
                         </TableCell>
                         <TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>{caravan.renspa || 'NO_DEFINIDO'}</TableCell>
                         <TableCell sx={{ ...bodyCellStyle, borderRight: 0 }}>
-                          <Chip size="small" label="En Lote Externo" color="warning" variant="outlined" />
+                          <PossessionChip inTransit={caravan.in_transit} inPossession={caravan.in_possession} />
                         </TableCell>
                       </TableRow>
                     );
@@ -1036,7 +1047,9 @@ export default function ExternalBatchAssignmentView() {
           <DialogTitle sx={{ fontWeight: 700 }}>Confirmar Asignación a Lote Propio</DialogTitle>
           <DialogContent dividers>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              ¿Confirma la transferencia de <strong>{selectedCaravanIds.length} caravanas</strong> hacia el lote propio seleccionado?
+              ¿Confirma la transferencia de <strong>{selectedCaravanIds.length === 1 ? '1 caravana' : `${selectedCaravanIds.length} caravanas`}</strong> al lote propio{' '}
+              <strong>{targetOwnBatch?.name}</strong>
+              {targetOwnBatch ? ` (${[targetOwnBatch.activity_name, targetOwnBatch.batch_type_name, targetOwnBatch.farm_name].filter(Boolean).join(' · ')})` : ''}?
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block">
               &bull; Las caravanas saldrán del lote externo y pasarán a ser operativas en el lote propio.
@@ -1059,6 +1072,23 @@ export default function ExternalBatchAssignmentView() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <OwnBatchPickerDialog
+          open={isPickerOpen}
+          batches={ownBatches}
+          selectedId={targetOwnBatchId}
+          caravanCount={selectedCaravanIds.length}
+          onClose={() => setIsPickerOpen(false)}
+          onPick={(batch) => {
+            setTargetOwnBatchId(batch.id);
+            setIsPickerOpen(false);
+            setIsConfirmOpen(true);
+          }}
+          onCreate={() => {
+            setIsPickerOpen(false);
+            setIsCreateBatchOpen(true);
+          }}
+        />
 
         {/* Modal de Alta Rápida de Lote */}
         <CreateBatchDialog

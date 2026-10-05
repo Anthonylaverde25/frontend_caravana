@@ -511,16 +511,31 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 															{batch.batch_type_name || '-'}
 														</TableCell>
 														<TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>
-															{batch.entry_order
-																? `${batch.entry_order.entered_count} / ${batch.entry_order.head_count}`
-																: (batch.caravans_count ?? '-')}
+															{batch.entry_order ? (
+																// Received over bought; the ones in transit are not stock yet.
+																<Tooltip
+																	title={
+																		batch.entry_order.in_transit_count > 0
+																			? `${batch.entry_order.in_transit_count} en tránsito`
+																			: 'Recibidas / compradas'
+																	}
+																>
+																	<span>
+																		{`${batch.entry_order.received_count} / ${batch.entry_order.head_count}`}
+																		{batch.entry_order.in_transit_count > 0 &&
+																			` (+${batch.entry_order.in_transit_count} en tránsito)`}
+																	</span>
+																</Tooltip>
+															) : (
+																(batch.caravans_count ?? '-')
+															)}
 														</TableCell>
 														<TableCell sx={{ ...bodyCellStyle, textAlign: 'center' }}>
 															{batch.entry_order ? (
 																// A batch of a purchase is "waiting for its DTE", not "empty".
 																<Tooltip title={`Orden ${batch.entry_order.code}`}>
 																	<Box sx={{ display: 'inline-flex' }}>
-																		<EntryOrderStatusChip status={batch.entry_order.status} />
+																		<EntryOrderStatusChip status={batch.entry_order.status} progress={batch.entry_order} />
 																	</Box>
 																</Tooltip>
 															) : (
@@ -571,8 +586,19 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 																		</IconButton>
 																	</Tooltip>
 																)}
+																{batch.entry_order && batch.entry_order.in_transit_count > 0 && (
+																	<Tooltip title="Recibir hacienda">
+																		<IconButton
+																			size="small"
+																			onClick={() => navigate(`/entry-orders?orderId=${batch.entry_order?.id}`)}
+																			sx={{ color: 'warning.main' }}
+																		>
+																			<FuseSvgIcon size={18}>heroicons-outline:inbox-arrow-down</FuseSvgIcon>
+																		</IconButton>
+																	</Tooltip>
+																)}
 																{batch.entry_order &&
-																	['AWAITING_DTE', 'PARTIAL'].includes(batch.entry_order.status) && (
+																	batch.entry_order.status === 'AWAITING_DTE' && (
 																		<Tooltip title="Cargar DTE">
 																			<IconButton
 																				size="small"

@@ -5,13 +5,15 @@ import { Box, Button, Dialog, DialogActions, DialogContent, IconButton, Stack, T
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { toast } from 'sonner';
 import { useCreateEntryOrder, useUpdateEntryOrderDraft } from '@/features/entry-orders/hooks/useEntryOrderMutations';
-import { EntryOrder, EntryOrderResult, entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
+import { EntryOrder, EntryOrderResult, StoreEntryOrderPayload, entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
 import {
   ExternalBatchFormInput,
   ExternalBatchFormValues,
+  draftErrorsOf,
   emptyExternalBatchForm,
   externalBatchSchema,
   formFromOrder,
+  toDraftPayload,
   toEntryOrderPayload
 } from './externalBatchSchema';
 import { ExternalBatchForm, ExternalFormSection, filledSx } from './externalFormParts';
@@ -61,7 +63,7 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
     resolver: zodResolver(externalBatchSchema),
     defaultValues: emptyExternalBatchForm()
   }) as ExternalBatchForm;
-  const { register, handleSubmit, reset, setError, formState } = form;
+  const { register, handleSubmit, reset, setError, clearErrors, formState } = form;
   const isPending = create.isPending || update.isPending;
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +97,19 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
   const revealFirstError = () =>
     requestAnimationFrame(() => contentRef.current?.querySelector('.Mui-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 
+  const send = (payload: StoreEntryOrderPayload) => {
+    const handlers = {
+      onSuccess: (result: EntryOrderResult) => {
+        onSaved?.(result);
+        onClose();
+      },
+      onError: showServerError
+    };
+
+    if (draft) update.mutate({ id: draft.id, payload }, handlers);
+    else create.mutate(payload, handlers);
+  };
+
   const save = (confirm: boolean) =>
     handleSubmit((values) => {
       if (mode === 'register') {
@@ -102,20 +117,26 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
         return;
       }
 
-      const payload = { ...toEntryOrderPayload(values), confirm };
-      const handlers = {
-        onSuccess: (result: EntryOrderResult) => {
-          onSaved?.(result);
-          onClose();
-        },
-        onError: showServerError
-      };
-
-      if (draft) update.mutate({ id: draft.id, payload }, handlers);
-      else create.mutate(payload, handlers);
+      send({ ...toEntryOrderPayload(values), confirm });
     }, revealFirstError);
 
-  const title = draft ? `Borrador ${draft.code}` : mode === 'register' ? 'Registrar ingreso de hacienda externa' : 'Alta de lote externo';
+  // A draft is kept with whatever is filled in: only the origin is required.
+  const saveDraft = () => {
+    const input = form.getValues();
+    const errors = Object.entries(draftErrorsOf(input));
+
+    clearErrors();
+
+    if (errors.length > 0) {
+      errors.forEach(([field, message]) => setError(field as keyof ExternalBatchFormInput, { message }));
+      revealFirstError();
+      return;
+    }
+
+    send({ ...toDraftPayload(input), confirm: false });
+  };
+
+  const title = draft ? `Borrador ${draft.code}` : mode === 'register' ? 'Registrar ingreso de hacienda externa' : 'Nueva orden de ingreso';
 
   const dteNote =
     mode === 'register'
@@ -198,7 +219,7 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
         </Button>
         {mode === 'order' && (
           <Button
-            onClick={save(false)}
+            onClick={saveDraft}
             disabled={isPending}
             variant="outlined"
             sx={{ fontWeight: 600, borderRadius: '6px', textTransform: 'none' }}

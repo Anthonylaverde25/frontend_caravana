@@ -6,6 +6,7 @@ import ViewLayout from '@/components/ViewLayout';
 import { useEntryOrders } from '@/features/entry-orders/hooks/useEntryOrders';
 import type { EntryOrderSummary } from '@/features/entry-orders/types';
 import EntryOrdersStatusFilter, { EntryOrderStatusFilterValue } from '../components/EntryOrdersStatusFilter';
+import { isDiscardedDraft } from '../components/EntryOrderStatusChip';
 import EntryOrdersTable from '../components/EntryOrdersTable';
 import EntryOrderDetailDrawer from '../components/EntryOrderDetailDrawer';
 import EntryStartActions from '../components/EntryStartActions';
@@ -14,7 +15,7 @@ import { breedsOf, normalize, originOf } from '../components/entryOrderFormat';
 
 const searchableOf = (order: EntryOrderSummary): string[] => [
   order.code,
-  order.batch_name,
+  order.batch_name ?? '',
   originOf(order),
   order.auction_number ?? '',
   breedsOf(order),
@@ -44,13 +45,24 @@ export const EntryOrdersView: React.FC = () => {
   };
 
   const counts = useMemo(() => {
-    const result = { ALL: orders.length, DRAFT: 0, AWAITING_DTE: 0, PARTIAL: 0, COMPLETED: 0, CLOSED_INCOMPLETE: 0, CANCELLED: 0 };
+    const result: Record<EntryOrderStatusFilterValue, number> = {
+      ALL: orders.length,
+      DRAFT: 0,
+      AWAITING_DTE: 0,
+      IN_TRANSIT: 0,
+      COMPLETED: 0,
+      CLOSED_INCOMPLETE: 0,
+      CANCELLED: 0,
+      WITH_INCIDENTS: 0
+    };
 
     orders.forEach((order) => {
       result[order.status] += 1;
+      if (order.open_incidents_count > 0) result.WITH_INCIDENTS += 1;
+      if (isDiscardedDraft(order.status, order)) result.ALL -= 1;
     });
 
-    return result as Record<EntryOrderStatusFilterValue, number>;
+    return result;
   }, [orders]);
 
   const visible = useMemo(() => {
@@ -58,7 +70,10 @@ export const EntryOrdersView: React.FC = () => {
 
     return orders.filter(
       (order) =>
-        (status === 'ALL' || order.status === status) &&
+        // Discarded drafts are not purchases: they only show under "Anulada".
+        ((status === 'ALL' && !isDiscardedDraft(order.status, order)) ||
+          order.status === status ||
+          (status === 'WITH_INCIDENTS' && order.open_incidents_count > 0)) &&
         (term === '' || searchableOf(order).some((text) => normalize(text).includes(term)))
     );
   }, [orders, status, search]);
@@ -66,8 +81,8 @@ export const EntryOrdersView: React.FC = () => {
   return (
     <ViewLayout
       title="Órdenes de Ingreso"
-      subtitle="Compras de hacienda externa (ING-02): la orden nace sin caravanas y espera su DTE."
-      actions={<EntryStartActions newLabel="Nueva orden de ingreso" onSaved={(result) => setOpened(result.order.id)} />}
+      subtitle="Compras de hacienda externa (ING-02): la orden nace sin caravanas, espera su DTE y después la hacienda."
+      actions={<EntryStartActions onSaved={(result) => setOpened(result.order.id)} />}
     >
       <Stack spacing={2}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between">

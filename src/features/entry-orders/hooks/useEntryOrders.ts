@@ -16,7 +16,7 @@ export function useEntryOrders() {
   });
 }
 
-/** One order in full: the caravans of each DTE and the history. */
+/** One order in full: the caravans of each DTE, the incidents and the history. */
 export function useEntryOrder(id: number | null) {
   const { activeCompanyId } = useCompany();
 

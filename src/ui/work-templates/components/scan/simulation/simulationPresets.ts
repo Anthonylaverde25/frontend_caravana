@@ -2,6 +2,7 @@ import { CACT01_SHEET_CASES } from './cact01SheetCasePresets';
 import { DEST01_SHEET_CASES } from './dest01SheetCasePresets';
 import { PAR01_SHEET_CASES, PAR01_WHOLE_ORDER } from './par01SheetCasePresets';
 import { ING02_PRESETS } from './ing02SheetCasePresets';
+import { ING03_SHEET_CASES } from './ing03SheetCasePresets';
 import { SimulationPreset, SimulationScenario, SimulationTemplateInfo } from './types';
 
 export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
@@ -22,6 +23,15 @@ export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
     color: '#0d9488',
     description: 'Documento de una compra de hacienda externa: proveedor, establecimiento, subasta, cabezas, categoría, sexo, razas, pesos, estado, edad, sabe comer, garrapata y desbaste. Crea la orden en espera de DTE.',
     availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'REPAIR_ERROR'],
+  },
+  {
+    code: 'ING-03',
+    title: 'Recepción de DTE (anexo de ING-02)',
+    category: 'ENTRY',
+    categoryLabel: 'Ingreso Ganadero',
+    color: '#0f766e',
+    description: 'Hoja de recepción de un DTE: las caravanas en tránsito marcadas en la manga (llegó / no llega / peso) y animales que llegan sin figurar en el DTE. Se resuelve contra la orden y registra la recepción.',
+    availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'REPAIR_ERROR', 'SHEET_CASES'],
   },
   {
     code: 'TOR-01',
@@ -841,6 +851,13 @@ export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenari
   // Simulated readings of a hand-filled ING-02 (no AI): see ing02SheetCasePresets.
   'ING-02': ING02_PRESETS,
 
+  // Built from the ING-03 test sheets, so the scenario buttons and the sheet list show the same data.
+  'ING-03': {
+    HAPPY_PATH: { ...ING03_SHEET_CASES[2], scenario: 'HAPPY_PATH' },
+    WARNINGS: { ...ING03_SHEET_CASES[0], scenario: 'WARNINGS' },
+    REPAIR_ERROR: { ...ING03_SHEET_CASES[1], scenario: 'REPAIR_ERROR' },
+  },
+
   // Built from the PAR-01 test sheets, so the scenario buttons and the sheet list show the same data.
   'PAR-01': {
     HAPPY_PATH: { ...PAR01_SHEET_CASES[1], scenario: 'HAPPY_PATH' },
@@ -978,6 +995,7 @@ export const SIMULATION_SHEET_CASES: Record<string, SimulationPreset[]> = {
   'CACT-01': CACT01_SHEET_CASES,
   'DEST-01': DEST01_SHEET_CASES,
   'PAR-01': PAR01_SHEET_CASES,
+  'ING-03': ING03_SHEET_CASES,
 };
 
 export function getSimulationSheetCases(templateCode: string): SimulationPreset[] {

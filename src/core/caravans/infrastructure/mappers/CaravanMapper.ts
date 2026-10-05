@@ -30,6 +30,8 @@ export class CaravanMapper {
       provider_name: raw.provider_name ?? null,
       provenance: raw.provenance ?? null,
       is_operational: raw.is_operational != null ? Boolean(raw.is_operational) : true,
+      in_transit: Boolean(raw.in_transit),
+      in_possession: raw.in_possession != null ? Boolean(raw.in_possession) : true,
       farm_name: raw.farm_name ?? raw.batch?.farm?.name ?? null,
       batch_id: raw.batch?.id != null ? Number(raw.batch.id) : (raw.batch_id != null ? Number(raw.batch_id) : null),
       batch: raw.batch ? {
@@ -103,6 +105,8 @@ export class CaravanMapper {
       active_gestation: entity.active_gestation,
       lineage: entity.lineage,
       physiological_state: entity.physiological_state,
+      in_transit: entity.in_transit,
+      in_possession: entity.in_possession,
     };
   }
 }

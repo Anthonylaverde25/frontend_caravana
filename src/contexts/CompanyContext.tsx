@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { setGlobalHeaders, removeGlobalHeaders } from '@/utils/axios';
 import useUser from '@auth/useUser';
 
-interface Company {
+export interface Company {
   id: number;
   name: string;
   renspa?: string;

@@ -1,15 +1,61 @@
 import React from 'react';
 import { Box, Stack, Typography } from '@mui/material';
-import { ENTRY_ORDER_STATUS_LABELS, EntryOrderHistoryEntry } from '@/features/entry-orders/types';
+import { ENTRY_ORDER_INCIDENT_LABELS, ENTRY_ORDER_STATUS_LABELS, EntryOrderHistoryEntry } from '@/features/entry-orders/types';
 import { useEntryOrderStatusColor } from '../EntryOrderStatusChip';
 import { formatDateTime } from '../entryOrderFormat';
 
 const describe = (entry: EntryOrderHistoryEntry): string => {
   const to = ENTRY_ORDER_STATUS_LABELS[entry.to_status];
-  const meta = entry.metadata as { dte_number?: string; head_count?: number; pending?: number; action?: string } | null;
+  const meta = entry.metadata as {
+    dte_number?: string | null;
+    head_count?: number;
+    pending_dte?: number;
+    action?: string;
+    reception?: boolean;
+    method?: 'CHUTE' | 'MANUAL' | 'SHEET';
+    received?: number;
+    missing?: number;
+    unlisted?: number;
+    receipt_sheet?: string | null;
+    pages?: number[] | null;
+    caravans?: number;
+    weighing_mode_label?: string;
+    incident_resolved?: string;
+  } | null;
+
+  if (meta?.action === 'receipt_sheet_issued') {
+    const weighing = meta.weighing_mode_label ? ` · ${meta.weighing_mode_label.toLowerCase()}` : '';
+
+    return `Hoja de recepción ${meta.receipt_sheet} emitida: DTE ${meta.dte_number}, ${meta.caravans ?? 0} caravana(s) en tránsito${weighing}`;
+  }
+
+  if (meta?.action === 'receipt_sheet_weighing_changed') {
+    return `Hoja de recepción ${meta.receipt_sheet}: ahora con ${meta.weighing_mode_label?.toLowerCase() ?? 'otro modo de peso'}`;
+  }
+
+  // A reception also names its DTE, so it is recognised first.
+  if (meta?.reception) {
+    const pages = meta.pages?.length ? ` (hoja${meta.pages.length > 1 ? 's' : ''} ${meta.pages.join(', ')})` : '';
+    const where =
+      meta.method === 'SHEET'
+        ? `con la planilla ${meta.receipt_sheet ?? 'ING-03'}${pages}`
+        : meta.method === 'CHUTE'
+          ? 'en manga'
+          : meta.dte_number
+            ? `del DTE ${meta.dte_number}`
+            : 'a mano';
+    const missing = meta.missing ? ` · ${meta.missing} no llegarán` : '';
+    const unlisted = meta.unlisted ? ` · ${meta.unlisted} sin DTE` : '';
+
+    return `Recepción ${where}: ${meta.received ?? 0} recibida(s)${missing}${unlisted} → ${to}`;
+  }
+
+  if (meta?.incident_resolved) {
+    return `Novedad resuelta (${ENTRY_ORDER_INCIDENT_LABELS[meta.incident_resolved as keyof typeof ENTRY_ORDER_INCIDENT_LABELS] ?? meta.incident_resolved})`;
+  }
 
   if (meta?.dte_number) {
-    const pending = meta.pending ? `, faltan ${meta.pending}` : '';
+    const pending = meta.pending_dte ? `, ${meta.pending_dte} siguen esperando DTE` : '';
 
     return `DTE ${meta.dte_number}: ${meta.head_count ?? 0} cabeza(s)${pending} → ${to}`;
   }
@@ -21,7 +67,7 @@ const describe = (entry: EntryOrderHistoryEntry): string => {
   return entry.from_status === entry.to_status ? to : `${ENTRY_ORDER_STATUS_LABELS[entry.from_status]} → ${to}`;
 };
 
-/** What happened to the order, oldest first: the purchase, each DTE and how it ended. */
+/** What happened to the order, oldest first: the purchase, each DTE, each reception, the incidents resolved and how it ended. */
 export const EntryOrderHistoryTimeline: React.FC<{ history: EntryOrderHistoryEntry[] }> = ({ history }) => {
   const colors = useEntryOrderStatusColor();
 

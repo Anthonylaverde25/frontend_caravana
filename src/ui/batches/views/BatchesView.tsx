@@ -55,7 +55,7 @@ function BatchesView() {
 						>
 							Órdenes de ingreso
 						</Button>
-						<EntryStartActions newLabel="Nuevo lote externo" />
+						<EntryStartActions />
 					</Stack>
 				) : (
 					<Stack

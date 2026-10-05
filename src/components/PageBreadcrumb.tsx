@@ -36,7 +36,10 @@ function getNavigationItem(url: string, navigationItems: FuseNavItemType[]): Fus
  * does not fall back to the raw (English) URL segment.
  */
 const ROUTE_TITLES: Record<string, string> = {
-  '/transfer-orders/register': 'Registrar transferencia'
+  '/transfer-orders/register': 'Registrar transferencia',
+  '/entry-orders/register': 'Registrar ingreso',
+  '/entry-orders/register/confirm': 'DTE',
+  '/batches': 'Lotes'
 };
 
 export function PageBreadcrumb(props: PageBreadcrumbProps) {

@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
-import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, IconButton, Stack, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, IconButton, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { toast } from 'sonner';
 import { useEntryOrder } from '@/features/entry-orders/hooks/useEntryOrders';
 import { useLoadEntryOrderDte } from '@/features/entry-orders/hooks/useEntryOrderMutations';
 import { entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
-import EntryTroopSummaryCard from '../EntryTroopSummaryCard';
-import { troopItemsOf } from '../troopItems';
+import DiscardChangesDialog from '../DiscardChangesDialog';
+import { breedsOf, originOf, troopOf } from '../entryOrderFormat';
 import DteEntryForm from './DteEntryForm';
 import { troopContextOf } from './troopContext';
 import { useDteDraft } from './useDteDraft';
@@ -17,14 +17,25 @@ interface LoadDteDialogProps {
 }
 
 /**
- * "Cargar DTE": the document of an order waiting for it arrived. The troop is shown read-only —
- * it was declared when the purchase was confirmed — and only the DTE and its caravans are asked.
- * Every rejected cell comes back marked; nothing is written until all of them are fixed.
+ * "Cargar DTE": the document of an order waiting for it, usually downloaded before the animals
+ * travel. The troop was declared when the purchase was confirmed, so it is only recalled in one
+ * line; the DTE and its caravans are all that is asked. The caravans exist from now on, in transit
+ * until received. What is missing is marked when "Cargar DTE" is pressed, never by a silently
+ * disabled button; what the server rejects comes back marked on its cell.
  */
 export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }) => {
   const { data: order, isLoading } = useEntryOrder(orderId);
   const load = useLoadEntryOrderDte();
   const draft = useDteDraft();
+  const [confirmingClose, setConfirmingClose] = useState(false);
+  const isDirty = draft.counts.total > 0 || draft.dteNumber.trim() !== '' || draft.observations.trim() !== '';
+
+  /** Escape, a click outside, the X and "Cancelar" all ask first when something was typed. */
+  const requestClose = () => {
+    if (load.isPending) return;
+    if (isDirty) setConfirmingClose(true);
+    else onClose();
+  };
 
   useEffect(() => {
     if (orderId != null) draft.reset();
@@ -32,10 +43,8 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
   }, [orderId]);
 
   const submit = () => {
-    if (!order) return;
+    if (!order || !draft.validate()) return;
 
-    draft.setHeaderErrors([]);
-    draft.setRowErrors([]);
     load.mutate(
       { id: order.id, payload: draft.payload() },
       {
@@ -52,52 +61,80 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
   };
 
   return (
-    <Dialog open={orderId != null} onClose={load.isPending ? undefined : onClose} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: '8px', boxShadow: 1 } }}>
+    <Dialog
+      open={orderId != null}
+      onClose={requestClose}
+      fullWidth
+      maxWidth="md"
+      PaperProps={{ sx: { borderRadius: '8px', boxShadow: 1, bgcolor: 'background.paper' } }}
+    >
       <Box sx={{ p: 2, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
-        <Box>
-          <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-            Cargar DTE {order ? `· ${order.code}` : ''}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: 'text.primary' }}>
+            Cargar DTE
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Las caravanas del documento entran al lote {order?.batch_name ?? ''} con lo que la orden ya declaró.
-          </Typography>
+          {order && (
+            <Typography variant="caption" color="text.secondary">
+              {order.code} · Lote {order.batch_name} · {order.with_dte_count} de {order.head_count} cabezas con DTE
+            </Typography>
+          )}
         </Box>
-        <IconButton onClick={onClose} size="small" disabled={load.isPending} sx={{ color: 'primary.main' }}>
+        <IconButton onClick={requestClose} size="small" disabled={load.isPending} sx={{ color: 'primary.main' }}>
           <FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon>
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ p: 3 }}>
+      <DialogContent sx={{ p: 3, bgcolor: 'background.paper' }}>
         {isLoading || !order ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress size={28} />
           </Box>
         ) : (
-          <Stack spacing={3}>
-            <EntryTroopSummaryCard
-              title={`${order.batch_name} · ${order.entered_count} de ${order.head_count} cabezas ingresadas`}
-              subtitle={order.dte_count > 0 ? `DTE ya cargados: ${order.dtes.map((d) => d.dte_number).join(', ')}` : 'Todavía no se cargó ningún DTE.'}
-              items={troopItemsOf(order)}
-            />
+          <Stack spacing={2.5}>
+            <Alert severity="info" icon={<FuseSvgIcon size={18}>heroicons-outline:truck</FuseSvgIcon>} sx={{ borderRadius: '6px', py: 0.25 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {troopOf(order)} · {breedsOf(order)}
+              </Typography>
+              <Typography variant="caption" sx={{ display: 'block' }}>
+                {originOf(order)}
+                {order.dte_count > 0 ? ` · Ya cargados: ${order.dtes.map((d) => d.dte_number).join(', ')}` : ''}. Las caravanas quedan en tránsito
+                hasta que se reciban.
+              </Typography>
+            </Alert>
             <DteEntryForm draft={draft} troop={troopContextOf(order)} />
           </Stack>
         )}
       </DialogContent>
 
       <DialogActions sx={{ p: 2, px: 3, bgcolor: 'background.default', borderTop: 1, borderColor: 'divider', gap: 1.5 }}>
-        <Button onClick={onClose} disabled={load.isPending} sx={{ fontWeight: 600, textTransform: 'none' }}>
+        <Button onClick={requestClose} disabled={load.isPending} variant="text" sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}>
           Cancelar
         </Button>
         <Button
           variant="contained"
           disableElevation
-          disabled={!order || load.isPending || draft.rows.length === 0 || draft.dteNumber.trim() === ''}
+          disabled={!order || load.isPending}
           onClick={submit}
-          sx={{ px: 3, fontWeight: 700, borderRadius: '6px', textTransform: 'none' }}
+          startIcon={load.isPending ? <CircularProgress size={14} color="inherit" /> : undefined}
+          sx={{ px: 4, fontWeight: 700, borderRadius: '6px', textTransform: 'none' }}
         >
-          {load.isPending ? 'Cargando…' : `Cargar DTE (${draft.rows.length})`}
+          {load.isPending ? 'Cargando…' : draft.counts.total > 0 ? `Cargar DTE (${draft.counts.total})` : 'Cargar DTE'}
         </Button>
       </DialogActions>
+
+      <DiscardChangesDialog
+        open={confirmingClose}
+        detail={
+          draft.counts.total > 0
+            ? `Se pierden ${draft.counts.total === 1 ? 'la caravana cargada' : `las ${draft.counts.total} caravanas cargadas`} y los datos del DTE.`
+            : 'Se pierden los datos del DTE.'
+        }
+        onKeep={() => setConfirmingClose(false)}
+        onDiscard={() => {
+          setConfirmingClose(false);
+          onClose();
+        }}
+      />
     </Dialog>
   );
 };

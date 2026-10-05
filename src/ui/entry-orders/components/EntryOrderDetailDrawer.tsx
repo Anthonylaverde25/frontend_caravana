@@ -6,13 +6,19 @@ import { useEntryOrder } from '@/features/entry-orders/hooks/useEntryOrders';
 import { useCancelEntryOrder, useCloseIncompleteEntryOrder, useConfirmEntryOrder } from '@/features/entry-orders/hooks/useEntryOrderMutations';
 import TransferOrderReasonDialog from '@/ui/transfer-orders/components/TransferOrderReasonDialog';
 import CreateExternalBatchDialog from '@/ui/batches/components/external/CreateExternalBatchDialog';
+import type { EntryOrderDte, EntryOrderIncident, EntryOrderSummary } from '@/features/entry-orders/types';
 import EntryOrderStatusChip from './EntryOrderStatusChip';
 import EntryTroopSummaryCard from './EntryTroopSummaryCard';
 import EntryOrderDteList from './detail/EntryOrderDteList';
 import EntryOrderHistoryTimeline from './detail/EntryOrderHistoryTimeline';
+import EntryOrderIncidentList from './detail/EntryOrderIncidentList';
+import EntryOrderReceiptSheetList from './detail/EntryOrderReceiptSheetList';
 import LoadDteDialog from './dte/LoadDteDialog';
+import ReceiveDteDialog from './reception/ReceiveDteDialog';
+import ResolveIncidentDialog from './reception/ResolveIncidentDialog';
 import { troopItemsOf } from './troopItems';
-import { sheetUrl } from './entryOrderFormat';
+import { useReceiptSheetPrint } from './useReceiptSheetPrint';
+import { caravansOf, isTroopComplete, sheetUrl, tracksReception } from './entryOrderFormat';
 
 interface EntryOrderDetailDrawerProps {
   orderId: number | null;
@@ -24,19 +30,37 @@ type ClosingAction = 'cancel' | 'close' | null;
 const actionSx = { textTransform: 'none', fontWeight: 600, borderRadius: '6px' } as const;
 
 /**
- * One entry order in full — the troop, its DTEs and the history — and what can still be done with
- * it: a draft is edited and confirmed, an order waiting for its DTE gets it loaded, cancelling is
- * offered while no caravan entered, closing incomplete once some did.
+ * One entry order in full — the troop, its DTEs with their receptions, the incidents and the
+ * history — and what can still be done with it: a draft is edited and confirmed, an order waiting
+ * for documents gets a DTE loaded, a DTE with caravans in transit is received, an incident is
+ * resolved. Cancelling is offered while no DTE was loaded; closing incomplete once one was.
  */
+const countsOf = (order: EntryOrderSummary) =>
+  !tracksReception(order) ? (order.head_count != null ? `${order.head_count} cabezas` : 'Tropa sin completar') : [
+    order.with_dte_count > order.head_count ? `${order.head_count} compradas · ${order.with_dte_count} con DTE` : `${order.with_dte_count} de ${order.head_count} con DTE`,
+    order.in_transit_count > 0 ? `${order.in_transit_count} en tránsito` : null,
+    `${order.received_count} recibidas`,
+    order.missing_count > 0 ? `${order.missing_count} no llegarán` : null
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
 export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ orderId, onClose }) => {
   const navigate = useNavigate();
   const { data: order, isLoading } = useEntryOrder(orderId);
   const confirm = useConfirmEntryOrder();
   const cancel = useCancelEntryOrder();
   const closeIncomplete = useCloseIncompleteEntryOrder();
+  const receiptSheet = useReceiptSheetPrint();
   const [closing, setClosing] = useState<ClosingAction>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [dteOrderId, setDteOrderId] = useState<number | null>(null);
+  const [receiving, setReceiving] = useState<EntryOrderDte[] | null>(null);
+  const [resolving, setResolving] = useState<EntryOrderIncident | null>(null);
+
+  const printSheet = (dte: EntryOrderDte) => {
+    if (order) receiptSheet.open(order, dte);
+  };
 
   const confirmClosing = (reason: string | null) => {
     if (!order) return;
@@ -57,11 +81,11 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'monospace' }}>{order?.code ?? 'Orden de ingreso'}</Typography>
-            {order && <EntryOrderStatusChip status={order.status} />}
+            {order && <EntryOrderStatusChip status={order.status} progress={order} />}
           </Stack>
           {order && (
             <Typography variant="caption" color="text.secondary">
-              N° {order.number} · {order.entered_count} de {order.head_count} cabezas ingresadas · {order.kind_label}
+              N° {order.number} · {countsOf(order)} · {order.kind_label}
             </Typography>
           )}
         </Box>
@@ -78,9 +102,20 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
         <>
           <Box sx={{ p: 2.5, overflowY: 'auto', flexGrow: 1 }}>
             <Stack spacing={2.5}>
-              {order.status === 'AWAITING_DTE' && (
+              {order.is_editable && !isTroopComplete(order) && (
                 <Alert severity="info" sx={{ borderRadius: '6px' }}>
-                  La compra está confirmada y el lote {order.batch_name} existe, vacío. Las caravanas se asignan cuando llegue el DTE.
+                  Borrador incompleto: para confirmar la compra faltan datos de la tropa. "Confirmar compra" abre el formulario para completarlos.
+                </Alert>
+              )}
+              {order.status === 'AWAITING_DTE' && order.dte_count === 0 && (
+                <Alert severity="info" sx={{ borderRadius: '6px' }}>
+                  La compra está confirmada y el lote {order.batch_name} existe, vacío. Las caravanas aparecen cuando se carga el DTE, en tránsito hasta recibirlas.
+                </Alert>
+              )}
+              {order.in_transit_count > 0 && (
+                <Alert severity="warning" sx={{ borderRadius: '6px' }}>
+                  Hay {caravansOf(order.in_transit_count)} en tránsito: todavía no
+                  cuentan como stock ni se pueden asignar a un lote propio. Recibilas desde su DTE cuando llegue la hacienda.
                 </Alert>
               )}
               {order.closing_reason && (
@@ -90,7 +125,9 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
               )}
               <EntryTroopSummaryCard title="Tropa comprada" subtitle={order.observations ?? undefined} items={troopItemsOf(order)} />
               <Divider />
-              <EntryOrderDteList order={order} />
+              <EntryOrderDteList order={order} onReceive={(dte) => setReceiving([dte])} onReceiveAll={setReceiving} onPrintSheet={printSheet} />
+              <EntryOrderReceiptSheetList order={order} />
+              <EntryOrderIncidentList incidents={order.incidents} onResolve={setResolving} />
               <Divider />
               <EntryOrderHistoryTimeline history={order.history} />
             </Stack>
@@ -103,7 +140,7 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
                   startIcon={<FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>}>
                   Editar borrador
                 </Button>
-                <Button variant="contained" disableElevation disabled={confirm.isPending} onClick={() => confirm.mutate(order.id)} sx={actionSx}>
+                <Button variant="contained" disableElevation disabled={confirm.isPending} onClick={() => (isTroopComplete(order) ? confirm.mutate(order.id) : setIsEditing(true))} sx={actionSx}>
                   Confirmar compra
                 </Button>
               </>
@@ -120,18 +157,18 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
                 Cargar DTE
               </Button>
             )}
-            {order.batch && order.entered_count > 0 && (
-              <Button variant="text" onClick={() => navigate('/batches/external-assignment')} sx={actionSx}>
+            {order.batch && order.received_count > 0 && (
+              <Button variant="text" onClick={() => navigate(`/batches/external-assignment?batchId=${order.batch?.id}`)} sx={actionSx}>
                 Asignar a lote propio
               </Button>
             )}
             <Box sx={{ flexGrow: 1 }} />
-            {(order.status === 'DRAFT' || order.status === 'AWAITING_DTE') && (
+            {order.can_cancel && (
               <Button variant="outlined" color="error" onClick={() => setClosing('cancel')} sx={actionSx}>
                 {order.status === 'DRAFT' ? 'Descartar borrador…' : 'Anular…'}
               </Button>
             )}
-            {order.status === 'PARTIAL' && (
+            {order.can_close_incomplete && (
               <Button variant="outlined" color="warning" onClick={() => setClosing('close')} sx={actionSx}>
                 Cerrar incompleta…
               </Button>
@@ -150,13 +187,17 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
               closing === 'cancel' && order.is_editable
                 ? 'El borrador no creó ningún lote. Queda descartado en el historial.'
                 : closing === 'cancel'
-                  ? `No ingresó ninguna caravana. La orden queda anulada con su motivo y el lote ${order.batch_name}, que nunca tuvo animales, se desactiva.`
-                  : `Ingresaron ${order.entered_count} de ${order.head_count}. No se esperan más DTE: la orden queda cerrada con las ${order.pending_count} cabezas faltantes y su motivo.`
+                  ? `No se cargó ningún DTE. La orden queda anulada con su motivo y el lote ${order.batch_name}, que nunca tuvo animales, se desactiva.`
+                  : order.in_transit_count > 0
+                    ? `${order.in_transit_count === 1 ? 'La caravana que sigue en tránsito pasa' : `Las ${order.in_transit_count} caravanas que siguen en tránsito pasan`} a "No llegará" con este motivo y se registra una novedad. No se esperan más DTE ni más hacienda.`
+                    : `Hay ${order.with_dte_count} de ${order.head_count} cabezas con DTE. No se esperan más DTE: la orden queda cerrada con las ${order.pending_dte_count} cabezas faltantes y su motivo.`
             }
             confirmLabel={closing !== 'cancel' ? 'Cerrar incompleta' : order.is_editable ? 'Descartar borrador' : 'Anular orden'}
           />
           <CreateExternalBatchDialog open={isEditing} mode="order" draft={order} onClose={() => setIsEditing(false)} />
           <LoadDteDialog orderId={dteOrderId} onClose={() => setDteOrderId(null)} />
+          <ReceiveDteDialog order={order} dtes={receiving} onClose={() => setReceiving(null)} />
+          <ResolveIncidentDialog orderId={order.id} incident={resolving} onClose={() => setResolving(null)} />
         </>
       )}
     </Drawer>

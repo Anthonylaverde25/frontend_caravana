@@ -60,13 +60,14 @@ export function useDeclaredTroop(values: ExternalBatchFormValues | null) {
       isMixed: values.sex_composition === 'MIXED',
       maleCount: values.male_count,
       femaleCount: values.female_count,
-      enteredMale: 0,
-      enteredFemale: 0,
+      withDteMale: 0,
+      withDteFemale: 0,
       pending: values.head_count,
       headCount: values.head_count,
       breeds: breedLines,
       minWeight: values.min_weight,
-      maxWeight: values.max_weight
+      maxWeight: values.max_weight,
+      withArrival: true
     };
 
     return { items, context, subtitle: values.observations || undefined };

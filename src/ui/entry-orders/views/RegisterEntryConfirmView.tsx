@@ -15,6 +15,8 @@ import { useDeclaredTroop } from './useDeclaredTroop';
 
 export interface RegisterEntryState {
   troop: ExternalBatchFormInput;
+  /** Where "Registrar ingreso" was started: the tray or the external batches. */
+  backTo?: string;
 }
 
 /**
@@ -31,23 +33,29 @@ export const RegisterEntryConfirmView: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [closeNow, setCloseNow] = useState(false);
   const [closeReason, setCloseReason] = useState('');
+  const [closeReasonMissing, setCloseReasonMissing] = useState(false);
   const parsed = useMemo(() => (state?.troop ? externalBatchSchema.safeParse(state.troop) : null), [state]);
   const declared = useDeclaredTroop(parsed?.success ? parsed.data : null);
 
+  const backTo = state?.backTo === '/entry-orders' ? '/entry-orders' : '/batches/external';
+
   if (!state?.troop || !parsed?.success || !declared) {
-    return <Navigate to="/batches/external" replace />;
+    return <Navigate to={backTo} replace />;
   }
 
   const values = parsed.data;
   const short = draft.counts.total > 0 && draft.counts.total < values.head_count;
 
   const submit = () => {
-    draft.setHeaderErrors([]);
-    draft.setRowErrors([]);
+    const closeReasonOk = !(short && closeNow) || closeReason.trim().length >= 3;
+
+    setCloseReasonMissing(!closeReasonOk);
+    if (!draft.validate() || !closeReasonOk) return;
+
     register.mutate(
       {
         ...toEntryOrderPayload(values),
-        dte: draft.payload(),
+        dte: draft.registerPayload(),
         close_incomplete_reason: short && closeNow ? closeReason.trim() || null : null
       },
       {
@@ -76,11 +84,11 @@ export const RegisterEntryConfirmView: React.FC = () => {
       actions={
         <Button
           variant="text"
-          onClick={() => navigate('/batches/external')}
+          onClick={() => navigate(backTo)}
           startIcon={<FuseSvgIcon size={18}>heroicons-outline:arrow-left</FuseSvgIcon>}
           sx={{ textTransform: 'none', fontWeight: 600 }}
         >
-          Volver a lotes externos
+          {backTo === '/entry-orders' ? 'Volver a órdenes de ingreso' : 'Volver a lotes externos'}
         </Button>
       }
     >
@@ -95,7 +103,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
         {short && (
           <Alert severity="warning" sx={{ borderRadius: '6px' }}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              El DTE trae {draft.counts.total} de {values.head_count} cabezas. La orden queda en "DTE parcial", esperando otro documento.
+              El DTE trae {draft.counts.total} de {values.head_count} cabezas. La orden queda "En espera de DTE", esperando otro documento.
             </Typography>
             <FormControlLabel
               control={<Checkbox size="small" checked={closeNow} onChange={(e) => setCloseNow(e.target.checked)} />}
@@ -109,6 +117,8 @@ export const RegisterEntryConfirmView: React.FC = () => {
                 value={closeReason}
                 onChange={(e) => setCloseReason(e.target.value)}
                 placeholder="Ej: murió un animal en el viaje"
+                error={closeReasonMissing && closeReason.trim().length < 3}
+                helperText={closeReasonMissing && closeReason.trim().length < 3 ? 'Indicá por qué no llegarán más DTE.' : undefined}
                 sx={{ mt: 1, bgcolor: 'background.paper' }}
               />
             )}
@@ -116,22 +126,17 @@ export const RegisterEntryConfirmView: React.FC = () => {
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5 }}>
-          <Button onClick={() => navigate('/batches/external')} disabled={register.isPending} sx={{ textTransform: 'none', fontWeight: 600 }}>
+          <Button onClick={() => navigate(backTo)} disabled={register.isPending} sx={{ textTransform: 'none', fontWeight: 600 }}>
             Cancelar
           </Button>
           <Button
             variant="contained"
             disableElevation
             onClick={submit}
-            disabled={
-              register.isPending ||
-              draft.rows.length === 0 ||
-              draft.dteNumber.trim() === '' ||
-              (short && closeNow && closeReason.trim().length < 3)
-            }
+            disabled={register.isPending}
             sx={{ px: 3, fontWeight: 700, borderRadius: '6px', textTransform: 'none' }}
           >
-            {register.isPending ? 'Registrando…' : `Registrar ingreso (${draft.rows.length})`}
+            {register.isPending ? 'Registrando…' : `Registrar ingreso (${draft.counts.total})`}
           </Button>
         </Box>
       </Stack>
@@ -143,7 +148,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
         onClose={() => setIsEditing(false)}
         onContinue={(troop) => {
           setIsEditing(false);
-          navigate(location.pathname, { replace: true, state: { troop } satisfies RegisterEntryState });
+          navigate(location.pathname, { replace: true, state: { troop, backTo: state.backTo } satisfies RegisterEntryState });
         }}
       />
     </ViewLayout>

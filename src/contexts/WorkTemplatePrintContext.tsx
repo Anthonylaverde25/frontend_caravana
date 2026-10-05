@@ -40,6 +40,12 @@ interface WorkTemplatePrintContextType {
    */
   printLock: string | null;
   setPrintLock: (reason: string | null) => void;
+  /**
+   * The paper the sheet goes out on: A4 portrait (default) or landscape, for a template that
+   * offers both (ING-03). Printing and the PDF download follow it.
+   */
+  pageOrientation: PageOrientation;
+  setPageOrientation: (orientation: PageOrientation) => void;
   batchId: number | null;
   // Interactive supplier & farm selection
   selectedProviderId: number | null;
@@ -61,6 +67,8 @@ interface WorkTemplatePrintContextType {
   clearCustomCaravans: () => void;
 }
 
+export type PageOrientation = 'portrait' | 'landscape';
+
 const WorkTemplatePrintContext = createContext<WorkTemplatePrintContextType | undefined>(undefined);
 
 export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -73,6 +81,7 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
     onPrintedRef.current = listener;
   }, []);
   const [printLock, setPrintLock] = useState<string | null>(null);
+  const [pageOrientation, setPageOrientation] = useState<PageOrientation>('portrait');
 
   const orderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
   const batchId = searchParams.get('batchId') ? Number(searchParams.get('batchId')) : null;
@@ -151,7 +160,7 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
     contentRef: printAreaRef,
     documentTitle: `Planilla_De_${code || 'Plantilla'}_${order?.code || 'Vacia'}`,
     pageStyle: `
-      @page { size: A4 portrait; margin: 0; }
+      @page { size: A4 ${pageOrientation}; margin: 0; }
       @media print {
         body { -webkit-print-color-adjust: exact; }
       }
@@ -174,7 +183,7 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
         letterRendering: true,
         logging: false,
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: pageOrientation },
       pagebreak: { mode: ['css', 'legacy'], before: '.print-page', avoid: '.print-page' }
     };
 
@@ -213,6 +222,8 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
       setOnPrinted,
       printLock,
       setPrintLock,
+      pageOrientation,
+      setPageOrientation,
       batchId,
       selectedProviderId,
       setSelectedProviderId,
@@ -245,6 +256,7 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
       handleDownload,
       handleBack,
       printLock,
+      pageOrientation,
       batchId,
       selectedProviderId,
       setSelectedProviderId,

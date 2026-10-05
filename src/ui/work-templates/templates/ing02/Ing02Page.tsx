@@ -42,7 +42,7 @@ const valueCellSx = { fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'now
 const sexWord = (order: EntryOrder | null): string | null =>
   order ? { MALE: 'MACHOS', FEMALE: 'HEMBRAS', MIXED: 'AMBOS' }[order.sex_composition] : null;
 
-const yesNo = (value: boolean | undefined): string | null => (value === undefined ? null : value ? 'SÍ' : 'NO');
+const yesNo = (value: boolean | null | undefined): string | null => (value == null ? null : value ? 'SÍ' : 'NO');
 
 /**
  * The single A4 page of the ING-02, laid out like every other sheet: title, header tables, the
@@ -117,7 +117,7 @@ export const Ing02Page: React.FC<Ing02PageProps> = ({ code, title, order }) => {
               <TableCell sx={valueCellSx}>{order?.sex_composition === 'MIXED' ? order.female_count : ''}</TableCell>
               <TableCell sx={valueCellSx}>{order ? (order.age_range ?? '—') : '__ / __'}</TableCell>
               <TableCell sx={{ ...valueCellSx, fontSize: '0.6rem !important', whiteSpace: 'nowrap' }}>
-                {boxes(['REGULAR', 'BUENO', 'MUY BUENO', 'EXCELENTE'], order ? order.condition_label.toUpperCase() : null)}
+                {boxes(['REGULAR', 'BUENO', 'MUY BUENO', 'EXCELENTE'], order?.condition_label ? order.condition_label.toUpperCase() : null)}
               </TableCell>
             </TableRow>
           </TableBody>

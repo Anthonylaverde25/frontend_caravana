@@ -22,7 +22,7 @@ function MovementDataTable({ data, isLoading = false, onCaravanClick }: Movement
       <DataTable
         columns={columns}
         data={data}
-        isLoading={isLoading}
+        state={{ isLoading }}
         enableRowSelection={false}
         enableColumnOrdering={false}
         enableGlobalFilter={true}

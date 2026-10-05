@@ -50,12 +50,26 @@ export const TransferOrderReasonDialog: React.FC<TransferOrderReasonDialogProps>
   reasonRequired = true
 }) => {
   const [reason, setReason] = useState('');
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
-    if (open) setReason('');
+    if (open) {
+      setReason('');
+      setShowError(false);
+    }
   }, [open]);
 
   const isValid = reasonRequired ? reason.trim().length >= MIN_REASON : true;
+
+  // Told on click, not by a disabled button: the theme paints a disabled button like an active one.
+  const submit = () => {
+    if (!isValid) {
+      setShowError(true);
+      return;
+    }
+
+    onConfirm(reason.trim() || null);
+  };
 
   return (
     <Dialog
@@ -86,7 +100,8 @@ export const TransferOrderReasonDialog: React.FC<TransferOrderReasonDialogProps>
           label={reasonRequired ? 'Motivo (obligatorio)' : 'Motivo (opcional)'}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          helperText="Queda en el historial de la orden."
+          error={showError && !isValid}
+          helperText={showError && !isValid ? 'Indicá el motivo (al menos 3 letras).' : 'Queda en el historial de la orden.'}
           InputProps={{ disableUnderline: true, sx: { borderRadius: '6px', bgcolor: 'action.hover' } }}
         />
       </DialogContent>
@@ -98,8 +113,8 @@ export const TransferOrderReasonDialog: React.FC<TransferOrderReasonDialogProps>
           variant="contained"
           color="error"
           disableElevation
-          disabled={!isValid || isPending}
-          onClick={() => onConfirm(reason.trim() || null)}
+          disabled={isPending}
+          onClick={submit}
           startIcon={isPending ? <CircularProgress size={14} color="inherit" /> : undefined}
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}
         >

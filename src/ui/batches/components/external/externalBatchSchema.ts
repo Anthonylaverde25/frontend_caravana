@@ -13,8 +13,9 @@ const requiredNumber = (message: string) =>
   );
 
 /**
- * The troop of an entry order as the "Alta de Lote Externo" form holds it. The same rules the
- * server applies (EntryTroop), checked here first so the form marks the field before submitting.
+ * The troop of an entry order as the "Nueva orden de ingreso" form holds it, as needed to confirm
+ * the purchase. The same rules the server applies (EntryTroop), checked here first so the form
+ * marks the field before submitting. A draft is held to draftErrorsOf() instead.
  * Whether the category admits the declared sexes is enforced by the form itself, which fixes the
  * composition when the category has a single sex.
  */
@@ -165,29 +166,68 @@ export const formFromOrder = (order: EntryOrder): ExternalBatchFormInput => ({
   farm_id: order.farm.id,
   auction_number: order.auction_number ?? '',
   batch_name_mode: order.batch_name_mode,
-  batch_name: order.batch_name_mode === 'CUSTOM' ? order.batch_name : '',
-  head_count: order.head_count,
-  category_id: order.category.id,
-  sex_composition: order.sex_composition,
+  batch_name: order.batch_name_mode === 'CUSTOM' ? (order.batch_name ?? '') : '',
+  head_count: order.head_count ?? undefined,
+  category_id: order.category.id ?? undefined,
+  sex_composition: order.sex_composition ?? (undefined as unknown as 'MALE'),
   male_count: order.male_count,
   female_count: order.female_count,
-  condition: order.condition,
+  condition: order.condition ?? (undefined as unknown as 'GOOD'),
   age_min_months: order.age_min_months,
   age_max_months: order.age_max_months,
-  knows_to_eat: order.knows_to_eat,
-  tick_vaccinated: order.tick_vaccinated,
+  knows_to_eat: order.knows_to_eat ?? (undefined as unknown as boolean),
+  tick_vaccinated: order.tick_vaccinated ?? (undefined as unknown as boolean),
   shrink_percent: order.shrink_percent,
-  estimated_weight: order.estimated_weight,
+  estimated_weight: order.estimated_weight ?? undefined,
   min_weight: order.min_weight,
   max_weight: order.max_weight,
   purchase_date: order.purchase_date,
   responsable: order.responsable ?? '',
   observations: order.observations ?? '',
-  breeds: order.breeds.map((b) => ({
-    breed_id: b.breed_id,
-    color_id: b.color_id
-  }))
+  breeds: order.breeds.length > 0 ? order.breeds.map((b) => ({ breed_id: b.breed_id, color_id: b.color_id })) : [{ breed_id: null, color_id: null }]
 });
+
+/**
+ * A draft only needs to know who sells and from where: the rest can be completed later, and is
+ * demanded when the purchase is confirmed. What is filled in is still checked by the server.
+ */
+export const draftErrorsOf = (input: ExternalBatchFormInput): Partial<Record<'provider_id' | 'farm_id', string>> => ({
+  ...(input.provider_id == null || (input.provider_id as unknown) === '' ? { provider_id: 'Elegí el proveedor' } : {}),
+  ...(input.farm_id == null || (input.farm_id as unknown) === '' ? { farm_id: 'Elegí el establecimiento' } : {})
+});
+
+/** The draft as it is, with what is still blank sent as null. */
+export const toDraftPayload = (input: ExternalBatchFormInput): Omit<StoreEntryOrderPayload, 'confirm'> => {
+  const num = (value: unknown): number | null => (value === '' || value == null || Number.isNaN(Number(value)) ? null : Number(value));
+  const text = (value: string | undefined) => (value == null || value.trim() === '' ? null : value.trim());
+  const mixed = input.sex_composition === 'MIXED';
+
+  return {
+    provider_id: Number(input.provider_id),
+    farm_id: Number(input.farm_id),
+    auction_number: text(input.auction_number),
+    batch_name_mode: input.batch_name_mode,
+    batch_name: input.batch_name_mode === 'CUSTOM' ? text(input.batch_name) : null,
+    head_count: num(input.head_count),
+    category_id: num(input.category_id),
+    sex_composition: input.sex_composition ?? null,
+    male_count: mixed ? num(input.male_count) : null,
+    female_count: mixed ? num(input.female_count) : null,
+    condition: input.condition ?? null,
+    age_min_months: num(input.age_min_months),
+    age_max_months: num(input.age_max_months),
+    knows_to_eat: input.knows_to_eat ?? null,
+    tick_vaccinated: input.tick_vaccinated ?? null,
+    shrink_percent: num(input.shrink_percent),
+    estimated_weight: num(input.estimated_weight),
+    min_weight: num(input.min_weight),
+    max_weight: num(input.max_weight),
+    purchase_date: input.purchase_date,
+    responsable: text(input.responsable),
+    observations: text(input.observations),
+    breeds: input.breeds.filter((b) => b.breed_id != null).map((b) => ({ breed_id: b.breed_id as number, color_id: b.color_id }))
+  };
+};
 
 export const toEntryOrderPayload = (values: ExternalBatchFormValues): Omit<StoreEntryOrderPayload, 'confirm'> => {
   const mixed = values.sex_composition === 'MIXED';

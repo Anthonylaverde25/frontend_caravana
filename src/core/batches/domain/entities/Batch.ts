@@ -19,10 +19,13 @@ export interface ServiceBatchDetailDTO {
 export interface BatchEntryOrderSummary {
   id: number;
   code: string;
-  status: 'DRAFT' | 'AWAITING_DTE' | 'PARTIAL' | 'COMPLETED' | 'CLOSED_INCOMPLETE' | 'CANCELLED';
+  status: 'DRAFT' | 'AWAITING_DTE' | 'IN_TRANSIT' | 'COMPLETED' | 'CLOSED_INCOMPLETE' | 'CANCELLED';
   status_label: string;
   head_count: number;
-  entered_count: number;
+  with_dte_count: number;
+  received_count: number;
+  in_transit_count: number;
+  open_incidents_count: number;
 }
 
 export interface BatchDTO {

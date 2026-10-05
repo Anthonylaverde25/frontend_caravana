@@ -22,6 +22,19 @@ export const ExternalTroopSection: React.FC<{ form: ExternalBatchForm }> = ({ fo
   const composition = watch('sex_composition');
   const category = categories.find((c) => c.id === categoryId);
   const fixed = fixedComposition(category?.sex);
+  const headCount = Number(watch('head_count')) || 0;
+  const maleCount = watch('male_count');
+  const femaleCount = watch('female_count');
+
+  // A mixed troop is head = males + females: typing one fills the other with the rest.
+  const setSplit = (field: 'male_count' | 'female_count', raw: string) => {
+    const value = raw === '' ? null : Number(raw);
+    const other = field === 'male_count' ? 'female_count' : 'male_count';
+
+    setValue(field, value as never, { shouldDirty: true });
+
+    if (value != null && value > 0 && value < headCount) setValue(other, (headCount - value) as never, { shouldDirty: true });
+  };
 
   useEffect(() => {
     if (fixed && composition !== fixed) setValue('sex_composition', fixed, { shouldValidate: true });
@@ -97,7 +110,8 @@ export const ExternalTroopSection: React.FC<{ form: ExternalBatchForm }> = ({ fo
           {composition === 'MIXED' && (
             <Stack direction="row" spacing={1.5}>
               <TextField
-                {...register('male_count')}
+                value={maleCount ?? ''}
+                onChange={(e) => setSplit('male_count', e.target.value)}
                 label="Machos"
                 type="number"
                 size="small"
@@ -107,7 +121,8 @@ export const ExternalTroopSection: React.FC<{ form: ExternalBatchForm }> = ({ fo
                 sx={{ ...filledSx, width: 110 }}
               />
               <TextField
-                {...register('female_count')}
+                value={femaleCount ?? ''}
+                onChange={(e) => setSplit('female_count', e.target.value)}
                 label="Hembras"
                 type="number"
                 size="small"

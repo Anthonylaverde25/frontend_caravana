@@ -4,9 +4,22 @@ import { ENTRY_ORDER_STATUS_LABELS, EntryOrderStatus } from '@/features/entry-or
 import { useTransferOrderTableStyles } from '@/ui/transfer-orders/components/transferOrderFormat';
 import { useEntryOrderStatusColor } from './EntryOrderStatusChip';
 
-export type EntryOrderStatusFilterValue = EntryOrderStatus | 'ALL';
+/** A status, every order, or the ones with incidents still open (whatever their status). */
+export type EntryOrderStatusFilterValue = EntryOrderStatus | 'ALL' | 'WITH_INCIDENTS';
 
-const ORDER: EntryOrderStatusFilterValue[] = ['ALL', 'AWAITING_DTE', 'PARTIAL', 'DRAFT', 'COMPLETED', 'CLOSED_INCOMPLETE', 'CANCELLED'];
+const ORDER: EntryOrderStatusFilterValue[] = [
+  'ALL',
+  'AWAITING_DTE',
+  'IN_TRANSIT',
+  'DRAFT',
+  'COMPLETED',
+  'CLOSED_INCOMPLETE',
+  'CANCELLED',
+  'WITH_INCIDENTS'
+];
+
+const labelOf = (id: EntryOrderStatusFilterValue): string =>
+  id === 'ALL' ? 'Todas' : id === 'WITH_INCIDENTS' ? 'Con novedades abiertas' : ENTRY_ORDER_STATUS_LABELS[id];
 
 interface EntryOrdersStatusFilterProps {
   value: EntryOrderStatusFilterValue;
@@ -15,8 +28,9 @@ interface EntryOrdersStatusFilterProps {
 }
 
 /**
- * Segmented pills, one per state, with "En espera de DTE" first: it is the pile somebody has to
- * act on when a document arrives.
+ * Segmented pills, one per state, with "En espera de DTE" and "En tránsito" first: they are the
+ * piles somebody has to act on when a document or a truck arrives. The last one gathers the orders
+ * with something to settle with the provider.
  */
 export const EntryOrdersStatusFilter: React.FC<EntryOrdersStatusFilterProps> = ({ value, onChange, counts }) => {
   const colors = useEntryOrderStatusColor();
@@ -40,7 +54,7 @@ export const EntryOrdersStatusFilter: React.FC<EntryOrdersStatusFilterProps> = (
     >
       {ORDER.map((id) => {
         const isSelected = value === id;
-        const color = id === 'ALL' ? neutral : colors[id];
+        const color = id === 'ALL' ? neutral : id === 'WITH_INCIDENTS' ? colors.CLOSED_INCOMPLETE : colors[id];
 
         return (
           <Button
@@ -61,7 +75,7 @@ export const EntryOrdersStatusFilter: React.FC<EntryOrdersStatusFilterProps> = (
               '&:hover': { bgcolor: isSelected ? alpha(color, 0.16) : isDark ? 'rgba(255,255,255,0.07)' : '#edf1f5' }
             }}
           >
-            {id === 'ALL' ? 'Todas' : ENTRY_ORDER_STATUS_LABELS[id]} ({counts[id] ?? 0})
+            {labelOf(id)} ({counts[id] ?? 0})
           </Button>
         );
       })}

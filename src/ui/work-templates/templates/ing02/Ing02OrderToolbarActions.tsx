@@ -23,10 +23,10 @@ export const Ing02OrderToolbarActions: React.FC = () => {
         <Box sx={{ textAlign: 'right', lineHeight: 1 }}>
           <Typography sx={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.8rem', lineHeight: 1.2 }}>{order.code}</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem' }}>
-            {order.entered_count} de {order.head_count} cabezas ingresadas
+            {order.received_count} de {order.head_count} recibidas
           </Typography>
         </Box>
-        <EntryOrderStatusChip status={order.status} />
+        <EntryOrderStatusChip status={order.status} progress={order} />
       </Stack>
 
       {order.is_editable && (

@@ -20,7 +20,7 @@ export interface FieldSourceCaravan {
   active_gestation?: { gestation_months?: number | null } | null;
 }
 
-interface ValidationBody {
+export interface ValidationBody {
   row_errors?: TransferRowError[];
   errors?: Record<string, string[]>;
 }

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import useUser from '@auth/useUser';
-import { useCompany } from '@/contexts/CompanyContext';
+import { useCompany, type Company } from '@/contexts/CompanyContext';
 
 /**
  * useSession hook

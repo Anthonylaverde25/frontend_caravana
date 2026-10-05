@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Button, Stack } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { EntryOrderResult } from '@/features/entry-orders/types';
@@ -7,18 +7,17 @@ import CreateExternalBatchDialog, { ExternalBatchDialogMode } from '@/ui/batches
 import type { RegisterEntryState } from '../views/RegisterEntryConfirmView';
 
 interface EntryStartActionsProps {
-  /** Label of the main button: "Nuevo lote externo" on the batches, "Nueva orden de ingreso" on the tray. */
-  newLabel: string;
   onSaved?: (result: EntryOrderResult) => void;
 }
 
 /**
  * The two ways a purchase of external livestock starts, wherever they are offered: the DTE has
- * not arrived yet ("Nuevo lote externo": the order waits for it) or it is already in hand
+ * not arrived yet ("Nueva orden de ingreso": the order waits for it) or it is already in hand
  * ("Registrar ingreso": the troop, then the DTE on its confirmation page).
  */
-export const EntryStartActions: React.FC<EntryStartActionsProps> = ({ newLabel, onSaved }) => {
+export const EntryStartActions: React.FC<EntryStartActionsProps> = ({ onSaved }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mode, setMode] = useState<ExternalBatchDialogMode | null>(null);
 
   return (
@@ -39,7 +38,7 @@ export const EntryStartActions: React.FC<EntryStartActionsProps> = ({ newLabel, 
           startIcon={<FuseSvgIcon size={18}>heroicons-outline:plus-circle</FuseSvgIcon>}
           sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '6px', px: 3 }}
         >
-          {newLabel}
+          Nueva orden de ingreso
         </Button>
       </Stack>
 
@@ -50,7 +49,7 @@ export const EntryStartActions: React.FC<EntryStartActionsProps> = ({ newLabel, 
         onSaved={onSaved}
         onContinue={(troop) => {
           setMode(null);
-          navigate('/entry-orders/register/confirm', { state: { troop } satisfies RegisterEntryState });
+          navigate('/entry-orders/register/confirm', { state: { troop, backTo: location.pathname } satisfies RegisterEntryState });
         }}
       />
     </>

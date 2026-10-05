@@ -15,7 +15,7 @@ import {
 import { useTransferDestinations } from '@/ui/activities/hooks/useTransferDestinations';
 import { useTransferOrderDraft } from '@/ui/activities/hooks/useTransferOrderDraft';
 import { toPayloadFields } from '../components/register/registerFieldData';
-import { FieldSourceCaravan, useRegisterFieldData } from './useRegisterFieldData';
+import { FieldSourceCaravan, useRegisterFieldData, type ValidationBody } from './useRegisterFieldData';
 
 /** Stable: a new object per render would recompute the order draft every time. */
 const NO_CATEGORY_TARGETS = {};

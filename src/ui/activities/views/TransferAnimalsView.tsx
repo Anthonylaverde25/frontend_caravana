@@ -407,6 +407,7 @@ export const TransferAnimalsView: React.FC = () => {
 				actividad_destino: destinationActivity?.name ?? '',
 				lote_origen: batch.name,
 				lote_destino: '',
+				destino_por_animal: true,
 				fecha_movimiento: new Date().toISOString().slice(0, 10),
 				// Nothing to declare at header level: with one destination per animal, each
 				// batch carries its own management system.
