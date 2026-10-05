@@ -2,13 +2,15 @@ import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import { useBirthOrder } from '@/features/birth-orders/hooks/useBirthOrder';
 import type { BirthOrder } from '@/features/birth-orders/types';
+import { isOpenBirthLine } from '@/features/birth-orders/types';
 import { periodOf } from '@/ui/birth-orders/components/birthOrderFormat';
 import { usePar01Print } from '../templates/par01/Par01PrintContext';
 
 /**
  * The birth order behind the sheet: `?birthOrderId=` on arrival, or the one chosen in the config
- * drawer. The sheet is born complete with what the order knows — code, lots, period and the pending
- * females soonest due first — and leaves blank only what the round finds out.
+ * drawer. The sheet is born complete with what the order knows — code, lots, period and the open
+ * females: the overdue ones first (they are at risk, with their N printed grey), then the pending
+ * soonest due — and leaves blank only what the round finds out.
  *
  * Keyed by status and by how many are still pending: a round registered elsewhere reprints only
  * who is left, and a draft issued from this very view gets its code without a reload.
@@ -33,7 +35,7 @@ export function usePar01OrderPrint() {
   useEffect(() => {
     if (!order) return;
 
-    const key = `${order.id}:${order.status}:${order.pending_head_count}`;
+    const key = `${order.id}:${order.status}:${order.pending_head_count}:${order.overdue_head_count}`;
 
     if (applied.current === key) return;
 
@@ -42,8 +44,8 @@ export function usePar01OrderPrint() {
   }, [order]);
 
   const apply = (source: BirthOrder) => {
-    // An open order prints who is still to calve; a closed one its roll as it was.
-    const lines = source.is_open || source.is_editable ? source.animals.filter((a) => a.status === 'PENDING') : source.animals;
+    // An open order prints who is still to calve (pending and overdue); a closed one its roll as it was.
+    const lines = source.is_open || source.is_editable ? source.animals.filter((a) => isOpenBirthLine(a.status)) : source.animals;
 
     print.setOrderLockReason(
       source.is_editable
@@ -64,12 +66,14 @@ export function usePar01OrderPrint() {
       [...lines]
         .sort(
           (a, b) =>
+            Number(b.status === 'OVERDUE') - Number(a.status === 'OVERDUE') ||
             (a.estimated_due_date ?? '9999').localeCompare(b.estimated_due_date ?? '9999') ||
             (a.identification ?? '').localeCompare(b.identification ?? '')
         )
         .map((line) => ({
           motherId: line.caravan_id,
-          motherIdentification: line.identification ?? ''
+          motherIdentification: line.identification ?? '',
+          overdueReportedAt: line.status === 'OVERDUE' ? line.overdue_reported_at : null
         }))
     );
   };

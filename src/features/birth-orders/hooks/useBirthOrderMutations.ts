@@ -142,7 +142,8 @@ export function useExecuteBirthOrder() {
       invalidate(true);
       const order = result.birth_order;
       toast.success(
-        `Orden ${order.code} ${order.status === 'EXECUTED' ? 'completa' : 'parcial'}: ${result.live_count} parto(s), ${result.stillborn_count + result.abortion_count} pérdida(s)`
+        `Orden ${order.code} ${order.status === 'EXECUTED' ? 'completa' : 'parcial'}: ${result.live_count} parto(s), ${result.stillborn_count} nació(eron) muerto(s), ${result.perinatal_death_count} murió(eron) al pie` +
+          (result.overdue_new_count > 0 ? `, ${result.overdue_new_count} parto(s) vencido(s) avisado(s)` : '')
       );
       toastWarnings(result);
     }

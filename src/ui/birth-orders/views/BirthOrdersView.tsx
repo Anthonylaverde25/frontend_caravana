@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { Alert, Box, Button, CircularProgress, InputAdornment, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ViewLayout from '@/components/ViewLayout';
 import { useBirthOrders } from '@/features/birth-orders/hooks/useBirthOrders';
@@ -38,6 +38,7 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
   const { data: orders = [], isLoading, isError } = useBirthOrders();
   const [status, setStatus] = useState<TransferOrderStatusFilterValue>('ALL');
   const [search, setSearch] = useState('');
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [toIssue, setToIssue] = useState<BirthOrderSummary | null>(null);
   const [isStarting, setIsStarting] = useState(Boolean(starting));
 
@@ -86,9 +87,12 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
     return orders.filter(
       (order) =>
         matchesStatus(order, status) &&
+        (!overdueOnly || order.overdue_head_count > 0) &&
         (term === '' || [order.code, sourcesOf(order), periodOf(order), order.responsable ?? ''].some((text) => normalize(text).includes(term)))
     );
-  }, [orders, status, search]);
+  }, [orders, status, search, overdueOnly]);
+
+  const withOverdue = useMemo(() => orders.filter((order) => order.overdue_head_count > 0).length, [orders]);
 
   return (
     <ViewLayout
@@ -134,7 +138,18 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
               )
             }}
           />
-          <TransferOrdersStatusFilter value={status} onChange={setStatus} counts={counts} />
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Chip
+              clickable
+              color="warning"
+              variant={overdueOnly ? 'filled' : 'outlined'}
+              onClick={() => setOverdueOnly((value) => !value)}
+              icon={<FuseSvgIcon size={16}>heroicons-outline:exclamation-triangle</FuseSvgIcon>}
+              label={`Con partos vencidos (${withOverdue})`}
+              sx={{ fontWeight: 700 }}
+            />
+            <TransferOrdersStatusFilter value={status} onChange={setStatus} counts={counts} />
+          </Stack>
         </Stack>
 
         {isLoading ? (

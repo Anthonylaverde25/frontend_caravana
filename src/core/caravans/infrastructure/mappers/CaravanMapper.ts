@@ -53,12 +53,16 @@ export class CaravanMapper {
         gestation_months: Number(raw.active_gestation.gestation_months),
         is_current: Boolean(raw.active_gestation.is_current),
         notes: raw.active_gestation.notes,
+        calving_overdue_reported_at: raw.active_gestation.calving_overdue_reported_at ?? null,
+        calving_overdue_days: raw.active_gestation.calving_overdue_days ?? null,
         sires: raw.active_gestation.sires ? raw.active_gestation.sires.map((s: any) => ({
           id: Number(s.id),
           identification: s.identification,
           is_confirmed: Boolean(s.is_confirmed)
         })) : []
       } : null,
+      stillborn_count: raw.stillborn_count != null ? Number(raw.stillborn_count) : 0,
+      last_stillborn_date: raw.last_stillborn_date ?? null,
       lineage: raw.lineage ? {
         mother_id: raw.lineage.mother_id ? Number(raw.lineage.mother_id) : null,
         mother_identification: raw.lineage.mother_identification ?? null,

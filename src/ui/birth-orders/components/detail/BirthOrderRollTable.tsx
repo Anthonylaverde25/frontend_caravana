@@ -5,34 +5,43 @@ import { dueLabel, formatDate, stageLabel, useBirthOrderTableStyles } from '../b
 
 const STATUS: Record<BirthOrderAnimalStatus, { label: string; color: string }> = {
   PENDING: { label: 'Pendiente', color: '#e6600d' },
+  OVERDUE: { label: 'Parto vencido', color: '#b45309' },
   BORN: { label: 'Parió', color: '#107e3e' },
+  BORN_DIED: { label: 'Murió al pie', color: '#9a3412' },
   LOST: { label: 'Pérdida', color: '#b91c1c' },
   SKIPPED: { label: 'No parió con la orden', color: '#64748b' }
 };
 
 const COLLAPSED_ROWS = 12;
 
+const sexOf = (sex: string | null): string => (sex === 'M' ? 'macho' : sex === 'H' ? 'hembra' : '');
+
 const resultOf = (animal: BirthOrderAnimal): string => {
-  if (animal.status === 'BORN') {
-    const sex = animal.calf_sex === 'M' ? 'macho' : animal.calf_sex === 'H' ? 'hembra' : '';
-
-    return `${animal.calf_identification ?? 'Cría'} ${sex}`.trim();
+  if (animal.status === 'BORN') return `${animal.calf_identification ?? 'Cría'} ${sexOf(animal.calf_sex)}`.trim();
+  if (animal.status === 'OVERDUE') {
+    return `Avisado el ${formatDate(animal.overdue_reported_at)} · hace ${animal.overdue_days ?? 0} d${animal.overdue_notes ? ` · ${animal.overdue_notes}` : ''}`;
   }
+  if (animal.loss_reason_code) return `Pérdida registrada aparte: ${animal.loss_reason_label ?? animal.loss_reason_code}`;
 
-  return animal.outcome_label ?? '—';
+  const sex = sexOf(animal.calf_sex);
+
+  return `${animal.outcome_label ?? '—'}${sex ? ` · ${sex}` : ''}${animal.observations && animal.status === 'BORN_DIED' ? ` · ${animal.observations}` : ''}`;
 };
+
+/** Which comes first: the overdue ones (at risk), then the pending, then the rest. */
+const urgency = (status: BirthOrderAnimalStatus): number => (status === 'OVERDUE' ? 2 : status === 'PENDING' ? 1 : 0);
 
 /** The roll: every pregnant female of the order, when she was due, and what happened. */
 export const BirthOrderRollTable: React.FC<{ order: BirthOrder }> = ({ order }) => {
   const { headerCell, bodyCell, headBg, border } = useBirthOrderTableStyles();
   const [expanded, setExpanded] = useState(false);
 
-  // Pending first, by due date: that is who the next round has to look for.
+  // Overdue and pending first, by due date: that is who the next round has to look for.
   const rows = useMemo(
     () =>
       [...order.animals].sort(
         (a, b) =>
-          Number(b.status === 'PENDING') - Number(a.status === 'PENDING') ||
+          urgency(b.status) - urgency(a.status) ||
           (a.estimated_due_date ?? '9999').localeCompare(b.estimated_due_date ?? '9999') ||
           (a.identification ?? '').localeCompare(b.identification ?? '')
       ),
@@ -61,7 +70,7 @@ export const BirthOrderRollTable: React.FC<{ order: BirthOrder }> = ({ order }) 
               const status = STATUS[animal.status];
 
               return (
-                <TableRow key={animal.id}>
+                <TableRow key={animal.id} sx={animal.status === 'OVERDUE' ? { bgcolor: alpha(status.color, 0.07) } : undefined}>
                   <TableCell sx={{ ...bodyCell, fontFamily: 'monospace', fontWeight: 700 }}>
                     {animal.identification ?? `#${animal.caravan_id}`}
                     <Typography component="span" variant="caption" color="text.secondary" sx={{ fontFamily: 'inherit' }}>

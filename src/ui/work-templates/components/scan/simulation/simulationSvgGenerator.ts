@@ -200,33 +200,38 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
 
     case 'PAR-01': {
       // Every row has the same columns; a calving outside the order is a free line with its box crossed.
+      // Four outcome boxes: PARIÓ (V) · NACIÓ MUERTO (NM) · MURIÓ (M, al pie) · NO PARIÓ (N, alerta).
       const box = (on: boolean) => (on ? '[X]' : '[ ]');
       const outcome = (r: any, mark: string) => box(String(r.resultado || '').toUpperCase().split(/[,\s]+/).includes(mark));
       const orden = context.orden_paricion ? `ORDEN: ${context.orden_paricion}` : 'ORDEN: ______';
       secondaryContextText = `${orden} | LOTE(S): ${context.lote || '—'} | RECORRIDA: ${context.fecha_recorrida || '__/__/____'} | CRÍAS: EN EL LOTE DE SU MADRE`;
       columns = [
         { label: '#', width: 30, align: 'center' },
-        { label: 'MADRE', width: 100, align: 'left' },
-        { label: 'PARIÓ', width: 50, align: 'center' },
-        { label: 'MUERTO', width: 55, align: 'center' },
-        { label: 'ABORTO', width: 55, align: 'center' },
-        { label: 'CRÍA', width: 100, align: 'left' },
-        { label: 'SEXO', width: 45, align: 'center' },
-        { label: 'PESO', width: 50, align: 'right' },
-        { label: 'RAZA', width: 80, align: 'left' },
-        { label: 'FECHA NAC.', width: 85, align: 'center' },
+        { label: 'MADRE', width: 95, align: 'left' },
+        { label: 'PARIÓ', width: 45, align: 'center' },
+        { label: 'NAC. MUERTO', width: 60, align: 'center' },
+        { label: 'MURIÓ', width: 45, align: 'center' },
+        { label: 'NO PARIÓ', width: 50, align: 'center' },
+        { label: 'CRÍA', width: 90, align: 'left' },
+        { label: 'SEXO', width: 40, align: 'center' },
+        { label: 'PESO', width: 45, align: 'right' },
+        { label: 'RAZA', width: 65, align: 'left' },
+        { label: 'PELAJE', width: 65, align: 'left' },
+        { label: 'FECHA', width: 75, align: 'center' },
         { label: 'FUERA ORD.', width: 70, align: 'center' },
       ];
       formatRowCells = (r, idx) => [
         String(idx + 1),
         r.caravana_madre || '',
         outcome(r, 'V'),
+        outcome(r, 'NM'),
         outcome(r, 'M'),
-        outcome(r, 'A'),
+        outcome(r, 'N'),
         r.caravana_cria || '',
         r.sexo || '',
         r.peso || '',
         r.raza || '',
+        r.pelaje || '',
         r.fecha_nacimiento || '',
         box(String(r.fuera_de_orden || '') !== ''),
       ];

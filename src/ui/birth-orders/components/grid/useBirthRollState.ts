@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { BirthFieldPayload } from '@/features/birth-orders/types';
-import { BirthRollFemale, BirthRollValue, emptyBirthValue, rowProblem, toBirthFieldPayload } from './birthRollTypes';
+import { BirthRollFemale, BirthRollValue, emptyBirthValue, isDeclared, rowProblem, toBirthFieldPayload } from './birthRollTypes';
 
 /**
  * The values of the calving grid, one per female, and what can be sent. Rows without an outcome
- * are females that did not calve (yet); `resolved` are the ones that say what happened.
+ * or N are females that did not calve (yet); `resolved` are the ones that declare something —
+ * what happened, or that she passed her due date without calving.
  */
 export function useBirthRollState(females: BirthRollFemale[]) {
   const [values, setValues] = useState<Record<number, BirthRollValue>>({});
@@ -21,7 +22,7 @@ export function useBirthRollState(females: BirthRollFemale[]) {
       setValues((prev) => {
         const next = { ...prev };
         Object.entries(next).forEach(([id, value]) => {
-          if (value.outcome !== '' && !value.birthDate) next[Number(id)] = { ...value, birthDate: date };
+          if (isDeclared(value) && !value.birthDate) next[Number(id)] = { ...value, birthDate: date };
         });
 
         return next;
@@ -29,7 +30,7 @@ export function useBirthRollState(females: BirthRollFemale[]) {
     []
   );
 
-  const resolved = useMemo(() => females.filter((f) => valueOf(f.caravanId).outcome !== ''), [females, valueOf]);
+  const resolved = useMemo(() => females.filter((f) => isDeclared(valueOf(f.caravanId))), [females, valueOf]);
   const unresolved = females.length - resolved.length;
 
   const problems = useMemo(
@@ -45,11 +46,12 @@ export function useBirthRollState(females: BirthRollFemale[]) {
   );
 
   const counts = useMemo(() => {
-    const byOutcome = { LIVE: 0, STILLBORN: 0, ABORTION: 0 };
+    const byOutcome = { LIVE: 0, STILLBORN: 0, PERINATAL_DEATH: 0, ABORTION: 0, OVERDUE: 0 };
     resolved.forEach((f) => {
-      const outcome = valueOf(f.caravanId).outcome;
+      const value = valueOf(f.caravanId);
 
-      if (outcome !== '') byOutcome[outcome] += 1;
+      if (value.outcome !== '') byOutcome[value.outcome] += 1;
+      else if (value.overdue) byOutcome.OVERDUE += 1;
     });
 
     return byOutcome;

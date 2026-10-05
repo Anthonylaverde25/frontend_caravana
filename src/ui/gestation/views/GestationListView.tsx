@@ -21,6 +21,7 @@ import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import DataTable from 'src/components/data-table/DataTable';
 import { MRT_ColumnDef } from 'material-react-table';
 import GestationKpiCards from '../components/dashboard/GestationKpiCards';
+import ReproductiveAlertsCell, { calvingOverdueCount } from '../components/monitoring/ReproductiveAlertsCell';
 
 // Helper to compute remaining days of pregnancy
 const getDaysLeft = (dueDateStr?: string | null) => {
@@ -159,6 +160,11 @@ function GestationListView() {
             <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
               {row.original.caravans.length} Vientres gestantes
             </Typography>
+            {calvingOverdueCount(row.original.caravans) > 0 && (
+              <Typography variant="caption" sx={{ color: 'warning.dark', fontWeight: 800, display: 'block' }}>
+                {calvingOverdueCount(row.original.caravans)} con parto vencido
+              </Typography>
+            )}
           </Box>
         </Stack>
       )
@@ -267,6 +273,13 @@ function GestationListView() {
           {cell.getValue() as number} d
         </Typography>
       ),
+    },
+    {
+      id: 'reproductive_alerts',
+      header: 'Alertas / Antecedentes',
+      size: 260,
+      accessorFn: (row) => (row.active_gestation?.calving_overdue_reported_at ? 1 : 0) + (row.stillborn_count ?? 0),
+      Cell: ({ row }) => <ReproductiveAlertsCell caravan={row.original} />,
     },
     {
       id: 'risk',

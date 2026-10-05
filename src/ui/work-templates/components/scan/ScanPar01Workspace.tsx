@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Alert, Box, Button, Chip, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import { NoteAdd as NoteAddIcon } from '@mui/icons-material';
 import TransferOrderStatusChip from '@/ui/transfer-orders/components/TransferOrderStatusChip';
 import ScanPar01Table from './ScanPar01Table';
+import { par01RowStatus } from './par01RowStatus';
 import type { Par01PagesState } from '../../hooks/usePar01Pages';
 import type { Par01BirthOrderState } from '../../hooks/usePar01BirthOrder';
 import type { Par01Problems } from '../../hooks/usePar01Submission';
@@ -25,7 +26,27 @@ interface ScanPar01WorkspaceProps {
 export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({ state, order, problems, onPreviewPage, isSaving }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const round = state.metadata.fecha_recorrida;
-  const missingDates = state.rows.filter((r) => r.resultado.trim() !== '' && !r.fecha_nacimiento).length;
+
+  // R1: what this load brings that the order does not know yet, and what it only repeats.
+  const tally = useMemo(() => {
+    const result = { news: 0, already: 0, overdue: 0, differs: 0, missingDates: 0 };
+
+    state.rows.forEach((row) => {
+      const status = par01RowStatus(row, order.animalOf(row.caravana_madre));
+
+      if (status.kind === 'already') result.already += 1;
+      else if (status.kind === 'differs') result.differs += 1;
+      else if (status.kind === 'overdue_kept') result.overdue += 1;
+      else if (!status.mark.empty) {
+        result.news += 1;
+        if (status.mark.overdue && !status.mark.outcome) result.overdue += 1;
+        if (!row.fecha_nacimiento) result.missingDates += 1;
+      }
+    });
+
+    return result;
+  }, [state.rows, order]);
+  const missingDates = tally.missingDates;
 
   const handleFiles = async (files: FileList | null) => {
     for (const file of Array.from(files ?? [])) {
@@ -95,6 +116,7 @@ export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({ state, o
               <TransferOrderStatusChip status={order.order.status} />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 {order.order.pending_head_count} de {order.order.head_count} vientres pendientes
+                {order.order.overdue_head_count > 0 ? ` · ${order.order.overdue_head_count} con parto vencido` : ''}
               </Typography>
             </Stack>
           ) : (
@@ -143,10 +165,19 @@ export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({ state, o
       </Box>
 
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Chip size="small" color="primary" variant="outlined" label={`${tally.news} nueva(s)`} sx={{ fontWeight: 700 }} />
+          <Chip size="small" variant="outlined" label={`${tally.already} ya registrada(s)`} sx={{ fontWeight: 700 }} />
+          <Chip size="small" color="warning" variant="outlined" label={`${tally.overdue} parto(s) vencido(s)`} sx={{ fontWeight: 700 }} />
+          {tally.differs > 0 && (
+            <Chip size="small" color="warning" label={`${tally.differs} distinta(s) a lo registrado: se conserva lo registrado`} sx={{ fontWeight: 700 }} />
+          )}
+        </Stack>
         <ScanPar01Table rows={state.rows} order={order} problems={problems} onRowChange={state.updateRow} onDeleteRow={state.deleteRow} />
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="caption" color="text.secondary">
-            Sin resultado marcado = el vientre sigue pendiente. La cría nace en el lote de su madre. El padre es opcional: vacío usa el toro único o
+            Sin marcar = el vientre sigue pendiente. NM = el ternero nació sin vida · M = nació vivo y murió al pie · N = pasó su fecha y no
+            parió (alerta). Lo ya registrado se saltea. La cría nace en el lote de su madre. El padre es opcional: vacío usa el toro único o
             confirmado del servicio, o queda en Sires pendientes.
           </Typography>
           <Button size="small" onClick={state.addRow} disabled={isSaving} sx={{ textTransform: 'none', fontWeight: 700 }}>

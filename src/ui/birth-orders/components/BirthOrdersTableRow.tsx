@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
-import { Box, IconButton, LinearProgress, Stack, TableCell, TableRow, Tooltip, Typography, alpha } from '@mui/material';
+import { Box, Chip, IconButton, LinearProgress, Stack, TableCell, TableRow, Tooltip, Typography, alpha } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { BirthOrderSummary } from '@/features/birth-orders/types';
 import TransferOrderStatusChip, {
@@ -70,6 +70,17 @@ export const BirthOrdersTableRow: React.FC<BirthOrdersTableRowProps> = ({ order,
         <Stack direction="row" spacing={0.5} alignItems="center">
           <TransferOrderStatusChip status={order.status} />
           {order.kind === 'REGISTERED' && <TransferOrderKindChip />}
+          {order.overdue_head_count > 0 && (
+            <Tooltip title="Hembras que pasaron su fecha sin parir: la orden sigue abierta hasta que paran o se registre la pérdida.">
+              <Chip
+                size="small"
+                color="warning"
+                icon={<FuseSvgIcon size={14}>heroicons-outline:exclamation-triangle</FuseSvgIcon>}
+                label={`${order.overdue_head_count} parto(s) vencido(s)`}
+                sx={{ fontWeight: 700, height: 22, '& .MuiChip-label': { px: 0.75 } }}
+              />
+            </Tooltip>
+          )}
           {order.is_editable && (
             <Tooltip title="Emitir orden">
               <IconButton

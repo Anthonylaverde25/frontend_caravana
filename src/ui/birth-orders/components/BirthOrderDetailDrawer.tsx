@@ -163,7 +163,10 @@ export const BirthOrderDetailDrawer: React.FC<BirthOrderDetailDrawerProps> = ({ 
                 ? 'El borrador no tomaba vientres ni salió en papel. Queda descartado en el historial.'
                 : closing === 'cancel'
                   ? 'No se registró ningún parto con esta orden. Queda anulada con su motivo y los vientres quedan libres para otra orden.'
-                  : `Se resolvieron ${order.resolved_head_count} de ${order.head_count}. La orden se da por terminada; las ${order.pending_head_count} pendientes siguen preñadas: cerrar la orden no es declarar una pérdida.`
+                  : `Se resolvieron ${order.resolved_head_count} de ${order.head_count}. La orden se da por terminada; las ${order.pending_head_count} pendientes siguen preñadas: cerrar la orden no es declarar una pérdida.` +
+                    (order.overdue_head_count > 0
+                      ? ` Hay ${order.overdue_head_count} hembra(s) con parto vencido: la alerta seguirá en Monitoreo Gestacional.`
+                      : '')
             }
             confirmLabel={closing !== 'cancel' ? 'Cerrar incompleta' : order.is_editable ? 'Descartar borrador' : 'Anular orden'}
           />

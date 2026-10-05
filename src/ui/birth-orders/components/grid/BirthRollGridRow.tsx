@@ -1,8 +1,9 @@
 import React from 'react';
 import { Box, IconButton, MenuItem, TableCell, TableRow, TextField, Tooltip, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { BIRTH_OUTCOMES, BIRTH_OUTCOME_LABELS, BirthOutcome } from '@/features/birth-orders/types';
 import { dueLabel, stageLabel } from '../birthOrderFormat';
+import BirthBreedCoatCells, { BirthBreedOption } from './BirthBreedCoatCells';
+import BirthOutcomeCell from './BirthOutcomeCell';
 import BirthSireCell from './BirthSireCell';
 import type { BirthCellError, BirthRollFemale, BirthRollField, BirthRollValue } from './birthRollTypes';
 import { useGridCellStyles } from './useGridCellStyles';
@@ -12,22 +13,24 @@ interface BirthRollGridRowProps {
   female: BirthRollFemale;
   value: BirthRollValue;
   errors: BirthCellError[];
-  breeds: { id: number; name: string }[];
+  breeds: BirthBreedOption[];
   males: { id: number; identification: string }[];
   onChange: (change: Partial<BirthRollValue>) => void;
   onRemove?: () => void;
+  allowOverdue: boolean;
 }
 
-const OUTCOME_COLOR: Record<BirthOutcome, string> = { LIVE: 'success.main', STILLBORN: 'error.main', ABORTION: 'error.main' };
-
 /**
- * One pregnant female and what the round found. The calf cells open only for a live calving; the
- * date is asked for every outcome. A row left without outcome is a female that did not calve yet.
+ * One pregnant female and what the round found. The calf cells open only for a live calving; a
+ * calf born dead (NM) or dead at foot (M) asks at most its sex; the N alone asks only the day it was
+ * seen. The date and the observations are asked whenever something is declared. A row left empty
+ * is a female that did not calve yet.
  */
-export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, female, value, errors, breeds, males, onChange, onRemove }) => {
+export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, female, value, errors, breeds, males, onChange, onRemove, allowOverdue }) => {
   const { theme, cellSx, inputSx, headerBg, zebraBg } = useGridCellStyles();
   const live = value.outcome === 'LIVE';
-  const resolved = value.outcome !== '';
+  const calved = value.outcome !== '';
+  const resolved = calved || value.overdue;
   const hasError = (field: BirthRollField | 'mother') => errors.some((e) => e.field === field);
   const rowMessages = errors.map((e) => e.message);
 
@@ -61,25 +64,15 @@ export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, femal
       </TableCell>
 
       <TableCell sx={cellSx}>
-        <TextField
-          select
-          fullWidth
-          variant="outlined"
+        <BirthOutcomeCell
+          outcome={value.outcome}
+          overdue={value.overdue}
+          overdueReportedAt={female.overdueReportedAt}
+          allowOverdue={allowOverdue}
           error={hasError('outcome')}
-          value={value.outcome}
-          onChange={(e) => onChange({ outcome: e.target.value as BirthOutcome | '' })}
-          SelectProps={{ displayEmpty: true }}
-          sx={{ ...inputSx, '& .MuiSelect-select': { fontWeight: 700, color: resolved ? OUTCOME_COLOR[value.outcome as BirthOutcome] : 'text.disabled' } }}
-        >
-          <MenuItem value="">
-            <em>Sin parir aún</em>
-          </MenuItem>
-          {BIRTH_OUTCOMES.map((outcome) => (
-            <MenuItem key={outcome} value={outcome}>
-              {BIRTH_OUTCOME_LABELS[outcome]}
-            </MenuItem>
-          ))}
-        </TextField>
+          sx={inputSx}
+          onChange={onChange}
+        />
       </TableCell>
 
       <TableCell sx={cellSx}>{text('calfIdentification', { placeholder: live ? 'Caravana cría' : '' })}</TableCell>
@@ -89,7 +82,7 @@ export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, femal
           select
           fullWidth
           variant="outlined"
-          disabled={!live}
+          disabled={!calved}
           error={hasError('calfSex')}
           value={value.calfSex}
           onChange={(e) => onChange({ calfSex: e.target.value as 'M' | 'H' | '' })}
@@ -105,27 +98,17 @@ export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, femal
 
       <TableCell sx={cellSx}>{text('calfWeight', { type: 'number', placeholder: live ? '0.0' : '', align: 'right' })}</TableCell>
 
-      <TableCell sx={cellSx}>
-        <TextField
-          select
-          fullWidth
-          variant="outlined"
-          disabled={!live}
-          error={hasError('calfBreedId')}
-          value={value.calfBreedId}
-          onChange={(e) => onChange({ calfBreedId: e.target.value === '' ? '' : Number(e.target.value) })}
-          sx={inputSx}
-        >
-          <MenuItem value="">
-            <em>Sin raza</em>
-          </MenuItem>
-          {breeds.map((breed) => (
-            <MenuItem key={breed.id} value={breed.id}>
-              {breed.name}
-            </MenuItem>
-          ))}
-        </TextField>
-      </TableCell>
+      <BirthBreedCoatCells
+        breedId={value.calfBreedId}
+        colorId={value.calfColorId}
+        breeds={breeds}
+        disabled={!live}
+        breedError={hasError('calfBreedId')}
+        colorError={hasError('calfColorId')}
+        cellSx={cellSx}
+        inputSx={inputSx}
+        onChange={onChange}
+      />
 
       <TableCell sx={cellSx}>{text('calfTeeth', { type: 'number', align: 'right' })}</TableCell>
 
@@ -142,6 +125,10 @@ export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, femal
       </TableCell>
 
       <TableCell sx={cellSx}>{text('birthDate', { type: 'date', enabled: resolved })}</TableCell>
+
+      <TableCell sx={cellSx}>
+        {text('observations', { placeholder: resolved ? (calved && !live ? 'Causa observada' : 'Observaciones') : '', enabled: resolved })}
+      </TableCell>
 
       <TableCell align="center" sx={{ ...cellSx, borderRight: 0, width: 48 }}>
         {rowMessages.length > 0 ? (

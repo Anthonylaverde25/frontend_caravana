@@ -13,6 +13,9 @@ export interface GestationDTO {
   is_current: boolean;
   notes?: string | null;
   sires?: SireDTO[];
+  /** An N reported she passed her due date without calving: the alert is open while the gestation is. */
+  calving_overdue_reported_at?: string | null;
+  calving_overdue_days?: number | null;
 }
 
 export interface RegisterBirthDTO {
@@ -95,6 +98,9 @@ export interface CaravanDTO {
   active_gestation?: GestationDTO | null;
   lineage?: LineageDTO | null;
   physiological_state?: PhysiologicalStateDTO | null;
+  /** Calves born dead (NM), charged to her record. A calf that died at foot is not counted. */
+  stillborn_count?: number;
+  last_stillborn_date?: string | null;
 }
 
 /**
@@ -155,6 +161,8 @@ export class Caravan {
     public readonly physiological_state: PhysiologicalStateDTO | null = null,
     public readonly in_transit: boolean = false,
     public readonly in_possession: boolean = true,
+    public readonly stillborn_count: number = 0,
+    public readonly last_stillborn_date: string | null = null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -196,6 +204,8 @@ export class Caravan {
       dto.physiological_state ?? null,
       dto.in_transit ?? false,
       dto.in_possession ?? true,
+      dto.stillborn_count ?? 0,
+      dto.last_stillborn_date ?? null,
     );
   }
 

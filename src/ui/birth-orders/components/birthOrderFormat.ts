@@ -20,12 +20,12 @@ export const periodOf = (order: Pick<BirthOrderSummary, 'period_start' | 'period
   return start ? `Desde ${start}` : end ? `Hasta ${end}` : 'Sin período';
 };
 
-/** Where the season stands: calvings and losses so far. */
+/** Where the season stands: V · NM · M so far, and the losses registered outside the sheet. */
 export const outcomesOf = (order: BirthOrderSummary): string => {
-  const parts = [`${order.born_head_count} parto(s)`];
+  const parts = [`${order.born_head_count} V`, `${order.stillborn_head_count} NM`, `${order.born_died_head_count} M`];
+  const otherLosses = order.external_loss_head_count + order.abortion_head_count;
 
-  if (order.stillborn_head_count > 0) parts.push(`${order.stillborn_head_count} nac. muerto(s)`);
-  if (order.abortion_head_count > 0) parts.push(`${order.abortion_head_count} aborto(s)`);
+  if (otherLosses > 0) parts.push(`${otherLosses} pérdida(s) aparte`);
 
   return parts.join(' · ');
 };

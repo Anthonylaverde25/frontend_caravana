@@ -22,6 +22,8 @@ export interface Par01PrintHeader {
 export interface Par01PrintFemale {
   motherId: number;
   motherIdentification: string;
+  /** Reprinted for a female already reported past her due date: the day of that N, printed grey. */
+  overdueReportedAt?: string | null;
 }
 
 const EMPTY_HEADER: Par01PrintHeader = { orden_paricion: '', orden_es_borrador: false, lote: '', periodo: '', responsable: '' };

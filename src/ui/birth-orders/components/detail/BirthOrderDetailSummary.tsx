@@ -28,9 +28,13 @@ export const BirthOrderDetailSummary: React.FC<{ order: BirthOrder }> = ({ order
   <Stack spacing={2}>
     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
       <Kpi label="Vientres" value={order.head_count} />
-      <Kpi label="Parieron" value={order.born_head_count} tone="success.main" />
-      <Kpi label="Nac. muertos" value={order.stillborn_head_count} tone={order.stillborn_head_count > 0 ? 'error.main' : undefined} />
-      <Kpi label="Abortos" value={order.abortion_head_count} tone={order.abortion_head_count > 0 ? 'error.main' : undefined} />
+      <Kpi label="Parieron (V)" value={order.born_head_count} tone="success.main" />
+      <Kpi label="Nac. muertos (NM)" value={order.stillborn_head_count} tone={order.stillborn_head_count > 0 ? 'error.main' : undefined} />
+      <Kpi label="Murieron al pie (M)" value={order.born_died_head_count} tone={order.born_died_head_count > 0 ? 'warning.dark' : undefined} />
+      {order.external_loss_head_count + order.abortion_head_count > 0 && (
+        <Kpi label="Pérdidas aparte" value={order.external_loss_head_count + order.abortion_head_count} tone="error.main" />
+      )}
+      <Kpi label="Partos vencidos" value={order.overdue_head_count} tone={order.overdue_head_count > 0 ? 'warning.dark' : undefined} />
       <Kpi label="Pendientes" value={order.pending_head_count} tone={order.pending_head_count > 0 ? 'warning.main' : undefined} />
     </Stack>
 

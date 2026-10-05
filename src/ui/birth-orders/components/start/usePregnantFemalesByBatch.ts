@@ -19,7 +19,8 @@ export const femaleFromCaravan = (caravan: Caravan): BirthRollFemale => ({
   batchName: caravan.batch_name,
   dueDate: caravan.active_gestation?.estimated_due_date ?? null,
   stage: caravan.active_gestation?.gestation_stage ?? null,
-  sires: caravan.active_gestation?.sires ?? []
+  sires: caravan.active_gestation?.sires ?? [],
+  overdueReportedAt: caravan.active_gestation?.calving_overdue_reported_at ?? null
 });
 
 /** Every pregnant female of the company, as the grid and the selector show her. */

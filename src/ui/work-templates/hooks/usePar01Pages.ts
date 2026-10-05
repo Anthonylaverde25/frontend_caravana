@@ -25,6 +25,8 @@ export interface Par01Row {
   sexo: string;
   peso: string;
   raza: string;
+  /** The coat (pelaje), a name of the catalog: one the breed admits. */
+  pelaje: string;
   fecha_nacimiento: string;
   observations: string;
   dientes: string;
@@ -95,6 +97,7 @@ export const emptyPar01Row = (pageKey: string, id: string): Par01Row => ({
   sexo: '',
   peso: '',
   raza: '',
+  pelaje: '',
   fecha_nacimiento: '',
   observations: '',
   dientes: '0',
@@ -132,6 +135,7 @@ export const par01PageFromIdentifyResponse = (response: Par01IdentifyResponse, f
         sexo: text(r.sexo?.value).toUpperCase(),
         peso: cleanWeight(r.peso?.value),
         raza: text(r.raza?.value),
+        pelaje: text(r.pelaje?.value),
         fecha_nacimiento: normalizeSheetDate(r.fecha_nacimiento?.value),
         observations: text(r.observations?.value),
         fuera_de_orden: CROSSED.includes(text(r.fuera_de_orden?.value).toUpperCase()) ? 'X' : ''

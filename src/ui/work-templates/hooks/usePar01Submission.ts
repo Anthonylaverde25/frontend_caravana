@@ -45,6 +45,7 @@ export function usePar01Submission() {
             sexo: row.sexo || null,
             peso: row.peso === '' ? null : row.peso,
             raza: row.raza || null,
+            pelaje: row.pelaje || null,
             dientes: row.dientes === '' ? 0 : Number(row.dientes),
             father_id: row.father_id === '' ? null : Number(row.father_id),
             fecha_nacimiento: row.fecha_nacimiento || null,

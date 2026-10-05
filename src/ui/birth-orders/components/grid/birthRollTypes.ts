@@ -10,15 +10,21 @@ export interface BirthRollFemale {
   dueDate: string | null;
   stage: string | null;
   sires: SireDTO[];
+  /** Already reported past her due date without calving (OVERDUE line): the day of the N. */
+  overdueReportedAt: string | null;
 }
 
 /** What the screen declares for one female. Empty strings are "not said". */
 export interface BirthRollValue {
   outcome: BirthOutcome | '';
+  /** "No parió en fecha" (N): alone, an overdue alert; with an outcome, she calved late. */
+  overdue: boolean;
   calfIdentification: string;
   calfSex: 'M' | 'H' | '';
   calfWeight: string;
   calfBreedId: number | '';
+  /** The coat (pelaje): one the breed admits. */
+  calfColorId: number | '';
   calfTeeth: string;
   /** Empty: the gestation's single or confirmed sire, or "Sires pendientes". */
   fatherId: number | '';
@@ -36,10 +42,12 @@ export interface BirthCellError {
 
 export const emptyBirthValue = (): BirthRollValue => ({
   outcome: '',
+  overdue: false,
   calfIdentification: '',
   calfSex: '',
   calfWeight: '',
   calfBreedId: '',
+  calfColorId: '',
   // A newborn has no permanent teeth: 0 unless someone says otherwise.
   calfTeeth: '0',
   fatherId: '',
@@ -54,8 +62,12 @@ export const femaleFromOrderAnimal = (animal: BirthOrderAnimal): BirthRollFemale
   batchName: animal.current_batch_name ?? animal.source_batch_name,
   dueDate: animal.estimated_due_date,
   stage: animal.gestation_stage,
-  sires: animal.sires
+  sires: animal.sires,
+  overdueReportedAt: animal.status === 'OVERDUE' ? animal.overdue_reported_at : null
 });
+
+/** Something declared for this row: an outcome, or the N alone. */
+export const isDeclared = (value: BirthRollValue): boolean => value.outcome !== '' || value.overdue;
 
 /** The sire the system uses when none is chosen: the confirmed one, or the only candidate. */
 export const suggestedSire = (sires: SireDTO[]): SireDTO | null =>
@@ -65,14 +77,18 @@ const numberOrNull = (value: string): number | null => (value.trim() === '' ? nu
 
 export const toBirthFieldPayload = (female: BirthRollFemale, value: BirthRollValue): BirthFieldPayload => {
   const live = value.outcome === 'LIVE';
+  // NM and M may carry the sex of the calf that died; only N carries no calf at all.
+  const calved = value.outcome !== '';
 
   return {
     caravan_id: female.caravanId,
     outcome: value.outcome === '' ? null : value.outcome,
+    overdue: value.overdue,
     calf_identification: live ? value.calfIdentification.trim() || null : null,
-    calf_sex: live && value.calfSex !== '' ? value.calfSex : null,
+    calf_sex: calved && value.calfSex !== '' ? value.calfSex : null,
     calf_weight: live ? numberOrNull(value.calfWeight) : null,
     calf_breed_id: live && value.calfBreedId !== '' ? value.calfBreedId : null,
+    calf_color_id: live && value.calfColorId !== '' ? value.calfColorId : null,
     calf_teeth: live ? (numberOrNull(value.calfTeeth) ?? 0) : null,
     father_id: live && value.fatherId !== '' ? value.fatherId : null,
     birth_date: value.birthDate || null,
@@ -82,8 +98,8 @@ export const toBirthFieldPayload = (female: BirthRollFemale, value: BirthRollVal
 
 /** What still blocks sending one row: said in plain words, before the server says it per cell. */
 export const rowProblem = (value: BirthRollValue): string | null => {
-  if (value.outcome === '') return null;
-  if (!value.birthDate) return 'falta la fecha';
+  if (!isDeclared(value)) return null;
+  if (!value.birthDate) return value.outcome === '' ? 'falta la fecha en que se constató que no parió' : 'falta la fecha';
   if (value.outcome !== 'LIVE') return null;
   if (!value.calfIdentification.trim()) return 'falta la caravana de la cría';
   if (value.calfSex === '') return 'falta el sexo de la cría';
@@ -99,9 +115,11 @@ const FIELD_BY_SERVER: Record<string, BirthCellError['field']> = {
   sexo: 'calfSex',
   peso: 'calfWeight',
   raza: 'calfBreedId',
+  pelaje: 'calfColorId',
   dientes: 'calfTeeth',
   father_id: 'fatherId',
-  fecha_nacimiento: 'birthDate'
+  fecha_nacimiento: 'birthDate',
+  observations: 'observations'
 };
 
 /** The row errors of a PAR-01 422, by the mother's caravan id. */

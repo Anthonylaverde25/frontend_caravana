@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { BirthOrder } from '@/features/birth-orders/types';
-import { birthOrderErrorMessage, birthRowErrors } from '@/features/birth-orders/types';
+import { birthOrderErrorMessage, birthRowErrors, isOpenBirthLine } from '@/features/birth-orders/types';
 import { useExecuteBirthOrder } from '@/features/birth-orders/hooks/useBirthOrderMutations';
 import BirthRollGrid from '../grid/BirthRollGrid';
 import { cellErrorsByFemale, femaleFromOrderAnimal } from '../grid/birthRollTypes';
@@ -15,16 +15,21 @@ interface ExecuteBirthOrderDialogProps {
 
 /**
  * "Ejecutar orden" from the screen: one round, loaded by hand instead of scanning its sheet. The
- * pending females are listed soonest due first; the ones left without an outcome stay pending for
- * the next round. It goes through the same PAR-01 processing as the paper.
+ * open females are listed overdue first, then soonest due; the ones left without an outcome stay
+ * open for the next round. "No parió en fecha" alone reports a female past her due date. It goes
+ * through the same PAR-01 processing as the paper.
  */
 const ExecuteBirthOrderContent: React.FC<{ order: BirthOrder; onClose: () => void }> = ({ order, onClose }) => {
   const execute = useExecuteBirthOrder();
   const females = useMemo(
     () =>
       order.animals
-        .filter((a) => a.status === 'PENDING')
-        .sort((a, b) => (a.estimated_due_date ?? '9999').localeCompare(b.estimated_due_date ?? '9999'))
+        .filter((a) => isOpenBirthLine(a.status))
+        .sort(
+          (a, b) =>
+            Number(b.status === 'OVERDUE') - Number(a.status === 'OVERDUE') ||
+            (a.estimated_due_date ?? '9999').localeCompare(b.estimated_due_date ?? '9999')
+        )
         .map(femaleFromOrderAnimal),
     [order.animals]
   );
@@ -46,7 +51,9 @@ const ExecuteBirthOrderContent: React.FC<{ order: BirthOrder; onClose: () => voi
             </Box>
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {order.pending_head_count} vientre(s) pendientes. Los que dejes sin resultado siguen pendientes para la próxima recorrida.
+            {order.pending_head_count} vientre(s) pendientes
+            {order.overdue_head_count > 0 ? `, ${order.overdue_head_count} con parto vencido` : ''}. Los que dejes sin resultado siguen
+            pendientes para la próxima recorrida.
           </Typography>
         </Box>
         <IconButton size="small" onClick={onClose} disabled={execute.isPending}>
@@ -64,7 +71,7 @@ const ExecuteBirthOrderContent: React.FC<{ order: BirthOrder; onClose: () => voi
             {generalError}
           </Alert>
         )}
-        <BirthRollGrid females={females} state={roll} errors={errors} maxHeight="calc(100vh - 380px)" />
+        <BirthRollGrid females={females} state={roll} errors={errors} maxHeight="calc(100vh - 380px)" allowOverdue />
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 1.5 }}>
         <Button onClick={onClose} disabled={execute.isPending} color="inherit" sx={{ textTransform: 'none', fontWeight: 600 }}>

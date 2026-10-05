@@ -6,44 +6,110 @@ import type { TransferOrderHistoryEntry, TransferOrderKind, TransferOrderStatus 
  * It shares the lifecycle and the kind of transfer and weaning orders, with the same codes and
  * labels, so the chips, the status filter and the history timeline are theirs. What differs: there
  * is no destination (each calf is born in its mother's batch), the roll is of pregnant FEMALES, and
- * each line ends in what happened to her — a live calf, a stillbirth or an abortion.
+ * each line ends in what happened to her — a live calf (V), a calf born dead (NM, charged to the
+ * mother), a calf that died at foot (M, charged to the calf) or a loss registered outside the sheet.
+ * Before that, a line may be OVERDUE: she passed her due date without calving (N), an alert.
  */
 export type BirthOrderStatus = TransferOrderStatus;
 export type BirthOrderKind = TransferOrderKind;
-export type BirthOrderAnimalStatus = 'PENDING' | 'BORN' | 'LOST' | 'SKIPPED';
+export type BirthOrderAnimalStatus = 'PENDING' | 'OVERDUE' | 'BORN' | 'BORN_DIED' | 'LOST' | 'SKIPPED';
 
-/** Declared, never inferred from a calf tag being written. */
-export type BirthOutcome = 'LIVE' | 'STILLBORN' | 'ABORTION';
+/** Still waiting for the calving: the reprinted sheet lists these. */
+export const isOpenBirthLine = (status: BirthOrderAnimalStatus): boolean => status === 'PENDING' || status === 'OVERDUE';
 
-export const BIRTH_OUTCOMES: BirthOutcome[] = ['LIVE', 'STILLBORN', 'ABORTION'];
+/** Already registered: a reloaded sheet skips these. */
+export const isResolvedBirthLine = (status: BirthOrderAnimalStatus): boolean =>
+  status === 'BORN' || status === 'BORN_DIED' || status === 'LOST';
+
+/**
+ * Declared, never inferred from a calf tag being written. ABORTION is legacy: lines registered
+ * before the abortion left the sheet. It is never offered.
+ */
+export type BirthOutcome = 'LIVE' | 'STILLBORN' | 'PERINATAL_DEATH' | 'ABORTION';
+
+/** The outcomes the sheet and the screen offer. */
+export const BIRTH_OUTCOMES: BirthOutcome[] = ['LIVE', 'STILLBORN', 'PERINATAL_DEATH'];
 
 export const BIRTH_OUTCOME_LABELS: Record<BirthOutcome, string> = {
   LIVE: 'Parió',
-  STILLBORN: 'Nacido muerto',
+  STILLBORN: 'Nació muerto',
+  PERINATAL_DEATH: 'Murió al pie',
   ABORTION: 'Aborto'
 };
 
-/** The letter the PAR-01 sheet prints next to each box, and the one the scan reads back. */
+/** The letters the PAR-01 sheet prints next to each box, and the ones the scan reads back. */
 export const BIRTH_OUTCOME_MARKS: Record<BirthOutcome, string> = {
   LIVE: 'V',
-  STILLBORN: 'M',
+  STILLBORN: 'NM',
+  PERINATAL_DEATH: 'M',
   ABORTION: 'A'
 };
 
-/** The outcome a sheet or a screen wrote, or null when it is none of the three (two boxes crossed). */
-export const birthOutcomeFromText = (text: string | null | undefined): BirthOutcome | null => {
-  const value = (text ?? '')
+/** The box "No parió": she passed her due date without calving. */
+export const OVERDUE_MARK = 'N';
+
+const normalizeMark = (text: string | null | undefined): string =>
+  (text ?? '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .trim()
-    .toUpperCase();
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
+
+/** One outcome as a sheet or a screen wrote it, or null when it is none of the three. */
+export const birthOutcomeFromText = (text: string | null | undefined): BirthOutcome | null => {
+  const value = normalizeMark(text);
 
   if (['LIVE', 'V', 'VIVO', 'VIVA', 'PARIO', 'PARTO', 'NACIO VIVO'].includes(value)) return 'LIVE';
-  if (['STILLBORN', 'M', 'MUERTO', 'MUERTA', 'NACIDO MUERTO', 'NACIO MUERTO'].includes(value)) return 'STILLBORN';
-  if (['ABORTION', 'A', 'ABORTO', 'ABORTADA'].includes(value)) return 'ABORTION';
+  if (['STILLBORN', 'NM', 'NACIO MUERTO', 'NACIDO MUERTO', 'NACIDA MUERTA', 'MUERTO AL NACER'].includes(value)) return 'STILLBORN';
+  if (['PERINATAL_DEATH', 'M', 'MURIO', 'MUERTO', 'MUERTA', 'MURIO AL PIE', 'MUERTO AL PIE'].includes(value)) return 'PERINATAL_DEATH';
 
   return null;
 };
+
+/** The "resultado" cell, read: at most one outcome, plus the N. The mirror of the API's BirthSheetMark. */
+export interface BirthSheetMark {
+  outcome: BirthOutcome | null;
+  overdue: boolean;
+  abortion: boolean;
+  /** Two outcomes at once, or something that is not a mark. */
+  ambiguous: boolean;
+  empty: boolean;
+}
+
+export const parseBirthSheetMark = (text: string | null | undefined): BirthSheetMark => {
+  const value = normalizeMark(text);
+  const outcomes = new Set<BirthOutcome>();
+  let overdue = false;
+  let abortion = false;
+  let unknown = false;
+
+  const parts = value === '' ? [] : value.split(/[,;/+|]+/).map((part) => part.trim()).filter(Boolean);
+  const tokens = parts.flatMap((part) =>
+    birthOutcomeFromText(part) || ['N', 'NO PARIO'].includes(part) || part.includes(' ') === false ? [part] : part.split(' ')
+  );
+
+  tokens.forEach((token) => {
+    const outcome = birthOutcomeFromText(token);
+
+    if (outcome) outcomes.add(outcome);
+    else if (['N', 'NO PARIO', 'OVERDUE'].includes(token)) overdue = true;
+    else if (['A', 'ABORTO', 'ABORTADA', 'ABORTION'].includes(token)) abortion = true;
+    else unknown = true;
+  });
+
+  return {
+    outcome: outcomes.size === 1 ? [...outcomes][0] : null,
+    overdue,
+    abortion,
+    ambiguous: outcomes.size > 1 || unknown,
+    empty: tokens.length === 0
+  };
+};
+
+/** The cell a sheet would carry for an outcome and the N: "N, V", "NM", "N". */
+export const birthSheetMarkText = (outcome: BirthOutcome | null, overdue: boolean): string =>
+  [overdue ? OVERDUE_MARK : null, outcome ? BIRTH_OUTCOME_MARKS[outcome] : null].filter(Boolean).join(', ');
 
 export const GESTATION_STAGE_LABELS: Record<string, string> = { head: 'Cabeza', body: 'Cuerpo', tail: 'Cola' };
 
@@ -76,7 +142,15 @@ export interface BirthOrderAnimal {
   status: BirthOrderAnimalStatus;
   outcome: BirthOutcome | null;
   outcome_label: string | null;
+  /** A line closed by a loss registered outside the sheet (Monitoreo Gestacional): its real reason. */
+  loss_reason_code: string | null;
+  loss_reason_label: string | null;
   event_date: string | null;
+  /** N: the day she was found past her due date without calving. Kept after she calves. */
+  overdue_reported_at: string | null;
+  /** Days since the N, while the line is still OVERDUE. */
+  overdue_days: number | null;
+  overdue_notes: string | null;
   calf_caravan_id: number | null;
   calf_identification: string | null;
   calf_sex: string | null;
@@ -109,10 +183,18 @@ export interface BirthOrderSummary {
   head_count: number;
   resolved_head_count: number;
   born_head_count: number;
+  /** Calved a live calf that died at foot. */
+  born_died_head_count: number;
   lost_head_count: number;
   stillborn_head_count: number;
+  /** Lines closed by a loss registered outside the sheet. */
+  external_loss_head_count: number;
+  /** Legacy: abortions marked on the sheet before they left it. */
   abortion_head_count: number;
+  /** Open lines: PENDING and OVERDUE. */
   pending_head_count: number;
+  /** Past their due date without calving. */
+  overdue_head_count: number;
   skipped_head_count: number;
   unplanned_head_count: number;
   requested_by: { id: number; name: string | null } | null;
@@ -146,10 +228,14 @@ export interface EmitBirthOrderPayload {
 export interface BirthFieldPayload {
   caravan_id: number;
   outcome: BirthOutcome | null;
+  /** "No parió en fecha" (N). */
+  overdue?: boolean;
   calf_identification?: string | null;
   calf_sex?: 'M' | 'H' | null;
   calf_weight?: number | null;
   calf_breed_id?: number | null;
+  /** The coat (pelaje): a colour of the catalog that the breed admits. */
+  calf_color_id?: number | null;
   calf_teeth?: number | null;
   /** Optional: left empty, the gestation's single or confirmed sire is used, or it waits in "Sires pendientes". */
   father_id?: number | null;
@@ -187,9 +273,12 @@ export interface BirthOrderExecutionSummary {
   resolved_now: number;
   resolved_head_count: number;
   born_head_count: number;
+  born_died_head_count: number;
   lost_head_count: number;
   pending_head_count: number;
+  overdue_head_count: number;
   pending_identifications: string[];
+  overdue_animals: { identification: string; overdue_reported_at: string | null; estimated_due_date: string | null }[];
   /** The order was created on confirming a scanned sheet that carried none. */
   created_from_sheet?: boolean;
 }
@@ -199,11 +288,25 @@ export interface BirthResult {
   resolved_count: number;
   live_count: number;
   stillborn_count: number;
-  abortion_count: number;
+  perinatal_death_count: number;
+  overdue_new_count: number;
+  overdue_resolved_count: number;
+  overdue_open_count: number;
+  already_registered_count: number;
+  differs_count: number;
   males_count: number;
   females_count: number;
   unplanned_count: number;
   calves: { mother: string; calf: string; sex: string; batch_id: number | null; batch_name: string | null; father_id: number | null }[];
+  overdue_new: { mother: string; overdue_reported_at: string; estimated_due_date: string | null }[];
+  overdue_resolved: {
+    mother: string;
+    overdue_reported_at: string;
+    event_date: string;
+    days_after_report: number;
+    days_after_due: number | null;
+  }[];
+  already_registered: { row_index: number; caravana_madre: string; kind: 'already' | 'overdue_kept'; message: string }[];
   warnings: BirthWarning[];
   birth_order: BirthOrderExecutionSummary;
 }
