@@ -7,12 +7,15 @@ import {
   Button,
   Menu,
   alpha,
+  useTheme,
 } from "@mui/material";
 import { useCompany } from "@/contexts/CompanyContext";
 import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import { useContrastTheme } from "@/contexts/ContrastThemeContext";
+import { isColorDark, getContrastSurface } from "@/utils/colorUtils";
 
 const CompanySelector = () => {
+  const theme = useTheme();
   const { activeCompanyId, setActiveCompanyId, companies, loading, error } =
     useCompany();
   const { settings: contrastSettings } = useContrastTheme();
@@ -20,11 +23,32 @@ const CompanySelector = () => {
   const open = Boolean(anchorEl);
 
   const isContrastActive = contrastSettings.enabled;
+
+  // Compute whether header is perceptually dark across all presets & themes
+  const isHeaderDark =
+    isContrastActive && contrastSettings.headerBg
+      ? isColorDark(contrastSettings.headerBg)
+      : theme.palette.mode === "dark";
+
+  // Text color follows headerText if set, otherwise adapts to background darkness
   const headerTextColor =
     isContrastActive && contrastSettings.headerText
       ? contrastSettings.headerText
-      : "inherit";
+      : isHeaderDark
+      ? "#ffffff"
+      : theme.palette.text.primary;
 
+  const headerSubtextColor =
+    isContrastActive && contrastSettings.headerText
+      ? alpha(contrastSettings.headerText, 0.72)
+      : isHeaderDark
+      ? "rgba(255, 255, 255, 0.7)"
+      : theme.palette.text.secondary;
+
+  const primaryAccent =
+    contrastSettings.primaryButtonBg || theme.palette.primary.main;
+
+  const surface = getContrastSurface(isHeaderDark, open);
   const activeCompany = companies.find((c) => c.id === activeCompanyId);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -64,6 +88,7 @@ const CompanySelector = () => {
             onClick={handleClick}
             startIcon={
               <Box
+                className="company-badge"
                 sx={{
                   display: "flex",
                   alignItems: "center",
@@ -71,11 +96,10 @@ const CompanySelector = () => {
                   width: 22,
                   height: 22,
                   borderRadius: "6px",
-                  backgroundColor: (theme) =>
-                    isContrastActive
-                      ? "rgba(255, 255, 255, 0.18)"
-                      : alpha(theme.palette.primary.main, 0.12),
-                  color: isContrastActive ? "inherit" : "primary.main",
+                  backgroundColor: isHeaderDark
+                    ? "rgba(255, 255, 255, 0.16)"
+                    : alpha(primaryAccent, 0.12),
+                  color: isHeaderDark ? headerTextColor : primaryAccent,
                   transition: "all 0.15s ease",
                 }}
               >
@@ -90,7 +114,7 @@ const CompanySelector = () => {
                 className="transition-transform duration-200"
                 sx={{
                   transform: open ? "rotate(180deg)" : "none",
-                  color: isContrastActive ? headerTextColor : "text.secondary",
+                  color: `${headerSubtextColor} !important`,
                 }}
               >
                 heroicons-mini:chevron-down
@@ -102,46 +126,21 @@ const CompanySelector = () => {
               px: 1.25,
               height: 34,
               borderRadius: "8px",
-              border: (theme) =>
-                `1px solid ${
-                  isContrastActive
-                    ? "rgba(255, 255, 255, 0.28)"
-                    : open
-                    ? theme.palette.primary.main
-                    : theme.palette.mode === "dark"
-                    ? "rgba(255, 255, 255, 0.18)"
-                    : "rgba(0, 0, 0, 0.15)"
-                }`,
-              backgroundColor: (theme) =>
-                isContrastActive
-                  ? open
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : "rgba(255, 255, 255, 0.1)"
-                  : open
-                  ? alpha(theme.palette.primary.main, 0.12)
-                  : theme.palette.mode === "dark"
-                  ? alpha(theme.palette.common.white, 0.06)
-                  : alpha(theme.palette.action.hover, 0.65),
-              boxShadow: (theme) =>
-                theme.palette.mode === "dark"
-                  ? "none"
-                  : "0 1px 2px rgba(0, 0, 0, 0.05)",
+              cursor: "pointer",
               transition: "all 0.15s ease-in-out",
+              border: `1px solid ${surface.border}`,
+              backgroundColor: surface.bg,
+              boxShadow: surface.shadow,
               "&:hover": {
-                borderColor: (theme) =>
-                  isContrastActive
-                    ? "rgba(255, 255, 255, 0.5)"
-                    : theme.palette.primary.main,
-                backgroundColor: (theme) =>
-                  isContrastActive
-                    ? "rgba(255, 255, 255, 0.18)"
-                    : alpha(theme.palette.primary.main, 0.08),
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.08)",
-                "& .MuiBox-root": {
-                  backgroundColor: (theme) =>
-                    isContrastActive
-                      ? "rgba(255, 255, 255, 0.25)"
-                      : alpha(theme.palette.primary.main, 0.2),
+                borderColor: surface.hoverBorder,
+                backgroundColor: surface.hoverBg,
+                boxShadow: isHeaderDark
+                  ? "0 3px 8px rgba(0, 0, 0, 0.35)"
+                  : "0 2px 6px rgba(0, 0, 0, 0.1)",
+                "& .company-badge": {
+                  backgroundColor: isHeaderDark
+                    ? "rgba(255, 255, 255, 0.24)"
+                    : alpha(primaryAccent, 0.2),
                 },
               },
             }}
@@ -161,7 +160,7 @@ const CompanySelector = () => {
                   fontWeight: 700,
                   fontSize: 12.5,
                   lineHeight: 1.2,
-                  color: isContrastActive ? headerTextColor : "text.primary",
+                  color: `${headerTextColor} !important`,
                   maxWidth: { xs: 130, sm: 190, md: 240 },
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -173,14 +172,13 @@ const CompanySelector = () => {
               {activeCompany?.renspa && (
                 <Typography
                   component="span"
+                  className="company-renspa"
                   sx={{
                     fontSize: "0.62rem",
                     fontWeight: 600,
                     lineHeight: 1,
                     letterSpacing: "0.02em",
-                    color: isContrastActive
-                      ? "rgba(255, 255, 255, 0.75)"
-                      : "text.secondary",
+                    color: `${headerSubtextColor} !important`,
                     maxWidth: { xs: 120, sm: 170 },
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -203,10 +201,10 @@ const CompanySelector = () => {
             PaperProps={{
               sx: {
                 mt: 1,
-                minWidth: 220,
+                minWidth: 230,
                 borderRadius: "12px",
                 boxShadow:
-                  "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+                  "0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
                 border: (theme) => `1px solid ${theme.palette.divider}`,
               },
             }}
@@ -214,9 +212,9 @@ const CompanySelector = () => {
             <Box sx={{ px: 2, py: 1.5 }}>
               <Typography
                 variant="overline"
-                sx={{ fontWeight: 800, color: "text.secondary" }}
+                sx={{ fontWeight: 800, color: "text.secondary", letterSpacing: "0.05em" }}
               >
-                Mis Empresas
+                Haciendas & Empresas
               </Typography>
             </Box>
             {companies.map((company) => (
@@ -231,12 +229,10 @@ const CompanySelector = () => {
                   borderRadius: "8px",
                   mb: 0.5,
                   "&.Mui-selected": {
-                    backgroundColor: (theme) =>
-                      alpha(theme.palette.primary.main, 0.08),
+                    backgroundColor: alpha(primaryAccent, 0.1),
                     fontWeight: 700,
                     "&:hover": {
-                      backgroundColor: (theme) =>
-                        alpha(theme.palette.primary.main, 0.12),
+                      backgroundColor: alpha(primaryAccent, 0.16),
                     },
                   },
                 }}
@@ -246,6 +242,7 @@ const CompanySelector = () => {
                     variant="body2"
                     sx={{
                       fontWeight: company.id === activeCompanyId ? 700 : 500,
+                      color: company.id === activeCompanyId ? primaryAccent : "inherit",
                     }}
                   >
                     {company.name}

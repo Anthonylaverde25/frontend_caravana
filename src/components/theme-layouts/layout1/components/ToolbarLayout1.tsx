@@ -15,6 +15,7 @@ import UserMenu from '../../components/UserMenu';
 import LightDarkModeToggle from 'src/components/LightDarkModeToggle';
 import themeOptions from 'src/configs/themeOptions';
 import _ from 'lodash';
+import { isColorDark } from '@/utils/colorUtils';
 
 type ToolbarLayout1Props = {
   className?: string;
@@ -42,23 +43,37 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
         <AppBar
           id="fuse-toolbar"
           className={clsx('relative z-20 flex shadow-sm', className)}
-          sx={(theme) => ({
-            backgroundColor:
+          sx={(theme) => {
+            const isHeaderDark =
               isContrastActive && contrastSettings.headerBg
-                ? contrastSettings.headerBg
-                : theme.vars.palette.background.default,
-            color:
-              isContrastActive && contrastSettings.headerText
-                ? contrastSettings.headerText
-                : theme.vars.palette.text.primary,
-            ...(isContrastActive &&
-              contrastSettings.headerText && {
-                '& .MuiIconButton-root, & .MuiTypography-root, & .MuiSvgIcon-root, & svg': {
-                  color: `${contrastSettings.headerText} !important`
-                }
-              }),
-            borderBottom: `1px solid ${theme.vars.palette.divider}`
-          })}
+                ? isColorDark(contrastSettings.headerBg)
+                : theme.palette.mode === 'dark';
+
+            return {
+              backgroundColor:
+                isContrastActive && contrastSettings.headerBg
+                  ? contrastSettings.headerBg
+                  : theme.vars.palette.background.default,
+              color:
+                isContrastActive && contrastSettings.headerText
+                  ? contrastSettings.headerText
+                  : theme.vars.palette.text.primary,
+              ...(isContrastActive &&
+                contrastSettings.headerText && {
+                  '& .MuiIconButton-root, & .MuiSvgIcon-root, & svg': {
+                    color: `${contrastSettings.headerText} !important`
+                  },
+                  '& .MuiTypography-root:not(.company-renspa)': {
+                    color: `${contrastSettings.headerText}`
+                  }
+                }),
+              borderBottom: `1px solid ${
+                isHeaderDark
+                  ? 'rgba(255, 255, 255, 0.12)'
+                  : 'rgba(0, 0, 0, 0.1)'
+              }`
+            };
+          }}
         >
           <Toolbar className="h-12 min-h-12 p-0 md:h-12 md:min-h-12 flex items-center justify-between">
             {/* ── Left Zone: Navigation Toggle + Company Context ────── */}
@@ -66,7 +81,19 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
               {config.navbar.display && config.navbar.position === 'left' && (
                 <NavbarToggleButton />
               )}
-              <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1 }} />
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{
+                  mx: 0.5,
+                  my: 1,
+                  borderColor: isContrastActive && contrastSettings.headerBg
+                    ? isColorDark(contrastSettings.headerBg)
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'rgba(0, 0, 0, 0.12)'
+                    : undefined,
+                }}
+              />
               <CompanySelector />
             </div>
 
@@ -83,7 +110,19 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
                 darkTheme={_.find(themeOptions, { id: 'Default Dark' })}
               />
 
-              <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1 }} />
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{
+                  mx: 0.5,
+                  my: 1,
+                  borderColor: isContrastActive && contrastSettings.headerBg
+                    ? isColorDark(contrastSettings.headerBg)
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'rgba(0, 0, 0, 0.12)'
+                    : undefined,
+                }}
+              />
 
               <UserMenu
                 dense
