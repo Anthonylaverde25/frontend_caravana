@@ -60,6 +60,8 @@ import {
 	SireMethodWidget
 } from '../widgets/genetics/GeneticsWidgets';
 import { LabWorklistWidget, SiresWorklistWidget } from '../widgets/genetics/LiveWorklistWidgets';
+import { DteStatusWidget } from '../widgets/dte/DteStatusWidget';
+import { DteKpiWidget } from '../widgets/dte/DteKpiWidget';
 import { SUBCATEGORY_OPTIONS } from '../mocks/weightsMocks';
 
 export const WIDGET_CATEGORY_LABELS: Record<WidgetCategory, string> = {
@@ -656,6 +658,26 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
 		source: 'Reglas sobre los demás widgets',
 		dataStatus: MOCK,
 		component: AttentionWidget
+	},
+	{
+		id: 'ops-dte-kpi',
+		name: 'Hacienda en tránsito (DTe)',
+		description: 'Cabezas y documentos oficiales en viaje.',
+		category: 'GENETICS_OPERATIONS',
+		...KPI_SIZES,
+		source: 'API · /entry-orders',
+		dataStatus: 'LIVE',
+		component: DteKpiWidget
+	},
+	{
+		id: 'ops-dte-status',
+		name: 'Control y Estado de DTe',
+		description: 'Contabilización de DTe, cabezas en tránsito y conciliación de caravanas.',
+		category: 'GENETICS_OPERATIONS',
+		...TABLE_SIZES,
+		source: 'API · /entry-orders',
+		dataStatus: 'LIVE',
+		component: DteStatusWidget
 	}
 ];
 
