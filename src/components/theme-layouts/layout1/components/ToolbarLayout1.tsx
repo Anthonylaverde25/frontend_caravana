@@ -12,8 +12,10 @@ import { useContrastTheme } from '@/contexts/ContrastThemeContext';
 import QuickActionsSpeedDial from '../../components/QuickActionsSpeedDial';
 import HeaderOmniboxTrigger from '../../components/header/HeaderOmniboxTrigger';
 import NotificationsMenu from '../../components/header/NotificationsMenu';
-import HeaderSyncStatus from '../../components/header/HeaderSyncStatus';
 import UserMenu from '../../components/UserMenu';
+import LightDarkModeToggle from 'src/components/LightDarkModeToggle';
+import themeOptions from 'src/configs/themeOptions';
+import _ from 'lodash';
 
 type ToolbarLayout1Props = {
   className?: string;
@@ -74,11 +76,15 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
               <HeaderOmniboxTrigger />
             </div>
 
-            {/* ── Right Zone: Sync State, Notifications & User Identity ─ */}
+            {/* ── Right Zone: Theme Toggle, Notifications & User Identity ─ */}
             <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 shrink-0">
-              <HeaderSyncStatus />
-
               <NotificationsMenu />
+
+              <LightDarkModeToggle
+                className="h-8 w-8 p-0"
+                lightTheme={_.find(themeOptions, { id: 'Default' })}
+                darkTheme={_.find(themeOptions, { id: 'Default Dark' })}
+              />
 
               <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 1 }} />
 
