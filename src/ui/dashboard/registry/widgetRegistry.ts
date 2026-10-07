@@ -90,11 +90,11 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
 	{
 		id: 'stock-total',
 		name: 'Existencias',
-		description: 'Cabezas activas y variación a 30 días.',
+		description: 'Cabezas activas en la hacienda.',
 		category: 'STOCK',
 		...KPI_SIZES,
-		source: 'caravans · caravan_movements',
-		dataStatus: MOCK,
+		source: 'API · /caravans',
+		dataStatus: 'LIVE',
 		component: StockTotalWidget
 	},
 	{
@@ -133,8 +133,8 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
 		description: 'Cabezas por raza sobre el total.',
 		category: 'STOCK',
 		...KPI_SIZES,
-		source: 'caravans.breed_id · breeds',
-		dataStatus: MOCK,
+		source: 'API · /caravans',
+		dataStatus: 'LIVE',
 		component: StockByBreedWidget
 	},
 	{
