@@ -1,38 +1,31 @@
 import React, { useState } from 'react';
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Button, Stack, TextField } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import type { DteDraft, DteTroopContext } from './useDteDraft';
-import DteCaravansGrid from './DteCaravansGrid';
+import type { DteDraft } from './useDteDraft';
 
 interface DteEntryFormProps {
   draft: DteDraft;
-  troop: DteTroopContext;
+  /** Head bought still waiting for their document. */
+  pending: number;
+  /** "Registrar ingreso": the animals arrive with the DTE, so it asks the day they entered. */
+  withArrival?: boolean;
 }
 
 const filledSx = { '& .MuiFilledInput-root': { bgcolor: 'action.hover', borderRadius: '6px' } } as const;
 const linkSx = { textTransform: 'none', fontWeight: 600, fontSize: '0.75rem', minWidth: 0, px: 1, py: 0.25 } as const;
 
 /**
- * The DTE being loaded: its number and date, the caravans it lists and the count against what the
- * order still expects. Shared by "Cargar DTE" and by the confirmation of "Registrar ingreso"; only
- * the latter asks the entry day and weights, because there the animals arrive with the DTE. More
- * head (or more of a sex) than expected is not an error: it is warned before confirming and
- * recorded as an incident to settle with the provider.
+ * The DTE being loaded: its number, date and the head it declares, counted against what the order
+ * still expects. Shared by "Cargar DTE" and by the confirmation of "Registrar ingreso". More head
+ * than expected is not an error: it is warned before confirming and recorded as an incident to
+ * settle with the provider.
  */
-export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, troop }) => {
+export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, pending, withArrival = false }) => {
   const [showObservations, setShowObservations] = useState(draft.observations !== '');
   const today = new Date().toISOString().slice(0, 10);
   const headerError = (field: string) => draft.headerErrors.find((e) => e.field === field)?.message;
-  const over = draft.counts.total - troop.pending;
-  const maleLeft = Math.max(0, (troop.maleCount ?? 0) - troop.withDteMale);
-  const femaleLeft = Math.max(0, (troop.femaleCount ?? 0) - troop.withDteFemale);
-  const sexOver = troop.isMixed
-    ? [
-        draft.counts.male > maleLeft ? `${draft.counts.male - maleLeft} machos` : null,
-        draft.counts.female > femaleLeft ? `${draft.counts.female - femaleLeft} hembras` : null
-      ].filter(Boolean)
-    : [];
-  const otherErrors = draft.headerErrors.filter((e) => !['dte_number', 'dte_date', 'entered_at', 'received_at'].includes(e.field));
+  const over = draft.heads - pending;
+  const otherErrors = draft.headerErrors.filter((e) => !['dte_number', 'dte_date', 'head_count', 'entered_at', 'received_at'].includes(e.field));
 
   return (
     <Stack spacing={2.5}>
@@ -65,7 +58,21 @@ export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, troop }) => {
           helperText={headerError('dte_date')}
           sx={filledSx}
         />
-        {troop.withArrival && (
+        <TextField
+          label="Cabezas del DTE"
+          type="number"
+          required
+          fullWidth
+          variant="filled"
+          value={draft.headCount}
+          onChange={(e) => draft.setHeadCount(e.target.value)}
+          InputProps={{ disableUnderline: true }}
+          inputProps={{ min: 1 }}
+          error={!!headerError('head_count')}
+          helperText={headerError('head_count') ?? `${pending} ${pending === 1 ? 'cabeza espera' : 'cabezas esperan'} DTE`}
+          sx={filledSx}
+        />
+        {withArrival && (
           <TextField
             label="Fecha de ingreso"
             type="date"
@@ -84,50 +91,17 @@ export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, troop }) => {
         )}
       </Stack>
 
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>Caravanas</Typography>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: over > 0 ? 'warning.main' : over === 0 && draft.counts.total > 0 ? 'success.main' : 'text.secondary' }}>
-            {draft.counts.total} de {troop.pending === 1 ? 'la cabeza que espera' : `las ${troop.pending} cabezas que esperan`} DTE
-            {troop.isMixed ? ` · ${draft.counts.male}/${maleLeft} machos · ${draft.counts.female}/${femaleLeft} hembras` : ''}
-          </Typography>
-          <Box sx={{ flexGrow: 1 }} />
-          {troop.isMixed && draft.counts.blankSex > 0 && (
-            <>
-              <Button size="small" onClick={() => draft.assignBlank('sex', 'M')} sx={linkSx}>
-                Sin sexo → Macho
-              </Button>
-              <Button size="small" onClick={() => draft.assignBlank('sex', 'H')} sx={linkSx}>
-                Sin sexo → Hembra
-              </Button>
-            </>
-          )}
-          {troop.breeds.length > 1 &&
-            draft.counts.blankBreed > 0 &&
-            troop.breeds.map((breed) => (
-              <Button key={breed.position} size="small" onClick={() => draft.assignBlank('breed_position', breed.position)} sx={linkSx}>
-                Sin raza → {breed.letter}
-              </Button>
-            ))}
-        </Box>
-
-        <Stack spacing={1}>
-          {(over > 0 || sexOver.length > 0) && (
-            <Alert severity="warning" sx={{ borderRadius: '6px', py: 0 }}>
-              {over > 0
-                ? `Este DTE trae ${over} ${over === 1 ? 'cabeza más' : 'cabezas más'} que las compradas`
-                : `Este DTE trae ${sexOver.join(' y ')} de más`}
-              ; se registrará una novedad para revisar con el proveedor. La carga no se bloquea.
-            </Alert>
-          )}
-          {otherErrors.map((e) => (
-            <Alert key={e.code} severity="error" sx={{ borderRadius: '6px', py: 0 }}>
-              {e.message}
-            </Alert>
-          ))}
-          <DteCaravansGrid draft={draft} troop={troop} />
-        </Stack>
-      </Box>
+      {over > 0 && (
+        <Alert severity="warning" sx={{ borderRadius: '6px', py: 0 }}>
+          Este DTE declara {over} {over === 1 ? 'cabeza más' : 'cabezas más'} que las compradas; se registrará una novedad para revisar con el
+          proveedor. La carga no se bloquea.
+        </Alert>
+      )}
+      {otherErrors.map((e) => (
+        <Alert key={e.code} severity="error" sx={{ borderRadius: '6px', py: 0 }}>
+          {e.message}
+        </Alert>
+      ))}
 
       {showObservations ? (
         <TextField

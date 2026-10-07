@@ -18,8 +18,6 @@ export interface Caravan {
   sex: string | null;
   entry_date: string | null;
   batch_name: string | null;
-  /** Listed in a DTE that has not arrived: not stock yet. */
-  in_transit?: boolean;
   female_details?: {
     is_empty: boolean;
     arrival_category: string;
@@ -87,9 +85,6 @@ export const getCaravanColumns = (): MRT_ColumnDef<Caravan>[] => [
         <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '0.875rem' }}>
           {cell.getValue<string>()}
         </Typography>
-        {row.original.in_transit && (
-          <Chip label="En tránsito" size="small" color="warning" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
-        )}
       </Box>
     ),
   },

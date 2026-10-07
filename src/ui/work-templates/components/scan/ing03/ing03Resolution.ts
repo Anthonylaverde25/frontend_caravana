@@ -1,15 +1,25 @@
-import type { EntryOrder, EntryOrderAnimal, EntryOrderReceiptSheet, ReceivePayload } from '@/features/entry-orders/types';
+import type { DteRowError, EntryOrder, EntryOrderDte, EntryOrderReceiptSheet, ReceivePayload } from '@/features/entry-orders/types';
+import { inheritedSexOf } from '@/features/entry-orders/categoryLines';
 import type { Ing03Metadata, Ing03Page, Ing03Row } from '../../../hooks/useIng03Pages';
+import { ing03LayoutOf } from '../../../templates/ing03/ing03Columns';
+import { findingsOf, lineReferencesOf, parseBodyCondition, parseWeight } from './ing03LineChecks';
 
 /** What a line of the sheet does once confirmed. */
-export type Ing03Outcome = 'received' | 'missing' | 'later' | 'unlisted' | 'ignored' | 'error';
+export type Ing03Outcome = 'received' | 'ignored' | 'error';
 
 export interface Ing03RowResolution {
   outcome: Ing03Outcome;
-  /** The caravan of the order the line names, if any. */
-  animal: EntryOrderAnimal | null;
   /** Why, when it is not the plain case: an error blocks, a warning is to check, an info explains. */
   note: { severity: 'error' | 'warning' | 'info'; message: string } | null;
+  /** What a written breed, coat or category could say instead, as the server answered: a click away. */
+  fix?: { field: 'raza' | 'pelaje' | 'cat'; candidates: string[] };
+}
+
+/** What the reviewer declares about the head of the DTE that no line names. */
+export interface Ing03Missing {
+  /** Head declared as never arriving; the rest arrive later. */
+  count: number;
+  reason: string;
 }
 
 export interface Ing03Resolution {
@@ -19,30 +29,21 @@ export interface Ing03Resolution {
   /** Things to check that do not block. */
   headerWarnings: string[];
   counts: Record<Ing03Outcome, number>;
+  sheet: EntryOrderReceiptSheet | null;
+  dte: EntryOrderDte | null;
+  /** Head of the DTE left in transit after this reception, before declaring any missing. */
+  left: number;
   /** The reception, ready to send when there are no errors. */
   payload: ReceivePayload | null;
+  /** The lines the payload sends, in its order: the server reports row errors by this index. */
+  sentRowIds: string[];
 }
 
-const OUTCOMES: Ing03Outcome[] = ['received', 'missing', 'later', 'unlisted', 'ignored', 'error'];
-
-const parseWeight = (raw: string): number | null | 'invalid' => {
-  if (raw.trim() === '') return null;
-
-  const value = Number(raw.replace(',', '.'));
-
-  return Number.isFinite(value) && value > 0 ? value : 'invalid';
-};
-
-/** The official body condition scale: 1 to 5, in steps of 0.5. */
-const parseBodyCondition = (raw: string): number | null | 'invalid' => {
-  if (raw.trim() === '') return null;
-
-  const value = Number(raw.replace(',', '.'));
-
-  return Number.isFinite(value) && value >= 1 && value <= 5 && Number.isInteger(value * 2) ? value : 'invalid';
-};
+const OUTCOMES: Ing03Outcome[] = ['received', 'ignored', 'error'];
 
 const kg = (value: number) => `${value.toLocaleString('es-AR')} kg`;
+
+const numberOrNull = (value: number | null | 'invalid'): number | null => (typeof value === 'number' ? value : null);
 
 /**
  * The pages the reception covers. A page whose number was not read counts by load order only when
@@ -61,15 +62,21 @@ const pagesOf = (pages: Ing03Page[], sheet: EntryOrderReceiptSheet, warnings: st
 };
 
 /**
- * Each line of a scanned ING-03 against the order it names. A caravan of the order still in
- * transit is received (Llegó), declared missing (No llega) or left in transit (unmarked: it arrives
- * later). A caravan no DTE of the order lists, written on a free line, arrived without document: it
- * is not received, it is reported as an incident. Everything the paper says that cannot be true is
- * an error on its line; what is odd but possible is a warning. A person supervises it all before
- * confirming.
+ * A scanned ING-03 against the order it names. Every line written is an animal that arrived on the
+ * sheet's DTE: its caravan is created when the reception is registered. Sex is checked only on a
+ * troop of both sexes, the category only when the animal's sex admits several of the order's
+ * categories (otherwise it is the only one its sex admits) and the breed only on one of several;
+ * the rest is inherited. On a sheet by code the number and letter are checked here; on a sheet in
+ * words, what is written goes to the server, which resolves it against the order and answers line
+ * by line. The boxes of an injured eye, ear or limb travel with the line; marked on a line without
+ * caravan, they belong to no animal. More
+ * lines than head in transit are received anyway and raise an incident; fewer leave head in
+ * transit, unless the reviewer declares them as never arriving. Everything the paper says that
+ * cannot be true is an error on its line; what is odd but possible is a warning. A person
+ * supervises it all before confirming.
  *
  * A sheet weighed with one average has no weight per line: the PESO PROMEDIO of its header is the
- * weight of every caravan that arrived. The body condition (EC) of a line is optional; written, it
+ * weight of every animal that arrived. The body condition (EC) of a line is optional; written, it
  * must be on the official scale.
  */
 export const resolveIng03 = (
@@ -77,6 +84,7 @@ export const resolveIng03 = (
   pages: Ing03Page[],
   rows: Ing03Row[],
   metadata: Ing03Metadata,
+  missing: Ing03Missing,
   today: string
 ): Ing03Resolution => {
   const resolutions = new Map<string, Ing03RowResolution>();
@@ -87,65 +95,59 @@ export const resolveIng03 = (
     resolutions.set(row.id, resolution);
     counts[resolution.outcome] += 1;
   };
+  const empty = (): Ing03Resolution => ({ rows: resolutions, headerErrors, headerWarnings, counts, sheet: null, dte: null, left: 0, payload: null, sentRowIds: [] });
 
   if (!metadata.orden_ingreso) headerErrors.push('La hoja no trae el código de la orden de ingreso: escribilo en el encabezado.');
   if (!order) {
     if (metadata.orden_ingreso) headerErrors.push(`No existe la orden de ingreso ${metadata.orden_ingreso}: corregí el código leído.`);
 
-    return { rows: resolutions, headerErrors, headerWarnings, counts, payload: null };
+    return empty();
   }
 
   const sheet = order.receipt_sheets.find((s) => s.label === metadata.hoja_recepcion) ?? null;
+  const dte = sheet ? (order.dtes.find((d) => d.id === sheet.dte_id) ?? null) : null;
 
-  if (!sheet) {
+  if (!sheet || !dte) {
     headerErrors.push(
       metadata.hoja_recepcion
         ? `La orden ${order.code} no tiene la hoja de recepción ${metadata.hoja_recepcion}: corregí el número leído.`
         : 'La hoja no trae su número de hoja de recepción (R1, R2…): escribilo en el encabezado.'
     );
-  } else {
-    if (sheet.status === 'REPLACED') {
-      headerWarnings.push(`La hoja ${sheet.label} había sido reemplazada por una más nueva. Se puede cargar igual: lo que dice el papel pasó.`);
-    }
-    if (sheet.status === 'PROCESSED') {
-      headerWarnings.push(`La hoja ${sheet.label} ya se procesó: las caravanas ya recibidas se marcan abajo y no se cargan dos veces.`);
-    }
-    if (metadata.dte && metadata.dte.toUpperCase() !== sheet.dte_number.toUpperCase()) {
-      headerWarnings.push(`La hoja dice DTE ${metadata.dte} y la ${sheet.label} es del DTE ${sheet.dte_number}: vale el de la orden.`);
-    }
+
+    return empty();
   }
 
-  if (!order.accepts_reception) {
-    headerErrors.push(`La orden ${order.code} está ${order.status_label.toLowerCase()} y no tiene hacienda en tránsito por recibir.`);
+  if (sheet.status === 'REPLACED') {
+    headerWarnings.push(`La hoja ${sheet.label} había sido reemplazada por una más nueva. Se puede cargar igual: lo que dice el papel pasó.`);
+  }
+  if (metadata.dte && metadata.dte.toUpperCase() !== sheet.dte_number.toUpperCase()) {
+    headerWarnings.push(`La hoja dice DTE ${metadata.dte} y la ${sheet.label} es del DTE ${sheet.dte_number}: vale el de la orden.`);
+  }
+  // Head to write: in transit, or received by count without caravan (also on a closed order).
+  const toIdentify = order.accepts_reception ? dte.to_identify_count : dte.uncaravaned_count;
+  if (toIdentify === 0) {
+    headerErrors.push(`El DTE ${dte.dte_number} de la orden ${order.code} no tiene cabezas en tránsito ni sin caravana por recibir.`);
   }
 
   if (!metadata.fecha_recepcion) headerErrors.push('Falta la fecha de recepción.');
   else if (metadata.fecha_recepcion > today) headerErrors.push('La fecha de recepción no puede ser futura.');
+  else if (metadata.fecha_recepcion < dte.dte_date) headerErrors.push('La hacienda no pudo llegar antes de que se emitiera su DTE.');
 
-  const averaged = sheet?.weighing_mode === 'AVERAGE';
+  const averaged = sheet.weighing_mode === 'AVERAGE';
   const average = averaged ? parseWeight(metadata.peso_promedio) : null;
 
-  if (averaged) {
-    if (average === 'invalid') {
-      headerErrors.push(`El peso promedio "${metadata.peso_promedio}" no es un número mayor que cero.`);
-    } else if (average !== null && ((order.min_weight != null && average < order.min_weight) || (order.max_weight != null && average > order.max_weight))) {
-      headerWarnings.push(
-        `El peso promedio de ${kg(average)} está fuera del rango declarado en la compra (${order.min_weight ?? '—'} a ${order.max_weight ?? '—'} kg). Revisá la lectura.`
-      );
-    }
-
-    const written = [...new Set(pages.map((p) => parseWeight(p.metadata.peso_promedio)).filter((w): w is number => typeof w === 'number'))];
-
-    if (written.length > 1) {
-      headerWarnings.push(
-        `Las hojas traen pesos promedio distintos (${written.map(kg).join(', ')}): se usa el de arriba para todas las caravanas que llegaron. Corregilo si no es el que vale.`
-      );
-    }
+  if (average === 'invalid') {
+    headerErrors.push(`El peso promedio "${metadata.peso_promedio}" no es un número mayor que cero.`);
+  } else if (average !== null && ((order.min_weight != null && average < order.min_weight) || (order.max_weight != null && average > order.max_weight))) {
+    headerWarnings.push(
+      `El peso promedio de ${kg(average)} está fuera del rango declarado en la compra (${order.min_weight ?? '—'} a ${order.max_weight ?? '—'} kg). Revisá la lectura.`
+    );
   }
 
-  const byIdentification = new Map(
-    order.dtes.flatMap((dte) => (dte.animals ?? []).map((animal) => [animal.identification.toUpperCase(), { animal, dte }] as const))
-  );
+  const layout = ing03LayoutOf(order, sheet);
+  const inheritedSex = inheritedSexOf(order.sex_composition);
+  const animals = new Map<string, NonNullable<ReceivePayload['animals']>[number]>();
+  const received = new Map(order.dtes.flatMap((d) => (d.animals ?? []).map((a) => [a.identification.toUpperCase(), a] as const)));
   const seen = new Set<string>();
 
   rows.forEach((row) => {
@@ -153,150 +155,113 @@ export const resolveIng03 = (
     // A sheet weighed with one average has no weight column: whatever the line says does not count.
     const weight = averaged ? null : parseWeight(row.peso);
     const bodyCondition = parseBodyCondition(row.ec);
+    const error = (message: string) => set(row, { outcome: 'error', note: { severity: 'error', message } });
 
+    if (tag === '' && findingsOf(row).length > 0) {
+      return error('Renglón con una lesión marcada y sin caravana: escribí la caravana del animal o desmarcá la casilla.');
+    }
     if (tag === '') {
-      set(row, { outcome: 'ignored', animal: null, note: { severity: 'warning', message: 'Renglón sin caravana: no se carga. Escribila o borrá el renglón.' } });
+      set(row, { outcome: 'ignored', note: { severity: 'warning', message: 'Renglón sin caravana: no se carga. Escribila o borrá el renglón.' } });
       return;
     }
-
-    if (seen.has(tag)) {
-      set(row, { outcome: 'error', animal: null, note: { severity: 'error', message: `La caravana ${tag} está dos veces en la hoja.` } });
-      return;
-    }
+    if (seen.has(tag)) return error(`La caravana ${tag} está dos veces en la hoja.`);
     seen.add(tag);
 
-    if (row.llego && row.no_llega) {
-      set(row, { outcome: 'error', animal: null, note: { severity: 'error', message: 'Tiene marcadas las dos casillas: dejá sólo Llegó o No llega.' } });
-      return;
-    }
+    const already = received.get(tag);
+    if (already) return error(`La caravana ${tag} ya se recibió el ${already.received_at} en esta orden: no se carga de nuevo.`);
+    const references = lineReferencesOf(order, layout, row, inheritedSex);
+    if (references.error) return error(references.error);
+    if (weight === 'invalid') return error(`El peso "${row.peso}" no es un número mayor que cero.`);
+    if (bodyCondition === 'invalid') return error(`El EC "${row.ec}" no está en la escala oficial: de 1 a 5, de 0,5 en 0,5 (1 · 1,5 · 2 … 5).`);
 
-    if (weight === 'invalid') {
-      set(row, { outcome: 'error', animal: null, note: { severity: 'error', message: `El peso "${row.peso}" no es un número mayor que cero.` } });
-      return;
-    }
-
-    if (bodyCondition === 'invalid') {
-      set(row, {
-        outcome: 'error',
-        animal: null,
-        note: { severity: 'error', message: `El EC "${row.ec}" no está en la escala oficial: de 1 a 5, de 0,5 en 0,5 (1 · 1,5 · 2 … 5).` }
-      });
-      return;
-    }
-
-    const match = byIdentification.get(tag);
-
-    if (!match) {
-      if (row.no_llega) {
-        set(row, { outcome: 'error', animal: null, note: { severity: 'error', message: `${tag} no está en ningún DTE de la orden: "No llega" no aplica. Revisá la lectura.` } });
-        return;
-      }
-
-      set(row, {
-        outcome: 'unlisted',
-        animal: null,
-        note: {
-          severity: 'warning',
-          message: `${tag} no figura en ningún DTE de la orden: no entra al stock, queda como novedad "Caravana sin DTE" para reclamar el DTE.${row.llego ? '' : ' Se toma como llegada porque se escribió en un renglón libre.'}`
-        }
-      });
-      return;
-    }
-
-    const { animal, dte } = match;
-
-    if (animal.reception_status !== 'PENDING') {
-      set(row, {
-        outcome: 'ignored',
-        animal,
-        note: {
-          severity: 'info',
-          message: animal.reception_status === 'RECEIVED' ? `Ya se recibió el ${animal.received_at ?? ''}: no se carga de nuevo.` : 'Ya se declaró que no llegará: no se carga de nuevo.'
-        }
-      });
-      return;
-    }
-
-    const otherDte = sheet && dte.id !== sheet.dte_id ? `Es del DTE ${dte.dte_number}, no del de la hoja. ` : '';
-
-    if (row.llego) {
-      set(row, { outcome: 'received', animal, note: otherDte ? { severity: 'info', message: `${otherDte}Se recibe igual.` } : null });
-      return;
-    }
-
-    if (row.no_llega) {
-      set(row, {
-        outcome: 'missing',
-        animal,
-        note: weight !== null ? { severity: 'warning', message: `${otherDte}Marcada "No llega" pero tiene peso: revisá cuál de las dos es.` } : otherDte ? { severity: 'info', message: otherDte } : null
-      });
-      return;
-    }
-
-    set(row, {
-      outcome: 'later',
-      animal,
-      note: weight !== null ? { severity: 'warning', message: 'Tiene peso pero no está marcada como llegada: queda en tránsito. Marcá "Llegó" si llegó.' } : null
+    animals.set(row.id, {
+      caravana: tag,
+      ...references.animal,
+      weight: averaged ? numberOrNull(average) : numberOrNull(weight),
+      body_condition: numberOrNull(bodyCondition),
+      arrival_findings: findingsOf(row)
     });
+    set(row, { outcome: 'received', note: references.warning ? { severity: 'warning', message: references.warning } : null });
   });
 
-  if (counts.missing > 0 && metadata.motivo_no_llegan.trim().length < 3) {
-    headerErrors.push(`Hay ${counts.missing === 1 ? '1 caravana marcada' : `${counts.missing} caravanas marcadas`} "No llega": falta el motivo.`);
-  }
+  const excess = counts.received - toIdentify;
+  // Lines that identify head already received do not leave anything in transit.
+  const left = Math.max(0, dte.pending_count - Math.max(0, counts.received - dte.uncaravaned_count));
 
-  if (counts.received + counts.missing + counts.unlisted === 0) {
-    headerErrors.push('La hoja no marca ninguna caravana como llegada ni como que no llega.');
+  if (excess > 0 && !order.accepts_reception) {
+    headerErrors.push(
+      `La orden ${order.code} está cerrada: la hoja sólo puede identificar las ${dte.uncaravaned_count} cabezas recibidas sin caravana y trae ${counts.received}.`
+    );
+  } else if (excess > 0) {
+    headerWarnings.push(
+      `El DTE ${dte.dte_number} tiene ${toIdentify} ${toIdentify === 1 ? 'cabeza' : 'cabezas'} por recibir y la hoja trae ${counts.received}: ${excess} de más se reciben igual y queda una novedad para el proveedor.`
+    );
   }
-
+  if (counts.received === 0 && missing.count === 0) headerErrors.push('La hoja no trae ninguna caravana escrita.');
+  if (missing.count > left) headerErrors.push(`Quedan ${left} cabezas en tránsito: no pueden faltar ${missing.count}.`);
+  if (missing.count > 0 && missing.reason.trim().length < 3) headerErrors.push('Indicá por qué no van a llegar las cabezas que faltan.');
   if (averaged && average === null && counts.received > 0) {
     headerWarnings.push('La hoja es de peso promedio y no se escribió el peso: las caravanas se reciben sin peso. Escribilo arriba si se pesaron.');
   }
 
-  const blocked = headerErrors.length > 0 || counts.error > 0 || !sheet;
-  const lines = rows.map((row) => ({ row, resolution: resolutions.get(row.id) }));
-  const weightOf = (row: Ing03Row): number | null => {
-    if (averaged) return typeof average === 'number' ? average : null;
-
-    const weight = parseWeight(row.peso);
-
-    return weight === 'invalid' ? null : weight;
-  };
-  const bodyConditionOf = (row: Ing03Row): number | null => {
-    const score = parseBodyCondition(row.ec);
-
-    return score === 'invalid' ? null : score;
-  };
+  const blocked = headerErrors.length > 0 || counts.error > 0;
+  const sentRowIds = [...animals.keys()];
 
   return {
     rows: resolutions,
     headerErrors,
     headerWarnings,
     counts,
-    payload:
-      blocked || !sheet
-        ? null
-        : {
-            method: 'SHEET',
-            received_at: metadata.fecha_recepcion,
-            dte_id: null,
-            receipt_sheet_id: sheet.id,
-            pages: pagesOf(pages, sheet, headerWarnings),
-            received: lines
-              .filter((l) => l.resolution?.outcome === 'received')
-              .map((l) => ({ caravan_id: l.resolution!.animal!.caravan_id, weight: weightOf(l.row), body_condition: bodyConditionOf(l.row) })),
-            missing: lines.filter((l) => l.resolution?.outcome === 'missing').map((l) => l.resolution!.animal!.caravan_id),
-            reason: counts.missing > 0 ? metadata.motivo_no_llegan.trim() : null,
-            unlisted: lines
-              .filter((l) => l.resolution?.outcome === 'unlisted')
-              .map((l) => ({
-                identification: l.row.caravana.trim().toUpperCase(),
-                sex: l.row.sexo === 'M' || l.row.sexo === 'H' ? l.row.sexo : null,
-                breed: l.row.raza.trim() || null,
-                coat: l.row.pelaje.trim() || null,
-                // The average goes to the caravans that are received; an animal without DTE is not received.
-                weight: averaged ? null : weightOf(l.row),
-                body_condition: bodyConditionOf(l.row)
-              }))
-          }
+    sheet,
+    dte,
+    left,
+    payload: blocked
+      ? null
+      : {
+          method: 'SHEET',
+          received_at: metadata.fecha_recepcion,
+          dte_id: dte.id,
+          receipt_sheet_id: sheet.id,
+          pages: pagesOf(pages, sheet, headerWarnings),
+          animals: [...animals.values()],
+          missing_head_count: missing.count,
+          reason: missing.count > 0 ? missing.reason.trim() : null
+        },
+    sentRowIds
   };
+};
+
+/** The cell of the review a server field points to. */
+const FIX_FIELD: Record<string, 'raza' | 'pelaje' | 'cat'> = { breed_text: 'raza', color_text: 'pelaje', category_text: 'cat' };
+
+/**
+ * The review with what the server said about each line of the last attempt: a written breed or
+ * category it could not resolve marks its line, with the candidates to pick from.
+ */
+export const withServerRowErrors = (resolution: Ing03Resolution, rowErrors: DteRowError[] | undefined): Ing03Resolution => {
+  if (!rowErrors?.length) return resolution;
+
+  const rows = new Map(resolution.rows);
+  const counts = { ...resolution.counts };
+
+  rowErrors.forEach((rowError) => {
+    const id = resolution.sentRowIds[rowError.row];
+    const current = id ? rows.get(id) : undefined;
+
+    if (!id || !current) return;
+
+    if (current.outcome !== 'error') {
+      counts[current.outcome] -= 1;
+      counts.error += 1;
+    }
+
+    const field = FIX_FIELD[rowError.field];
+    rows.set(id, {
+      outcome: 'error',
+      note: { severity: 'error', message: rowError.message },
+      ...(field && rowError.candidates?.length ? { fix: { field, candidates: rowError.candidates } } : {})
+    });
+  });
+
+  return { ...resolution, rows, counts };
 };

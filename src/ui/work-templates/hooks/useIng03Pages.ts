@@ -11,27 +11,46 @@ export interface Ing03Metadata {
   hoja_recepcion: string;
   dte: string;
   fecha_recepcion: string;
-  motivo_no_llegan: string;
+  /** The OBSERVACIONES box of the last page. */
+  observaciones: string;
   /** Only on a sheet weighed with one average: the PESO PROMEDIO cell of the header. */
   peso_promedio: string;
 }
 
-/** One line of the sheet as read, then supervised: a caravan and what the chute marked. */
+/**
+ * One line of the sheet as read, then supervised: an animal that arrived, its caravan written by
+ * the chute. Sex only on a troop of both sexes; category only when a sex admits several of the
+ * order's; breed (and coat) only on an order of several. Category and breed are kept as written —
+ * a number and a letter on a sheet by code, words on a sheet written in words — and read by the
+ * sheet's mode when the review resolves them. The three boxes are "X" when marked.
+ */
 export interface Ing03Row {
   id: string;
   pageKey: string;
   pageNumber: number | null;
   caravana: string;
   sexo: string;
+  /** The category as written: its number (1, 2…) or its name. */
+  cat: string;
+  /** The breed as written: its letter (A, B…) or its name. */
   raza: string;
+  /** The coat, on a sheet written in words. */
   pelaje: string;
-  /** 'X' when the box is crossed. */
-  llego: string;
-  no_llega: string;
   /** Body condition, official scale 1 to 5 (as written: "3.5"). */
   ec: string;
   peso: string;
+  /** What the animal came off the truck with: "X" when the box is marked. */
+  ojo: string;
+  oreja: string;
+  aplomo: string;
 }
+
+/** The boxes of the arrival findings, by the field that holds each one. */
+export const ING03_FINDING_FIELDS = [
+  ['ojo', 'EYE'],
+  ['oreja', 'EAR'],
+  ['aplomo', 'LIMB']
+] as const;
 
 export interface Ing03Page {
   key: string;
@@ -55,9 +74,6 @@ export interface Ing03IdentifyResponse {
 
 const MANUAL_PAGE_KEY = 'manual';
 
-/** What the scan returns for a crossed box — the same list PAR-01 accepts. */
-const CROSSED = ['X', '✓', '✔', 'SI', 'SÍ', 'TRUE', '1'];
-
 const text = (raw: unknown): string => String(raw ?? '').trim();
 
 const cellText = (raw: unknown): string => text(raw && typeof raw === 'object' && 'value' in (raw as object) ? (raw as ExtractedCell).value : raw);
@@ -75,7 +91,19 @@ export const normalizeSheetLabel = (raw: unknown): string => {
   return digits ? `R${Number(digits)}` : '';
 };
 
-const crossed = (raw: unknown): string => (CROSSED.includes(text(raw).toUpperCase()) ? 'X' : '');
+/** A word as written, without the dots and spaces around it: "Braford.", " col " → "BRAFORD", "COL". */
+const cleanWord = (raw: unknown): string =>
+  text(raw)
+    .toUpperCase()
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}.]+$/gu, '')
+    .replace(/\s+/g, ' ');
+
+/** A box: anything inked on it is a mark ("X", "✓", "/"); "no" or a dash is not. */
+const cleanMark = (raw: unknown): string => {
+  const value = text(raw).toUpperCase();
+
+  return value === '' || value === 'NO' || value === '-' || value === 'FALSE' ? '' : 'X';
+};
 
 /** Handwritten weights may come with a comma decimal separator or a trailing unit. */
 const cleanWeight = (raw: unknown): string => text(raw).replace(/kg/i, '').replace(',', '.').trim();
@@ -91,12 +119,14 @@ export const emptyIng03Row = (pageKey: string, id: string, pageNumber: number | 
   pageNumber,
   caravana: '',
   sexo: '',
+  cat: '',
   raza: '',
   pelaje: '',
-  llego: '',
-  no_llega: '',
   ec: '',
-  peso: ''
+  peso: '',
+  ojo: '',
+  oreja: '',
+  aplomo: ''
 });
 
 /** Turns a POST /work-templates/identify response of an ING-03 page into a page of the sheet. */
@@ -118,7 +148,7 @@ export const ing03PageFromIdentifyResponse = (response: Ing03IdentifyResponse, f
       hoja_recepcion: normalizeSheetLabel(cellText(context.hoja_recepcion)),
       dte: cellText(context.dte),
       fecha_recepcion: normalizeSheetDate(cellText(context.fecha_recepcion)),
-      motivo_no_llegan: cellText(context.motivo_no_llegan),
+      observaciones: cellText(context.observaciones),
       peso_promedio: cleanWeight(cellText(context.peso_promedio))
     },
     rows: mappedRows
@@ -126,19 +156,21 @@ export const ing03PageFromIdentifyResponse = (response: Ing03IdentifyResponse, f
         ...emptyIng03Row(key, `${key}-${idx}`, hojaNumero),
         caravana: text(r.caravana?.value).toUpperCase(),
         sexo: text(r.sexo?.value).toUpperCase(),
-        raza: text(r.raza?.value),
-        pelaje: text(r.pelaje?.value),
-        llego: crossed(r.llego?.value),
-        no_llega: crossed(r.no_llega?.value),
+        cat: cleanWord(r.cat?.value),
+        raza: cleanWord(r.raza?.value),
+        pelaje: cleanWord(r.pelaje?.value),
         ec: cleanBodyCondition(r.ec?.value),
-        peso: cleanWeight(r.peso?.value)
+        peso: cleanWeight(r.peso?.value),
+        ojo: cleanMark(r.lesion_ojo?.value),
+        oreja: cleanMark(r.lesion_oreja?.value),
+        aplomo: cleanMark(r.lesion_aplomo?.value)
       }))
-      // A free line nobody wrote on is not a row; a printed caravan always is, marked or not.
-      .filter((r) => r.caravana !== '' || r.llego !== '' || r.no_llega !== '' || r.ec !== '' || r.peso !== '')
+      // A line nobody wrote on is a head that has not arrived, not a row.
+      .filter((r) => (['caravana', 'sexo', 'cat', 'raza', 'pelaje', 'ec', 'peso', 'ojo', 'oreja', 'aplomo'] as const).some((field) => r[field] !== ''))
   };
 };
 
-const EMPTY_METADATA: Ing03Metadata = { orden_ingreso: '', hoja_recepcion: '', dte: '', fecha_recepcion: '', motivo_no_llegan: '', peso_promedio: '' };
+const EMPTY_METADATA: Ing03Metadata = { orden_ingreso: '', hoja_recepcion: '', dte: '', fecha_recepcion: '', observaciones: '', peso_promedio: '' };
 
 /**
  * State of an ING-03 load: the pages of one receipt sheet, scanned and confirmed together. A page
@@ -164,11 +196,11 @@ export function useIng03Pages() {
       if (!first) {
         setMetadata(page.metadata);
       } else {
-        // The date, the reason and the average may be written on any page: the first one written counts.
+        // The date, the observations and the average may be written on any page: the first one written counts.
         setMetadata((prev) => ({
           ...prev,
           fecha_recepcion: prev.fecha_recepcion || page.metadata.fecha_recepcion,
-          motivo_no_llegan: prev.motivo_no_llegan || page.metadata.motivo_no_llegan,
+          observaciones: prev.observaciones || page.metadata.observaciones,
           peso_promedio: prev.peso_promedio || page.metadata.peso_promedio
         }));
       }

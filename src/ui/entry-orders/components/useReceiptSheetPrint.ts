@@ -6,8 +6,9 @@ import { ing03Url } from '@/ui/work-templates/templates/ing03';
 type SheetDte = EntryOrderSummary['dtes'][number];
 
 /**
- * Opens the ING-03 of a DTE to print it: the sheet still out, if it lists what is in transit now;
- * otherwise a new one is issued (replacing it) and opened. Shared by the tray and the order detail.
+ * Opens the ING-03 of a DTE to print it: the sheet still out, unless the DTE's head were corrected
+ * since it was issued; otherwise a new one is issued (replacing it) and opened. Shared by the tray
+ * and the order detail.
  */
 export const useReceiptSheetPrint = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export const useReceiptSheetPrint = () => {
   const open = (order: EntryOrderSummary, dte: SheetDte) => {
     const current = order.receipt_sheets?.find((s) => s.dte_id === dte.id && s.is_active);
 
-    if (current && current.caravan_ids.length === dte.in_transit_count) {
+    if (current && !current.outdated) {
       navigate(ing03Url(order.id, current.id));
       return;
     }

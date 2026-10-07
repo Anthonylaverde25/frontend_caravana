@@ -50,6 +50,7 @@ export const EntryOrdersView: React.FC = () => {
       DRAFT: 0,
       AWAITING_DTE: 0,
       IN_TRANSIT: 0,
+      RECEIVED: 0,
       COMPLETED: 0,
       CLOSED_INCOMPLETE: 0,
       CANCELLED: 0,

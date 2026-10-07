@@ -12,12 +12,17 @@ const requiredNumber = (message: string) =>
     z.number({ required_error: message, invalid_type_error: message })
   );
 
+/** Head of the troop: the sum of its categories' head (0 while none is declared). */
+export const headCountOf = (lines: { head_count?: unknown }[] | undefined): number =>
+  (lines ?? []).reduce<number>((sum, line) => sum + (Number(line.head_count) || 0), 0);
+
 /**
  * The troop of an entry order as the "Nueva orden de ingreso" form holds it, as needed to confirm
  * the purchase. The same rules the server applies (EntryTroop), checked here first so the form
  * marks the field before submitting. A draft is held to draftErrorsOf() instead.
- * Whether the category admits the declared sexes is enforced by the form itself, which fixes the
- * composition when the category has a single sex.
+ * A troop brings one or more categories, each with its head; the head of the troop is their sum.
+ * Whether the categories admit the declared sexes is enforced by the form itself, which fixes the
+ * composition when the categories leave a single one, and by the server.
  */
 export const externalBatchSchema = z
   .object({
@@ -30,8 +35,14 @@ export const externalBatchSchema = z
       .regex(/^[A-Za-z0-9]*$/, 'Sólo letras y números'),
     batch_name_mode: z.enum(['AUTO', 'CUSTOM']),
     batch_name: z.string().trim().max(255),
-    head_count: requiredNumber('Indicá las cabezas').pipe(z.number().int().min(1, 'Al menos una cabeza')),
-    category_id: requiredNumber('Elegí la categoría'),
+    categories: z
+      .array(
+        z.object({
+          category_id: z.number().nullable(),
+          head_count: optionalNumber
+        })
+      )
+      .min(1, 'Declará al menos una categoría'),
     sex_composition: z.enum(['MALE', 'FEMALE', 'MIXED'], {
       required_error: 'Indicá el sexo'
     }),
@@ -77,11 +88,27 @@ export const externalBatchSchema = z
       issue('batch_name', 'Escribí el nombre del lote');
     }
 
+    const categoryIds = new Set<number>();
+
+    data.categories.forEach((line, index) => {
+      const lineIssue = (field: 'category_id' | 'head_count', message: string) =>
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['categories', index, field], message });
+
+      if (line.category_id == null) lineIssue('category_id', 'Elegí la categoría');
+      else if (categoryIds.has(line.category_id)) lineIssue('category_id', 'Categoría repetida: sumá sus cabezas en un renglón');
+      else categoryIds.add(line.category_id);
+
+      if (line.head_count == null) lineIssue('head_count', 'Indicá las cabezas');
+      else if (!Number.isInteger(line.head_count) || line.head_count < 1) lineIssue('head_count', 'Al menos una cabeza');
+    });
+
+    const headCount = headCountOf(data.categories);
+
     if (data.sex_composition === 'MIXED') {
       if (!data.male_count || !data.female_count) {
         issue('male_count', 'Indicá cuántos machos y cuántas hembras');
-      } else if (data.male_count + data.female_count !== data.head_count) {
-        issue('male_count', `Machos y hembras suman ${data.male_count + data.female_count}, no ${data.head_count}`);
+      } else if (data.male_count + data.female_count !== headCount) {
+        issue('male_count', `Machos y hembras suman ${data.male_count + data.female_count}, no ${headCount}`);
       }
     }
 
@@ -140,8 +167,7 @@ export const emptyExternalBatchForm = (): ExternalBatchFormInput => ({
   auction_number: '',
   batch_name_mode: 'AUTO',
   batch_name: '',
-  head_count: undefined,
-  category_id: undefined,
+  categories: [{ category_id: null, head_count: null }],
   sex_composition: undefined as unknown as 'MALE',
   male_count: null,
   female_count: null,
@@ -167,8 +193,10 @@ export const formFromOrder = (order: EntryOrder): ExternalBatchFormInput => ({
   auction_number: order.auction_number ?? '',
   batch_name_mode: order.batch_name_mode,
   batch_name: order.batch_name_mode === 'CUSTOM' ? (order.batch_name ?? '') : '',
-  head_count: order.head_count ?? undefined,
-  category_id: order.category.id ?? undefined,
+  categories:
+    order.categories.length > 0
+      ? order.categories.map((c) => ({ category_id: c.category_id, head_count: c.head_count }))
+      : [{ category_id: null, head_count: null }],
   sex_composition: order.sex_composition ?? (undefined as unknown as 'MALE'),
   male_count: order.male_count,
   female_count: order.female_count,
@@ -208,8 +236,9 @@ export const toDraftPayload = (input: ExternalBatchFormInput): Omit<StoreEntryOr
     auction_number: text(input.auction_number),
     batch_name_mode: input.batch_name_mode,
     batch_name: input.batch_name_mode === 'CUSTOM' ? text(input.batch_name) : null,
-    head_count: num(input.head_count),
-    category_id: num(input.category_id),
+    categories: input.categories
+      .filter((c) => c.category_id != null)
+      .map((c) => ({ category_id: c.category_id as number, head_count: num(c.head_count) })),
     sex_composition: input.sex_composition ?? null,
     male_count: mixed ? num(input.male_count) : null,
     female_count: mixed ? num(input.female_count) : null,
@@ -239,8 +268,7 @@ export const toEntryOrderPayload = (values: ExternalBatchFormValues): Omit<Store
     auction_number: text(values.auction_number),
     batch_name_mode: values.batch_name_mode,
     batch_name: values.batch_name_mode === 'CUSTOM' ? values.batch_name : null,
-    head_count: values.head_count,
-    category_id: values.category_id,
+    categories: values.categories.map((c) => ({ category_id: c.category_id as number, head_count: c.head_count })),
     sex_composition: values.sex_composition,
     male_count: mixed ? values.male_count : null,
     female_count: mixed ? values.female_count : null,

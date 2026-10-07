@@ -79,10 +79,6 @@ export interface CaravanDTO {
   provider_name?: string | null;
   provenance?: Record<string, any> | null;
   is_operational?: boolean;
-  /** Listed in a DTE of an entry order that has not arrived: ours, but not stock yet. */
-  in_transit?: boolean;
-  /** False while in transit, or when it was declared as never arriving. */
-  in_possession?: boolean;
   batch_id?: number | null;
   batch?: {
     id: number;
@@ -159,8 +155,6 @@ export class Caravan {
     public readonly subcategory_code: string | null = null,
     public readonly subcategory_name: string | null = null,
     public readonly physiological_state: PhysiologicalStateDTO | null = null,
-    public readonly in_transit: boolean = false,
-    public readonly in_possession: boolean = true,
     public readonly stillborn_count: number = 0,
     public readonly last_stillborn_date: string | null = null,
   ) {}
@@ -202,8 +196,6 @@ export class Caravan {
       dto.subcategory_code ?? null,
       dto.subcategory_name ?? null,
       dto.physiological_state ?? null,
-      dto.in_transit ?? false,
-      dto.in_possession ?? true,
       dto.stillborn_count ?? 0,
       dto.last_stillborn_date ?? null,
     );

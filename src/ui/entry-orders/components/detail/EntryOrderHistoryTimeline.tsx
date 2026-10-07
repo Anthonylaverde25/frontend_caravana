@@ -15,22 +15,34 @@ const describe = (entry: EntryOrderHistoryEntry): string => {
     method?: 'CHUTE' | 'MANUAL' | 'SHEET';
     received?: number;
     missing?: number;
-    unlisted?: number;
     receipt_sheet?: string | null;
     pages?: number[] | null;
-    caravans?: number;
+    expected_head_count?: number;
+    from?: number;
+    to?: number;
     weighing_mode_label?: string;
+    reference_mode_label?: string;
     incident_resolved?: string;
   } | null;
 
   if (meta?.action === 'receipt_sheet_issued') {
-    const weighing = meta.weighing_mode_label ? ` · ${meta.weighing_mode_label.toLowerCase()}` : '';
+    const weighing = [meta.weighing_mode_label, meta.reference_mode_label].filter(Boolean).map((label) => ` · ${label!.toLowerCase()}`).join('');
 
-    return `Hoja de recepción ${meta.receipt_sheet} emitida: DTE ${meta.dte_number}, ${meta.caravans ?? 0} caravana(s) en tránsito${weighing}`;
+    return `Hoja de recepción ${meta.receipt_sheet} emitida: DTE ${meta.dte_number}, ${meta.expected_head_count ?? 0} cabeza(s) en tránsito${weighing}`;
+  }
+
+  if (meta?.action === 'dte_head_count_corrected') {
+    return `DTE ${meta.dte_number} corregido: de ${meta.from} a ${meta.to} cabezas → ${to}`;
   }
 
   if (meta?.action === 'receipt_sheet_weighing_changed') {
     return `Hoja de recepción ${meta.receipt_sheet}: ahora con ${meta.weighing_mode_label?.toLowerCase() ?? 'otro modo de peso'}`;
+  }
+
+  if (meta?.action === 'receipt_sheet_reference_changed' || meta?.action === 'receipt_sheet_configured') {
+    const now = [meta.weighing_mode_label, meta.reference_mode_label].filter(Boolean).map((label) => label!.toLowerCase());
+
+    return `Hoja de recepción ${meta.receipt_sheet}: ahora ${now.join(' y ') || 'con otra configuración'}`;
   }
 
   // A reception also names its DTE, so it is recognised first.
@@ -45,9 +57,8 @@ const describe = (entry: EntryOrderHistoryEntry): string => {
             ? `del DTE ${meta.dte_number}`
             : 'a mano';
     const missing = meta.missing ? ` · ${meta.missing} no llegarán` : '';
-    const unlisted = meta.unlisted ? ` · ${meta.unlisted} sin DTE` : '';
 
-    return `Recepción ${where}: ${meta.received ?? 0} recibida(s)${missing}${unlisted} → ${to}`;
+    return `Recepción ${where}: ${meta.received ?? 0} recibida(s)${missing} → ${to}`;
   }
 
   if (meta?.incident_resolved) {

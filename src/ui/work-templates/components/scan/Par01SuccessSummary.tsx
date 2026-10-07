@@ -1,7 +1,8 @@
 import React from 'react';
-import { Alert, Box, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Paper, Stack, Typography } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { BirthResult } from '@/features/birth-orders/types';
-import { formatDate } from '@/ui/birth-orders/components/birthOrderFormat';
+import { formatDate, sheetUrl } from '@/ui/birth-orders/components/birthOrderFormat';
 
 const Figure: React.FC<{ label: string; value: React.ReactNode; tone?: string }> = ({ label, value, tone }) => (
   <Paper variant="outlined" sx={{ p: 1.25, borderRadius: '8px', flex: 1, minWidth: 90 }}>
@@ -38,6 +39,19 @@ export const Par01SuccessSummary: React.FC<{ result: BirthResult }> = ({ result 
         <Figure label="Pendientes" value={order.pending_head_count} />
         <Figure label="Partos vencidos" value={order.overdue_head_count} tone={order.overdue_head_count > 0 ? 'warning.dark' : undefined} />
       </Stack>
+      <Box>
+        <Button
+          size="small"
+          variant="outlined"
+          href={sheetUrl(order.id)}
+          target="_blank"
+          rel="noopener"
+          startIcon={<FuseSvgIcon size={16}>heroicons-outline:printer</FuseSvgIcon>}
+          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '6px' }}
+        >
+          Imprimir planilla de la orden {order.code}
+        </Button>
+      </Box>
       {order.overdue_animals.length > 0 && (
         <Alert severity="warning" sx={{ borderRadius: '6px' }}>
           <strong>Hembras con parto vencido (en riesgo):</strong>{' '}

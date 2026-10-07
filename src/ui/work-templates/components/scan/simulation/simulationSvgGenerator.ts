@@ -21,7 +21,7 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
     case 'TOR-01':
       secondaryContextText = `VET: ${context.veterinarian_name || 'Dr. Esteban Rossi'} | MP: ${context.veterinarian_license || '4892-BA'} | RONDA: ${context.sample_round || 1} | EVALUACIÓN: Manga Central`;
       columns = [
-        { label: '#', width: 35, align: 'center' },
+        { label: '#', width: 30, align: 'center' },
         { label: 'TORO / TAG', width: 110, align: 'left' },
         { label: 'CE (CM)', width: 75, align: 'center' },
         { label: 'CC', width: 55, align: 'center' },
@@ -312,18 +312,34 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
 
     case 'ING-03':
       secondaryContextText = `ORDEN: ${context.orden_ingreso || '—'} | HOJA: ${context.hoja_recepcion || '—'} | DTE: ${context.dte || '—'} | RECEPCIÓN: ${context.fecha_recepcion || '—'}${context.peso_promedio ? ` | PESO PROMEDIO: ${context.peso_promedio} kg` : ''}`;
+      // One blank line per head in transit: the chute writes the caravan of each animal that arrives,
+      // and marks an X on the boxes of what it came off the truck with.
       columns = [
-        { label: '#', width: 45, align: 'center' },
-        { label: 'CARAVANA', width: 170, align: 'left' },
-        { label: 'SEXO', width: 50, align: 'center' },
-        { label: 'RAZA', width: 90, align: 'left' },
-        { label: 'PELAJE', width: 80, align: 'left' },
-        { label: 'LLEGÓ', width: 70, align: 'center' },
-        { label: 'NO LLEGA', width: 75, align: 'center' },
-        { label: 'EC', width: 50, align: 'center' },
-        { label: 'PESO (KG)', width: 95, align: 'right' },
+        { label: '#', width: 35, align: 'center' },
+        { label: 'CARAVANA', width: 140, align: 'left' },
+        { label: 'SEXO', width: 45, align: 'center' },
+        { label: 'CATEGORÍA', width: 90, align: 'left' },
+        { label: 'RAZA', width: 80, align: 'left' },
+        { label: 'PELAJE', width: 75, align: 'left' },
+        { label: 'EC', width: 40, align: 'center' },
+        { label: 'PESO', width: 60, align: 'right' },
+        { label: 'OJO', width: 45, align: 'center' },
+        { label: 'OREJA', width: 55, align: 'center' },
+        { label: 'APLOMO', width: 60, align: 'center' },
       ];
-      formatRowCells = (r, idx) => [String(idx + 1), r.caravana || '', r.sexo || '', r.raza || '', r.pelaje || '', r.llego || '', r.no_llega || '', r.ec || '', r.peso || ''];
+      formatRowCells = (r, idx) => [
+        String(idx + 1),
+        r.caravana || '',
+        r.sexo || '',
+        r.cat || '',
+        r.raza || '',
+        r.pelaje || '',
+        r.ec || '',
+        r.peso || '',
+        r.lesion_ojo || '',
+        r.lesion_oreja || '',
+        r.lesion_aplomo || '',
+      ];
       break;
 
     case 'ING-01':

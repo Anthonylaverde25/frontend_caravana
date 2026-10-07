@@ -1,4 +1,4 @@
-import type { EntryOrderSummary } from '@/features/entry-orders/types';
+import type { EntryOrderSummary, ReceptionMethod } from '@/features/entry-orders/types';
 
 export { formatDate, formatDateTime, useTransferOrderTableStyles as useEntryOrderTableStyles } from '@/ui/transfer-orders/components/transferOrderFormat';
 
@@ -6,16 +6,25 @@ export { formatDate, formatDateTime, useTransferOrderTableStyles as useEntryOrde
 export const originOf = (order: EntryOrderSummary): string =>
   [order.provider.name, order.farm.name].filter(Boolean).join(' · ') || '—';
 
-/** "40 Ternero · Ambos (25 M / 15 H)"; what a draft has declared so far, or "Sin declarar". */
+/** "6 Novillito + 4 Torito"; the label of each category line. */
+export const categoriesOf = (order: Pick<EntryOrderSummary, 'categories'>): string =>
+  order.categories.map((c) => c.label).join(' + ');
+
+/**
+ * "40 Ternero · Ambos (25 M / 15 H)", or with several categories "15 cab. (6 Novillito + 4 Torito +
+ * 5 Vaquillona) · Ambos (10 M / 5 H)"; what a draft has declared so far, or "Sin declarar".
+ */
 export const troopOf = (order: EntryOrderSummary): string => {
-  if (order.head_count == null && order.category.name == null && order.sex_composition == null) return 'Sin declarar';
+  if (order.categories.length === 0 && order.sex_composition == null) return 'Sin declarar';
 
   const sexes =
     order.sex_composition === 'MIXED' && order.male_count != null && order.female_count != null
       ? `Ambos (${order.male_count} M / ${order.female_count} H)`
       : order.sex_composition_label;
+  const bought =
+    order.categories.length > 1 && order.head_count != null ? `${order.head_count} cab. (${categoriesOf(order)})` : categoriesOf(order);
 
-  return [[order.head_count, order.category.name].filter((v) => v != null).join(' '), sexes].filter(Boolean).join(' · ');
+  return [bought, sexes].filter(Boolean).join(' · ');
 };
 
 /** "A · Braford Colorado, B · Brangus Negro". */
@@ -38,13 +47,22 @@ export const tracksReception = (order: Pick<EntryOrderSummary, 'status' | 'dte_c
 export const isTroopComplete = (order: EntryOrderSummary): boolean =>
   order.batch_name != null &&
   order.head_count != null &&
-  order.category.id != null &&
+  order.categories.length > 0 &&
   order.sex_composition != null &&
   order.condition != null &&
   order.knows_to_eat != null &&
   order.tick_vaccinated != null &&
   order.estimated_weight != null &&
   order.breeds.length > 0;
+
+/** "1 cabeza", "3 cabezas". */
+export const headsOf = (count: number): string => (count === 1 ? '1 cabeza' : `${count} cabezas`);
+
+export const RECEPTION_METHOD_LABELS: Record<ReceptionMethod, string> = {
+  MANUAL: 'a mano',
+  SHEET: 'planilla ING-03',
+  CHUTE: 'manga'
+};
 
 /** "1 caravana", "3 caravanas". */
 export const caravansOf = (count: number): string => (count === 1 ? '1 caravana' : `${count} caravanas`);

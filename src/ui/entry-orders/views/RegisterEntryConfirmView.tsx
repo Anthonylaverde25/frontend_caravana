@@ -7,10 +7,12 @@ import ViewLayout from '@/components/ViewLayout';
 import { useRegisterEntry } from '@/features/entry-orders/hooks/useEntryOrderMutations';
 import { entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
 import CreateExternalBatchDialog from '@/ui/batches/components/external/CreateExternalBatchDialog';
-import { ExternalBatchFormInput, externalBatchSchema, toEntryOrderPayload } from '@/ui/batches/components/external/externalBatchSchema';
+import { ExternalBatchFormInput, externalBatchSchema, headCountOf, toEntryOrderPayload } from '@/ui/batches/components/external/externalBatchSchema';
 import EntryTroopSummaryCard from '../components/EntryTroopSummaryCard';
 import DteEntryForm from '../components/dte/DteEntryForm';
 import { useDteDraft } from '../components/dte/useDteDraft';
+import ReceptionRowsSection from '../components/reception/ReceptionRowsSection';
+import { useReceptionRows } from '../components/reception/useReceptionRows';
 import { useDeclaredTroop } from './useDeclaredTroop';
 
 export interface RegisterEntryState {
@@ -21,8 +23,9 @@ export interface RegisterEntryState {
 
 /**
  * Second step of "Registrar ingreso": the troop declared in the dialog, read-only (with "Editar"
- * to go back to it), and the DTE that is already in hand with its caravans. Everything is created
- * in one transaction; if a caravan is rejected, nothing is.
+ * to go back to it), the DTE that is already in hand — the head it declares, by default as many as
+ * animals loaded — and the caravan of each animal that entered. Everything is created in one
+ * transaction; if a caravan is rejected, nothing is.
  */
 export const RegisterEntryConfirmView: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +33,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
   const state = location.state as RegisterEntryState | null;
   const register = useRegisterEntry();
   const draft = useDteDraft();
+  const rows = useReceptionRows();
   const [isEditing, setIsEditing] = useState(false);
   const [closeNow, setCloseNow] = useState(false);
   const [closeReason, setCloseReason] = useState('');
@@ -44,18 +48,26 @@ export const RegisterEntryConfirmView: React.FC = () => {
   }
 
   const values = parsed.data;
-  const short = draft.counts.total > 0 && draft.counts.total < values.head_count;
+  const bought = headCountOf(values.categories);
+  const received = rows.counts.total;
+  const dteHeads = draft.headCount === '' ? received : draft.heads;
+  // Fewer head with DTE than bought wait for another DTE; fewer animals than the DTE, for a later reception.
+  const short = received > 0 && (dteHeads < bought || received < dteHeads);
 
   const submit = () => {
     const closeReasonOk = !(short && closeNow) || closeReason.trim().length >= 3;
 
     setCloseReasonMissing(!closeReasonOk);
-    if (!draft.validate() || !closeReasonOk) return;
+    if (!draft.validate(received) || !closeReasonOk) return;
+    if (received === 0) {
+      toast.error('Cargá la caravana de al menos un animal que ingresó.');
+      return;
+    }
 
     register.mutate(
       {
         ...toEntryOrderPayload(values),
-        dte: draft.registerPayload(),
+        dte: { ...draft.payload(), head_count: dteHeads, entered_at: draft.enteredAt, animals: rows.animals() },
         close_incomplete_reason: short && closeNow ? closeReason.trim() || null : null
       },
       {
@@ -70,7 +82,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
                   .filter(([field]) => field.startsWith('dte.'))
                   .map(([field, messages]) => ({ field: field.replace('dte.', ''), code: 'INVALID', message: messages[0] }))
           );
-          draft.setRowErrors(body?.row_errors ?? []);
+          rows.setRowErrors(body?.row_errors ?? []);
           toast.error(entryOrderErrorMessage(error, 'No se pudo registrar el ingreso'));
         }
       }
@@ -97,17 +109,22 @@ export const RegisterEntryConfirmView: React.FC = () => {
 
         <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: '8px', p: 2.5 }}>
           <Typography sx={{ fontWeight: 700, mb: 2 }}>DTE</Typography>
-          <DteEntryForm draft={draft} troop={declared.context} />
+          <Stack spacing={2.5}>
+            <DteEntryForm draft={draft} pending={bought} withArrival />
+            <ReceptionRowsSection draft={rows} troop={declared.context} expected={dteHeads} />
+          </Stack>
         </Paper>
 
         {short && (
           <Alert severity="warning" sx={{ borderRadius: '6px' }}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              El DTE trae {draft.counts.total} de {values.head_count} cabezas. La orden queda "En espera de DTE", esperando otro documento.
+              {dteHeads < bought
+                ? `El DTE declara ${dteHeads} de ${bought} cabezas compradas. La orden queda "En espera de DTE", esperando otro documento.`
+                : `Ingresan ${received} de las ${dteHeads} cabezas del DTE. Las otras ${dteHeads - received} quedan en tránsito.`}
             </Typography>
             <FormControlLabel
               control={<Checkbox size="small" checked={closeNow} onChange={(e) => setCloseNow(e.target.checked)} />}
-              label={<Typography variant="body2">No llegarán más DTE: cerrarla incompleta ahora</Typography>}
+              label={<Typography variant="body2">No llegará nada más: cerrarla incompleta ahora</Typography>}
             />
             {closeNow && (
               <TextField
@@ -118,7 +135,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
                 onChange={(e) => setCloseReason(e.target.value)}
                 placeholder="Ej: murió un animal en el viaje"
                 error={closeReasonMissing && closeReason.trim().length < 3}
-                helperText={closeReasonMissing && closeReason.trim().length < 3 ? 'Indicá por qué no llegarán más DTE.' : undefined}
+                helperText={closeReasonMissing && closeReason.trim().length < 3 ? 'Indicá por qué no llegará nada más.' : undefined}
                 sx={{ mt: 1, bgcolor: 'background.paper' }}
               />
             )}
@@ -136,7 +153,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
             disabled={register.isPending}
             sx={{ px: 3, fontWeight: 700, borderRadius: '6px', textTransform: 'none' }}
           >
-            {register.isPending ? 'Registrando…' : `Registrar ingreso (${draft.counts.total})`}
+            {register.isPending ? 'Registrando…' : `Registrar ingreso (${received})`}
           </Button>
         </Box>
       </Stack>

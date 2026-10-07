@@ -512,18 +512,18 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 														</TableCell>
 														<TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>
 															{batch.entry_order ? (
-																// Received over bought; the ones in transit are not stock yet.
+																// Received over bought; head in transit have no caravan yet.
 																<Tooltip
 																	title={
 																		batch.entry_order.in_transit_count > 0
-																			? `${batch.entry_order.in_transit_count} en tránsito`
+																			? `${batch.entry_order.in_transit_count} cabezas en tránsito`
 																			: 'Recibidas / compradas'
 																	}
 																>
 																	<span>
 																		{`${batch.entry_order.received_count} / ${batch.entry_order.head_count}`}
 																		{batch.entry_order.in_transit_count > 0 &&
-																			` (+${batch.entry_order.in_transit_count} en tránsito)`}
+																			` (+${batch.entry_order.in_transit_count} cab. en tránsito)`}
 																	</span>
 																</Tooltip>
 															) : (

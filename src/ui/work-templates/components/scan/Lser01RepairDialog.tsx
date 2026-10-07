@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Replay as ReplayIcon } from '@mui/icons-material';
+import { ScanIssuesChip, type ScanIssue } from './issues';
 import { ScanLser01MetadataHeader } from './ScanLser01MetadataHeader';
 import { ScanLser01Table } from './ScanLser01Table';
 import { Lser01Metadata, WorkTemplateScanRow } from './types';
@@ -30,6 +31,8 @@ interface Lser01RepairDialogProps {
   onDeleteRow: (index: number) => void;
   rowKey: (row: WorkTemplateScanRow, index: number) => string;
   isSaving: boolean;
+  /** Every problem of the load, for the guide opened from the bar. */
+  issues: ScanIssue[];
   onRetry: () => void;
   onBack: () => void;
 }
@@ -48,6 +51,7 @@ export const Lser01RepairDialog: React.FC<Lser01RepairDialogProps> = ({
   onDeleteRow,
   rowKey,
   isSaving,
+  issues,
   onRetry,
   onBack,
 }) => {
@@ -76,6 +80,7 @@ export const Lser01RepairDialog: React.FC<Lser01RepairDialogProps> = ({
               La carga está bloqueada: no se guardó ningún lote, orden ni movimiento.
             </Typography>
           </Box>
+          <ScanIssuesChip templateCode="LSER-01" issues={issues} onDark />
           <Button
             variant="contained"
             color="inherit"

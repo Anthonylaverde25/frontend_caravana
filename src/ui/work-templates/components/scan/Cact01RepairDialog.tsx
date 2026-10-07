@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Replay as ReplayIcon } from '@mui/icons-material';
+import { ScanIssuesChip, type ScanIssue } from './issues';
 import { ScanCact01MetadataHeader } from './ScanCact01MetadataHeader';
 import { ScanCact01DestinationsPanel } from './ScanCact01DestinationsPanel';
 import { ScanCact01Table } from './ScanCact01Table';
@@ -60,6 +61,8 @@ interface Cact01RepairDialogProps {
   sourceResolution: Cact01SourceBatchState;
   onRowChange: (id: string, field: keyof Cact01Row, value: string) => void;
   isSaving: boolean;
+  /** Every problem of the load, for the guide opened from the bar. */
+  issues: ScanIssue[];
   onRetry: () => void;
   onBack: () => void;
 }
@@ -82,6 +85,7 @@ export const Cact01RepairDialog: React.FC<Cact01RepairDialogProps> = ({
   sourceResolution,
   onRowChange,
   isSaving,
+  issues,
   onRetry,
   onBack,
 }) => {
@@ -110,6 +114,7 @@ export const Cact01RepairDialog: React.FC<Cact01RepairDialogProps> = ({
               La carga está bloqueada: no se movió ningún animal, no se registró ningún peso y no se creó ningún lote.
             </Typography>
           </Box>
+          <ScanIssuesChip templateCode="CACT-01" issues={issues} onDark />
           <Button
             variant="contained"
             color="inherit"

@@ -1,64 +1,48 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Tooltip,
-  Typography
-} from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, Paper, Stack, TextField, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import axiosInstance from '@/utils/axios';
 import { useReceiveEntryOrder } from '@/features/entry-orders/hooks/useEntryOrderMutations';
-import { EntryOrder, EntryOrderResult, entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
+import { EntryOrder, EntryOrderApiError, EntryOrderResult, entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
 import EntryOrderStatusChip from '@/ui/entry-orders/components/EntryOrderStatusChip';
-import type { Ing03PagesState, Ing03Row } from '../../hooks/useIng03Pages';
-import { breedAndCoatOf } from '../../templates/ing03/useIng03Sheet';
-import { Ing03Outcome, resolveIng03 } from './ing03/ing03Resolution';
-
-const OUTCOME_CHIP: Record<Ing03Outcome, { label: string; color: 'success' | 'warning' | 'default' | 'info' | 'error' }> = {
-  received: { label: 'Se recibe', color: 'success' },
-  missing: { label: 'No llega', color: 'warning' },
-  later: { label: 'Llega después', color: 'default' },
-  unlisted: { label: 'Sin DTE', color: 'info' },
-  ignored: { label: 'No se carga', color: 'default' },
-  error: { label: 'A corregir', color: 'error' }
-};
+import MissingHeadPanel, { missingCountOf, type MissingFate } from '@/ui/entry-orders/components/reception/MissingHeadPanel';
+import type { Ing03PagesState } from '../../hooks/useIng03Pages';
+import Ing03ReviewTable, { OUTCOME_CHIP } from './ing03/Ing03ReviewTable';
+import { Ing03Outcome, resolveIng03, withServerRowErrors } from './ing03/ing03Resolution';
+import { ing03LayoutOf } from '../../templates/ing03/ing03Columns';
+import { fromEntryOrderErrors, fromLocalChecks, fromRowNotes, type ScanIssue } from './issues';
 
 const ACCEPTED_FILE_TYPES = '.png,.jpg,.jpeg,.webp,.pdf';
 
 interface ScanIng03WorkspaceProps {
   state: Ing03PagesState;
   onPreviewPage: (previewUrl: string) => void;
+  /** Every problem of the review and of the last attempt, for the guide of errors. */
+  onIssuesChange?: (issues: ScanIssue[]) => void;
 }
 
 /**
  * Review of a scanned ING-03, the receipt sheet of a DTE. The sheet only names the order, the DTE
- * and its R-number: the purchase comes from the order. Each line is checked against the caravans of
- * the order — received, not arriving, still in transit, or arrived without being in any DTE — and a
- * person supervises it before it is registered as one reception, with the sheet's pages marked as
- * scanned. A sheet weighed with one average shows its PESO PROMEDIO in the header and no weight per
- * line, as the paper does.
+ * and its R-number: the purchase comes from the order. Each line written is an animal that arrived,
+ * its caravan created on registering. When the lines are fewer than the head in transit, the
+ * reviewer says whether the rest arrive later or never ("Faltan N"): the paper does not say it. A
+ * person supervises it all before it is registered as one reception, with the sheet's pages marked
+ * as scanned. A sheet weighed with one average shows its PESO PROMEDIO in the header and no weight
+ * per line, as the paper does.
  */
-export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, onPreviewPage }) => {
+export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, onPreviewPage, onIssuesChange }) => {
   const navigate = useNavigate();
   const receive = useReceiveEntryOrder();
   const inputRef = useRef<HTMLInputElement>(null);
   const [done, setDone] = useState<EntryOrderResult | null>(null);
   const [serverError, setServerError] = useState<string[]>([]);
+  const [serverBody, setServerBody] = useState<EntryOrderApiError | null>(null);
+  const [fate, setFate] = useState<MissingFate>('LATER');
+  const [missingCount, setMissingCount] = useState('');
+  const [reason, setReason] = useState('');
+  const [showMissingErrors, setShowMissingErrors] = useState(false);
   const { pages, rows, metadata, missingPages, isIdentifying, pageError } = state;
   const code = metadata.orden_ingreso;
   const today = new Date().toISOString().slice(0, 10);
@@ -70,17 +54,39 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
     enabled: code !== ''
   });
 
-  const live = useMemo(() => resolveIng03(order ?? null, pages, rows, metadata, today), [order, pages, rows, metadata, today]);
+  // "Faltan N" counts the head left after the lines written, so it is resolved twice: first to know them.
+  const left = useMemo(() => resolveIng03(order ?? null, pages, rows, metadata, { count: 0, reason: '' }, today).left, [order, pages, rows, metadata, today]);
+  const missing = { count: missingCountOf(fate, missingCount, left), reason };
+  const live = useMemo(
+    () => resolveIng03(order ?? null, pages, rows, metadata, missing, today),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [order, pages, rows, metadata, missing.count, missing.reason, today]
+  );
   // Once registered, the review shows what was registered: the order refreshes and would re-read
   // every line as "already received".
   const [registered, setRegistered] = useState<typeof live | null>(null);
-  const resolution = registered ?? live;
-  const sheet = order?.receipt_sheets.find((s) => s.label === metadata.hoja_recepcion) ?? null;
+  // A written breed or category the server could not resolve marks its own line.
+  const resolution = registered ?? withServerRowErrors(live, serverBody?.row_errors);
+  const sheet = resolution.sheet;
   const averaged = sheet?.weighing_mode === 'AVERAGE';
   const rowErrors = resolution.counts.error;
 
   // A message about the previous attempt no longer applies once the review changes.
-  useEffect(() => setServerError([]), [rows, metadata]);
+  useEffect(() => {
+    setServerError([]);
+    setServerBody(null);
+  }, [rows, metadata]);
+
+  useEffect(() => {
+    onIssuesChange?.([
+      ...fromLocalChecks(resolution.headerErrors, resolution.headerWarnings),
+      ...fromRowNotes(rows.map((r) => ({ id: r.id, tag: r.caravana })), (id) => resolution.rows.get(id)?.note ?? null),
+      ...fromEntryOrderErrors(
+        serverBody?.header_errors,
+        serverBody?.row_errors?.filter((e) => !live.sentRowIds[e.row])
+      )
+    ]);
+  }, [resolution, live, rows, serverBody, onIssuesChange]);
 
   const handleFiles = async (files: FileList | null) => {
     for (const file of Array.from(files ?? [])) {
@@ -103,6 +109,7 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
         },
         onError: (error) => {
           const body = entryOrderApiError(error);
+          setServerBody(body);
           setServerError([
             ...(body?.header_errors ?? []).map((e) => e.message),
             ...(body?.row_errors ?? []).map((e) => e.message),
@@ -112,20 +119,6 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
       }
     );
   };
-
-  const cell = (row: Ing03Row, field: 'caravana' | 'peso' | 'ec' | 'sexo' | 'raza' | 'pelaje', width: number) => (
-    <TextField
-      size="small"
-      variant="standard"
-      value={row[field]}
-      disabled={done !== null}
-      onChange={(e) =>
-        state.updateRow(row.id, field, field === 'caravana' || field === 'sexo' ? e.target.value.toUpperCase() : e.target.value)
-      }
-      InputProps={{ disableUnderline: true, sx: { fontFamily: 'monospace', fontWeight: field === 'caravana' ? 800 : 600, fontSize: '0.8rem' } }}
-      sx={{ width }}
-    />
-  );
 
   return (
     <Stack spacing={2} sx={{ p: 2.5 }}>
@@ -198,7 +191,7 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
       </Stack>
       {missingPages.length > 0 && (
         <Typography variant="caption" color="warning.main" sx={{ fontWeight: 600, mt: '-8px !important' }}>
-          Faltan hojas: se puede registrar igual. Las caravanas de las hojas que faltan siguen en tránsito, y la orden muestra qué hoja no volvió.
+          Faltan hojas: se puede registrar igual. Las cabezas de las hojas que faltan siguen en tránsito, y la orden muestra qué hoja no volvió.
         </Typography>
       )}
       {pageError && (
@@ -236,18 +229,25 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
           />
         )}
         <TextField
-          label={`Motivo de las que no llegan${resolution.counts.missing > 0 ? ' (obligatorio)' : ''}`}
+          label="Observaciones de la hoja"
           size="small"
           fullWidth
-          value={metadata.motivo_no_llegan}
+          value={metadata.observaciones}
           disabled={done !== null}
-          onChange={(e) => state.setMetadataField('motivo_no_llegan', e.target.value)}
-          error={resolution.counts.missing > 0 && metadata.motivo_no_llegan.trim().length < 3}
+          onChange={(e) => state.setMetadataField('observaciones', e.target.value)}
         />
       </Stack>
 
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        {(['received', 'missing', 'later', 'unlisted', 'error'] as Ing03Outcome[]).map((outcome) => (
+        {resolution.dte && (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={`DTE ${resolution.dte.dte_number}: ${resolution.dte.head_count} cabezas · ${resolution.dte.pending_count} en tránsito`}
+            sx={{ fontWeight: 700 }}
+          />
+        )}
+        {(['received', 'error'] as Ing03Outcome[]).map((outcome) => (
           <Chip
             key={outcome}
             size="small"
@@ -270,80 +270,34 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
         </Alert>
       ))}
 
-      <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: '6px', overflowX: 'auto' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', color: 'text.secondary' } }}>
-              <TableCell>Hoja</TableCell>
-              <TableCell>Caravana</TableCell>
-              <TableCell>Sexo</TableCell>
-              <TableCell>Raza</TableCell>
-              <TableCell>Pelaje</TableCell>
-              <TableCell align="center">Llegó</TableCell>
-              <TableCell align="center">No llega</TableCell>
-              <TableCell>EC</TableCell>
-              {!averaged && <TableCell>Peso</TableCell>}
-              <TableCell>Resultado</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row) => {
-              const result = resolution.rows.get(row.id);
-              const outcome = result?.outcome ?? 'ignored';
+      <Ing03ReviewTable
+        rows={rows}
+        resolutions={resolution.rows}
+        layout={
+          order && sheet
+            ? ing03LayoutOf(order, sheet)
+            : { mixed: false, needsCategory: false, severalBreeds: false, averaged, written: true }
+        }
+        locked={done !== null}
+        onChange={state.updateRow}
+        onDelete={state.deleteRow}
+      />
 
-              return (
-                <TableRow key={row.id} sx={{ bgcolor: outcome === 'error' ? 'rgba(220, 38, 38, 0.05)' : undefined }}>
-                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>{row.pageNumber ?? '—'}</TableCell>
-                  <TableCell>{cell(row, 'caravana', 150)}</TableCell>
-                  <TableCell>{result?.animal ? <Typography sx={{ fontSize: '0.8rem' }}>{result.animal.sex}</Typography> : cell(row, 'sexo', 36)}</TableCell>
-                  <TableCell sx={{ fontSize: '0.8rem' }}>{result?.animal && order ? breedAndCoatOf(order, result.animal).breed : cell(row, 'raza', 100)}</TableCell>
-                  <TableCell sx={{ fontSize: '0.8rem' }}>{result?.animal && order ? breedAndCoatOf(order, result.animal).coat : cell(row, 'pelaje', 90)}</TableCell>
-                  <TableCell align="center">
-                    <Checkbox
-                      size="small"
-                      checked={row.llego === 'X'}
-                      disabled={done !== null}
-                      onChange={(e) => state.updateRow(row.id, 'llego', e.target.checked ? 'X' : '')}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Checkbox
-                      size="small"
-                      color="warning"
-                      checked={row.no_llega === 'X'}
-                      disabled={done !== null}
-                      onChange={(e) => state.updateRow(row.id, 'no_llega', e.target.checked ? 'X' : '')}
-                    />
-                  </TableCell>
-                  <TableCell>{cell(row, 'ec', 44)}</TableCell>
-                  {!averaged && <TableCell>{cell(row, 'peso', 70)}</TableCell>}
-                  <TableCell sx={{ minWidth: 220 }}>
-                    <Chip size="small" label={OUTCOME_CHIP[outcome].label} color={OUTCOME_CHIP[outcome].color} sx={{ fontWeight: 700, mb: result?.note ? 0.5 : 0 }} />
-                    {result?.note && (
-                      <Typography
-                        variant="caption"
-                        sx={{ display: 'block', lineHeight: 1.3, color: result.note.severity === 'error' ? 'error.main' : result.note.severity === 'warning' ? 'warning.dark' : 'text.secondary' }}
-                      >
-                        {result.note.message}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title="Quitar renglón">
-                      <span>
-                        <IconButton size="small" disabled={done !== null} onClick={() => state.deleteRow(row.id)}>
-                          <FuseSvgIcon size={16}>heroicons-outline:trash</FuseSvgIcon>
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </Paper>
+      {done === null && (
+        <MissingHeadPanel
+          left={left}
+          fate={fate}
+          onFate={(next) => {
+            setFate(next);
+            if (next === 'MISSING' && missingCount === '') setMissingCount(String(left));
+          }}
+          count={missingCount}
+          onCount={setMissingCount}
+          reason={reason}
+          onReason={setReason}
+          showErrors={showMissingErrors}
+        />
+      )}
 
       {done ? (
         <Alert
@@ -370,6 +324,7 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
             onClick={() => {
               // Told on click, not by a disabled button: the theme paints a disabled button like an active one.
               if (!resolution.payload) {
+                setShowMissingErrors(true);
                 setServerError([rowErrors > 0 ? `Hay ${rowErrors === 1 ? '1 renglón' : `${rowErrors} renglones`} a corregir.` : 'Corregí lo marcado arriba antes de registrar.']);
                 return;
               }

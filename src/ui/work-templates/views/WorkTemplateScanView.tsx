@@ -119,6 +119,7 @@ import { useCact01TransferOrder } from "../hooks/useCact01TransferOrder";
 import ScanCact01OrderBand from "../components/scan/ScanCact01OrderBand";
 import { reviewWeightIssues } from "../utils/weightOutliers";
 import { suggestedWeaningBatchName } from "../templates/dest01/Dest01PrintContext";
+import { ScanIssuesChip, fromCodedErrors, fromLocalChecks, type CodedError, type ScanIssue } from "../components/scan/issues";
 
 type CaravanRow = WorkTemplateScanRow;
 
@@ -287,6 +288,8 @@ export const WorkTemplateScanView: React.FC = () => {
 
   // Context Fields (ING-02): the reading of a hand-filled purchase document
   const [ing02Reading, setIng02Reading] = useState<Ing02ScanReading | null>(null);
+  // ING-02 and ING-03 review in their own workspaces; they report their problems up for the guide.
+  const [entryIssues, setEntryIssues] = useState<ScanIssue[]>([]);
 
   // Context Fields (PAR-01): a calving round, one or several pages, supervised in place
   const par01 = usePar01Pages();
@@ -375,6 +378,7 @@ export const WorkTemplateScanView: React.FC = () => {
 
   // Saving State
   const [isSaving, setIsSaving] = useState(false);
+  const [isObtainingPar01Order, setIsObtainingPar01Order] = useState(false);
   const [saveSuccessResult, setSaveSuccessResult] = useState<any | null>(null);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
 
@@ -486,7 +490,9 @@ export const WorkTemplateScanView: React.FC = () => {
       const withMother = par01.rows.filter((r) => r.caravana_madre.trim() !== "");
       const resolved = withMother.filter((r) => r.resultado.trim() !== "");
 
-      if (par01Order.notFound) {
+      if (!par01Order.code) {
+        warnings.push("La planilla no trae número de orden de parición: obtené la orden o se creará una al confirmar");
+      } else if (par01Order.notFound) {
         errors.push(`La orden ${par01Order.code} no existe: corregí el código o borralo`);
       } else if (par01Order.order && !par01Order.order.is_open) {
         errors.push(`La orden ${par01Order.order.code} está ${par01Order.order.status_label.toLowerCase()}: no admite más partos`);
@@ -738,6 +744,56 @@ export const WorkTemplateScanView: React.FC = () => {
       validRowsCount: rows.filter((r) => r.caravana.trim() !== "").length,
     };
   }, [templateCode, batchName, rows, lser01Metadata, dest01, dest01Order, cact01, cact01Destinations, par01, par01Order]);
+
+  // Every problem of the load, whatever template: the review's own checks, the last server message,
+  // and what the server answered row by row. What feeds the guide behind the header chip.
+  const scanIssues = useMemo((): ScanIssue[] => {
+    const local = fromLocalChecks(errorMessage ? [...validationResult.errors, errorMessage] : validationResult.errors, validationResult.warnings);
+    // A row already edited after the answer waits for the next confirm: its old errors no longer guide.
+    const pending = (repair: { headerErrors: CodedError[]; rowErrorsById: Record<string, CodedError[]>; editedRowIds: Set<string> } | null) =>
+      repair
+        ? {
+            header: repair.headerErrors,
+            byRow: Object.fromEntries(Object.entries(repair.rowErrorsById).filter(([id]) => !repair.editedRowIds.has(id)))
+          }
+        : { header: [], byRow: {} };
+
+    if (templateCode === PAR01_CODE) {
+      const { header, byRowId } = par01Submission.problems;
+      return [...local, ...fromCodedErrors(header, byRowId, par01.rows.map((r) => ({ id: r.id, tag: r.caravana_madre })))];
+    }
+    if (templateCode === CACT01_CODE) {
+      const { header, byRow } = pending(cact01Submission.repair);
+      return [...local, ...fromCodedErrors(header, byRow, cact01.rows.map((r) => ({ id: r.id, tag: r.caravana })))];
+    }
+    if (templateCode === DEST01_CODE) {
+      const { header, byRow } = pending(dest01Submission.repair);
+      return [...local, ...fromCodedErrors(header, byRow, dest01.rows.map((r) => ({ id: r.id, tag: r.caravana })))];
+    }
+    if (templateCode === "LSER-01") {
+      const { header, byRow } = pending(lser01.repair);
+      return [...local, ...fromCodedErrors(header, byRow, rows.map((r, i) => ({ id: lser01.rowKey(r, i), tag: r.caravana })))];
+    }
+    if (templateCode === ING02_CODE || templateCode === ING03_CODE) {
+      return [...local, ...entryIssues];
+    }
+
+    return local;
+  }, [
+    templateCode,
+    validationResult,
+    errorMessage,
+    par01Submission.problems,
+    par01.rows,
+    cact01Submission.repair,
+    cact01.rows,
+    dest01Submission.repair,
+    dest01.rows,
+    lser01.repair,
+    lser01.rowKey,
+    rows,
+    entryIssues,
+  ]);
 
   // Apply Structured Simulation Preset (Fast Testing Mode - Zero AI latency)
   const handleApplySimulationPreset = (preset: SimulationPreset) => {
@@ -1270,6 +1326,7 @@ export const WorkTemplateScanView: React.FC = () => {
   };
 
   const handleReset = () => {
+    setEntryIssues([]);
     setFile(null);
     setFilePreviewUrl(null);
     setIsProcessed(false);
@@ -1334,6 +1391,26 @@ export const WorkTemplateScanView: React.FC = () => {
       );
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // "Obtener orden de parición": the sheet carries no order. One is generated with every female on
+  // it and its code written into the header, so the review continues against it and the same paper
+  // can be loaded again on later rounds.
+  const handleObtainPar01Order = async () => {
+    setIsObtainingPar01Order(true);
+    setErrorMessage(null);
+
+    try {
+      const order = await par01Submission.obtainOrder(par01.metadata, par01.rows);
+      if (order) {
+        par01.setMetadataField("orden_paricion", order.code);
+      }
+    } catch (err: any) {
+      console.error("Error obtaining PAR-01 birth order:", err);
+      setErrorMessage(err.response?.data?.message || err.message || "No se pudo generar la orden de parición.");
+    } finally {
+      setIsObtainingPar01Order(false);
     }
   };
 
@@ -1603,15 +1680,10 @@ export const WorkTemplateScanView: React.FC = () => {
           {!isProcessed ? null : (
 
             <Stack direction="row" spacing={1} alignItems="center">
-              <Chip
-                label={
-                  validationResult.isValid
-                    ? `🟢 Validado (${validationResult.validRowsCount})`
-                    : `🔴 ${validationResult.errors.length} Error(es)`
-                }
-                color={validationResult.isValid ? "success" : "error"}
-                variant={validationResult.isValid ? "outlined" : "filled"}
-                sx={{ fontWeight: 800, borderRadius: "6px" }}
+              <ScanIssuesChip
+                templateCode={templateCode}
+                issues={scanIssues}
+                validLabel={`Validado (${validationResult.validRowsCount})`}
               />
               <Button
                 variant="outlined"
@@ -1663,7 +1735,7 @@ export const WorkTemplateScanView: React.FC = () => {
                     <SaveIcon />
                   )
                 }
-                disabled={isSaving || !validationResult.isValid}
+                disabled={isSaving || isObtainingPar01Order || !validationResult.isValid}
                 onClick={
                   templateCode === CACT01_CODE && cact01Order.isNotFound
                     ? handleObtainCact01Order
@@ -1985,7 +2057,7 @@ export const WorkTemplateScanView: React.FC = () => {
                 {templateCode === ING02_CODE ? (
                   <Box sx={{ p: 2.5 }}>
                     {ing02Reading ? (
-                      <ScanIng02Workspace reading={ing02Reading} />
+                      <ScanIng02Workspace reading={ing02Reading} onIssuesChange={setEntryIssues} />
                     ) : (
                       <Typography variant="body2" color="text.secondary">
                         Sin lectura de la planilla.
@@ -1994,7 +2066,7 @@ export const WorkTemplateScanView: React.FC = () => {
                   </Box>
                 ) : templateCode === ING03_CODE ? (
                   ing03.pages.length > 0 ? (
-                    <ScanIng03Workspace key={ing03.pages[0]?.key} state={ing03} onPreviewPage={setFilePreviewUrl} />
+                    <ScanIng03Workspace key={ing03.pages[0]?.key} state={ing03} onPreviewPage={setFilePreviewUrl} onIssuesChange={setEntryIssues} />
                   ) : (
                     <Box sx={{ p: 2.5 }}>
                       <Typography variant="body2" color="text.secondary">
@@ -2008,6 +2080,8 @@ export const WorkTemplateScanView: React.FC = () => {
                     order={par01Order}
                     problems={par01Submission.problems}
                     onPreviewPage={setFilePreviewUrl}
+                    onObtainOrder={handleObtainPar01Order}
+                    isObtainingOrder={isObtainingPar01Order}
                     isSaving={isSaving}
                   />
                 ) : templateCode === DEST01_CODE ? (
@@ -2903,6 +2977,7 @@ export const WorkTemplateScanView: React.FC = () => {
           onRowChange={handleCellChange}
           onDeleteRow={handleDeleteRow}
           rowKey={lser01.rowKey}
+          issues={scanIssues}
           isSaving={isSaving}
           onRetry={handleSaveTransaction}
           onBack={() => setIsLser01RepairOpen(false)}
@@ -2921,6 +2996,7 @@ export const WorkTemplateScanView: React.FC = () => {
           sourceBatchOptions={cact01Options.sourceBatchOptions}
           sourceResolution={cact01Source}
           onRowChange={handleCact01RowChange}
+          issues={scanIssues}
           isSaving={isSaving}
           onRetry={handleSaveTransaction}
           onBack={() => setIsCact01RepairOpen(false)}
@@ -2933,6 +3009,7 @@ export const WorkTemplateScanView: React.FC = () => {
           orderCode={dest01Order.order?.code ?? null}
           showCategory={dest01Order.order?.category_mode !== "KEEP"}
           onRowChange={handleDest01RowChange}
+          issues={scanIssues}
           isSaving={isSaving}
           onRetry={handleSaveTransaction}
           onBack={() => setIsDest01RepairOpen(false)}

@@ -12,6 +12,7 @@ i18n.addResourceBundle('ar', 'navigation', ar);
  * The navigationConfig object is an array of navigation items for the Fuse application.
  */
 const navigationConfig: FuseNavItemType[] = [
+	// ─── Home ────────────────────────────────────────────────────────────────
 	{
 		id: 'dashboard-component',
 		title: 'Dashboard',
@@ -19,71 +20,177 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:squares-2x2',
 		url: '/dashboard'
 	},
+
+	// ─── GESTIÓN GANADERA ────────────────────────────────────────────────────
 	{
-		id: 'example-component',
-		title: 'Ejemplo de Ruta',
-		type: 'item',
-		icon: 'lucide:star',
-		url: '/example'
+		id: 'livestock-management',
+		title: 'GESTIÓN GANADERA',
+		subtitle: 'Rodeo y Stock',
+		type: 'group',
+		icon: 'heroicons-outline:building-storefront',
+		children: [
+			{
+				id: 'livestock.records',
+				title: 'Caravanas',
+				subtitle: 'Stock e Historial',
+				type: 'item',
+				icon: 'heroicons-outline:square-3-stack-3d',
+				url: '/caravans',
+				end: true
+			},
+			{
+				id: 'gestion.farms',
+				title: 'Establecimientos',
+				subtitle: 'Sedes y Campos',
+				type: 'item',
+				icon: 'heroicons-outline:home-modern',
+				url: '/farms'
+			},
+			{
+				id: 'gestion.providers',
+				title: 'Proveedores',
+				subtitle: 'Orígenes de Hacienda',
+				type: 'item',
+				icon: 'heroicons-outline:user-group',
+				url: '/providers'
+			},
+			// All batch types consolidated under one collapse
+			{
+				id: 'gestion.batches-collapse',
+				title: 'Lotes',
+				subtitle: 'Tropas, Grupos e Internos',
+				type: 'collapse',
+				icon: 'heroicons-outline:view-columns',
+				children: [
+					{
+						id: 'gestion.batches.own',
+						title: 'Lotes Propios',
+						type: 'item',
+						icon: 'heroicons-outline:home',
+						url: '/batches/own'
+					},
+					{
+						id: 'gestion.batches.external',
+						title: 'Lotes Externos',
+						subtitle: 'De Proveedores',
+						type: 'item',
+						icon: 'heroicons-outline:truck',
+						url: '/batches/external'
+					},
+					{
+						id: 'gestion.batches.entry-orders',
+						title: 'Órdenes de Ingreso',
+						subtitle: 'ING-02 · Espera de DTE',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-down-tray',
+						url: '/entry-orders'
+					},
+					{
+						id: 'gestion.batches.assignment',
+						title: 'Asignar a Lote Propio',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-right-start-on-rectangle',
+						url: '/batches/external-assignment'
+					},
+					// Internal system batches
+					{
+						id: 'internal-batches.internal-consumption',
+						title: 'Lote Consumo',
+						type: 'item',
+						icon: 'heroicons-outline:fire',
+						url: '/internal-batches/internal-consumption'
+					},
+					{
+						id: 'internal-batches.internal-death',
+						title: 'Lote Muertes',
+						type: 'item',
+						icon: 'heroicons-outline:x-circle',
+						url: '/internal-batches/internal-death'
+					},
+					{
+						id: 'internal-batches.quarantine',
+						title: 'Lote Cuarentena',
+						type: 'item',
+						icon: 'heroicons-outline:shield-exclamation',
+						url: '/internal-batches/quarantine'
+					},
+					{
+						id: 'internal-batches.reserve',
+						title: 'Lote Reserva',
+						subtitle: 'Animales Apartados',
+						type: 'item',
+						icon: 'heroicons-outline:archive-box',
+						url: '/internal-batches/reserve'
+					}
+				]
+			},
+			// Operational items
+			{
+				id: 'livestock.movements',
+				title: 'Movimientos',
+				type: 'item',
+				icon: 'heroicons-outline:arrow-path',
+				url: '/caravans/movements'
+			},
+			{
+				id: 'gestion.activities',
+				title: 'Actividades',
+				type: 'item',
+				icon: 'heroicons-outline:clipboard-document-list',
+				url: '/activities'
+			},
+			{
+				id: 'gestion.transfer-orders',
+				title: 'Órdenes de Transferencia',
+				type: 'item',
+				icon: 'heroicons-outline:arrows-right-left',
+				url: '/transfer-orders'
+			}
+		]
 	},
 
+	// ─── GESTIÓN REPRODUCTIVA ────────────────────────────────────────────────
 	{
 		id: 'gestational-management',
-		title: 'GESTIÓN GESTACIONAL',
-		subtitle: 'Control de Gestación',
+		title: 'GESTIÓN REPRODUCTIVA',
+		subtitle: 'Ciclo de Cría',
 		type: 'group',
 		icon: 'heroicons-outline:heart',
 		children: [
 			{
 				id: 'gestation.dashboard',
-				title: 'Panel Gestacional',
-				subtitle: 'Resumen de Preñez',
+				title: 'Panel Reproductivo',
 				type: 'item',
 				icon: 'heroicons-outline:presentation-chart-line',
 				url: '/gestation'
 			},
+			// Service planning collapse
 			{
 				id: 'gestation.planning-submenu',
-				title: 'Planificación de Servicios',
+				title: 'Entore',
+				subtitle: 'Servicios y Toros',
 				type: 'collapse',
 				icon: 'heroicons-outline:calendar-days',
 				children: [
 					{
 						id: 'gestation.pre-service',
 						title: 'Pre-Servicio & Toros',
-						subtitle: '1 · Selección de toros y planilla de manga',
+						subtitle: 'Selección y planilla de manga',
 						type: 'item',
 						icon: 'heroicons-outline:shield-check',
 						url: '/gestation/pre-service'
-					},
-					{
-						id: 'gestation.veterinary-portal',
-						title: 'Portales de Profesionales',
-						subtitle: '2 · Supervisión y acceso a portales veterinarios',
-						type: 'item',
-						icon: 'heroicons-outline:users',
-						url: '/gestation/veterinary-portal'
-					},
-					{
-						id: 'gestation.diagnostic-protocols',
-						title: 'Protocolos Diagnósticos',
-						subtitle: '3 · Actas firmadas e informes de laboratorio',
-						type: 'item',
-						icon: 'heroicons-outline:document-check',
-						url: '/gestation/diagnostic-protocols'
 					},
 					{
 						id: 'gestation.service-batches',
 						title: 'Lotes de Servicio',
 						subtitle: 'Entore y Categorías',
 						type: 'item',
-						icon: 'heroicons-outline:heart',
+						icon: 'heroicons-outline:rectangle-group',
 						url: '/gestation/service-batches'
 					},
 					{
 						id: 'gestation.bull-rotation',
 						title: 'Rotación de Toros',
-						subtitle: 'Asignación Reproductiva',
 						type: 'item',
 						icon: 'heroicons-outline:arrow-path-round-square',
 						url: '/gestation/bull-rotation'
@@ -91,23 +198,38 @@ const navigationConfig: FuseNavItemType[] = [
 					{
 						id: 'gestation.service-orders',
 						title: 'Órdenes de Servicio',
-						subtitle: 'Historial y Estados',
 						type: 'item',
 						icon: 'heroicons-outline:document-text',
 						url: '/gestation/service-orders'
+					},
+					{
+						id: 'gestation.veterinary-portal',
+						title: 'Portales Veterinarios',
+						type: 'item',
+						icon: 'heroicons-outline:users',
+						url: '/gestation/veterinary-portal'
+					},
+					{
+						id: 'gestation.diagnostic-protocols',
+						title: 'Protocolos Diagnósticos',
+						subtitle: 'Actas e Informes',
+						type: 'item',
+						icon: 'heroicons-outline:document-check',
+						url: '/gestation/diagnostic-protocols'
 					}
 				]
 			},
+			// Monitoring & births collapse
 			{
 				id: 'gestation.control-submenu',
-				title: 'Control y Diagnósticos',
+				title: 'Seguimiento',
+				subtitle: 'Preñez y Partos',
 				type: 'collapse',
 				icon: 'heroicons-outline:clipboard-document-check',
 				children: [
 					{
 						id: 'gestation.tacto',
 						title: 'Tacto / Ecografías',
-						subtitle: 'Diagnósticos',
 						type: 'item',
 						icon: 'heroicons-outline:clipboard-document-check',
 						url: '/gestation/tacto'
@@ -115,7 +237,6 @@ const navigationConfig: FuseNavItemType[] = [
 					{
 						id: 'gestation.list',
 						title: 'Monitoreo por Lotes',
-						subtitle: 'Seguimiento de Vientres',
 						type: 'item',
 						icon: 'heroicons-outline:queue-list',
 						url: '/gestation/list'
@@ -123,7 +244,6 @@ const navigationConfig: FuseNavItemType[] = [
 					{
 						id: 'gestation.births',
 						title: 'Partos',
-						subtitle: 'Nacimientos',
 						type: 'item',
 						icon: 'heroicons-outline:sparkles',
 						url: '/gestation/births'
@@ -131,7 +251,6 @@ const navigationConfig: FuseNavItemType[] = [
 					{
 						id: 'gestation.birth-orders',
 						title: 'Órdenes de Parición',
-						subtitle: 'PAR-01',
 						type: 'item',
 						icon: 'heroicons-outline:clipboard-document-list',
 						url: '/birth-orders'
@@ -139,7 +258,6 @@ const navigationConfig: FuseNavItemType[] = [
 					{
 						id: 'gestation.weaning-orders',
 						title: 'Órdenes de Destete',
-						subtitle: 'DEST-01',
 						type: 'item',
 						icon: 'heroicons-outline:clipboard-document-check',
 						url: '/weaning-orders'
@@ -155,7 +273,6 @@ const navigationConfig: FuseNavItemType[] = [
 					{
 						id: 'gestation.pedigree',
 						title: 'Árbol Genealógico',
-						subtitle: 'Líneas de Pedigree',
 						type: 'item',
 						icon: 'heroicons-outline:academic-cap',
 						url: '/gestation/pedigree'
@@ -164,179 +281,12 @@ const navigationConfig: FuseNavItemType[] = [
 			}
 		]
 	},
-	{
-		id: 'livestock-management',
-		title: 'GESTIÓN GANADERA',
-		subtitle: 'Control de Caravanas',
-		type: 'group',
-		icon: 'heroicons-outline:collection',
-		children: [
-			{
-				id: 'gestion.providers',
-				title: 'Proveedores',
-				subtitle: 'Gestión de Orígenes',
-				type: 'item',
-				icon: 'heroicons-outline:user-group',
-				url: '/providers'
-			},
-			{
-				id: 'gestion.farms',
-				title: 'Establecimientos',
-				subtitle: 'Sedes y Campos',
-				type: 'item',
-				icon: 'heroicons-outline:home-modern',
-				url: '/farms'
-			},
-			{
-				id: 'gestion.batches-collapse',
-				title: 'Lotes',
-				subtitle: 'Tropas y Grupos',
-				type: 'collapse',
-				icon: 'heroicons-outline:view-columns',
-				children: [
-					{
-						id: 'gestion.batches.own',
-						title: 'Lotes Propios',
-						subtitle: 'Finca Propia',
-						type: 'item',
-						icon: 'heroicons-outline:home',
-						url: '/batches/own'
-					},
-					{
-						id: 'gestion.batches.external',
-						title: 'Lotes Externos',
-						subtitle: 'De Proveedores',
-						type: 'item',
-						icon: 'heroicons-outline:user-group',
-						url: '/batches/external'
-					},
-					{
-						id: 'gestion.batches.entry-orders',
-						title: 'Órdenes de Ingreso',
-						subtitle: 'ING-02 · Espera de DTE',
-						type: 'item',
-						icon: 'heroicons-outline:truck',
-						url: '/entry-orders'
-					},
-					{
-						id: 'gestion.batches.assignment',
-						title: 'Asignar a Lote Propio',
-						subtitle: 'Ingreso de Hacienda',
-						type: 'item',
-						icon: 'heroicons-outline:arrow-right-start-on-rectangle',
-						url: '/batches/external-assignment'
-					}
-				]
 
-			},
-			{
-				id: 'livestock.records',
-				title: 'Lista de Caravanas',
-				subtitle: 'Stock e Historial',
-				type: 'item',
-				icon: 'heroicons-outline:square-3-stack-3d',
-				url: '/caravans',
-				end: true
-			},
-			{
-				id: 'livestock-operations',
-				title: 'Operaciones',
-				type: 'collapse',
-				icon: 'heroicons-outline:briefcase',
-				children: [
-					{
-						id: 'gestion.activities',
-						title: 'Actividades',
-						type: 'item',
-						icon: 'heroicons-outline:clipboard-document-list',
-						url: '/activities'
-					},
-					{
-						id: 'gestion.transfer-orders',
-						title: 'Órdenes de Transferencia',
-						type: 'item',
-						icon: 'heroicons-outline:clipboard-document-check',
-						url: '/transfer-orders'
-					},
-					{
-						id: 'livestock.upload',
-						title: 'Carga de Documento (OCR)',
-						type: 'item',
-						icon: 'heroicons-outline:cloud-upload',
-						url: 'livestock/upload',
-					},
-					{
-						id: 'upload-document.ocr',
-						title: 'Analizador OCR Independiente',
-						type: 'item',
-						icon: 'heroicons-outline:document-magnifying-glass',
-						url: 'upload-document/ocr',
-					},
-					{
-						id: 'livestock.generator',
-						title: 'Generador de Plantillas',
-						type: 'item',
-						icon: 'heroicons-outline:document-text',
-						url: 'livestock/generator',
-					},
-					{
-						id: 'livestock.movements',
-						title: 'Movimientos',
-						type: 'item',
-						icon: 'heroicons-outline:arrow-path',
-						url: '/caravans/movements',
-					}
-				]
-			},
-
-			{
-				id: 'internal-batches',
-				title: 'Lotes Internos',
-				type: 'collapse',
-				icon: 'heroicons-outline:view-columns',
-				children: [
-					{
-						id: 'internal-batches.internal-consumption',
-						title: 'Lote Consumo',
-						subtitle: 'Lotes dedicados al consumo interno',
-						type: 'item',
-						icon: 'heroicons-outline:plus-circle',
-						url: '/internal-batches/internal-consumption'
-					},
-					{
-						id: 'internal-batches.internal-death',
-						title: 'Lotes de Muertes',
-						subtitle: 'Lotes dedicados a muertes internas',
-						type: 'item',
-						icon: 'heroicons-outline:view-columns',
-						url: '/internal-batches/internal-death'
-					},
-					{
-						id: 'internal-batches.quarantine',
-						title: 'Lotes de Cuarentena',
-						subtitle: 'Lotes dedicados a cuarentena',
-						type: 'item',
-						icon: 'heroicons-outline:view-columns',
-						url: '/internal-batches/quarantine'
-					},
-					{
-						id: 'internal-batches.reserve',
-						title: 'Lote Reserva (Apartados)',
-						subtitle: 'Lote del sistema para animales apartados',
-						type: 'item',
-						icon: 'heroicons-outline:archive-box',
-						url: '/internal-batches/reserve'
-					}
-				]
-			}
-
-
-		]
-	},
+	// ─── PLANTILLAS & DIGITALIZACIÓN ────────────────────────────────────────
 	{
 		id: 'template-management',
-		title: 'GESTIÓN DE PLANTILLAS',
-		subtitle: 'Plantillas de Trabajo',
+		title: 'PLANTILLAS',
+		subtitle: 'Zootécnica y OCR',
 		type: 'group',
 		icon: 'heroicons-outline:document-text',
 		children: [
@@ -351,32 +301,24 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'work-templates.scan',
 				title: 'Escanear Planilla (AI)',
-				subtitle: 'Extracción y Carga',
+				subtitle: 'Extracción y Carga OCR',
 				type: 'item',
 				icon: 'heroicons-outline:camera',
 				url: 'work-templates/scan'
 			},
 			{
-				id: 'templates.ops',
-				title: 'Operaciones de Diseño',
-				type: 'collapse',
-				icon: 'heroicons-outline:pencil-square',
-				children: [
-					{
-						id: 'templates.create',
-						title: 'Crear Plantilla',
-						type: 'item',
-						icon: 'heroicons-outline:plus-circle',
-						url: '/templates/create'
-					},
-					{
-						id: 'templates.import',
-						title: 'Importar / OCR',
-						type: 'item',
-						icon: 'heroicons-outline:arrow-up-tray',
-						url: 'work-templates/scan'
-					}
-				]
+				id: 'templates.create',
+				title: 'Crear Plantilla',
+				type: 'item',
+				icon: 'heroicons-outline:plus-circle',
+				url: '/templates/create'
+			},
+			{
+				id: 'livestock.generator',
+				title: 'Generador de Plantillas',
+				type: 'item',
+				icon: 'heroicons-outline:document-duplicate',
+				url: 'livestock/generator'
 			}
 		]
 	},

@@ -63,6 +63,7 @@ export const ScanPar01Row: React.FC<ScanPar01RowProps> = ({ index, row, animal, 
 
   return (
     <TableRow
+      data-scan-row-id={row.id}
       sx={{
         '&:nth-of-type(even)': { bgcolor: zebraBg },
         ...(readOnly ? { bgcolor: `${alpha(theme.palette.text.primary, 0.04)} !important`, '& .MuiInputBase-root': { opacity: 0.75 } } : {})

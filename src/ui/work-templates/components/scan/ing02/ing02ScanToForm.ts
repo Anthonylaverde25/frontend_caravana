@@ -4,6 +4,9 @@ import type { AnimalCategory } from '@/core/categories/domain/entities/AnimalCat
 import type { Breed } from '@/core/breeds/domain/entities/Breed';
 import { emptyExternalBatchForm, ExternalBatchFormInput } from '@/ui/batches/components/external/externalBatchSchema';
 
+/** Category lines of the ING-02: the blank sheet prints this many, read as categoria_N / cabezas_N. */
+export const ING02_CATEGORY_LINES = 4;
+
 /** What the reading of an ING-02 says: the header cells and one row per breed line, as text. */
 export interface Ing02ScanReading {
   context: Record<string, unknown>;
@@ -106,11 +109,25 @@ export function ing02ScanToForm(reading: Ing02ScanReading, catalogs: Ing02Catalo
   if (purchase) values.purchase_date = purchase;
   else note('purchase_date', 'warning', `No se entiende la fecha de compra "${c('fecha_compra')}".`);
 
-  values.head_count = numberOf(c('cabezas')) ?? undefined;
+  // The CATEGORÍAS grid: one line per category bought, with its head. A blank line is not one.
+  const categoryLines = Array.from({ length: ING02_CATEGORY_LINES }, (_, i) => ({ name: c(`categoria_${i + 1}`), head: c(`cabezas_${i + 1}`) })).filter(
+    (line) => line.name !== '' || line.head !== ''
+  );
+  const chosen = categoryLines.map((line, index) => {
+    const category = catalogs.categories.find((cat) => norm(cat.name) === norm(line.name) || norm(cat.code) === norm(line.name));
+    const head = numberOf(line.head);
 
-  const category = catalogs.categories.find((cat) => norm(cat.name) === norm(c('categoria')) || norm(cat.code) === norm(c('categoria')));
-  if (category) values.category_id = category.id;
-  else note('category_id', 'error', `Categoría "${c('categoria') || '(vacía)'}" desconocida.`);
+    if (!category) note(`categories.${index}`, 'error', `Categoría "${line.name || '(vacía)'}" desconocida.`);
+    if (head == null) note(`categories.${index}`, 'error', `${category?.name ?? `La categoría ${index + 1}`} no tiene cabezas escritas.`);
+
+    return { category, head };
+  });
+
+  values.categories = chosen.map(({ category, head }) => ({ category_id: category?.id ?? null, head_count: head }));
+  if (values.categories.length === 0) {
+    values.categories = [{ category_id: null, head_count: null }];
+    note('categories', 'error', 'La tabla de categorías está vacía.');
+  }
 
   const sexes = marked(c('sexo'), { MACHOS: 'MALE', HEMBRAS: 'FEMALE', AMBOS: 'MIXED' });
   if (sexes.length === 1) {
@@ -166,15 +183,20 @@ export function ing02ScanToForm(reading: Ing02ScanReading, catalogs: Ing02Catalo
   });
 
   // Contradictions the form would otherwise fix or reject without saying what the paper said.
-  if (category && category.sex !== 'BOTH' && values.sex_composition) {
-    const only = category.sex === 'H' ? 'FEMALE' : 'MALE';
+  if (values.sex_composition && values.sex_composition !== 'MIXED') {
+    const other = values.sex_composition === 'MALE' ? 'H' : 'M';
+    const wrong = chosen.find(({ category }) => category?.sex === other);
 
-    if (values.sex_composition !== only) {
-      note('sex_composition', 'error', `La hoja dice ${category.name} y marca ${sexes.join(', ')}: ${category.name} es sólo de ${only === 'FEMALE' ? 'hembras' : 'machos'}.`);
+    if (wrong?.category) {
+      note(
+        'sex_composition',
+        'error',
+        `La hoja dice ${wrong.category.name} y marca ${sexes.join(', ')}: ${wrong.category.name} es sólo de ${other === 'H' ? 'hembras' : 'machos'}.`
+      );
     }
   }
 
-  const head = numberOf(c('cabezas'));
+  const head = chosen.every(({ head: h }) => h != null) && chosen.length > 0 ? chosen.reduce((sum, { head: h }) => sum + (h ?? 0), 0) : null;
   const males = numberOf(c('machos'));
   const females = numberOf(c('hembras'));
 

@@ -144,7 +144,7 @@ export const ScanCact01Table: React.FC<ScanCact01TableProps> = ({
 
               return (
                 <React.Fragment key={row.id}>
-                  <TableRow sx={{ bgcolor: hasErrors && !edited ? (t) => alpha(t.palette.error.main, 0.06) : undefined }}>
+                  <TableRow data-scan-row-id={row.id} sx={{ bgcolor: hasErrors && !edited ? (t) => alpha(t.palette.error.main, 0.06) : undefined }}>
                     <TableCell sx={{ ...cellSx(hasErrors), fontWeight: 700, color: 'text.secondary' }}>
                       {pageLabelByKey[row.pageKey] ?? '—'}
                     </TableCell>

@@ -4,11 +4,14 @@ import { toast } from 'sonner';
 import axiosInstance from '@/utils/axios';
 import {
   EntryOrder,
+  CorrectDteHeadCountPayload,
   EntryOrderResult,
   LoadDtePayload,
   ReceivePayload,
   RegisterEntryPayload,
   StoreEntryOrderPayload,
+  TriReading,
+  ReferenceMode,
   WeighingMode,
   entryOrderErrorMessage
 } from '../types';
@@ -108,7 +111,7 @@ export function useConfirmEntryOrder() {
 const heads = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
 
 /**
- * "Cargar DTE": its caravans exist from now on, in transit. Row errors come back to the grid; the
+ * "Cargar DTE": its head are in transit from now on. Header errors come back to the form; the
  * caller decides how to show them.
  */
 export function useLoadEntryOrderDte() {
@@ -121,7 +124,7 @@ export function useLoadEntryOrderDte() {
       invalidate(true);
       const pending = result.order.pending_dte_count;
       toast.success(
-        `DTE ${variables.payload.dte_number} cargado: ${heads(variables.payload.animals.length, 'caravana en tránsito', 'caravanas en tránsito')}` +
+        `DTE ${variables.payload.dte_number} cargado: ${heads(variables.payload.head_count, 'cabeza en tránsito', 'cabezas en tránsito')}` +
           (pending > 0 ? `. ${pending === 1 ? 'Falta DTE para 1 cabeza' : `Falta DTE para ${pending} cabezas`}.` : '.')
       );
       showWarnings(result);
@@ -138,17 +141,32 @@ export function useReceiveEntryOrder() {
       (await axiosInstance.post<EntryOrderResult>(`/entry-orders/${id}/receive`, payload)).data,
     onSuccess: (result, variables) => {
       invalidate(true);
-      const received = variables.payload.received.length;
-      const missing = variables.payload.missing.length;
-      const unlisted = variables.payload.unlisted?.length ?? 0;
+      const caravans = variables.payload.animals.length;
+      const counted = variables.payload.received_head_count;
+      const missing = variables.payload.missing_head_count;
       const parts = [
-        received > 0 ? heads(received, 'caravana recibida', 'caravanas recibidas') : null,
-        missing > 0 ? heads(missing, 'no llegará', 'no llegarán') : null,
-        unlisted > 0 ? heads(unlisted, 'sin DTE (novedad)', 'sin DTE (novedad)') : null
+        counted != null ? heads(counted, 'cabeza recibida', 'cabezas recibidas') : null,
+        caravans > 0 ? heads(caravans, counted != null ? 'con caravana' : 'caravana cargada', counted != null ? 'con caravana' : 'caravanas cargadas') : null,
+        missing > 0 ? heads(missing, 'cabeza no llegará', 'cabezas no llegarán') : null
       ].filter(Boolean);
       toast.success(
         `${parts.join(' · ')}. Orden ${result.order.code}: ${result.order.status_label.toLowerCase()}.`
       );
+      showWarnings(result);
+    }
+  });
+}
+
+/** "Corregir cabezas": the head of a DTE were loaded wrong. Warnings say what it left behind. */
+export function useCorrectDteHeadCount() {
+  const invalidate = useInvalidateOrders();
+
+  return useMutation({
+    mutationFn: async ({ id, dteId, payload }: { id: number; dteId: number; payload: CorrectDteHeadCountPayload }): Promise<EntryOrderResult> =>
+      (await axiosInstance.patch<EntryOrderResult>(`/entry-orders/${id}/dtes/${dteId}`, payload)).data,
+    onSuccess: (result, variables) => {
+      invalidate(true);
+      toast.success(`DTE corregido: declara ${heads(variables.payload.head_count, 'cabeza', 'cabezas')}. Orden ${result.order.code}: ${result.order.status_label.toLowerCase()}.`);
       showWarnings(result);
     }
   });
@@ -200,15 +218,28 @@ export function useIssueReceiptSheet() {
   });
 }
 
-/** How a sheet not yet printed is weighed: per animal or one average in the header. */
-export function useChangeReceiptSheetWeighing() {
+/**
+ * What a sheet not yet printed prints: how it is weighed (per animal or one average) and how its
+ * lines name breed, coat and category (in words or by code).
+ */
+export function useConfigureReceiptSheet() {
   const invalidate = useInvalidateOrders();
 
   return useMutation({
-    mutationFn: async ({ id, sheetId, weighingMode }: { id: number; sheetId: number; weighingMode: WeighingMode }): Promise<EntryOrder> =>
-      (await axiosInstance.patch<EntryOrder>(`/entry-orders/${id}/receipt-sheets/${sheetId}`, { weighing_mode: weighingMode })).data,
+    mutationFn: async ({
+      id,
+      sheetId,
+      weighingMode,
+      referenceMode
+    }: {
+      id: number;
+      sheetId: number;
+      weighingMode?: WeighingMode;
+      referenceMode?: ReferenceMode;
+    }): Promise<EntryOrder> =>
+      (await axiosInstance.patch<EntryOrder>(`/entry-orders/${id}/receipt-sheets/${sheetId}`, { weighing_mode: weighingMode, reference_mode: referenceMode })).data,
     onSuccess: () => invalidate(),
-    onError: (error) => toast.error(entryOrderErrorMessage(error, 'No se pudo cambiar cómo se pesa la hoja'))
+    onError: (error) => toast.error(entryOrderErrorMessage(error, 'No se pudo cambiar la configuración de la hoja'))
   });
 }
 
@@ -259,5 +290,20 @@ export function useCloseIncompleteEntryOrder() {
       toast.success(`Orden ${order.code} cerrada incompleta`);
     },
     onError: (error) => toast.error(entryOrderErrorMessage(error, 'No se pudo cerrar la orden'))
+  });
+}
+
+/**
+ * "Adjuntar TRI": the AI reads the caravans of the SENASA TRI (a photo per page, or a PDF). Only
+ * reads; the caravans are reviewed in the reception before registering it.
+ */
+export function useReadTri() {
+  return useMutation({
+    mutationFn: async ({ orderId, files }: { orderId: number; files: File[] }): Promise<TriReading> => {
+      const form = new FormData();
+      files.forEach((file) => form.append('documents[]', file));
+
+      return (await axiosInstance.post<TriReading>(`/entry-orders/${orderId}/tri`, form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 600000 })).data;
+    }
   });
 }

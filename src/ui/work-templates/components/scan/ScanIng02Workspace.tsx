@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Box, Button, Chip, Paper, Stack, Table, TableBody, TableCell, TableRow, Typography } from '@mui/material';
@@ -10,8 +10,9 @@ import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCatego
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import type { EntryOrderResult, EntryOrderSummary } from '@/features/entry-orders/types';
 import CreateExternalBatchDialog from '@/ui/batches/components/external/CreateExternalBatchDialog';
+import { fromFieldNotes, type ScanIssue } from './issues';
 import type { ExternalBatchFormInput } from '@/ui/batches/components/external/externalBatchSchema';
-import { Ing02ScanReading, ing02ScanToForm } from './ing02/ing02ScanToForm';
+import { ING02_CATEGORY_LINES, Ing02ScanReading, ing02ScanToForm } from './ing02/ing02ScanToForm';
 
 const READ_FIELDS: { key: string; label: string }[] = [
   { key: 'orden_ingreso', label: 'Orden de ingreso' },
@@ -20,8 +21,6 @@ const READ_FIELDS: { key: string; label: string }[] = [
   { key: 'establecimiento', label: 'Establecimiento' },
   { key: 'nombre_lote', label: 'Nombre del lote' },
   { key: 'fecha_compra', label: 'Fecha de compra' },
-  { key: 'cabezas', label: 'Cabezas' },
-  { key: 'categoria', label: 'Categoría' },
   { key: 'sexo', label: 'Sexo' },
   { key: 'machos', label: 'Machos' },
   { key: 'hembras', label: 'Hembras' },
@@ -48,7 +47,7 @@ const text = (value: unknown): string => {
  * the same "Alta de Lote Externo" dialog, prefilled, where the person checks and confirms it. The
  * order is born waiting for its DTE, like any other.
  */
-export const ScanIng02Workspace: React.FC<{ reading: Ing02ScanReading }> = ({ reading }) => {
+export const ScanIng02Workspace: React.FC<{ reading: Ing02ScanReading; onIssuesChange?: (issues: ScanIssue[]) => void }> = ({ reading, onIssuesChange }) => {
   const navigate = useNavigate();
   const { data: suppliers = [] } = useSuppliers();
   // The farms of the provider the sheet names: the unfiltered list also holds the company's own
@@ -78,6 +77,8 @@ export const ScanIng02Workspace: React.FC<{ reading: Ing02ScanReading }> = ({ re
     [reading, suppliers, farms, categories, breeds]
   );
   const errors = notes.filter((n) => n.severity === 'error');
+
+  useEffect(() => onIssuesChange?.(fromFieldNotes(notes)), [notes, onIssuesChange]);
   const warnings = notes.filter((n) => n.severity === 'warning');
 
   return (
@@ -119,6 +120,18 @@ export const ScanIng02Workspace: React.FC<{ reading: Ing02ScanReading }> = ({ re
                 <TableCell sx={{ fontFamily: 'monospace' }}>{text(reading.context[field.key])}</TableCell>
               </TableRow>
             ))}
+            <TableRow>
+              <TableCell sx={{ fontWeight: 700, color: 'text.secondary', verticalAlign: 'top' }}>Categorías</TableCell>
+              <TableCell sx={{ fontFamily: 'monospace' }}>
+                {Array.from({ length: ING02_CATEGORY_LINES }, (_, i) => i + 1)
+                  .filter((n) => text(reading.context[`categoria_${n}`]) !== '—' || text(reading.context[`cabezas_${n}`]) !== '—')
+                  .map((n) => (
+                    <Box key={n}>
+                      {n} · {text(reading.context[`categoria_${n}`])} · {text(reading.context[`cabezas_${n}`])} cab.
+                    </Box>
+                  ))}
+              </TableCell>
+            </TableRow>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, color: 'text.secondary', verticalAlign: 'top' }}>Razas</TableCell>
               <TableCell sx={{ fontFamily: 'monospace' }}>

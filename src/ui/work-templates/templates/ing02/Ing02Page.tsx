@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import type { EntryOrder } from '@/features/entry-orders/types';
 import Ing02PageHeader, { boxes } from './Ing02PageHeader';
+import Ing02TroopGrids from './Ing02TroopGrids';
+import { GridTitle, gridSx, headRowSx, valueCellSx } from './ing02SheetParts';
 
 interface Ing02PageProps {
   code: string;
@@ -13,42 +15,13 @@ interface Ing02PageProps {
 /** Breed lines of a blank sheet: room for a mixed troop. */
 const BLANK_BREED_LINES = 6;
 
-const gridSx = {
-  borderCollapse: 'collapse',
-  width: '100%',
-  mb: 1,
-  '& .MuiTableCell-root': { border: '1px solid #000', padding: '2px 5px', fontSize: '0.66rem', color: '#000', height: 25, boxSizing: 'border-box' }
-} as const;
-
-const headRowSx = {
-  backgroundColor: '#fafafa',
-  '& .MuiTableCell-root': { fontWeight: 800, textTransform: 'uppercase', fontSize: '0.56rem' }
-} as const;
-
-/** The name of a grid, in the black band the sheets use for what the scan reads first. */
-const GridTitle: React.FC<{ colSpan: number; children: React.ReactNode }> = ({ colSpan, children }) => (
-  <TableRow>
-    <TableCell
-      colSpan={colSpan}
-      sx={{ backgroundColor: '#000', color: '#fff !important', fontWeight: 900, fontSize: '0.58rem !important', letterSpacing: '0.5px', textTransform: 'uppercase', height: '18px !important' }}
-    >
-      {children}
-    </TableCell>
-  </TableRow>
-);
-
-const valueCellSx = { fontWeight: 700, fontFamily: 'monospace', whiteSpace: 'nowrap' } as const;
-
-const sexWord = (order: EntryOrder | null): string | null =>
-  order ? { MALE: 'MACHOS', FEMALE: 'HEMBRAS', MIXED: 'AMBOS' }[order.sex_composition] : null;
-
 const yesNo = (value: boolean | null | undefined): string | null => (value == null ? null : value ? 'SÍ' : 'NO');
 
 /**
  * The single A4 page of the ING-02, laid out like every other sheet: title, header tables, the
  * grids and the signatures. It is the document of a purchase: the order is
- * born without caravans — they arrive with the DTE — so its grids hold the troop, its weights and
- * health, and one line per breed. Printed from an order it comes out complete; blank, every value
+ * born without caravans — they arrive with the DTE — so its grids hold the troop (one line per
+ * category with its head), its weights and health, and one line per breed. Printed from an order it comes out complete; blank, every value
  * is a box to mark or a cell to write.
  */
 export const Ing02Page: React.FC<Ing02PageProps> = ({ code, title, order }) => {
@@ -95,33 +68,7 @@ export const Ing02Page: React.FC<Ing02PageProps> = ({ code, title, order }) => {
 
         <Ing02PageHeader code={code} order={order} />
 
-        <Table sx={gridSx}>
-          <TableHead>
-            <GridTitle colSpan={7}>Tropa comprada</GridTitle>
-            <TableRow sx={headRowSx}>
-              <TableCell sx={{ width: '7%' }}>Cabezas</TableCell>
-              <TableCell sx={{ width: '12%' }}>Categoría</TableCell>
-              <TableCell sx={{ width: '24%' }}>Sexo (marcar)</TableCell>
-              <TableCell sx={{ width: '7%' }}>Machos</TableCell>
-              <TableCell sx={{ width: '7%' }}>Hembras</TableCell>
-              <TableCell sx={{ width: '8%' }}>Edad (m)</TableCell>
-              <TableCell>Estado (marcar)</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell sx={valueCellSx}>{printed(order?.head_count)}</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>{printed(order?.category.name)}</TableCell>
-              <TableCell sx={valueCellSx}>{boxes(['MACHOS', 'HEMBRAS', 'AMBOS'], sexWord(order))}</TableCell>
-              <TableCell sx={valueCellSx}>{order?.sex_composition === 'MIXED' ? order.male_count : ''}</TableCell>
-              <TableCell sx={valueCellSx}>{order?.sex_composition === 'MIXED' ? order.female_count : ''}</TableCell>
-              <TableCell sx={valueCellSx}>{order ? (order.age_range ?? '—') : '__ / __'}</TableCell>
-              <TableCell sx={{ ...valueCellSx, fontSize: '0.6rem !important', whiteSpace: 'nowrap' }}>
-                {boxes(['REGULAR', 'BUENO', 'MUY BUENO', 'EXCELENTE'], order?.condition_label ? order.condition_label.toUpperCase() : null)}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+        <Ing02TroopGrids order={order} />
 
         <Table sx={gridSx}>
           <TableHead>

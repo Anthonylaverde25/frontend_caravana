@@ -25,8 +25,8 @@ const happyContext = {
   establecimiento: 'Campo El Ombú (TEST ING)',
   renspa_origen: '02.345.6.78901/01',
   fecha_compra: '30/09/2026',
-  cabezas: '40',
-  categoria: 'Ternero',
+  categoria_1: 'Ternero',
+  cabezas_1: '40',
   sexo: 'AMBOS',
   machos: '25',
   hembras: '15',
@@ -64,20 +64,47 @@ export const ING02_WARNINGS: SimulationPreset = {
   rows: [{ raza: 'Angus', pelaje: 'Negro' }]
 };
 
+export const ING02_SEVERAL_CATEGORIES: SimulationPreset = {
+  ...base,
+  scenario: 'SHEET_CASES',
+  scenarioLabel: '🟢 Varias categorías: 6 Novillito + 4 Torito + 5 Vaquillona',
+  scenarioDescription:
+    'Tres renglones en la tabla de categorías, ambos sexos (10 machos / 5 hembras). La orden suma 15 cabezas; al recibir, un macho indica si es Novillito (1) o Torito (2).' +
+    REQUIRES,
+  context: {
+    ...happyContext,
+    categoria_1: 'Novillito',
+    cabezas_1: '6',
+    categoria_2: 'Torito',
+    cabezas_2: '4',
+    categoria_3: 'Vaquillona',
+    cabezas_3: '5',
+    machos: '10',
+    hembras: '5',
+    edad: '12/15',
+    peso_aprox: '220',
+    peso_min: '180',
+    peso_max: '260'
+  },
+  rows: [{ raza: 'Angus', pelaje: 'Negro' }]
+};
+
 export const ING02_REPAIR_ERROR: SimulationPreset = {
   ...base,
   scenario: 'REPAIR_ERROR',
   scenarioLabel: '🔴 Vaquillonas marcadas como machos',
   scenarioDescription:
-    'Contradicciones que el papel no puede tener: Vaquillona con MACHOS marcado, edad invertida (10/9), un pelaje que no es de la raza y "Sabe comer" sin marcar.' +
+    'Contradicciones que el papel no puede tener: Vaquillona con MACHOS marcado, una categoría sin cabezas, edad invertida (10/9), un pelaje que no es de la raza y "Sabe comer" sin marcar. El chip rojo del encabezado abre la guía de errores.' +
     REQUIRES,
   context: {
     ...happyContext,
-    categoria: 'Vaquillona',
+    categoria_1: 'Vaquillona',
+    cabezas_1: '20',
+    categoria_2: 'Novillo',
+    cabezas_2: '',
     sexo: 'MACHOS',
     machos: '',
     hembras: '',
-    cabezas: '20',
     edad: '10/9',
     sabe_comer: ''
   },
@@ -89,3 +116,11 @@ export const ING02_PRESETS = {
   WARNINGS: ING02_WARNINGS,
   REPAIR_ERROR: ING02_REPAIR_ERROR
 };
+
+/** Every case, listed: the three scenarios plus a troop of several categories. */
+export const ING02_SHEET_CASES: SimulationPreset[] = [
+  ING02_HAPPY_PATH,
+  ING02_SEVERAL_CATEGORIES,
+  ING02_WARNINGS,
+  ING02_REPAIR_ERROR
+].map((preset) => ({ ...preset, scenario: 'SHEET_CASES' }));

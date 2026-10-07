@@ -10,7 +10,7 @@ import { SimulationPreset } from "./types";
  *
  * They run against BirthOrderTestSeeder (PAR-V-01..36 pregnant, PAR-V-37 open, PAR-C-USADA in use,
  * the issued order PA-20260929-0001 with PAR-V-01..20 and 31..33, and PA-20260929-0002 halfway
- * through with PAR-V-41 overdue). 03 → 10, 14, 18 and 19 load one after the other on one fresh seed;
+ * through with PAR-V-41 overdue). 03 → 10 (or 10b), 14, 18 and 19 load one after the other on one fresh seed;
  * 01 + 02 (the whole order, two pages) on another; 15 → 16 → 17 (the same sheet reloaded over three
  * days) on a third:
  *     php artisan tenants:seed --class=BirthOrderTestSeeder
@@ -1504,7 +1504,7 @@ export const PAR01_SHEET_CASES: SimulationPreset[] = [
   ),
   sheetCase(
     "🔴 09 · Un error por fila",
-    "Resultado sin marcar, dos casillas, sin fecha, fecha futura, caravana usada, sexo ilegible, raza nueva y madre inexistente.",
+    "Resultado sin marcar, dos casillas, sin fecha, fecha futura, caravana usada, sexo ilegible, raza nueva y madre inexistente. Al confirmar, el chip rojo del encabezado abre la guía de errores por tipo.",
     {
       "orden_paricion": "",
       "fecha_recorrida": "28/09/2026",
@@ -1626,7 +1626,7 @@ export const PAR01_SHEET_CASES: SimulationPreset[] = [
   ),
   sheetCase(
     "🟡 10 · Nacido muerto con caravana",
-    "La caravana escrita en un nacido muerto (NM) se ignora con aviso.",
+    "La caravana escrita en un nacido muerto (NM) se ignora con aviso. Sin código: aparece el aviso de orden en blanco; probá «Obtener orden de parición» y después confirmá, o confirmá directo (se crea una orden registrada sólo para esta carga).",
     {
       "orden_paricion": "",
       "fecha_recorrida": "28/09/2026",
@@ -1663,8 +1663,58 @@ export const PAR01_SHEET_CASES: SimulationPreset[] = [
     ],
   ),
   sheetCase(
+    "🟡 10b · Sin orden, recorrida parcial",
+    "La hoja 10 con PAR-V-34 sin marcar. «Obtener orden de parición» genera la orden con las tres hembras; al confirmar contra ella, PAR-V-34 queda pendiente y la orden abierta para la próxima recorrida. Cargá 10 o 10b, no ambas.",
+    {
+      "orden_paricion": "",
+      "fecha_recorrida": "28/09/2026",
+      "lote": "Lote Testing Parición",
+      "responsable": "Anthony Laverde",
+      "hoja_numero": 1,
+      "hoja_total": 1
+    },
+    [
+      {
+        "id": "1",
+        "caravana_madre": "PAR-V-35",
+        "resultado": "NM",
+        "caravana_cria": "",
+        "sexo": "",
+        "peso": "",
+        "raza": "",
+        "pelaje": "",
+        "fecha_nacimiento": "28/09/2026",
+        "fuera_de_orden": ""
+      },
+      {
+        "id": "2",
+        "caravana_madre": "PAR-V-36",
+        "resultado": "V",
+        "caravana_cria": "PAR-C-36",
+        "sexo": "H",
+        "peso": "30",
+        "raza": "",
+        "pelaje": "Colorado",
+        "fecha_nacimiento": "28/09/2026",
+        "fuera_de_orden": ""
+      },
+      {
+        "id": "3",
+        "caravana_madre": "PAR-V-34",
+        "resultado": "",
+        "caravana_cria": "",
+        "sexo": "",
+        "peso": "",
+        "raza": "",
+        "pelaje": "",
+        "fecha_nacimiento": "",
+        "fuera_de_orden": ""
+      }
+    ],
+  ),
+  sheetCase(
     "🔴 14 · Fuera de orden sin marcar",
-    "PAR-V-30 en una fila libre sin la casilla → OUTSIDE_ORDER_NOT_DECLARED.",
+    "PAR-V-30 en una fila libre sin la casilla → OUTSIDE_ORDER_NOT_DECLARED. Al confirmar, el chip rojo del encabezado abre la guía de errores por tipo.",
     {
       "orden_paricion": "PA-20260929-0001",
       "fecha_recorrida": "28/09/2026",

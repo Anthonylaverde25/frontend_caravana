@@ -1,7 +1,7 @@
 import { CACT01_SHEET_CASES } from './cact01SheetCasePresets';
 import { DEST01_SHEET_CASES } from './dest01SheetCasePresets';
 import { PAR01_SHEET_CASES, PAR01_WHOLE_ORDER } from './par01SheetCasePresets';
-import { ING02_PRESETS } from './ing02SheetCasePresets';
+import { ING02_PRESETS, ING02_SHEET_CASES } from './ing02SheetCasePresets';
 import { ING03_SHEET_CASES } from './ing03SheetCasePresets';
 import { SimulationPreset, SimulationScenario, SimulationTemplateInfo } from './types';
 
@@ -21,8 +21,8 @@ export const AVAILABLE_SIMULATION_TEMPLATES: SimulationTemplateInfo[] = [
     category: 'ENTRY',
     categoryLabel: 'Ingreso Ganadero',
     color: '#0d9488',
-    description: 'Documento de una compra de hacienda externa: proveedor, establecimiento, subasta, cabezas, categoría, sexo, razas, pesos, estado, edad, sabe comer, garrapata y desbaste. Crea la orden en espera de DTE.',
-    availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'REPAIR_ERROR'],
+    description: 'Documento de una compra de hacienda externa: proveedor, establecimiento, subasta, categorías con sus cabezas, sexo, razas, pesos, estado, edad, sabe comer, garrapata y desbaste. Crea la orden en espera de DTE.',
+    availableScenarios: ['HAPPY_PATH', 'WARNINGS', 'REPAIR_ERROR', 'SHEET_CASES'],
   },
   {
     code: 'ING-03',
@@ -182,7 +182,7 @@ export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenari
       templateCode: 'ING-01',
       scenario: 'REPAIR_ERROR',
       scenarioLabel: '🔴 Flujo con Errores Críticos (Caravanas Vacías)',
-      scenarioDescription: 'Simula filas manuscritas ilegibles donde falta la caravana o el lote de destino, bloqueando la confirmación.',
+      scenarioDescription: 'Simula filas manuscritas ilegibles donde falta la caravana o el lote de destino, bloqueando la confirmación. El chip rojo del encabezado abre la guía de errores.',
       templateTitle: 'Ingreso de Compra Directa',
       category: 'ENTRY',
       context: {
@@ -261,7 +261,7 @@ export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenari
       templateCode: 'TOR-01',
       scenario: 'REPAIR_ERROR',
       scenarioLabel: '🔴 Flujo con Errores (Toros sin Identificación)',
-      scenarioDescription: 'Simula filas con campos mandatorios vacíos que impiden guardar la planilla andrológica.',
+      scenarioDescription: 'Simula filas con campos mandatorios vacíos que impiden guardar la planilla andrológica. El chip rojo del encabezado abre la guía de errores.',
       templateTitle: 'Revisación Andrológica y Muestreo en Manga',
       category: 'REPRODUCTIVE',
       context: {
@@ -333,7 +333,7 @@ export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenari
       templateCode: 'LSER-01',
       scenario: 'REPAIR_ERROR',
       scenarioLabel: '🔴 Flujo de Reparación (Vientre No Registrado)',
-      scenarioDescription: 'Simula un fallo transaccional 422 con vientres no encontrados para activar y verificar Lser01RepairDialog.',
+      scenarioDescription: 'Simula un fallo transaccional 422 con vientres no encontrados para activar y verificar Lser01RepairDialog y la guía de errores de su barra.',
       templateTitle: 'Conformación de Lote de Servicio — Toro Único',
       category: 'REPRODUCTIVE',
       context: {
@@ -575,7 +575,7 @@ export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenari
       scenario: 'REPAIR_ERROR',
       scenarioLabel: '🔴 Flujo de Reparación (Cact01RepairDialog)',
       scenarioDescription:
-        'Caravana duplicada entre hojas, una inexistente, una fuera del lote de origen, una dentición ilegible, un peso en cero, un lote nuevo de Cría sin declarar el manejo, un lote nuevo con dos celdas M contradictorias y un lote escrito que pertenece a otra actividad.',
+        'Caravana duplicada entre hojas, una inexistente, una fuera del lote de origen, una dentición ilegible, un peso en cero, un lote nuevo de Cría sin declarar el manejo, un lote nuevo con dos celdas M contradictorias y un lote escrito que pertenece a otra actividad. La barra de reparación abre la guía de errores por tipo.',
       templateTitle: 'Cambio de Actividad de Hacienda',
       category: 'ACTIVITY',
       context: {
@@ -771,7 +771,7 @@ export const SIMULATION_PRESETS: Record<string, Partial<Record<SimulationScenari
       templateCode: 'DEST-01',
       scenario: 'REPAIR_ERROR',
       scenarioLabel: '🔴 Flujo de Reparación (Dest01RepairDialog)',
-      scenarioDescription: 'Simula un fallo 422 con terneros ya destetados o pesos inválidos para verificar la pantalla de reparación.',
+      scenarioDescription: 'Simula un fallo 422 con terneros ya destetados o pesos inválidos para verificar la pantalla de reparación y la guía de errores de su barra.',
       templateTitle: 'Destete y Conformación de Lote de Destete',
       category: 'WEANING',
       context: {
@@ -995,6 +995,7 @@ export const SIMULATION_SHEET_CASES: Record<string, SimulationPreset[]> = {
   'CACT-01': CACT01_SHEET_CASES,
   'DEST-01': DEST01_SHEET_CASES,
   'PAR-01': PAR01_SHEET_CASES,
+  'ING-02': ING02_SHEET_CASES,
   'ING-03': ING03_SHEET_CASES,
 };
 

@@ -8,7 +8,6 @@ import { entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-ord
 import DiscardChangesDialog from '../DiscardChangesDialog';
 import { breedsOf, originOf, troopOf } from '../entryOrderFormat';
 import DteEntryForm from './DteEntryForm';
-import { troopContextOf } from './troopContext';
 import { useDteDraft } from './useDteDraft';
 
 interface LoadDteDialogProps {
@@ -19,16 +18,16 @@ interface LoadDteDialogProps {
 /**
  * "Cargar DTE": the document of an order waiting for it, usually downloaded before the animals
  * travel. The troop was declared when the purchase was confirmed, so it is only recalled in one
- * line; the DTE and its caravans are all that is asked. The caravans exist from now on, in transit
- * until received. What is missing is marked when "Cargar DTE" is pressed, never by a silently
- * disabled button; what the server rejects comes back marked on its cell.
+ * line; the DTE asks its number, date and how many head it declares. Those head are in transit
+ * from now on; their caravans are written down when they arrive. What is missing is marked when
+ * "Cargar DTE" is pressed, never by a silently disabled button.
  */
 export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }) => {
   const { data: order, isLoading } = useEntryOrder(orderId);
   const load = useLoadEntryOrderDte();
   const draft = useDteDraft();
   const [confirmingClose, setConfirmingClose] = useState(false);
-  const isDirty = draft.counts.total > 0 || draft.dteNumber.trim() !== '' || draft.observations.trim() !== '';
+  const isDirty = draft.isDirty;
 
   /** Escape, a click outside, the X and "Cancelar" all ask first when something was typed. */
   const requestClose = () => {
@@ -42,6 +41,12 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
+  // The head still waiting for a DTE are the likely answer: offered once the order is read.
+  useEffect(() => {
+    if (order && draft.headCount === '' && order.pending_dte_count > 0) draft.setHeadCount(String(order.pending_dte_count));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.id]);
+
   const submit = () => {
     if (!order || !draft.validate()) return;
 
@@ -52,8 +57,8 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
         onError: (error) => {
           const body = entryOrderApiError(error);
 
-          draft.setHeaderErrors(body?.header_errors ?? []);
-          draft.setRowErrors(body?.row_errors ?? []);
+          const fieldErrors = Object.entries(body?.errors ?? {}).map(([field, messages]) => ({ field, code: 'INVALID', message: messages[0] }));
+          draft.setHeaderErrors([...(body?.header_errors ?? []), ...fieldErrors]);
           toast.error(entryOrderErrorMessage(error, 'No se pudo cargar el DTE'));
         }
       }
@@ -65,7 +70,7 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
       open={orderId != null}
       onClose={requestClose}
       fullWidth
-      maxWidth="md"
+      maxWidth="sm"
       PaperProps={{ sx: { borderRadius: '8px', boxShadow: 1, bgcolor: 'background.paper' } }}
     >
       <Box sx={{ p: 2, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
@@ -97,11 +102,11 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
               </Typography>
               <Typography variant="caption" sx={{ display: 'block' }}>
                 {originOf(order)}
-                {order.dte_count > 0 ? ` · Ya cargados: ${order.dtes.map((d) => d.dte_number).join(', ')}` : ''}. Las caravanas quedan en tránsito
-                hasta que se reciban.
+                {order.dte_count > 0 ? ` · Ya cargados: ${order.dtes.map((d) => d.dte_number).join(', ')}` : ''}. Sus cabezas quedan en tránsito;
+                las caravanas se anotan cuando llegan.
               </Typography>
             </Alert>
-            <DteEntryForm draft={draft} troop={troopContextOf(order)} />
+            <DteEntryForm draft={draft} pending={order.pending_dte_count} />
           </Stack>
         )}
       </DialogContent>
@@ -118,17 +123,13 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
           startIcon={load.isPending ? <CircularProgress size={14} color="inherit" /> : undefined}
           sx={{ px: 4, fontWeight: 700, borderRadius: '6px', textTransform: 'none' }}
         >
-          {load.isPending ? 'Cargando…' : draft.counts.total > 0 ? `Cargar DTE (${draft.counts.total})` : 'Cargar DTE'}
+          {load.isPending ? 'Cargando…' : 'Cargar DTE'}
         </Button>
       </DialogActions>
 
       <DiscardChangesDialog
         open={confirmingClose}
-        detail={
-          draft.counts.total > 0
-            ? `Se pierden ${draft.counts.total === 1 ? 'la caravana cargada' : `las ${draft.counts.total} caravanas cargadas`} y los datos del DTE.`
-            : 'Se pierden los datos del DTE.'
-        }
+        detail="Se pierden los datos del DTE."
         onKeep={() => setConfirmingClose(false)}
         onDiscard={() => {
           setConfirmingClose(false);

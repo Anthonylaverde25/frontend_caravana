@@ -5,7 +5,8 @@ import { ENTRY_ORDER_STATUS_LABELS, EntryOrderStatus } from '@/features/entry-or
 /**
  * One color per state, the same everywhere an entry order is shown: the tray, the detail and the
  * external batches. "En espera de DTE" is the blue of an order somebody is waiting on; "En
- * tránsito" the orange of animals on the road.
+ * tránsito" the orange of animals on the road; "Recibida · por identificar" the amber of work still
+ * to do — the animals arrived, their caravans are not written yet.
  */
 export const useEntryOrderStatusColor = (): Record<EntryOrderStatus, string> => {
   const theme = useTheme();
@@ -15,6 +16,7 @@ export const useEntryOrderStatusColor = (): Record<EntryOrderStatus, string> => 
     DRAFT: isDark ? '#a78bfa' : '#6d28d9',
     AWAITING_DTE: isDark ? '#60a5fa' : '#0a6ed1',
     IN_TRANSIT: isDark ? '#fb923c' : '#e6600d',
+    RECEIVED: isDark ? '#facc15' : '#b45309',
     COMPLETED: isDark ? '#34d399' : '#107e3e',
     CLOSED_INCOMPLETE: isDark ? '#fbbf24' : '#a16207',
     CANCELLED: isDark ? '#94a3b8' : '#64748b'
@@ -26,6 +28,8 @@ export interface EntryOrderProgress {
   head_count: number;
   with_dte_count: number;
   in_transit_count: number;
+  /** Head received by count whose caravan is still to write. */
+  uncaravaned_count?: number;
   open_incidents_count: number;
   /** Null on a draft never confirmed: cancelled, it was discarded, not a purchase that fell through. */
   confirmed_at?: string | null;
@@ -37,7 +41,7 @@ export const isDiscardedDraft = (status: EntryOrderStatus, progress?: EntryOrder
 
 /**
  * The status says what the order waits for; the progress how far it got: "En espera de DTE · 25
- * de 40" once some DTE arrived, "En tránsito · 15 por recibir".
+ * de 40" once some DTE arrived, "En tránsito · 15 por recibir", "Recibida · 10 por identificar".
  */
 export const entryOrderStatusLabel = (status: EntryOrderStatus, progress?: EntryOrderProgress): string => {
   const base = ENTRY_ORDER_STATUS_LABELS[status];
@@ -46,6 +50,7 @@ export const entryOrderStatusLabel = (status: EntryOrderStatus, progress?: Entry
   if (isDiscardedDraft(status, progress)) return 'Descartado';
   if (status === 'AWAITING_DTE' && progress.with_dte_count > 0) return `${base} · ${progress.with_dte_count} de ${progress.head_count}`;
   if (status === 'IN_TRANSIT') return `${base} · ${progress.in_transit_count} por recibir`;
+  if (status === 'RECEIVED') return `Recibida · ${progress.uncaravaned_count ?? 0} por identificar`;
 
   return base;
 };

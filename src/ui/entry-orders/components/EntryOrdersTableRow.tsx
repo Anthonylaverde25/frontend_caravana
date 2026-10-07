@@ -25,8 +25,8 @@ export const EntryOrdersTableRow: React.FC<EntryOrdersTableRowProps> = ({ order,
   const progress = order.head_count > 0 ? Math.min(100, (order.received_count / order.head_count) * 100) : 0;
   const iconSx = { border: '1px solid', borderColor: border, borderRadius: '6px', p: 0.5 };
   const receiptSheet = useReceiptSheetPrint();
-  // The DTEs whose caravans can still be received on an ING-03.
-  const receptionDtes = order.accepts_reception ? order.dtes.filter((d) => d.in_transit_count > 0) : [];
+  // The DTEs whose head in transit can still be received on an ING-03.
+  const receptionDtes = order.accepts_reception ? order.dtes.filter((d) => d.pending_count > 0) : [];
   const activeSheet = receptionDtes.length === 1 ? order.receipt_sheets?.find((r) => r.dte_id === receptionDtes[0].id && r.is_active) : undefined;
   const receptionTooltip =
     receptionDtes.length > 1
@@ -157,7 +157,7 @@ export const EntryOrdersTableRow: React.FC<EntryOrdersTableRowProps> = ({ order,
             />
             <Typography variant="caption" sx={captionText}>
               {[
-                order.in_transit_count > 0 ? `${order.in_transit_count} en tránsito` : null,
+                order.in_transit_count > 0 ? `${order.in_transit_count} cab. en tránsito` : null,
                 order.missing_count > 0 ? `${order.missing_count} no llegarán` : null,
                 order.with_dte_count > order.head_count ? `${order.with_dte_count} con DTE` : null,
                 order.in_transit_count === 0 && order.first_dte_at ? `Primer DTE ${formatDateTime(order.first_dte_at)}` : null

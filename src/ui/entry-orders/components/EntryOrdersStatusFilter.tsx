@@ -11,6 +11,7 @@ const ORDER: EntryOrderStatusFilterValue[] = [
   'ALL',
   'AWAITING_DTE',
   'IN_TRANSIT',
+  'RECEIVED',
   'DRAFT',
   'COMPLETED',
   'CLOSED_INCOMPLETE',
@@ -28,8 +29,9 @@ interface EntryOrdersStatusFilterProps {
 }
 
 /**
- * Segmented pills, one per state, with "En espera de DTE" and "En tránsito" first: they are the
- * piles somebody has to act on when a document or a truck arrives. The last one gathers the orders
+ * Segmented pills, one per state, with "En espera de DTE", "En tránsito" and "Recibida · por
+ * identificar" first: they are the piles somebody has to act on — a document, a truck, caravans
+ * to write. The last one gathers the orders
  * with something to settle with the provider.
  */
 export const EntryOrdersStatusFilter: React.FC<EntryOrdersStatusFilterProps> = ({ value, onChange, counts }) => {

@@ -71,7 +71,7 @@ export const ScanLser01Table: React.FC<ScanLser01TableProps> = ({
 
             return (
               <React.Fragment key={key}>
-                <TableRow sx={{ bgcolor: hasErrors && !edited ? (t) => alpha(t.palette.error.main, 0.06) : undefined }}>
+                <TableRow data-scan-row-id={key} sx={{ bgcolor: hasErrors && !edited ? (t) => alpha(t.palette.error.main, 0.06) : undefined }}>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', borderBottom: hasErrors ? 'none' : undefined }}>
                     {index + 1}
                   </TableCell>

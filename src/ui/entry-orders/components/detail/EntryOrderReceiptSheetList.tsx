@@ -4,7 +4,7 @@ import { Box, Chip, Paper, Stack, Typography, alpha, useTheme } from '@mui/mater
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { EntryOrder, EntryOrderReceiptSheet } from '@/features/entry-orders/types';
 import { ing03Url } from '@/ui/work-templates/templates/ing03';
-import { caravansOf, formatDateTime } from '../entryOrderFormat';
+import { formatDateTime, headsOf } from '../entryOrderFormat';
 
 /** "2 de 3 hojas escaneadas · falta la hoja 3". */
 const progressOf = (sheet: EntryOrderReceiptSheet): string => {
@@ -68,7 +68,8 @@ export const EntryOrderReceiptSheetList: React.FC<{ order: EntryOrder }> = ({ or
                   />
                 </Stack>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  {caravansOf(sheet.caravan_ids.length)} · {progressOf(sheet)}
+                  {headsOf(sheet.expected_head_count)} en blanco · {progressOf(sheet)}
+                  {sheet.outdated ? ` · desactualizada: el DTE ahora declara otra cantidad` : ''}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Emitida {sheet.created_at ? formatDateTime(sheet.created_at) : ''}

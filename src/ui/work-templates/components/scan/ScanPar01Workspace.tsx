@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { Alert, Box, Button, Chip, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import { NoteAdd as NoteAddIcon } from '@mui/icons-material';
-import TransferOrderStatusChip from '@/ui/transfer-orders/components/TransferOrderStatusChip';
+import ScanPar01OrderBand from './ScanPar01OrderBand';
 import ScanPar01Table from './ScanPar01Table';
 import { par01RowStatus } from './par01RowStatus';
 import type { Par01PagesState } from '../../hooks/usePar01Pages';
@@ -15,6 +15,8 @@ interface ScanPar01WorkspaceProps {
   order: Par01BirthOrderState;
   problems: Par01Problems;
   onPreviewPage: (previewUrl: string) => void;
+  onObtainOrder: () => void;
+  isObtainingOrder: boolean;
   isSaving: boolean;
 }
 
@@ -23,9 +25,18 @@ interface ScanPar01WorkspaceProps {
  * A person supervises every cell before saving; what the server objects to is marked on the cell,
  * with no extra repair step.
  */
-export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({ state, order, problems, onPreviewPage, isSaving }) => {
+export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({
+  state,
+  order,
+  problems,
+  onPreviewPage,
+  onObtainOrder,
+  isObtainingOrder,
+  isSaving
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const round = state.metadata.fecha_recorrida;
+  const withoutOrder = !state.metadata.orden_paricion.trim();
 
   // R1: what this load brings that the order does not know yet, and what it only repeats.
   const tally = useMemo(() => {
@@ -101,6 +112,7 @@ export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({ state, o
       </Box>
 
       <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <ScanPar01OrderBand order={order} onObtainOrder={onObtainOrder} isObtaining={isObtainingOrder} isSaving={isSaving} />
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }}>
           <TextField
             size="small"
@@ -108,24 +120,18 @@ export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({ state, o
             value={state.metadata.orden_paricion}
             onChange={(e) => state.setMetadataField('orden_paricion', e.target.value)}
             error={order.notFound}
-            helperText={order.notFound ? 'No existe: corregí la lectura, o borralo si la planilla se llenó sin orden.' : ' '}
-            sx={{ minWidth: 240 }}
+            helperText={
+              order.notFound ? 'No existe: corregí la lectura, o borralo si la planilla se llenó sin orden.' : withoutOrder ? 'En blanco' : ' '
+            }
+            // The theme overrides the field's colour prop, so a blank code is painted explicitly.
+            sx={{
+              minWidth: 240,
+              ...(withoutOrder && {
+                '& .MuiInputLabel-root, & .MuiFormHelperText-root': { color: 'warning.main', fontWeight: 600 },
+                '& .MuiOutlinedInput-notchedOutline, & .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'warning.main', borderWidth: 2 }
+              })
+            }}
           />
-          {order.order ? (
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ pb: 2.5 }}>
-              <TransferOrderStatusChip status={order.order.status} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {order.order.pending_head_count} de {order.order.head_count} vientres pendientes
-                {order.order.overdue_head_count > 0 ? ` · ${order.order.overdue_head_count} con parto vencido` : ''}
-              </Typography>
-            </Stack>
-          ) : (
-            !state.metadata.orden_paricion.trim() && (
-              <Typography variant="body2" color="text.secondary" sx={{ pb: 2.5 }}>
-                Sin código: al confirmar se crea una orden registrada con estos partos.
-              </Typography>
-            )
-          )}
           <Box sx={{ flexGrow: 1 }} />
           <TextField
             size="small"
@@ -147,11 +153,6 @@ export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({ state, o
           </Button>
         </Stack>
 
-        {order.order && !order.order.is_open && (
-          <Alert severity="error" sx={{ borderRadius: '6px' }}>
-            La orden {order.order.code} está {order.order.status_label.toLowerCase()}: no admite más partos.
-          </Alert>
-        )}
         {problems.header.map((problem) => (
           <Alert key={`${problem.code}-${problem.message}`} severity="error" sx={{ borderRadius: '6px' }}>
             {problem.message}

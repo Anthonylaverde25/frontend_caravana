@@ -44,30 +44,6 @@ import { useAssignExternalCaravans } from '@/features/batches/hooks/useAssignExt
 import CreateBatchDialog from 'src/ui/batches/components/CreateBatchDialog';
 import OwnBatchPickerDialog from 'src/ui/batches/components/external/OwnBatchPickerDialog';
 
-/**
- * A caravan of a purchase that has not arrived (or never will) is listed but cannot be moved: it
- * is ours by the DTE, not in the field. Its checkbox is replaced by a padlock that says why.
- */
-const SelectCell: React.FC<{ canSelect: boolean; checked: boolean; inTransit: boolean }> = ({ canSelect, checked, inTransit }) =>
-  canSelect ? (
-    <Checkbox checked={checked} size="small" sx={{ p: 0.5 }} />
-  ) : (
-    <Tooltip title={inTransit ? 'En tránsito: se puede asignar cuando se reciba' : 'Se declaró que no llegará'}>
-      <Box component="span" sx={{ display: 'inline-flex', p: 0.5, color: 'text.disabled' }}>
-        <FuseSvgIcon size={16}>heroicons-outline:lock-closed</FuseSvgIcon>
-      </Box>
-    </Tooltip>
-  );
-
-const PossessionChip: React.FC<{ inTransit: boolean; inPossession: boolean }> = ({ inTransit, inPossession }) =>
-  inTransit ? (
-    <Chip size="small" label="En tránsito" color="warning" sx={{ fontWeight: 700 }} />
-  ) : !inPossession ? (
-    <Chip size="small" label="No llegará" variant="outlined" />
-  ) : (
-    <Chip size="small" label="En Lote Externo" color="warning" variant="outlined" />
-  );
-
 export default function ExternalBatchAssignmentView() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -104,9 +80,6 @@ export default function ExternalBatchAssignmentView() {
   const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers();
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId, 'external');
-  // Every caravan of the purchase is shown in its batch, but only what is in the field can go to
-  // an own batch: one in transit (or that will never arrive) is listed without a checkbox.
-  const selectable = useMemo(() => new Set(caravans.filter((c) => c.in_possession).map((c) => c.id)), [caravans]);
   const assignMutation = useAssignExternalCaravans();
 
 
@@ -193,8 +166,6 @@ export default function ExternalBatchAssignmentView() {
     return rows;
   }, [externalBatches, caravans, searchTerm, selectedBatchId]);
 
-  // Counted over what is listed, so a filtered batch tells its own caravans in transit.
-  const inTransitCount = useMemo(() => flatExternalCaravans.filter((r) => r.caravan.in_transit).length, [flatExternalCaravans]);
 
   // 4. Filas paginadas
   const paginatedRows = useMemo(() => {
@@ -202,7 +173,7 @@ export default function ExternalBatchAssignmentView() {
     return flatExternalCaravans.slice(start, start + rowsPerPage);
   }, [flatExternalCaravans, page, rowsPerPage]);
 
-  const pageIds = useMemo(() => paginatedRows.map(r => r.caravan.id).filter(id => selectable.has(id)), [paginatedRows, selectable]);
+  const pageIds = useMemo(() => paginatedRows.map(r => r.caravan.id), [paginatedRows]);
 
   // 5. Estructura jerárquica Proveedor → Lotes → Caravanas
   const hierarchy = useMemo(() => {
@@ -258,15 +229,14 @@ export default function ExternalBatchAssignmentView() {
 
   // Total de caravanas externas elegibles
   const allEligibleCaravanIds = useMemo(() => {
-    return flatExternalCaravans.map(r => r.caravan.id).filter(id => selectable.has(id));
-  }, [flatExternalCaravans, selectable]);
+    return flatExternalCaravans.map(r => r.caravan.id);
+  }, [flatExternalCaravans]);
 
   const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedCaravanIds.includes(id));
   const somePageSelected = pageIds.some(id => selectedCaravanIds.includes(id)) && !allPageSelected;
 
   // Toggle individual
   const handleToggleCaravan = (id: number) => {
-    if (!selectable.has(id)) return;
     setSelectedCaravanIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
@@ -342,12 +312,6 @@ export default function ExternalBatchAssignmentView() {
         {successMessage && (
           <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
             {successMessage}
-          </Alert>
-        )}
-        {inTransitCount > 0 && (
-          <Alert severity="info" sx={{ mb: 3 }}>
-            {inTransitCount === 1 ? 'Hay 1 caravana en tránsito' : `Hay ${inTransitCount} caravanas en tránsito`}: ya son tuyas por el DTE, pero
-            todavía no se recibieron. Se muestran en su lote sin poder seleccionarse; se habilitan cuando se reciben desde su orden de ingreso.
           </Alert>
         )}
 
@@ -714,7 +678,7 @@ export default function ExternalBatchAssignmentView() {
                   {/* Lotes del Proveedor */}
                   <Stack spacing={0}>
                   {group.batches.map(({ batch, caravans: bCaravans }) => {
-                    const batchIds = bCaravans.map(c => c.id).filter(id => selectable.has(id));
+                    const batchIds = bCaravans.map(c => c.id);
                     const selectedCountInBatch = batchIds.filter(id => selectedCaravanIds.includes(id)).length;
 
                     return (
@@ -803,7 +767,6 @@ export default function ExternalBatchAssignmentView() {
                             <TableBody>
                               {bCaravans.map((caravan, index) => {
                                 const isSelected = selectedCaravanIds.includes(caravan.id);
-                                const canSelect = selectable.has(caravan.id);
                                 const rowBg = isSelected
                                   ? (isDark ? 'rgba(99, 102, 241, 0.22)' : '#e0e7ff')
                                   : index % 2 === 1
@@ -814,10 +777,10 @@ export default function ExternalBatchAssignmentView() {
                                     key={caravan.id}
                                     hover
                                     onClick={() => handleToggleCaravan(caravan.id)}
-                                    sx={{ cursor: canSelect ? 'pointer' : 'default', bgcolor: rowBg, opacity: canSelect ? 1 : 0.6, transition: 'background-color 0.15s ease' }}
+                                    sx={{ cursor: 'pointer', bgcolor: rowBg, transition: 'background-color 0.15s ease' }}
                                   >
                                     <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', p: 0.5 }}>
-                                      <SelectCell canSelect={canSelect} checked={isSelected} inTransit={caravan.in_transit} />
+                                      <Checkbox checked={isSelected} size="small" sx={{ p: 0.5 }} />
                                     </TableCell>
                                     <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 600 }}>
                                       {index + 1}
@@ -854,7 +817,7 @@ export default function ExternalBatchAssignmentView() {
                                     <TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>{caravan.entry_weight ? `${caravan.entry_weight} kg` : '-'}</TableCell>
                                     <TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>{caravan.renspa || 'NO_DEFINIDO'}</TableCell>
                                     <TableCell sx={{ ...bodyCellStyle, borderRight: 0 }}>
-                                      <PossessionChip inTransit={caravan.in_transit} inPossession={caravan.in_possession} />
+                                      <Chip size="small" label="En Lote Externo" color="warning" variant="outlined" />
                                     </TableCell>
                                   </TableRow>
                                 );
@@ -930,7 +893,6 @@ export default function ExternalBatchAssignmentView() {
                 <TableBody>
                   {paginatedRows.map(({ caravan, batch }, index) => {
                     const isSelected = selectedCaravanIds.includes(caravan.id);
-                    const canSelect = selectable.has(caravan.id);
                     const rowBg = isSelected
                       ? (isDark ? 'rgba(99, 102, 241, 0.22)' : '#e0e7ff')
                       : index % 2 === 1
@@ -942,14 +904,13 @@ export default function ExternalBatchAssignmentView() {
                         hover
                         onClick={() => handleToggleCaravan(caravan.id)}
                         sx={{
-                          cursor: canSelect ? 'pointer' : 'default',
+                          cursor: 'pointer',
                           bgcolor: rowBg,
-                          opacity: canSelect ? 1 : 0.6,
                           transition: 'background-color 0.15s ease',
                         }}
                       >
                         <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', p: 0.5 }}>
-                          <SelectCell canSelect={canSelect} checked={isSelected} inTransit={caravan.in_transit} />
+                          <Checkbox checked={isSelected} size="small" sx={{ p: 0.5 }} />
                         </TableCell>
                         <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', color: 'text.secondary', fontSize: '0.75rem', fontWeight: 600 }}>
                           {page * rowsPerPage + index + 1}
@@ -996,7 +957,7 @@ export default function ExternalBatchAssignmentView() {
                         </TableCell>
                         <TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>{caravan.renspa || 'NO_DEFINIDO'}</TableCell>
                         <TableCell sx={{ ...bodyCellStyle, borderRight: 0 }}>
-                          <PossessionChip inTransit={caravan.in_transit} inPossession={caravan.in_possession} />
+                          <Chip size="small" label="En Lote Externo" color="warning" variant="outlined" />
                         </TableCell>
                       </TableRow>
                     );

@@ -4,8 +4,9 @@ import { Box, Button, Chip, Stack, ToggleButton, ToggleButtonGroup, Tooltip, Typ
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useContrastTheme } from '@/contexts/ContrastThemeContext';
 import { useWorkTemplatePrint } from '@/contexts/WorkTemplatePrintContext';
-import { useChangeReceiptSheetWeighing, useIssueReceiptSheet } from '@/features/entry-orders/hooks/useEntryOrderMutations';
-import type { WeighingMode } from '@/features/entry-orders/types';
+import { useConfigureReceiptSheet, useIssueReceiptSheet } from '@/features/entry-orders/hooks/useEntryOrderMutations';
+import type { ReferenceMode, WeighingMode } from '@/features/entry-orders/types';
+import { ing03ColumnsOf, ing03FitsPortrait, ing03LayoutOf } from './ing03Columns';
 import { ing03Url, useIng03Sheet } from './useIng03Sheet';
 
 interface ToolbarToggleProps<T extends string> {
@@ -13,10 +14,12 @@ interface ToolbarToggleProps<T extends string> {
   options: { value: T; label: string; icon: string; title: string }[];
   onChange: (value: T) => void;
   disabled?: boolean;
+  /** Options that cannot be chosen now. */
+  disabledValues?: T[];
 }
 
 /** Two options in one click, the chosen one in the app's brand color, like its main buttons. */
-const ToolbarToggle = <T extends string>({ value, options, onChange, disabled = false }: ToolbarToggleProps<T>) => {
+const ToolbarToggle = <T extends string>({ value, options, onChange, disabled = false, disabledValues = [] }: ToolbarToggleProps<T>) => {
   const { settings } = useContrastTheme();
   const selectedBg = (settings.enabled && settings.primaryButtonBg) || 'primary.main';
 
@@ -38,7 +41,7 @@ const ToolbarToggle = <T extends string>({ value, options, onChange, disabled = 
       }}
     >
       {options.map((option) => (
-        <ToggleButton key={option.value} value={option.value} aria-label={option.title} title={option.title}>
+        <ToggleButton key={option.value} value={option.value} aria-label={option.title} title={option.title} disabled={disabledValues.includes(option.value)}>
           <FuseSvgIcon size={16}>{option.icon}</FuseSvgIcon>
           {option.label}
         </ToggleButton>
@@ -49,30 +52,38 @@ const ToolbarToggle = <T extends string>({ value, options, onChange, disabled = 
 
 /**
  * The sheet behind the ING-03, in the toolbar: order, DTE and R-number with its status, how it is
- * weighed and how it is printed. The weighing — a weight per animal or one average in the header —
- * is part of the sheet and can change until it is printed; afterwards, "Nueva hoja" issues another
- * one. The orientation is only how it is printed: portrait or landscape, same lines per page. When
- * the DTE changed since it was issued (some caravans were received), "Nueva hoja" issues another
- * one with what is in transit now and replaces this one.
+ * weighed, how its lines name breed and category, and how it is printed. The weighing — a weight
+ * per animal or one average in the header — and the references — written in words or by letter and
+ * number — are part of the sheet and can change until it is printed; afterwards, "Nueva hoja"
+ * issues another one. The references only show when the order leaves breed or category to each
+ * line. The orientation is only how it is printed: portrait or landscape, same lines per page —
+ * landscape only when the columns leave no room for the caravan on a portrait page. When
+ * the DTE changed since it was issued (some head were received, or the DTE's head corrected),
+ * "Nueva hoja" issues another one with what is in transit now and replaces this one.
  */
 export const Ing03OrderToolbarActions: React.FC = () => {
   const navigate = useNavigate();
   const { order, sheet } = useIng03Sheet();
   const { pageOrientation, setPageOrientation } = useWorkTemplatePrint();
   const issue = useIssueReceiptSheet();
-  const changeWeighing = useChangeReceiptSheetWeighing();
+  const configure = useConfigureReceiptSheet();
 
   if (!order || !sheet) return null;
 
   const dte = order.dtes.find((d) => d.id === sheet.dte_id);
-  const outdated = dte != null && dte.in_transit_count > 0 && dte.in_transit_count !== sheet.caravan_ids.length;
-  const canIssue = dte != null && dte.in_transit_count > 0 && order.accepts_reception;
-  const weighingLocked = !sheet.is_active || sheet.printed_at != null;
-  const weighingTitle = !sheet.is_active
-    ? `La hoja ${sheet.label} está ${sheet.status_label.toLowerCase()}: se pesa como se emitió.`
-    : sheet.printed_at != null
-      ? `La hoja ${sheet.label} ya se imprimió: para pesar de otra forma, emití una hoja nueva.`
-      : 'Cómo se pesa en la manga. Se puede cambiar hasta imprimir la hoja.';
+  const outdated = sheet.outdated || (dte != null && dte.pending_count > 0 && dte.pending_count !== sheet.expected_head_count);
+  const canIssue = dte != null && dte.pending_count > 0 && order.accepts_reception;
+  const paperLocked = !sheet.is_active || sheet.printed_at != null;
+  const lockedTitle = (what: string, otherwise: string, open: string) =>
+    !sheet.is_active
+      ? `La hoja ${sheet.label} está ${sheet.status_label.toLowerCase()}: ${what} como se emitió.`
+      : sheet.printed_at != null
+        ? `La hoja ${sheet.label} ya se imprimió: para ${otherwise}, emití una hoja nueva.`
+        : open;
+  const layout = ing03LayoutOf(order, sheet);
+  const fitsPortrait = ing03FitsPortrait(ing03ColumnsOf(layout));
+  // Words or codes only change the paper when breed or category go on each line.
+  const hasReferences = layout.severalBreeds || layout.needsCategory;
 
   return (
     <>
@@ -82,18 +93,18 @@ export const Ing03OrderToolbarActions: React.FC = () => {
             {order.code} · {sheet.label}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem' }}>
-            DTE {sheet.dte_number} · {sheet.caravan_ids.length === 1 ? '1 caravana' : `${sheet.caravan_ids.length} caravanas`}
+            DTE {sheet.dte_number} · {sheet.expected_head_count === 1 ? '1 cabeza a recibir' : `${sheet.expected_head_count} cabezas a recibir`}
           </Typography>
         </Box>
         <Chip size="small" label={sheet.status_label} color={sheet.is_active ? 'info' : 'default'} sx={{ fontWeight: 700, borderRadius: '6px' }} />
       </Stack>
 
-      <Tooltip title={weighingTitle} disableInteractive>
+      <Tooltip title={lockedTitle('se pesa', 'pesar de otra forma', 'Cómo se pesa en la manga. Se puede cambiar hasta imprimir la hoja.')} disableInteractive>
         <span>
           <ToolbarToggle<WeighingMode>
             value={sheet.weighing_mode}
-            disabled={weighingLocked || changeWeighing.isPending}
-            onChange={(weighingMode) => changeWeighing.mutate({ id: order.id, sheetId: sheet.id, weighingMode })}
+            disabled={paperLocked || configure.isPending}
+            onChange={(weighingMode) => configure.mutate({ id: order.id, sheetId: sheet.id, weighingMode })}
             options={[
               { value: 'INDIVIDUAL', label: 'Peso por animal', icon: 'heroicons-outline:scale', title: 'Una columna de peso en cada renglón' },
               { value: 'AVERAGE', label: 'Peso promedio', icon: 'heroicons-outline:calculator', title: 'Un único peso promedio en el encabezado' }
@@ -102,14 +113,45 @@ export const Ing03OrderToolbarActions: React.FC = () => {
         </span>
       </Tooltip>
 
-      <ToolbarToggle
-        value={pageOrientation}
-        onChange={setPageOrientation}
-        options={[
-          { value: 'portrait', label: 'Vertical', icon: 'heroicons-outline:document-text', title: 'Hoja tradicional, A4 vertical' },
-          { value: 'landscape', label: 'Horizontal', icon: 'heroicons-outline:table-cells', title: 'La misma grilla en A4 horizontal, como una hoja de cálculo' }
-        ]}
-      />
+      {hasReferences && (
+        <Tooltip
+          title={lockedTitle(
+            'la raza y la categoría se anotan',
+            'anotarlas de otra forma',
+            'Cómo se anotan la raza, el pelaje y la categoría de cada animal. Se puede cambiar hasta imprimir la hoja.'
+          )}
+          disableInteractive
+        >
+          <span>
+            <ToolbarToggle<ReferenceMode>
+              value={sheet.reference_mode}
+              disabled={paperLocked || configure.isPending}
+              onChange={(referenceMode) => configure.mutate({ id: order.id, sheetId: sheet.id, referenceMode })}
+              options={[
+                { value: 'WRITTEN', label: 'Escritas', icon: 'heroicons-outline:pencil', title: 'Raza, pelaje y categoría se escriben con palabras en cada renglón' },
+                { value: 'CODE', label: 'Por código', icon: 'heroicons-outline:hashtag', title: 'Raza con letra (A, B…) y categoría con número, según la referencia del encabezado' }
+              ]}
+            />
+          </span>
+        </Tooltip>
+      )}
+
+      <Tooltip
+        title={fitsPortrait ? '' : 'Con raza, pelaje y categoría escritas, la grilla no entra en vertical: la hoja va en horizontal.'}
+        disableInteractive
+      >
+        <span>
+          <ToolbarToggle
+            value={pageOrientation}
+            onChange={setPageOrientation}
+            disabledValues={fitsPortrait ? [] : ['portrait']}
+            options={[
+              { value: 'portrait', label: 'Vertical', icon: 'heroicons-outline:document-text', title: 'Hoja tradicional, A4 vertical' },
+              { value: 'landscape', label: 'Horizontal', icon: 'heroicons-outline:table-cells', title: 'La misma grilla en A4 horizontal, como una hoja de cálculo' }
+            ]}
+          />
+        </span>
+      </Tooltip>
 
       {canIssue && (outdated || !sheet.is_active) && (
         <Button

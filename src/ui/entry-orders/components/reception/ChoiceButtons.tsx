@@ -33,6 +33,8 @@ export const ChoiceButtons: React.FC<ChoiceButtonsProps> = ({ value, options, on
         fontSize: '0.75rem',
         fontWeight: 700,
         lineHeight: 1.4,
+        // Category names read better as written than in capitals.
+        textTransform: 'none',
         borderColor: error ? 'error.main' : warn ? 'warning.main' : 'divider'
       },
       '& .MuiToggleButton-root.Mui-selected': {

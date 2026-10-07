@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Replay as ReplayIcon } from '@mui/icons-material';
+import { ScanIssuesChip, type ScanIssue } from './issues';
 import { ScanDest01BatchTarget } from './ScanDest01BatchTarget';
 import { ScanDest01PerAnimalTargets } from './ScanDest01PerAnimalTargets';
 import { ScanDest01MetadataHeader } from './ScanDest01MetadataHeader';
@@ -34,6 +35,8 @@ interface Dest01RepairDialogProps {
   showCategory?: boolean;
   onRowChange: (id: string, field: keyof Dest01Row, value: string) => void;
   isSaving: boolean;
+  /** Every problem of the load, for the guide opened from the bar. */
+  issues: ScanIssue[];
   onRetry: () => void;
   onBack: () => void;
 }
@@ -50,6 +53,7 @@ export const Dest01RepairDialog: React.FC<Dest01RepairDialogProps> = ({
   showCategory = true,
   onRowChange,
   isSaving,
+  issues,
   onRetry,
   onBack,
 }) => {
@@ -78,6 +82,7 @@ export const Dest01RepairDialog: React.FC<Dest01RepairDialogProps> = ({
               La carga está bloqueada: no se destetó ninguna cría ni se creó ningún lote.
             </Typography>
           </Box>
+          <ScanIssuesChip templateCode="DEST-01" issues={issues} onDark />
           <Button
             variant="contained"
             color="inherit"

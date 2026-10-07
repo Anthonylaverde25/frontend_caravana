@@ -173,7 +173,7 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
 
               return (
                 <React.Fragment key={row.id}>
-                  <TableRow sx={{ bgcolor: (hasServerErrors && !edited) || weightIssue ? rowTint : undefined }}>
+                  <TableRow data-scan-row-id={row.id} sx={{ bgcolor: (hasServerErrors && !edited) || weightIssue ? rowTint : undefined }}>
                     <TableCell sx={{ ...cellSx(hasErrors), fontWeight: 700, color: 'text.secondary' }}>
                       {pageLabelByKey[row.pageKey] ?? '—'}
                     </TableCell>
