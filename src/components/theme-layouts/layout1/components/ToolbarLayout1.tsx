@@ -10,7 +10,6 @@ import ToolbarTheme from 'src/contexts/ToolbarTheme';
 import CompanySelector from '../../components/CompanySelector';
 import { useContrastTheme } from '@/contexts/ContrastThemeContext';
 import QuickActionsSpeedDial from '../../components/QuickActionsSpeedDial';
-import HeaderOmniboxTrigger from '../../components/header/HeaderOmniboxTrigger';
 import NotificationsMenu from '../../components/header/NotificationsMenu';
 import UserMenu from '../../components/UserMenu';
 import LightDarkModeToggle from 'src/components/LightDarkModeToggle';
@@ -71,10 +70,8 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
               <CompanySelector />
             </div>
 
-            {/* ── Center Zone: Global Omnibox Command Palette (Ctrl+K) ─ */}
-            <div className="flex flex-1 items-center justify-center min-w-0 px-1 md:px-2">
-              <HeaderOmniboxTrigger />
-            </div>
+            {/* ── Spacer ────────────────────────────────────────────── */}
+            <div className="flex-1" />
 
             {/* ── Right Zone: Theme Toggle, Notifications & User Identity ─ */}
             <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 shrink-0">
