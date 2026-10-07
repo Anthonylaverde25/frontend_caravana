@@ -5,14 +5,16 @@ import { Layout2ConfigDefaultsType } from 'src/components/theme-layouts/layout2/
 import useFuseLayoutSettings from '@fuse/core/FuseLayout/useFuseLayoutSettings';
 import FuseSuspense from '@fuse/core/FuseSuspense';
 import { Outlet } from 'react-router';
-import FooterLayout2 from './components/FooterLayout2';
 import LeftSideLayout2 from './components/LeftSideLayout2';
 import NavbarWrapperLayout2 from './components/NavbarWrapperLayout2';
 import RightSideLayout2 from './components/RightSideLayout2';
 import ToolbarLayout2 from './components/ToolbarLayout2';
 import Configurator from '../components/configurator/Configurator';
+import { ContrastFloatingButton } from '@/components/ContrastFloatingButton';
 
 const Root = styled('div')(({ config }: { config: Layout2ConfigDefaultsType }) => ({
+	overflowX: 'hidden',
+	width: '100%',
 	...(config.mode === 'boxed' && {
 		clipPath: 'inset(0)',
 		maxWidth: `${config.containerWidth}px`,
@@ -24,6 +26,7 @@ const Root = styled('div')(({ config }: { config: Layout2ConfigDefaultsType }) =
 			maxWidth: `${config.containerWidth}px`,
 			width: '100%',
 			margin: '0 auto',
+			boxSizing: 'border-box',
 			'@media (min-width: 96rem)': {
 				maxWidth: `${config.containerWidth}px!important`
 			}
@@ -32,7 +35,8 @@ const Root = styled('div')(({ config }: { config: Layout2ConfigDefaultsType }) =
 	...(config.mode === 'fullwidth' && {
 		'& .container': {
 			maxWidth: '100%!important',
-			width: '100%!important'
+			width: '100%!important',
+			boxSizing: 'border-box'
 		}
 	})
 }));
@@ -58,10 +62,10 @@ function Layout2(props: Layout2Props) {
 		>
 			{config.leftSidePanel.display && <LeftSideLayout2 />}
 
-			<div className="flex min-w-0 flex-auto flex-col">
+			<div className="flex min-w-0 flex-auto flex-col overflow-x-hidden">
 				<main
 					id="fuse-main"
-					className="relative flex min-h-svh min-w-0 flex-auto flex-col"
+					className="relative flex min-h-svh min-w-0 flex-auto flex-col overflow-x-hidden"
 				>
 					{config.navbar.display && (
 						<NavbarWrapperLayout2
@@ -69,14 +73,7 @@ function Layout2(props: Layout2Props) {
 						/>
 					)}
 
-					{config.toolbar.display && (
-						<ToolbarLayout2
-							className={clsx(
-								config.toolbar.style === 'fixed' && 'sticky top-0',
-								config.toolbar.position === 'above' && 'z-40 order-first'
-							)}
-						/>
-					)}
+					{config.toolbar.display && <ToolbarLayout2 />}
 
 					<div className="sticky top-0 z-99">
 						<Configurator />
@@ -88,14 +85,11 @@ function Layout2(props: Layout2Props) {
 						</FuseSuspense>
 						{children}
 					</div>
-
-					{config.footer.display && (
-						<FooterLayout2 className={config.footer.style === 'fixed' ? 'sticky bottom-0' : ''} />
-					)}
 				</main>
 			</div>
 
 			{config.rightSidePanel.display && <RightSideLayout2 />}
+			<ContrastFloatingButton />
 		</Root>
 	);
 }

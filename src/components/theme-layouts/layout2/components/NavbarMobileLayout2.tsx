@@ -1,14 +1,14 @@
 import FuseScrollbars from '@fuse/core/FuseScrollbars';
+import { Box, Divider } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import clsx from 'clsx';
 import { memo } from 'react';
-import { Divider } from '@mui/material';
 import UserMenu from 'src/components/theme-layouts/components/UserMenu';
 import Logo from '../../components/Logo';
 import Navigation from '../../components/navigation/Navigation';
-import GoToDocBox from '../../components/GoToDocBox';
+import { useContrastTheme } from '@/contexts/ContrastThemeContext';
 
-const Root = styled('div')(({ theme }) => ({
+const Root = styled(Box)(({ theme }) => ({
 	backgroundColor: theme.vars.palette.background.default,
 	color: theme.vars.palette.text.primary,
 	'& ::-webkit-scrollbar-thumb': {
@@ -41,36 +41,52 @@ type NavbarMobileLayout2Props = {
 
 /**
  * The navbar mobile layout 2.
+ * Clean, modern mobile drawer with vertical navigation and contrast theming.
  */
 function NavbarMobileLayout2(props: NavbarMobileLayout2Props) {
 	const { className = '' } = props;
+	const { settings: contrastSettings } = useContrastTheme();
+
+	const isContrastActive = contrastSettings.enabled;
 
 	return (
-		<Root className={clsx('flex h-full flex-col overflow-hidden', className)}>
-			<div className="flex h-12 shrink-0 flex-row items-center px-3 md:h-18">
+		<Root
+			className={clsx('flex h-full flex-col overflow-hidden', className)}
+			sx={(theme) => ({
+				backgroundColor:
+					isContrastActive && contrastSettings.asideBg
+						? contrastSettings.asideBg
+						: theme.vars.palette.background.default,
+				color:
+					isContrastActive && contrastSettings.asideText
+						? contrastSettings.asideText
+						: theme.vars.palette.text.primary,
+				...(isContrastActive &&
+					contrastSettings.asideText && {
+						'& .MuiTypography-root, & .fuse-list-item-text, & .fuse-list-item-icon, & .MuiSvgIcon-root, & svg':
+							{
+								color: `${contrastSettings.asideText} !important`
+							}
+					})
+			})}
+		>
+			{/* ── Brand Logo Header ── */}
+			<div className="flex h-14 shrink-0 flex-row items-center px-4 border-b border-divider">
 				<Logo />
 			</div>
 
+			{/* ── Vertical Navigation ── */}
 			<StyledContent
-				className="flex min-h-0 flex-1 flex-col"
+				className="flex min-h-0 flex-1 flex-col py-2"
 				option={{ suppressScrollX: true, wheelPropagation: false }}
 			>
 				<Navigation layout="vertical" />
-
-				<div className="flex shrink-0 items-center justify-center py-12 opacity-10">
-					<img
-						className="w-full max-w-16"
-						src="/assets/images/logo/logo.svg"
-						alt="footer logo"
-					/>
-				</div>
 			</StyledContent>
-
-			<GoToDocBox className="mx-3 my-4" />
 
 			<Divider />
 
-			<div className="w-full p-1 md:p-4">
+			{/* ── User Profile & Session ── */}
+			<div className="w-full p-3">
 				<UserMenu className="w-full" />
 			</div>
 		</Root>

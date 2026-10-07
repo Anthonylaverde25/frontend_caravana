@@ -3,10 +3,17 @@ import GlobalStyles from "@mui/material/GlobalStyles";
 
 export type ContrastPreset =
   | "default"
+  | "emerald"
+  | "campo-criollo"
+  | "agtech-mint"
+  | "sage-linen"
+  | "sap-fiori"
+  | "corporate-navy"
+  | "nordic-slate"
+  | "bordeaux-copper"
   | "high-contrast-dark"
   | "high-contrast-light"
-  | "sap-fiori"
-  | "emerald"
+  | "manga-hivis"
   | "custom";
 
 export interface ContrastSettings {
@@ -32,6 +39,70 @@ export const PRESETS: Record<
     primaryButtonBg: "#0E3D26",
     secondaryButtonBg: "#059669",
   },
+  emerald: {
+    headerBg: "#064E3B",
+    headerText: "#ECFDF5",
+    asideBg: "#022C22",
+    asideText: "#F0FDF4",
+    primaryButtonBg: "#0E3D26",
+    secondaryButtonBg: "#059669",
+  },
+  "campo-criollo": {
+    headerBg: "#78350F",
+    headerText: "#FEF3C7",
+    asideBg: "#451A03",
+    asideText: "#FDE68A",
+    primaryButtonBg: "#B45309",
+    secondaryButtonBg: "#D97706",
+  },
+  "agtech-mint": {
+    headerBg: "#0F291E",
+    headerText: "#34D399",
+    asideBg: "#061A12",
+    asideText: "#A7F3D0",
+    primaryButtonBg: "#059669",
+    secondaryButtonBg: "#10B981",
+  },
+  "sage-linen": {
+    headerBg: "#F4F7F4",
+    headerText: "#1E3A2F",
+    asideBg: "#EAEFEA",
+    asideText: "#132E22",
+    primaryButtonBg: "#2D6A4F",
+    secondaryButtonBg: "#52B788",
+  },
+  "sap-fiori": {
+    headerBg: "#0A6ED1",
+    headerText: "#FFFFFF",
+    asideBg: "#1D232A",
+    asideText: "#F4F4F4",
+    primaryButtonBg: "#0A6ED1",
+    secondaryButtonBg: "#475569",
+  },
+  "corporate-navy": {
+    headerBg: "#0F172A",
+    headerText: "#F8FAFC",
+    asideBg: "#020617",
+    asideText: "#94A3B8",
+    primaryButtonBg: "#0A6ED1",
+    secondaryButtonBg: "#0284C7",
+  },
+  "nordic-slate": {
+    headerBg: "#1E293B",
+    headerText: "#F1F5F9",
+    asideBg: "#0F172A",
+    asideText: "#E4E4E7",
+    primaryButtonBg: "#475569",
+    secondaryButtonBg: "#0284C7",
+  },
+  "bordeaux-copper": {
+    headerBg: "#4C0519",
+    headerText: "#FFE4E6",
+    asideBg: "#2E020C",
+    asideText: "#FECDD3",
+    primaryButtonBg: "#BE123C",
+    secondaryButtonBg: "#E11D48",
+  },
   "high-contrast-dark": {
     headerBg: "#0F172A",
     headerText: "#FFFFFF",
@@ -48,21 +119,13 @@ export const PRESETS: Record<
     primaryButtonBg: "#0E3D26",
     secondaryButtonBg: "#10B981",
   },
-  "sap-fiori": {
-    headerBg: "#0A6ED1",
-    headerText: "#FFFFFF",
-    asideBg: "#1D232A",
-    asideText: "#F4F4F4",
-    primaryButtonBg: "#0A6ED1",
-    secondaryButtonBg: "#475569",
-  },
-  emerald: {
-    headerBg: "#064E3B",
-    headerText: "#ECFDF5",
-    asideBg: "#022C22",
-    asideText: "#F0FDF4",
-    primaryButtonBg: "#0E3D26",
-    secondaryButtonBg: "#059669",
+  "manga-hivis": {
+    headerBg: "#000000",
+    headerText: "#FACC15",
+    asideBg: "#09090B",
+    asideText: "#FFFFFF",
+    primaryButtonBg: "#CA8A04",
+    secondaryButtonBg: "#16A34A",
   },
 };
 

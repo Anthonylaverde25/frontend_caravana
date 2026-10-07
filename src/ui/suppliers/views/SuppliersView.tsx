@@ -61,18 +61,7 @@ function SuppliersView() {
 			}
 		>
 			<Box component="main">
-				<Paper
-					elevation={0}
-					sx={{
-						borderRadius: '8px',
-						border: 1,
-						borderColor: 'divider',
-						overflow: 'hidden',
-						bgcolor: 'background.paper',
-					}}
-				>
-					<SuppliersTable />
-				</Paper>
+				<SuppliersTable />
 			</Box>
 
 			{/* Dialog modal para Alta de Proveedor */}
