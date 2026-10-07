@@ -63,40 +63,134 @@ const CompanySelector = () => {
             aria-expanded={open ? "true" : undefined}
             onClick={handleClick}
             startIcon={
-              <FuseSvgIcon size={18} color="action">
-                heroicons-outline:office-building
-              </FuseSvgIcon>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 22,
+                  height: 22,
+                  borderRadius: "6px",
+                  backgroundColor: (theme) =>
+                    isContrastActive
+                      ? "rgba(255, 255, 255, 0.18)"
+                      : alpha(theme.palette.primary.main, 0.12),
+                  color: isContrastActive ? "inherit" : "primary.main",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <FuseSvgIcon size={14}>
+                  heroicons-outline:building-office-2
+                </FuseSvgIcon>
+              </Box>
             }
             endIcon={
               <FuseSvgIcon
                 size={14}
                 className="transition-transform duration-200"
-                sx={{ transform: open ? "rotate(180deg)" : "none" }}
+                sx={{
+                  transform: open ? "rotate(180deg)" : "none",
+                  color: isContrastActive ? headerTextColor : "text.secondary",
+                }}
               >
                 heroicons-mini:chevron-down
               </FuseSvgIcon>
             }
             sx={{
               textTransform: "none",
-              fontWeight: 700,
-              fontSize: 12.5,
               py: 0.5,
               px: 1.25,
-              height: 32,
-              borderRadius: "6px",
-              color: headerTextColor,
-              "& .MuiSvgIcon-root, & svg": {
-                color: `${headerTextColor} !important`,
-              },
+              height: 34,
+              borderRadius: "8px",
+              border: (theme) =>
+                `1px solid ${
+                  isContrastActive
+                    ? "rgba(255, 255, 255, 0.28)"
+                    : open
+                    ? theme.palette.primary.main
+                    : theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.18)"
+                    : "rgba(0, 0, 0, 0.15)"
+                }`,
               backgroundColor: (theme) =>
-                open ? alpha(theme.palette.primary.main, 0.08) : "transparent",
+                isContrastActive
+                  ? open
+                    ? "rgba(255, 255, 255, 0.2)"
+                    : "rgba(255, 255, 255, 0.1)"
+                  : open
+                  ? alpha(theme.palette.primary.main, 0.12)
+                  : theme.palette.mode === "dark"
+                  ? alpha(theme.palette.common.white, 0.06)
+                  : alpha(theme.palette.action.hover, 0.65),
+              boxShadow: (theme) =>
+                theme.palette.mode === "dark"
+                  ? "none"
+                  : "0 1px 2px rgba(0, 0, 0, 0.05)",
+              transition: "all 0.15s ease-in-out",
               "&:hover": {
+                borderColor: (theme) =>
+                  isContrastActive
+                    ? "rgba(255, 255, 255, 0.5)"
+                    : theme.palette.primary.main,
                 backgroundColor: (theme) =>
-                  alpha(theme.palette.primary.main, 0.04),
+                  isContrastActive
+                    ? "rgba(255, 255, 255, 0.18)"
+                    : alpha(theme.palette.primary.main, 0.08),
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.08)",
+                "& .MuiBox-root": {
+                  backgroundColor: (theme) =>
+                    isContrastActive
+                      ? "rgba(255, 255, 255, 0.25)"
+                      : alpha(theme.palette.primary.main, 0.2),
+                },
               },
             }}
           >
-            {activeCompany?.name || "Seleccionar Empresa"}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                textAlign: "left",
+                mr: 0.5,
+              }}
+            >
+              <Typography
+                component="span"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  lineHeight: 1.2,
+                  color: isContrastActive ? headerTextColor : "text.primary",
+                  maxWidth: { xs: 130, sm: 190, md: 240 },
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {activeCompany?.name || "Seleccionar Empresa"}
+              </Typography>
+              {activeCompany?.renspa && (
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: "0.62rem",
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    letterSpacing: "0.02em",
+                    color: isContrastActive
+                      ? "rgba(255, 255, 255, 0.75)"
+                      : "text.secondary",
+                    maxWidth: { xs: 120, sm: 170 },
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {activeCompany.renspa}
+                </Typography>
+              )}
+            </Box>
           </Button>
           <Menu
             id="company-menu"
