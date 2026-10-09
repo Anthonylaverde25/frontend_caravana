@@ -4,6 +4,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { BatchesTable } from '../components/BatchesTable';
+import { OwnBatchesContainer } from '../components/own/OwnBatchesContainer';
 import CreateBatchDialog from '../components/CreateBatchDialog';
 import EntryStartActions from '@/ui/entry-orders/components/EntryStartActions';
 
@@ -97,7 +98,11 @@ function BatchesView() {
 						overflow: 'hidden',
 					}}
 				>
-					<BatchesTable filter={filter} />
+					{filter === 'own' ? (
+						<OwnBatchesContainer onCreateBatch={() => setIsDialogOpen(true)} />
+					) : (
+						<BatchesTable filter={filter} onCreateBatch={() => setIsDialogOpen(true)} />
+					)}
 				</Paper>
 			</Box>
 

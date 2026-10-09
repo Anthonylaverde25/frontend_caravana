@@ -16,7 +16,9 @@ import {
 	TableBody,
 	Checkbox,
 	useTheme,
-	alpha
+	alpha,
+	TablePagination,
+	Collapse
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { BatchGroup, CaravanItem } from '../types/caravanViewTypes';
@@ -24,6 +26,7 @@ import { BatchGroup, CaravanItem } from '../types/caravanViewTypes';
 interface CaravanBatchGroupCardProps {
 	group: BatchGroup;
 	selectedCaravanIds: number[];
+	defaultExpanded?: boolean;
 	onToggleCaravan: (id: number) => void;
 	onToggleGroup: (ids: number[]) => void;
 	onAddCaravan: (batchId: number) => void;
@@ -44,6 +47,7 @@ interface CaravanBatchGroupCardProps {
 export function CaravanBatchGroupCard({
 	group,
 	selectedCaravanIds,
+	defaultExpanded = false,
 	onToggleCaravan,
 	onToggleGroup,
 	onAddCaravan,
@@ -91,6 +95,16 @@ export function CaravanBatchGroupCard({
 	const isAllBatchSelected = batchIds.length > 0 && selectedCountInBatch === batchIds.length;
 	const isSomeBatchSelected = selectedCountInBatch > 0 && !isAllBatchSelected;
 
+	const [page, setPage] = React.useState(0);
+	const rowsPerPage = 15;
+	const paginatedCaravans = group.caravans.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+
+	const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+
+	React.useEffect(() => {
+		setIsExpanded(defaultExpanded);
+	}, [defaultExpanded]);
+
 	return (
 		<Paper
 			elevation={0}
@@ -112,12 +126,21 @@ export function CaravanBatchGroupCard({
 				sx={{
 					px: 2.5,
 					py: 1.5,
-					borderBottom: '2px solid',
-					borderColor: isDark ? alpha(active, 0.55) : alpha(active, 0.35),
-					bgcolor: isDark ? alpha(active, 0.16) : alpha('#0a6ed1', 0.07)
+					borderBottom: isExpanded ? '2px solid' : '1px solid',
+					borderColor: isExpanded
+						? isDark ? alpha(active, 0.55) : alpha(active, 0.35)
+						: 'divider',
+					bgcolor: isDark ? alpha(active, 0.16) : alpha('#0a6ed1', 0.07),
+					transition: 'border-bottom 0.2s ease'
 				}}
 			>
-				<Stack direction="row" spacing={1.5} alignItems="center">
+				<Stack
+					direction="row"
+					spacing={1.5}
+					alignItems="center"
+					onClick={() => setIsExpanded((prev) => !prev)}
+					sx={{ cursor: 'pointer', userSelect: 'none' }}
+				>
 					<Box
 						sx={{
 							display: 'flex',
@@ -198,11 +221,27 @@ export function CaravanBatchGroupCard({
 							<FuseSvgIcon size={16}>heroicons-outline:folder-open</FuseSvgIcon>
 						</IconButton>
 					</Tooltip>
+
+					<Tooltip title={isExpanded ? 'Colapsar Lote' : 'Expandir Lote'}>
+						<IconButton
+							size="small"
+							onClick={() => setIsExpanded((prev) => !prev)}
+							sx={{
+								height: 28,
+								width: 28,
+								transition: 'transform 0.2s ease',
+								transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+							}}
+						>
+							<FuseSvgIcon size={18}>heroicons-outline:chevron-down</FuseSvgIcon>
+						</IconButton>
+					</Tooltip>
 				</Stack>
 			</Stack>
 
-			{/* Table of Caravans */}
-			<TableContainer>
+			{/* Table of Caravans (Lazy unmounted when collapsed) */}
+			<Collapse in={isExpanded} timeout="auto" unmountOnExit>
+				<TableContainer>
 				<Table stickyHeader size="small" sx={{ borderCollapse: 'collapse' }}>
 					<TableHead>
 						<TableRow>
@@ -237,7 +276,7 @@ export function CaravanBatchGroupCard({
 								</TableCell>
 							</TableRow>
 						) : (
-							group.caravans.map((caravan, index) => {
+							paginatedCaravans.map((caravan, index) => {
 								const isSelected = selectedCaravanIds.includes(caravan.id);
 								const rowBg = isSelected
 									? isDark
@@ -268,16 +307,22 @@ export function CaravanBatchGroupCard({
 												fontWeight: 600
 											}}
 										>
-											{index + 1}
+											{page * rowsPerPage + index + 1}
 										</TableCell>
-										<TableCell sx={bodyCellStyle}>
+										<TableCell
+											sx={{ ...bodyCellStyle, cursor: 'pointer' }}
+											onClick={() => onViewCaravan(caravan)}
+										>
 											<Typography
 												sx={{
 													fontFamily: 'monospace',
 													fontWeight: 800,
 													color: 'primary.main',
 													fontSize: '0.85rem',
-													lineHeight: 1.1
+													lineHeight: 1.1,
+													'&:hover': {
+														textDecoration: 'underline'
+													}
 												}}
 											>
 												#{caravan.identification}
@@ -369,8 +414,22 @@ export function CaravanBatchGroupCard({
 					</TableBody>
 				</Table>
 			</TableContainer>
+
+			{group.caravans.length > rowsPerPage && (
+				<TablePagination
+					component="div"
+					count={group.caravans.length}
+					page={page}
+					onPageChange={(_, newPage) => setPage(newPage)}
+					rowsPerPage={rowsPerPage}
+					rowsPerPageOptions={[]}
+					labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+					sx={{ borderTop: 1, borderColor: 'divider' }}
+				/>
+			)}
+			</Collapse>
 		</Paper>
 	);
 }
 
-export default CaravanBatchGroupCard;
+export default React.memo(CaravanBatchGroupCard);

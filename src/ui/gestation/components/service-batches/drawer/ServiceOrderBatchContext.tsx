@@ -1,20 +1,29 @@
-import React from 'react';
-import { Box, Typography, Paper, Stack, Chip } from '@mui/material';
+import React, { useMemo } from 'react';
+import { Box, Typography, Paper, Stack, Chip, Alert } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { Batch } from '@/core/batches/domain/entities/Batch';
+import { computeServiceOrderTemporalStatus } from '@/ui/gestation/utils/serviceOrderTemporalStatus';
 
 interface ServiceOrderBatchContextProps {
   order: ServiceOrder | null;
   batch: Batch | null;
-  daysInService: number | null;
+  daysInService?: number | null;
 }
 
 export const ServiceOrderBatchContext: React.FC<ServiceOrderBatchContextProps> = ({
   order,
   batch,
-  daysInService,
 }) => {
   const batchDetail = batch?.service_detail;
+
+  const temporal = useMemo(() => {
+    return computeServiceOrderTemporalStatus(
+      order,
+      batchDetail?.planned_start_date,
+      batchDetail?.planned_end_date
+    );
+  }, [order, batchDetail]);
 
   return (
     <>
@@ -32,6 +41,27 @@ export const ServiceOrderBatchContext: React.FC<ServiceOrderBatchContextProps> =
           Detalles del Lote &amp; Potrero
         </Typography>
       </Box>
+
+      {/* Proactive Temporal Alert Banner */}
+      {temporal.isOverdue && !temporal.isCompleted && (
+        <Alert
+          severity="error"
+          icon={<FuseSvgIcon size={18}>lucide:alert-triangle</FuseSvgIcon>}
+          sx={{ mb: 2, borderRadius: '8px', fontWeight: 600, fontSize: '0.78rem' }}
+        >
+          {temporal.label}. Para no dispersar la parición, debe realizar el retiro de toros al potrero de descanso.
+        </Alert>
+      )}
+
+      {temporal.isClosingSoon && !temporal.isCompleted && (
+        <Alert
+          severity="warning"
+          icon={<FuseSvgIcon size={18}>lucide:clock</FuseSvgIcon>}
+          sx={{ mb: 2, borderRadius: '8px', fontWeight: 600, fontSize: '0.78rem' }}
+        >
+          {temporal.label}. Organice los lotes de torada para recibir a los reproductores.
+        </Alert>
+      )}
 
       <Paper
         variant="outlined"
@@ -103,27 +133,38 @@ export const ServiceOrderBatchContext: React.FC<ServiceOrderBatchContextProps> =
               Ventana Planificada:
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {order?.planned_start_date || batchDetail?.planned_start_date || 'Sin fecha inicio'}
-              {(order?.actual_end_date || batchDetail?.planned_end_date)
-                ? ` al ${order?.actual_end_date || batchDetail?.planned_end_date}`
-                : ''}
+              {order?.planned_start_date || batchDetail?.planned_start_date || 'Sin inicio'}
+              {' al '}
+              {temporal.effectivePlannedEndDate || 'Sin fin'}
             </Typography>
           </Box>
 
-          {daysInService !== null && (
+          {order?.actual_end_date && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                Días en Servicio:
+                Retiro Efectivo:
               </Typography>
               <Chip
-                label={`${daysInService} días transcurridos`}
+                label={`Retirado: ${order.actual_end_date}`}
                 size="small"
-                color="primary"
-                variant="outlined"
+                color="success"
                 sx={{ fontWeight: 700, borderRadius: '6px' }}
               />
             </Box>
           )}
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Estado Temporal:
+            </Typography>
+            <Chip
+              label={temporal.label}
+              size="small"
+              color={temporal.chipColor}
+              variant={temporal.isCompleted ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 700, borderRadius: '6px' }}
+            />
+          </Box>
         </Stack>
       </Paper>
     </>

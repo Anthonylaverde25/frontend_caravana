@@ -10,6 +10,7 @@ import ToolbarTheme from 'src/contexts/ToolbarTheme';
 import CompanySelector from '../../components/CompanySelector';
 import { useContrastTheme } from '@/contexts/ContrastThemeContext';
 import QuickActionsSpeedDial from '../../components/QuickActionsSpeedDial';
+import QuickActionsMenu from '../../components/header/QuickActionsMenu';
 import NotificationsMenu from '../../components/header/NotificationsMenu';
 import UserMenu from '../../components/UserMenu';
 import LightDarkModeToggle from 'src/components/LightDarkModeToggle';
@@ -100,8 +101,10 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
             {/* ── Spacer ────────────────────────────────────────────── */}
             <div className="flex-1" />
 
-            {/* ── Right Zone: Theme Toggle, Notifications & User Identity ─ */}
+            {/* ── Right Zone: Quick Actions, Notifications, Theme Toggle & User Identity ─ */}
             <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 shrink-0">
+              <QuickActionsMenu />
+
               <NotificationsMenu />
 
               <LightDarkModeToggle

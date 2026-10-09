@@ -6,12 +6,12 @@ import { BATCH_TYPE_SCOPE_OPTIONS } from '../../registry/boardTemplates';
 
 /** Widgets suggested for an empty board, by the batch type the board is scoped to. */
 const SUGGESTIONS: Partial<Record<BatchTypeCode | 'ALL', string[]>> = {
-	ALL: ['stock-total', 'repro-pregnancy-rate', 'ops-attention', 'stock-by-category'],
-	SERVICE: ['repro-pregnancy-rate', 'repro-pregnancy-by-third', 'repro-bull-ratio-by-batch', 'repro-service-batches'],
-	GROWING_REPLACEMENT_FEMALES: ['weights-vs-target', 'weights-adpv', 'weights-freshness', 'weights-dispersion'],
-	GROWING_HEIFERS: ['weights-adpv', 'weights-batch-curve', 'weights-freshness', 'weights-change-breakdown'],
-	GROWING_STEERS: ['weights-adpv', 'weights-batch-curve', 'weights-freshness', 'weights-adpv-by-batch'],
-	WEANING: ['weights-weaning-weight', 'stock-balance', 'weights-dispersion']
+	ALL: ['stock-total', 'stock-by-breed', 'ops-dte-kpi', 'stock-females-matrix'],
+	SERVICE: ['stock-females-matrix', 'genetics-sires-worklist', 'health-lab-worklist'],
+	GROWING_REPLACEMENT_FEMALES: ['stock-total', 'stock-females-matrix'],
+	GROWING_HEIFERS: ['stock-total', 'stock-females-matrix'],
+	GROWING_STEERS: ['stock-total', 'stock-males-matrix'],
+	WEANING: ['stock-total', 'stock-by-breed', 'ops-dte-status']
 };
 
 interface EmptyBoardStateProps {

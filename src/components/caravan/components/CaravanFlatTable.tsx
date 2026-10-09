@@ -213,14 +213,20 @@ export function CaravanFlatTable({
 										>
 											{page * rowsPerPage + index + 1}
 										</TableCell>
-										<TableCell sx={bodyCellStyle}>
+										<TableCell
+											sx={{ ...bodyCellStyle, cursor: 'pointer' }}
+											onClick={() => onViewCaravan(caravan)}
+										>
 											<Typography
 												sx={{
 													fontFamily: 'monospace',
 													fontWeight: 800,
 													color: 'primary.main',
 													fontSize: '0.85rem',
-													lineHeight: 1.1
+													lineHeight: 1.1,
+													'&:hover': {
+														textDecoration: 'underline'
+													}
 												}}
 											>
 												#{caravan.identification}

@@ -11,9 +11,9 @@ import {
 import { SYSTEM_BOARDS, buildTemplateWidgets, newInstanceId } from '../registry/boardTemplates';
 import { getWidgetDefinition } from '../registry/widgetRegistry';
 
-/** v3: user boards and system board customizations are persisted in localStorage. */
-const STORAGE_KEY = 'rxna_dashboard_boards_v3';
-const SYSTEM_OVERRIDE_KEY = 'rxna_dashboard_system_overrides_v3';
+/** v4: user boards and system board customizations are persisted in localStorage. */
+const STORAGE_KEY = 'rxna_dashboard_boards_v4';
+const SYSTEM_OVERRIDE_KEY = 'rxna_dashboard_system_overrides_v4';
 
 export interface CreateBoardInput {
 	name: string;

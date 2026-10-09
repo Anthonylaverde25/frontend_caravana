@@ -335,9 +335,9 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
                       FECHA INICIO PLANIFICADA
                     </Typography>
                   </td>
-                  <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '3px 6px' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, color: '#000', display: 'block', fontSize: '0.58rem' }}>
-                      FECHA FIN ESTIMADA
+                  <td style={{ border: '1px solid #000', backgroundColor: order?.actual_end_date ? '#fef3c7' : '#f0f0f0', padding: '3px 6px' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, color: order?.actual_end_date ? '#92400e' : '#000', display: 'block', fontSize: '0.58rem' }}>
+                      {order?.actual_end_date ? 'FECHA RETIRO EFECTIVO' : 'FECHA FIN ESTIMADA'}
                     </Typography>
                   </td>
                   <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '3px 6px' }}>
@@ -363,9 +363,11 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
                       {order?.planned_start_date || detail?.planned_start_date || '____ / ____ / ________'}
                     </Typography>
                   </td>
-                  <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.78rem' }}>
-                      {detail?.planned_end_date || '____ / ____ / ________'}
+                  <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle', backgroundColor: order?.actual_end_date ? '#fffbeb' : 'transparent' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.78rem', color: order?.actual_end_date ? '#b45309' : 'inherit' }}>
+                      {order?.actual_end_date
+                        ? `${order.actual_end_date} (Retiro)`
+                        : (order?.planned_end_date || detail?.planned_end_date || '____ / ____ / ________')}
                     </Typography>
                   </td>
                   <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle' }}>
@@ -409,34 +411,46 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
                   <thead>
                     <tr style={{ backgroundColor: '#f0f0f0', height: 22 }}>
                       <th style={{ border: '1px solid #000', padding: '2px 4px', width: '5%', textAlign: 'center', fontWeight: 800 }}>#</th>
-                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '22%', textAlign: 'left', fontWeight: 800 }}>CARAVANA TORO</th>
-                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '25%', textAlign: 'left', fontWeight: 800 }}>CATEGORÍA / RAZA</th>
-                      <th style={{ border: '1px solid #000', padding: '2px 4px', width: '12%', textAlign: 'center', fontWeight: 800 }}>DENTICIÓN</th>
-                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '16%', textAlign: 'right', fontWeight: 800 }}>PESO ACTUAL</th>
-                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '20%', textAlign: 'center', fontWeight: 800 }}>ASIGNACIÓN</th>
+                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '20%', textAlign: 'left', fontWeight: 800 }}>CARAVANA TORO</th>
+                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '22%', textAlign: 'left', fontWeight: 800 }}>CATEGORÍA / RAZA</th>
+                      <th style={{ border: '1px solid #000', padding: '2px 4px', width: '10%', textAlign: 'center', fontWeight: 800 }}>DENTICIÓN</th>
+                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '15%', textAlign: 'right', fontWeight: 800 }}>PESO ACTUAL</th>
+                      <th style={{ border: '1px solid #000', padding: '2px 6px', width: '28%', textAlign: 'center', fontWeight: 800 }}>ESTADO / ASIGNACIÓN</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {maleCaravans.map((male: any, i: number) => (
-                      <tr key={male.id || i} style={{ height: 22 }}>
-                        <td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center', fontWeight: 700 }}>{i + 1}</td>
-                        <td style={{ border: '1px solid #000', padding: '2px 6px', fontWeight: 900, fontFamily: 'monospace', color: '#2563eb' }}>
-                          #{male.identification}
-                        </td>
-                        <td style={{ border: '1px solid #000', padding: '2px 6px' }}>
-                          {male.category_name || male.category || 'Toro'} {male.breed ? `• ${male.breed}` : ''}
-                        </td>
-                        <td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center', fontWeight: 700 }}>
-                          {male.teeth !== undefined && male.teeth !== null ? `${male.teeth}D` : '4D'}
-                        </td>
-                        <td style={{ border: '1px solid #000', padding: '2px 6px', textAlign: 'right', fontWeight: 700 }}>
-                          {male.current_weight || male.weight ? `${male.current_weight || male.weight} kg` : '—'}
-                        </td>
-                        <td style={{ border: '1px solid #000', padding: '2px 6px', textAlign: 'center', fontWeight: 600 }}>
-                          {order?.is_controlled_service ? 'Controlado / Fijo' : 'Rodeo General'}
-                        </td>
-                      </tr>
-                    ))}
+                    {maleCaravans.map((male: any, i: number) => {
+                      const maleDetail = order?.male_details?.find((d: any) => d.male_caravan_id === male.id);
+                      const isOrderDone = order?.status === 'SUCCESS' || order?.status === 'COMPLETED' || Boolean(order?.actual_end_date);
+                      const statusText = isOrderDone || maleDetail?.status === 'COMPLETED'
+                        ? 'Torada en Descanso'
+                        : maleDetail?.status === 'RETIRED_INJURED'
+                        ? 'Baja por Lesión'
+                        : maleDetail?.status === 'REPLACED'
+                        ? 'Sustituido'
+                        : (order?.is_controlled_service ? 'Controlado / Fijo' : 'Rodeo General');
+
+                      return (
+                        <tr key={male.id || i} style={{ height: 22 }}>
+                          <td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center', fontWeight: 700 }}>{i + 1}</td>
+                          <td style={{ border: '1px solid #000', padding: '2px 6px', fontWeight: 900, fontFamily: 'monospace', color: '#2563eb' }}>
+                            #{male.identification}
+                          </td>
+                          <td style={{ border: '1px solid #000', padding: '2px 6px' }}>
+                            {male.category_name || male.category || 'Toro'} {male.breed ? `• ${male.breed}` : ''}
+                          </td>
+                          <td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center', fontWeight: 700 }}>
+                            {male.teeth !== undefined && male.teeth !== null ? `${male.teeth}D` : '4D'}
+                          </td>
+                          <td style={{ border: '1px solid #000', padding: '2px 6px', textAlign: 'right', fontWeight: 700 }}>
+                            {male.current_weight || male.weight ? `${male.current_weight || male.weight} kg` : '—'}
+                          </td>
+                          <td style={{ border: '1px solid #000', padding: '2px 6px', textAlign: 'center', fontWeight: 700, color: isOrderDone ? '#059669' : 'inherit' }}>
+                            {statusText}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </Box>

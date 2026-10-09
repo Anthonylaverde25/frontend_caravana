@@ -53,6 +53,17 @@ export interface BatchDTO {
   is_system?: boolean;
   is_service_batch?: boolean;
   is_weaning_batch?: boolean;
+  is_in_service?: boolean;
+  active_service_order?: {
+    id: number;
+    order_number: string;
+    status: string;
+    service_batch_id: number;
+    service_batch_name?: string;
+    planned_start_date?: string;
+    planned_end_date?: string;
+  } | null;
+  service_order_origin_batch_id?: number | null;
   service_detail?: ServiceBatchDetailDTO | null;
   entry_order?: BatchEntryOrderSummary | null;
   created_at?: string;
@@ -122,9 +133,20 @@ export class Batch {
     public readonly is_system: boolean = false,
     public readonly is_service_batch: boolean = false,
     public readonly is_weaning_batch: boolean = false,
+    public readonly is_in_service: boolean = false,
+    public readonly active_service_order?: {
+      id: number;
+      order_number: string;
+      status: string;
+      service_batch_id: number;
+      service_batch_name?: string;
+      planned_start_date?: string;
+      planned_end_date?: string;
+    } | null,
     public readonly service_detail?: ServiceBatchDetailDTO | null,
     public readonly created_at?: string,
     public readonly entry_order: BatchEntryOrderSummary | null = null,
+    public readonly service_order_origin_batch_id?: number | null,
   ) { }
 
   public static create(dto: BatchDTO): Batch {
@@ -157,9 +179,12 @@ export class Batch {
       dto.is_system ?? false,
       dto.is_service_batch ?? dto.batch_type_code === 'SERVICE',
       dto.is_weaning_batch ?? (dto.batch_type_code === 'WEANING' || (dto.name ? dto.name.toLowerCase().includes('destete') : false)),
+      dto.is_in_service ?? false,
+      dto.active_service_order ?? null,
       dto.service_detail ?? null,
       dto.created_at,
-      dto.entry_order ?? null
+      dto.entry_order ?? null,
+      dto.service_order_origin_batch_id ?? null
     );
   }
 
@@ -174,6 +199,10 @@ export class Batch {
 
   public isService(): boolean {
     return this.is_service_batch || this.batch_type_code === 'SERVICE';
+  }
+
+  public isOperational(): boolean {
+    return !this.isService();
   }
 
   public isWeaning(): boolean {

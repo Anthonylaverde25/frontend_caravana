@@ -24,6 +24,7 @@ interface BatchDetailsDialogProps {
     open: boolean;
     onClose: () => void;
     batch: any;
+    onStartService?: (batch: any) => void;
 }
 
 /**
@@ -31,7 +32,7 @@ interface BatchDetailsDialogProps {
  * Orchestrates batch growth curves, weight history logs, quick ingress/egress
  * actions, and the interactive graph tester panel.
  */
-export function BatchDetailsDialog({ open, onClose, batch }: BatchDetailsDialogProps) {
+export function BatchDetailsDialog({ open, onClose, batch, onStartService }: BatchDetailsDialogProps) {
     const { activeCompanyId } = useCompany();
     const { data: history = [], isLoading } = useBatchWeightHistory(batch?.id);
     const { data: allCaravans = [] } = useCaravans(open ? activeCompanyId : null, 'own');
@@ -42,8 +43,18 @@ export function BatchDetailsDialog({ open, onClose, batch }: BatchDetailsDialogP
 
     const batchCaravans = useMemo(() => {
         if (!batch?.id) return [];
-        return allCaravans.filter((c: any) => c.batch_id === batch.id);
-    }, [allCaravans, batch?.id]);
+        return allCaravans.filter((c: any) => {
+            if (c.batch_id === batch.id) return true;
+            if (
+                (batch.is_service_batch || batch.batch_type_code === 'SERVICE') &&
+                batch.service_order_origin_batch_id &&
+                c.batch_id === batch.service_order_origin_batch_id
+            ) {
+                return true;
+            }
+            return false;
+        });
+    }, [allCaravans, batch?.id, batch?.is_service_batch, batch?.batch_type_code, batch?.service_order_origin_batch_id]);
 
     if (!batch) return null;
 
@@ -96,6 +107,7 @@ export function BatchDetailsDialog({ open, onClose, batch }: BatchDetailsDialogP
                             onOpenTransfer={() => setQuickTransferOpen(true)}
                             testerOpen={testerOpen}
                             onToggleTester={() => setTesterOpen((prev) => !prev)}
+                            onStartService={onStartService ? () => onStartService(batch) : undefined}
                         />
 
                         {/* Interactive Graph Tester & Simulator */}

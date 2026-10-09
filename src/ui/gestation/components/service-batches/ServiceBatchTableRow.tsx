@@ -15,6 +15,7 @@ import { ServiceBatchOrderCell } from './cells/ServiceBatchOrderCell';
 import { ServiceBatchTemporalWindowCell } from './cells/ServiceBatchTemporalWindowCell';
 import { ServiceBatchRatioCell } from './cells/ServiceBatchRatioCell';
 import { ServiceBatchActionsCell } from './cells/ServiceBatchActionsCell';
+import { computeServiceOrderTemporalStatus } from '../../utils/serviceOrderTemporalStatus';
 
 interface ServiceBatchTableRowProps {
   batch: Batch;
@@ -46,6 +47,7 @@ export const ServiceBatchTableRow: React.FC<ServiceBatchTableRowProps> = ({
 
   const zebraBg = isDark ? 'rgba(255, 255, 255, 0.02)' : '#fafafa';
   const detail = batch.service_detail;
+  const temporal = computeServiceOrderTemporalStatus(serviceOrder, detail?.planned_start_date, detail?.planned_end_date);
 
   const bodyCellStyle = {
     px: 1.5,
@@ -149,31 +151,55 @@ export const ServiceBatchTableRow: React.FC<ServiceBatchTableRowProps> = ({
       {/* 8. Planned Dates / Ventana Temporal */}
       <ServiceBatchTemporalWindowCell
         batch={batch}
+        serviceOrder={serviceOrder}
         isDark={isDark}
         bodyCellStyle={bodyCellStyle}
         onOpenTemporalInfo={onOpenTemporalInfo}
       />
 
       {/* 9. Status */}
-      <TableCell sx={{ ...bodyCellStyle, width: 105, textAlign: 'center' }}>
+      <TableCell sx={{ ...bodyCellStyle, width: 110, textAlign: 'center' }}>
         <Chip
-          label={batch.isActive() ? 'En Servicio' : 'Concluido'}
+          label={
+            serviceOrder?.status === 'SUCCESS' || !batch.isActive()
+              ? 'Concluido'
+              : temporal.isOverdue
+              ? 'Retiro Pendiente'
+              : temporal.isClosingSoon
+              ? 'Próximo a Cerrar'
+              : 'En Servicio'
+          }
           size="small"
           sx={{
             fontWeight: 700,
-            fontSize: '0.7rem',
+            fontSize: '0.68rem',
             height: 22,
             borderRadius: '4px',
-            bgcolor: batch.isActive()
-              ? isDark ? 'rgba(16, 126, 62, 0.2)' : '#e7f6ec'
-              : 'action.hover',
-            color: batch.isActive()
-              ? isDark ? '#34d399' : '#107e3e'
-              : 'text.secondary',
+            bgcolor:
+              serviceOrder?.status === 'SUCCESS' || !batch.isActive()
+                ? 'action.hover'
+                : temporal.isOverdue
+                ? isDark ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2'
+                : temporal.isClosingSoon
+                ? isDark ? 'rgba(249, 115, 22, 0.2)' : '#ffedd5'
+                : isDark ? 'rgba(16, 126, 62, 0.2)' : '#e7f6ec',
+            color:
+              serviceOrder?.status === 'SUCCESS' || !batch.isActive()
+                ? 'text.secondary'
+                : temporal.isOverdue
+                ? isDark ? '#f87171' : '#dc2626'
+                : temporal.isClosingSoon
+                ? isDark ? '#fb923c' : '#ea580c'
+                : isDark ? '#34d399' : '#107e3e',
             border: '1px solid',
-            borderColor: batch.isActive()
-              ? isDark ? 'rgba(16, 126, 62, 0.4)' : '#b0e4c1'
-              : 'transparent',
+            borderColor:
+              serviceOrder?.status === 'SUCCESS' || !batch.isActive()
+                ? 'divider'
+                : temporal.isOverdue
+                ? isDark ? 'rgba(239, 68, 68, 0.4)' : '#fca5a5'
+                : temporal.isClosingSoon
+                ? isDark ? 'rgba(249, 115, 22, 0.4)' : '#fdba74'
+                : isDark ? 'rgba(16, 126, 62, 0.4)' : '#b0e4c1',
           }}
         />
       </TableCell>

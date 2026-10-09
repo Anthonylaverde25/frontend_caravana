@@ -64,4 +64,54 @@ export class ApiCaravanRepository implements ICaravanRepository {
     const response = await axiosInstance.get(`/caravans/${id}/pedigree`);
     return response.data;
   }
+
+  async findById(id: number): Promise<Caravan> {
+    const response = await axiosInstance.get<{ data: any }>(`/caravans/${id}`);
+    return CaravanMapper.toDomain(response.data.data);
+  }
+
+  async findSummary(params: {
+    companyId?: number;
+    scope?: 'own' | 'external' | 'all';
+    batchId?: number | string;
+    search?: string;
+    sex?: 'M' | 'H' | 'ALL';
+    page?: number;
+    perPage?: number;
+  }): Promise<{
+    data: any[];
+    meta: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  }> {
+    const headers: Record<string, string> = {};
+    if (params.companyId) {
+      headers['X-Company-ID'] = params.companyId.toString();
+    }
+    const queryParams: Record<string, any> = {};
+    if (params.scope) queryParams.scope = params.scope;
+    if (params.batchId !== undefined && params.batchId !== '') queryParams.batch_id = params.batchId;
+    if (params.search) queryParams.search = params.search;
+    if (params.sex && params.sex !== 'ALL') queryParams.sex = params.sex;
+    if (params.page) queryParams.page = params.page;
+    if (params.perPage) queryParams.per_page = params.perPage;
+
+    const response = await axiosInstance.get<any>('/caravans/summary', {
+      headers,
+      params: queryParams,
+    });
+
+    return {
+      data: response.data.data || [],
+      meta: response.data.meta || {
+        current_page: 1,
+        last_page: 1,
+        per_page: params.perPage || 25,
+        total: (response.data.data || []).length,
+      },
+    };
+  }
 }

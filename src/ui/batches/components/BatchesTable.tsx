@@ -27,16 +27,22 @@ import { useNavigate } from 'react-router';
 import { BatchDetailsDialog } from './BatchDetailsDialog';
 import EntryOrderStatusChip from '@/ui/entry-orders/components/EntryOrderStatusChip';
 import LoadDteDialog from '@/ui/entry-orders/components/dte/LoadDteDialog';
+import StartBatchServiceDialog from './dialogs/StartBatchServiceDialog';
+import { OwnBatchesContainer } from './own/OwnBatchesContainer';
 
 interface BatchesTableProps {
 	filter?: 'own' | 'external' | 'all';
+	onCreateBatch?: () => void;
 }
 
 /**
  * BatchesTable Component
  * Displays the list of own batches and providers with their associated batches in a detail panel.
  */
-export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
+export function BatchesTable({ filter = 'all', onCreateBatch }: BatchesTableProps) {
+	if (filter === 'own') {
+		return <OwnBatchesContainer onCreateBatch={onCreateBatch} />;
+	}
 	const navigate = useNavigate();
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -86,6 +92,7 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 	const [addCaravansDialogOpen, setAddCaravansDialogOpen] = useState(false);
 	const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 	const [selectedBatch, setSelectedBatch] = useState<any>(null);
+	const [startServiceBatch, setStartServiceBatch] = useState<any>(null);
 	const [dteOrderId, setDteOrderId] = useState<number | null>(null);
 
 	const handleAddCaravans = (batch: any) => {
@@ -99,11 +106,6 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 	};
 
 	const columns = useMemo(() => getSupplierColumns(), []);
-
-	// Filter own batches (without supplier)
-	const ownBatches = useMemo(() => {
-		return batches.filter((b) => b.provider_id === null || b.provider_id === undefined);
-	}, [batches]);
 
 	const isLoading = isLoadingSuppliers || isLoadingBatches;
 
@@ -127,214 +129,14 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 	return (
 		<Box className="w-full">
 			{/* Section for Own Batches (without supplier) */}
-			{filter !== 'external' && ownBatches.length > 0 && (
-				<Box
-					sx={{
-						p: 3,
-						borderBottom: 1,
-						borderColor: 'divider',
-						bgcolor: isDark ? 'background.default' : '#fafafa'
-					}}
-				>
-					<Typography
-						variant="overline"
-						sx={{
-							color: 'primary.main',
-							fontWeight: 800,
-							mb: 2,
-							display: 'block',
-							letterSpacing: '0.75px',
-							fontSize: '0.72rem'
-						}}
-					>
-						Mis Lotes Propios ({ownBatches.length})
-					</Typography>
-
-					<Stack spacing={1.5}>
-						{ownBatches.map((batch) => (
-							<Paper
-								key={batch.id}
-								elevation={0}
-								sx={{
-									p: 2,
-									px: 3,
-									borderRadius: '6px',
-									border: 1,
-									borderColor: 'divider',
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'space-between',
-									bgcolor: 'background.paper'
-								}}
-							>
-								<Stack
-									direction="row"
-									spacing={3}
-									alignItems="center"
-								>
-									<Box>
-										<Stack
-											direction="row"
-											spacing={1}
-											alignItems="center"
-											sx={{ mb: 0.5 }}
-										>
-											<Typography
-												variant="subtitle2"
-												sx={{ fontWeight: 800, color: 'text.primary' }}
-											>
-												{batch.name}
-											</Typography>
-											{batch.activity_name && (
-												<>
-													<Typography
-														variant="caption"
-														sx={{ color: 'divider', fontWeight: 900 }}
-													>
-														|
-													</Typography>
-													<Typography
-														variant="caption"
-														sx={{
-															fontWeight: 700,
-															color: 'primary.main',
-															textTransform: 'uppercase',
-															letterSpacing: 0.5
-														}}
-													>
-														{batch.activity_name}
-													</Typography>
-													<Typography
-														variant="caption"
-														sx={{ color: 'divider', fontWeight: 900 }}
-													>
-														|
-													</Typography>
-													<Typography
-														variant="caption"
-														sx={{ fontWeight: 800, color: 'secondary.main' }}
-													>
-														{batch.current_weight
-															? `${batch.current_weight} kg/cab`
-															: 'SIN PESO'}
-													</Typography>
-												</>
-											)}
-										</Stack>
-										<Typography
-											variant="caption"
-											sx={{ color: 'text.secondary', display: 'block', mb: 1 }}
-										>
-											Establecimiento: Propio (RENSPA de la Compañía)
-										</Typography>
-
-										<Stack
-											direction="row"
-											spacing={2}
-										>
-											<Stack
-												direction="row"
-												spacing={0.5}
-												alignItems="center"
-											>
-												<FuseSvgIcon
-													size={16}
-													sx={{ color: 'text.secondary' }}
-												>
-													heroicons-outline:users
-												</FuseSvgIcon>
-												<Typography
-													variant="caption"
-													sx={{ fontWeight: 600, color: 'text.primary' }}
-												>
-													120 Cabezas
-												</Typography>
-											</Stack>
-											{batch.batch_type_name && (
-												<Chip
-													label={batch.batch_type_name.toUpperCase()}
-													size="small"
-													sx={{
-														height: 20,
-														fontSize: '0.65rem',
-														fontWeight: 700,
-														bgcolor: 'primary.light',
-														color: 'primary.contrastText',
-														border: 'none'
-													}}
-												/>
-											)}
-										</Stack>
-									</Box>
-								</Stack>
-
-								<Stack
-									direction="row"
-									spacing={1}
-									alignItems="center"
-								>
-									<Tooltip title="Ver Detalles y Evolución">
-										<IconButton
-											size="small"
-											onClick={() => handleViewDetails(batch)}
-											sx={{
-												color: 'primary.main',
-												bgcolor: 'action.hover',
-												'&:hover': { bgcolor: 'action.selected' }
-											}}
-										>
-											<FuseSvgIcon size={20}>heroicons-outline:eye</FuseSvgIcon>
-										</IconButton>
-									</Tooltip>
-
-									<Tooltip title="Ingreso Múltiple (Manual)">
-										<IconButton
-											size="small"
-											onClick={() => navigate(`/batches/${batch.id}/bulk-entry`)}
-											sx={{
-												color: 'secondary.main',
-												bgcolor: 'action.hover',
-												'&:hover': { bgcolor: 'action.selected' }
-											}}
-										>
-											<FuseSvgIcon size={20}>heroicons-outline:table-cells</FuseSvgIcon>
-										</IconButton>
-									</Tooltip>
-
-									<Tooltip title="Añadir Caravana">
-										<IconButton
-											size="small"
-											onClick={() => handleAddCaravans(batch)}
-											sx={{
-												color: (theme) =>
-													theme.palette.mode === 'dark' ? '#ffffff' : 'primary.main',
-												bgcolor: 'action.hover',
-												'&:hover': { bgcolor: 'action.selected' }
-											}}
-										>
-											<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>
-										</IconButton>
-									</Tooltip>
-
-									<Chip
-										label={batch.is_active ? 'Activo' : 'Inactivo'}
-										size="small"
-										color={batch.is_active ? 'success' : 'default'}
-										variant="outlined"
-										sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-									/>
-								</Stack>
-							</Paper>
-						))}
-					</Stack>
-				</Box>
+			{filter !== 'external' && (
+				<OwnBatchesContainer onCreateBatch={onCreateBatch} />
 			)}
 
 			{/* Main DataTable of Suppliers */}
-			{filter !== 'own' && (
-				<DataTable
-					columns={columns}
-					data={suppliers}
+			<DataTable
+				columns={columns}
+				data={suppliers}
 					enableRowSelection={true}
 					enableColumnOrdering={true}
 					enableGlobalFilter={true}
@@ -698,7 +500,6 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 						}
 					}}
 				/>
-			)}
 			<AddCaravansDialog
 				open={addCaravansDialogOpen}
 				onClose={() => setAddCaravansDialogOpen(false)}
@@ -708,10 +509,19 @@ export function BatchesTable({ filter = 'all' }: BatchesTableProps) {
 				open={detailsDialogOpen}
 				onClose={() => setDetailsDialogOpen(false)}
 				batch={selectedBatch}
+				onStartService={(batch) => {
+					setDetailsDialogOpen(false);
+					setStartServiceBatch(batch);
+				}}
 			/>
 			<LoadDteDialog
 				orderId={dteOrderId}
 				onClose={() => setDteOrderId(null)}
+			/>
+			<StartBatchServiceDialog
+				open={Boolean(startServiceBatch)}
+				onClose={() => setStartServiceBatch(null)}
+				batch={startServiceBatch}
 			/>
 		</Box>
 	);

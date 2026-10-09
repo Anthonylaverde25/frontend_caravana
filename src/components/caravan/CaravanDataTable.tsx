@@ -3,7 +3,7 @@ import { Box, CircularProgress, Stack, Paper, Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useBatches } from '@/features/batches/hooks/useBatches';
-import { useCaravans } from '@/features/caravans/hooks/useCaravans';
+import { useCaravansSummary } from '@/features/caravans/hooks/useCaravansSummary';
 import { useUpsertCaravan } from '@/features/caravans/hooks/useUpsertCaravan';
 import { CaravanItem, BatchGroup } from './types/caravanViewTypes';
 import CaravanFilterBar from './components/CaravanFilterBar';
@@ -14,6 +14,7 @@ import CaravanFormDialog from './dialogs/CaravanFormDialog';
 import CaravanTransferDialog from './dialogs/CaravanTransferDialog';
 import { CaravanWeightDialog } from './CaravanWeightDialog';
 import BatchDetailDrawer from './BatchDetailDrawer';
+import CaravanDetailDrawer from './CaravanDetailDrawer';
 
 export interface CaravanDataTableRef {
 	openAddDialog: () => void;
@@ -35,9 +36,13 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 	const { activeCompanyId, companies } = useCompany();
 	const availableCompanies = companies.filter((c) => c.id !== activeCompanyId);
 
-	// Data Queries
+	// Data Queries (Ultra-fast Summary without heavy relational tree)
 	const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
-	const { data: rawCaravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId, 'own');
+	const { data: summaryResult, isLoading: isLoadingCaravans } = useCaravansSummary({
+		scope: 'own',
+		perPage: 1000,
+	});
+	const rawCaravans = summaryResult?.data ?? [];
 	const upsertMutation = useUpsertCaravan();
 
 	// View & Filter States
@@ -54,6 +59,11 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 	const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
 	const [activeCaravan, setActiveCaravan] = useState<any>(null);
 	const [defaultBatchForAdd, setDefaultBatchForAdd] = useState<number | undefined>(undefined);
+
+	// Detailed On-Demand Caravan Drawer State
+	const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+	const [selectedDetailCaravanId, setSelectedDetailCaravanId] = useState<number | null>(null);
+	const [selectedDetailIdentification, setSelectedDetailIdentification] = useState<string | null>(null);
 
 	const [transferDialogOpen, setTransferDialogOpen] = useState(false);
 	const [caravansToTransfer, setCaravansToTransfer] = useState<any[]>([]);
@@ -199,7 +209,10 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 			setFormMode('create');
 			setFormDialogOpen(true);
 		},
-		refresh: () => queryClient.invalidateQueries({ queryKey: ['caravans'] })
+		refresh: () => {
+			queryClient.invalidateQueries({ queryKey: ['caravans'] });
+			queryClient.invalidateQueries({ queryKey: ['caravans-summary'] });
+		}
 	}));
 
 	// Action triggers
@@ -211,9 +224,9 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 	}, []);
 
 	const handleOpenViewCaravan = useCallback((caravan: CaravanItem) => {
-		setActiveCaravan(caravan);
-		setFormMode('view');
-		setFormDialogOpen(true);
+		setSelectedDetailCaravanId(caravan.id);
+		setSelectedDetailIdentification(caravan.identification);
+		setDetailDrawerOpen(true);
 	}, []);
 
 	const handleOpenEditCaravan = useCallback((caravan: CaravanItem) => {
@@ -332,10 +345,11 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 					</Paper>
 				) : (
 					<Stack spacing={0}>
-						{hierarchyGroups.map((group) => (
+						{hierarchyGroups.map((group, index) => (
 							<CaravanBatchGroupCard
 								key={group.batchId}
 								group={group}
+								defaultExpanded={index === 0 || (selectedBatchId !== '' && group.batchId === selectedBatchId)}
 								selectedCaravanIds={selectedCaravanIds}
 								onToggleCaravan={handleToggleCaravan}
 								onToggleGroup={handleToggleGroup}
@@ -406,6 +420,17 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 					setBatchDetailData(null);
 				}}
 				batch={batchDetailData}
+			/>
+
+			<CaravanDetailDrawer
+				open={detailDrawerOpen}
+				onClose={() => {
+					setDetailDrawerOpen(false);
+					setSelectedDetailCaravanId(null);
+					setSelectedDetailIdentification(null);
+				}}
+				caravanId={selectedDetailCaravanId}
+				caravanIdentification={selectedDetailIdentification}
 			/>
 		</Box>
 	);

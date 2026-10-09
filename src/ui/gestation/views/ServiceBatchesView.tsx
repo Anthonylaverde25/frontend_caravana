@@ -39,10 +39,13 @@ export const ServiceBatchesView: React.FC = () => {
   const { data: caravans = [] } = useCaravans(activeCompanyId, 'own');
   const { data: serviceOrders = [] } = useServiceOrders();
 
-  // Map service orders by batch_id
+  // Map service orders by service_batch_id and batch_id
   const serviceOrdersMap = useMemo(() => {
     const map = new Map<number, ServiceOrder>();
     serviceOrders.forEach((order) => {
+      if (order.service_batch_id) {
+        map.set(order.service_batch_id, order);
+      }
       if (order.batch_id) {
         map.set(order.batch_id, order);
       }
@@ -59,14 +62,46 @@ export const ServiceBatchesView: React.FC = () => {
   const batchStatsMap = useMemo(() => {
     const map = new Map<number, { females: number; males: number; ratio: number }>();
     serviceBatches.forEach((batch) => {
-      const batchCaravans = caravans.filter((c) => c.batch_id === batch.id);
-      const females = batchCaravans.filter((c) => c.sex === 'H' || (c.sex as string) === 'F' || (c.sex as string) === 'HEMBRA').length;
-      const males = batchCaravans.filter((c) => c.sex === 'M' || (c.sex as string) === 'MACHO').length;
+      const order = serviceOrdersMap.get(batch.id);
+
+      let females = 0;
+      let males = 0;
+
+      if (order && ((order.female_caravan_ids && order.female_caravan_ids.length > 0) || (order.male_caravan_ids && order.male_caravan_ids.length > 0) || (order.male_details && order.male_details.length > 0))) {
+        // High fidelity: Count animals committed in the active service order
+        females = order.female_caravan_ids?.length ?? 0;
+        
+        // Count ONLY active bulls currently in service (exclude retired/injured bulls)
+        if (order.male_details && order.male_details.length > 0) {
+          males = order.male_details.filter((d) => d.status === 'ACTIVE').length;
+        } else if (order.active_male_caravan_ids) {
+          males = order.active_male_caravan_ids.length;
+        } else {
+          males = order.male_caravan_ids?.length ?? 0;
+        }
+      } else {
+        // Fallback: Caravans physically in batch or in linked origin batch
+        const relevantCaravans = caravans.filter((c) => {
+          if (c.batch_id === batch.id) return true;
+          if (batch.service_order_origin_batch_id && c.batch_id === batch.service_order_origin_batch_id) {
+            return true;
+          }
+          return false;
+        });
+
+        females = relevantCaravans.filter(
+          (c) => c.sex === 'H' || (c.sex as string) === 'F' || (c.sex as string) === 'HEMBRA'
+        ).length;
+        males = relevantCaravans.filter(
+          (c) => c.sex === 'M' || (c.sex as string) === 'MACHO'
+        ).length;
+      }
+
       const ratio = females > 0 ? Number(((males / females) * 100).toFixed(1)) : 0;
       map.set(batch.id, { females, males, ratio });
     });
     return map;
-  }, [serviceBatches, caravans]);
+  }, [serviceBatches, serviceOrdersMap, caravans]);
 
   // KPIs
   const kpis: ServiceBatchKPIs = useMemo(() => {
@@ -100,7 +135,9 @@ export const ServiceBatchesView: React.FC = () => {
   }, [serviceBatches, batchStatsMap]);
 
   const handleViewCaravans = (batchId: number) => {
-    navigate(`/caravans?batch_id=${batchId}`);
+    const order = serviceOrdersMap.get(batchId);
+    const targetBatchId = order?.origin_batch_id ?? batchId;
+    navigate(`/caravans?batch_id=${targetBatchId}`);
   };
 
   const handleOpenDetailDrawer = (batch: Batch, order?: ServiceOrder) => {
@@ -111,7 +148,13 @@ export const ServiceBatchesView: React.FC = () => {
   const selectedOrderBatch = useMemo(() => {
     if (selectedBatch) return selectedBatch;
     if (!selectedServiceOrder) return null;
-    return batches.find((b) => b.id === selectedServiceOrder.batch_id) || null;
+    return (
+      batches.find(
+        (b) =>
+          b.id === selectedServiceOrder.service_batch_id ||
+          b.id === selectedServiceOrder.batch_id
+      ) || null
+    );
   }, [selectedBatch, selectedServiceOrder, batches]);
 
   return (
@@ -168,6 +211,7 @@ export const ServiceBatchesView: React.FC = () => {
         }}
         order={selectedServiceOrder}
         batch={selectedOrderBatch}
+        batches={batches}
         caravans={caravans}
         onPrintSheet={(order) => setPrintSheetOrder(order)}
         onNavigateToServiceOrders={() => navigate('/gestation/service-orders')}

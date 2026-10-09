@@ -7,6 +7,7 @@ interface BatchDetailsToolbarProps {
   onOpenTransfer: () => void;
   testerOpen: boolean;
   onToggleTester: () => void;
+  onStartService?: () => void;
 }
 
 const formatNumber = (value: number | null | undefined, digits = 1): string => {
@@ -28,8 +29,17 @@ export default function BatchDetailsToolbar({
   onOpenTransfer,
   testerOpen,
   onToggleTester,
+  onStartService,
 }: BatchDetailsToolbarProps) {
   const theme = useTheme();
+
+  const isCria = Boolean(
+    batch.activity_name?.toLowerCase().includes('cria') ||
+    batch.activity_name?.toLowerCase().includes('cría') ||
+    batch.activity_id === 1
+  );
+  const isServiceBatch = Boolean(batch.is_service_batch || batch.batch_type_code === 'SERVICE');
+  const isInService = Boolean(batch.is_in_service || batch.active_service_order);
 
   return (
     <Box
@@ -74,10 +84,46 @@ export default function BatchDetailsToolbar({
             variant="outlined"
           />
         )}
+        {isInService && (
+          <Chip
+            icon={<FuseSvgIcon size={16} sx={{ color: '#ea580c !important' }}>heroicons-outline:fire</FuseSvgIcon>}
+            label={batch.active_service_order?.order_number ? `En Entore Activo (${batch.active_service_order.order_number})` : 'En Entore Activo'}
+            size="small"
+            sx={{
+              fontWeight: 800,
+              px: 0.5,
+              bgcolor: 'rgba(234, 88, 12, 0.1)',
+              color: '#ea580c',
+              borderColor: 'rgba(234, 88, 12, 0.3)',
+              borderWidth: 1,
+              borderStyle: 'solid'
+            }}
+          />
+        )}
       </Stack>
 
       {/* Action buttons */}
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+        {onStartService && isCria && !isServiceBatch && !isInService && (
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<FuseSvgIcon size={18}>heroicons-outline:fire</FuseSvgIcon>}
+            onClick={onStartService}
+            sx={{
+              fontWeight: 700,
+              textTransform: 'none',
+              borderRadius: '6px',
+              boxShadow: 'none',
+              bgcolor: '#d97706',
+              color: '#ffffff',
+              '&:hover': { bgcolor: '#b45309' },
+            }}
+          >
+            Iniciar Entore
+          </Button>
+        )}
+
         <Button
           variant="contained"
           size="small"

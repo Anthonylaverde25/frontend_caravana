@@ -13,7 +13,9 @@ export interface ServiceOrderHistory {
 export interface ServiceOrder {
   id: number;
   company_id: number;
-  batch_id: number;
+  batch_id?: number | null;
+  origin_batch_id?: number | null;
+  service_batch_id?: number | null;
   code: string;
   status: string;
   requested_by_user_id: number | null;
@@ -23,12 +25,23 @@ export interface ServiceOrder {
   approved_at: string | null;
   executed_at: string | null;
   planned_start_date: string;
+  planned_end_date?: string | null;
   actual_start_date: string | null;
   actual_end_date: string | null;
   observations: string | null;
   rejection_reason: string | null;
   male_caravan_ids: number[];
+  active_male_caravan_ids?: number[];
+  all_male_caravan_ids?: number[];
   female_caravan_ids: number[];
+  male_details?: {
+    male_caravan_id: number;
+    status: 'ACTIVE' | 'RETIRED_INJURED' | 'REPLACED' | 'COMPLETED' | string;
+    retired_at?: string | null;
+    scrotal_circumference?: number | null;
+    service_capacity?: string | null;
+  }[];
+  bull_replacements?: any[];
   service_type: 'single' | 'rotation' | 'multi';
   is_controlled_service: boolean;
   female_sire_assignments: { female_caravan_id: number; assigned_male_caravan_id: number }[];
@@ -80,6 +93,41 @@ export function useCompleteServiceOrder() {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
     }
+  });
+}
+
+/**
+ * Hook to close a service order with bull withdrawal to resting batches.
+ */
+export function useCloseServiceOrderWithBullWithdrawal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      withdrawalDate,
+      observations,
+      defaultDestinationBatchId,
+      bullDestinations,
+    }: {
+      id: number;
+      withdrawalDate: string;
+      observations?: string;
+      defaultDestinationBatchId?: number | null;
+      bullDestinations?: { male_caravan_id: number; destination_batch_id: number }[];
+    }) => {
+      const response = await axiosInstance.post(`/service-orders/${id}/close-service`, {
+        withdrawal_date: withdrawalDate,
+        observations,
+        default_destination_batch_id: defaultDestinationBatchId,
+        bull_destinations: bullDestinations,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['caravans'] });
+    },
   });
 }
 

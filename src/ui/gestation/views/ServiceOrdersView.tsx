@@ -253,15 +253,25 @@ function ServiceOrdersView() {
       },
       {
         header: 'Toros',
-        accessorFn: (row) => row.male_caravan_ids.length,
-        Cell: ({ row }) => (
-          <Chip
-            label={row.original.male_caravan_ids.length}
-            size="small"
-            variant="outlined"
-            sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }}
-          />
-        ),
+        accessorFn: (row) => {
+          if (row.male_details && row.male_details.length > 0) {
+            return row.male_details.filter((d) => d.status === 'ACTIVE').length;
+          }
+          return row.active_male_caravan_ids?.length ?? row.male_caravan_ids.length;
+        },
+        Cell: ({ row }) => {
+          const count = row.original.male_details && row.original.male_details.length > 0
+            ? row.original.male_details.filter((d) => d.status === 'ACTIVE').length
+            : (row.original.active_male_caravan_ids?.length ?? row.original.male_caravan_ids.length);
+          return (
+            <Chip
+              label={count}
+              size="small"
+              variant="outlined"
+              sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }}
+            />
+          );
+        },
       },
       {
         header: 'Vientres',
@@ -513,20 +523,32 @@ function ServiceOrdersView() {
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block', mb: 1 }}>
-                      Toros Asignados ({selectedOrder.male_caravan_ids.length})
+                      Toros en Servicio ({
+                        selectedOrder.male_details
+                          ? selectedOrder.male_details.filter(d => d.status === 'ACTIVE').length
+                          : (selectedOrder.active_male_caravan_ids?.length ?? selectedOrder.male_caravan_ids.length)
+                      })
                     </Typography>
                     <Paper variant="outlined" sx={{ p: 1.5, maxHeight: 150, overflowY: 'auto', bgcolor: 'background.paper' }}>
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        {selectedOrder.male_caravan_ids.map(id => (
-                          <Chip
-                            key={id}
-                            label={getCaravanIdent(id)}
-                            size="small"
-                            variant="outlined"
-                            color="primary"
-                            sx={{ fontFamily: 'monospace', fontWeight: 700 }}
-                          />
-                        ))}
+                        {(selectedOrder.all_male_caravan_ids || selectedOrder.male_caravan_ids).map(id => {
+                          const detail = selectedOrder.male_details?.find(d => d.male_caravan_id === id);
+                          const isRetired = detail && detail.status !== 'ACTIVE';
+                          return (
+                            <Chip
+                              key={id}
+                              label={isRetired ? `${getCaravanIdent(id)} (Retirado)` : getCaravanIdent(id)}
+                              size="small"
+                              variant={isRetired ? 'filled' : 'outlined'}
+                              color={isRetired ? 'default' : 'primary'}
+                              sx={{
+                                fontFamily: 'monospace',
+                                fontWeight: 700,
+                                opacity: isRetired ? 0.7 : 1,
+                              }}
+                            />
+                          );
+                        })}
                       </Stack>
                     </Paper>
                   </Box>

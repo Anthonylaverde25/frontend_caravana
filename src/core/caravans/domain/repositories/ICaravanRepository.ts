@@ -8,6 +8,12 @@ export interface ICaravanRepository {
   /** Retrieves all caravans for the active company (filtered by X-Company-ID header and scope). */
   findAll(companyId?: number, scope?: 'own' | 'external' | 'all'): Promise<Caravan[]>;
 
+  /** Retrieves a single caravan by ID with full relational details. */
+  findById(id: number): Promise<Caravan>;
+
+  /** Retrieves paginated lightweight caravan summary for fast inventory display. */
+  findSummary(params: any): Promise<any>;
+
 
   /**
    * Creates or updates a caravan based on the identification field.

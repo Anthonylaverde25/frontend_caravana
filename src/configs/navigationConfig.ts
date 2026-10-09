@@ -38,14 +38,14 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/caravans',
 				end: true
 			},
-			{
-				id: 'gestion.farms',
-				title: 'Establecimientos',
-				subtitle: 'Sedes y Campos',
-				type: 'item',
-				icon: 'heroicons-outline:home-modern',
-				url: '/farms'
-			},
+			// {
+			// 	id: 'gestion.farms',
+			// 	title: 'Establecimientos',
+			// 	subtitle: 'Sedes y Campos',
+			// 	type: 'item',
+			// 	icon: 'heroicons-outline:home-modern',
+			// 	url: '/farms'
+			// },
 			{
 				id: 'gestion.providers',
 				title: 'Proveedores',
@@ -306,20 +306,20 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:camera',
 				url: 'work-templates/scan'
 			},
-			{
-				id: 'templates.create',
-				title: 'Crear Plantilla',
-				type: 'item',
-				icon: 'heroicons-outline:plus-circle',
-				url: '/templates/create'
-			},
-			{
-				id: 'livestock.generator',
-				title: 'Generador de Plantillas',
-				type: 'item',
-				icon: 'heroicons-outline:document-duplicate',
-				url: 'livestock/generator'
-			}
+			// {
+			// 	id: 'templates.create',
+			// 	title: 'Crear Plantilla',
+			// 	type: 'item',
+			// 	icon: 'heroicons-outline:plus-circle',
+			// 	url: '/templates/create'
+			// },
+			// {
+			// 	id: 'livestock.generator',
+			// 	title: 'Generador de Plantillas',
+			// 	type: 'item',
+			// 	icon: 'heroicons-outline:document-duplicate',
+			// 	url: 'livestock/generator'
+			// }
 		]
 	},
 ];
