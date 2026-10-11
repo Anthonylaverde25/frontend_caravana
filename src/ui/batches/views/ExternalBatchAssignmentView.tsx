@@ -1038,7 +1038,7 @@ export default function ExternalBatchAssignmentView() {
           open={isPickerOpen}
           batches={ownBatches}
           selectedId={targetOwnBatchId}
-          caravanCount={selectedCaravanIds.length}
+          subtitle={selectedCaravanIds.length === 1 ? '1 caravana' : `${selectedCaravanIds.length} caravanas`}
           onClose={() => setIsPickerOpen(false)}
           onPick={(batch) => {
             setTargetOwnBatchId(batch.id);

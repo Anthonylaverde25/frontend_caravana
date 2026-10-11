@@ -116,7 +116,7 @@ export default function ActivitiesView() {
 				.map((a) => ({
 					...a,
 					batches: (a.batches || []).filter((batch) => {
-						if (hideEmptyBatches && !batch.count) return false;
+						if (hideEmptyBatches && !batch.count && !batch.pendingIdentificationCount) return false;
 
 						if (managementFilter === 'ALL') return true;
 
@@ -416,7 +416,7 @@ export default function ActivitiesView() {
 								variant="caption"
 								sx={{ fontWeight: 900, color: stage.color, fontSize: '0.75rem' }}
 							>
-								{(stage.batches || []).reduce((acc, curr) => acc + curr.count, 0)} Cabezas
+								{(stage.batches || []).reduce((acc, curr) => acc + curr.count + (curr.pendingIdentificationCount ?? 0), 0)} Cabezas
 							</Typography>
 						</Box>
 					</Box>

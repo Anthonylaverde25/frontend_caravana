@@ -6,7 +6,18 @@ import type { EntryOrderSummary } from '@/features/entry-orders/types';
 import { TransferOrderKindChip } from '@/ui/transfer-orders/components/TransferOrderStatusChip';
 import EntryOrderStatusChip, { useEntryOrderStatusColor } from './EntryOrderStatusChip';
 import { useReceiptSheetPrint } from './useReceiptSheetPrint';
-import { breedsOf, formatDate, formatDateTime, originOf, sheetUrl, tracksReception, troopOf, useEntryOrderTableStyles } from './entryOrderFormat';
+import {
+  breedsOf,
+  destinationCaptionOf,
+  destinationOf,
+  formatDate,
+  formatDateTime,
+  originOf,
+  sheetUrl,
+  tracksReception,
+  troopOf,
+  useEntryOrderTableStyles
+} from './entryOrderFormat';
 
 interface EntryOrdersTableRowProps {
   order: EntryOrderSummary;
@@ -67,9 +78,12 @@ export const EntryOrdersTableRow: React.FC<EntryOrdersTableRowProps> = ({ order,
         </Typography>
       </TableCell>
       <TableCell sx={bodyCell}>
-        <Typography sx={{ ...primaryText, fontFamily: 'monospace' }}>{order.batch_name ?? '—'}</Typography>
-        <Typography variant="caption" sx={captionText}>
-          {order.batch ? 'Lote externo' : 'Se crea al confirmar'}
+        <Typography sx={{ ...primaryText, fontFamily: 'monospace' }}>{destinationOf(order)}</Typography>
+        <Typography
+          variant="caption"
+          sx={captionText}
+        >
+          {destinationCaptionOf(order)}
         </Typography>
       </TableCell>
       <TableCell sx={bodyCell}>

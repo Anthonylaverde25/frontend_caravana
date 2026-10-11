@@ -12,6 +12,7 @@ import {
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Batch } from '@/core/batches/domain/entities/Batch';
 import { useNavigate } from 'react-router';
+import BatchHeadCount from '../BatchHeadCount';
 
 interface OwnBatchCardProps {
   batch: Batch;
@@ -100,8 +101,15 @@ export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
               <FuseSvgIcon size={16} sx={{ color: 'text.secondary' }}>
                 heroicons-outline:users
               </FuseSvgIcon>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                {batch.caravans_count ?? 0} Cabezas
+              <Typography
+                variant="caption"
+                component="div"
+                sx={{ fontWeight: 600, color: 'text.primary' }}
+              >
+                <BatchHeadCount
+                  batch={batch}
+                  withUnit
+                />
               </Typography>
             </Stack>
 

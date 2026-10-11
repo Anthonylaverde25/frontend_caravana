@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography } from '@mui/material';
 import type { EntryOrder } from '@/features/entry-orders/types';
-import { ing03TroopBandOf } from './ing03Columns';
+import { ing03DestinationLineOf, ing03TroopBandOf } from './ing03Columns';
 
 interface Ing03TroopBandProps {
   order: EntryOrder;
@@ -14,10 +14,12 @@ interface Ing03TroopBandProps {
  * The TROPA band of the ING-03 header: sex, category and breed/coat printed once when the order
  * fixes them for every animal, so the chute can check what comes off the truck against what was
  * bought. When a datum is left to each line it says so, with what a line can write — the breeds and
- * categories expected, or their letters and numbers on a sheet by code.
+ * categories expected, or their letters and numbers on a sheet by code. When the order sends its
+ * animals to own batches, a second line says where each category and sex goes.
  */
 export const Ing03TroopBand: React.FC<Ing03TroopBandProps> = ({ order, written, landscape }) => {
   const cells = ing03TroopBandOf(order, written);
+  const destinations = ing03DestinationLineOf(order);
 
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: landscape ? '6px' : '10px', border: '2px solid #000', color: '#000', tableLayout: 'fixed' }}>
@@ -44,6 +46,43 @@ export const Ing03TroopBand: React.FC<Ing03TroopBandProps> = ({ order, written, 
             </td>
           ))}
         </tr>
+        {destinations && (
+          <tr>
+            <td
+              style={{
+                border: '1px solid #000',
+                backgroundColor: '#000',
+                padding: '2px 8px',
+                verticalAlign: 'middle'
+              }}
+            >
+              <Typography
+                sx={{
+                  fontWeight: 900,
+                  color: '#fff',
+                  fontSize: '0.56rem',
+                  textTransform: 'uppercase',
+                  lineHeight: 1.15
+                }}
+              >
+                Destino
+              </Typography>
+            </td>
+            <td
+              colSpan={cells.length}
+              style={{
+                border: '1px solid #000',
+                padding: '2px 8px',
+                backgroundColor: '#f8fafc',
+                verticalAlign: 'middle'
+              }}
+            >
+              <Typography sx={{ fontWeight: 700, fontSize: '0.6rem', color: '#000', lineHeight: 1.2 }}>
+                {destinations}
+              </Typography>
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   );

@@ -259,9 +259,9 @@ export function useBatchFilters({
         const inService = Boolean(batch.is_in_service || batch.active_service_order);
         if (!inService) return false;
       } else if (filters.operationalStatus === 'WITH_ANIMALS') {
-        if ((batch.caravans_count ?? 0) <= 0) return false;
+        if (batch.head_count <= 0) return false;
       } else if (filters.operationalStatus === 'EMPTY') {
-        if ((batch.caravans_count ?? 0) > 0) return false;
+        if (batch.head_count > 0) return false;
       }
 
       return true;
@@ -277,7 +277,9 @@ export function useBatchFilters({
 
     filteredBatches.forEach((b) => {
       if (!b) return;
-      const heads = b.caravans_count ?? 0;
+
+      // Head received by count are in the batch already, though their caravans are still to write.
+      const heads = b.head_count;
       totalHeads += heads;
 
       if (b.is_in_service || b.active_service_order) {

@@ -8,7 +8,9 @@ import {
   EntryOrderResult,
   LoadDtePayload,
   ReceivePayload,
+  RedistributePayload,
   RegisterEntryPayload,
+  WriteOffPendingPayload,
   StoreEntryOrderPayload,
   TriReading,
   ReferenceMode,
@@ -44,6 +46,24 @@ const useOpenOrderAction = () => {
     pathname.startsWith('/entry-orders') ? undefined : { label: 'Ver orden', onClick: () => navigate(`/entry-orders?orderId=${orderId}`) };
 };
 
+/**
+ * Where a confirmed purchase leaves its animals: the transit batch waiting for the DTE, its own
+ * destinations, or both.
+ */
+const awaitingNote = (order: EntryOrder): string => {
+  const destinations = [...new Set(order.destinations.map((d) => d.batch.name).filter(Boolean))];
+  const own =
+    destinations.length === 1
+      ? `entran directo a ${destinations[0]}`
+      : `entran directo a ${destinations.length} lotes propios`;
+
+  if (order.batch == null) return `En espera del DTE: los animales ${own}.`;
+
+  if (destinations.length === 0) return `El lote ${order.batch_name} queda en espera del DTE.`;
+
+  return `En espera del DTE: unos animales ${own} y el resto va al lote ${order.batch_name}.`;
+};
+
 const showWarnings = (result: EntryOrderResult) =>
   result.warnings.forEach((warning) => toast.warning(warning.message, { duration: 10000 }));
 
@@ -63,7 +83,7 @@ export function useCreateEntryOrder() {
       toast.success(
         result.order.status === 'DRAFT'
           ? `Borrador ${result.order.code} guardado`
-          : `Orden ${result.order.code} creada. El lote ${result.order.batch_name} queda en espera del DTE.`,
+          : `Orden ${result.order.code} creada. ${awaitingNote(result.order)}`,
         { action: openOrder(result.order.id), duration: 8000 }
       );
       showWarnings(result);
@@ -84,7 +104,7 @@ export function useUpdateEntryOrderDraft() {
       toast.success(
         result.order.status === 'DRAFT'
           ? `Borrador ${result.order.code} actualizado`
-          : `Orden ${result.order.code} confirmada. El lote ${result.order.batch_name} queda en espera del DTE.`,
+          : `Orden ${result.order.code} confirmada. ${awaitingNote(result.order)}`,
         { action: openOrder(result.order.id), duration: 8000 }
       );
       showWarnings(result);
@@ -92,7 +112,7 @@ export function useUpdateEntryOrderDraft() {
   });
 }
 
-/** Draft → awaiting DTE: creates the external batch, empty. */
+/** Draft → awaiting DTE: creates the transit batch, empty, when some animal has no destination. */
 export function useConfirmEntryOrder() {
   const invalidate = useInvalidateOrders();
 
@@ -101,7 +121,7 @@ export function useConfirmEntryOrder() {
       (await axiosInstance.post<EntryOrderResult>(`/entry-orders/${id}/confirm`)).data,
     onSuccess: (result) => {
       invalidate(true);
-      toast.success(`Orden ${result.order.code} confirmada. El lote ${result.order.batch_name} queda en espera del DTE.`);
+      toast.success(`Orden ${result.order.code} confirmada. ${awaitingNote(result.order)}`);
       showWarnings(result);
     },
     onError: (error) => toast.error(entryOrderErrorMessage(error, 'No se pudo confirmar la compra'))
@@ -157,6 +177,42 @@ export function useReceiveEntryOrder() {
   });
 }
 
+/**
+ * "Editar distribución": where the animals go from now on. Those already received stay where they
+ * are. Errors come back to the dialog.
+ */
+export function useRedistributeEntryOrder() {
+  const invalidate = useInvalidateOrders();
+
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: RedistributePayload }): Promise<EntryOrderResult> =>
+      (await axiosInstance.put<EntryOrderResult>(`/entry-orders/${id}/destinations`, payload)).data,
+    onSuccess: (result) => {
+      invalidate(true);
+      toast.success(
+        `Distribución de la orden ${result.order.code} actualizada: rige para lo que se reciba desde ahora.`
+      );
+      showWarnings(result);
+    }
+  });
+}
+
+/** "Dar de baja pendientes": head received without caravan that will never get one. */
+export function useWriteOffPendingHeads() {
+  const invalidate = useInvalidateOrders();
+
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: WriteOffPendingPayload }): Promise<EntryOrder> =>
+      (await axiosInstance.post<EntryOrder>(`/entry-orders/${id}/pending-heads/write-off`, payload)).data,
+    onSuccess: (order, variables) => {
+      invalidate(true);
+      toast.success(
+        `${heads(variables.payload.head_count, 'cabeza dada de baja', 'cabezas dadas de baja')}. Orden ${order.code}: ${order.status_label.toLowerCase()}.`
+      );
+    }
+  });
+}
+
 /** "Corregir cabezas": the head of a DTE were loaded wrong. Warnings say what it left behind. */
 export function useCorrectDteHeadCount() {
   const invalidate = useInvalidateOrders();
@@ -195,8 +251,21 @@ export function useRegisterEntry() {
       (await axiosInstance.post<EntryOrderResult>('/entry-orders/register', payload)).data,
     onSuccess: (result) => {
       invalidate(true);
+      const where = [
+        ...new Set(
+          result.order.dtes
+            .flatMap((d) => d.animals ?? [])
+            .map((a) => a.current_batch?.name)
+            .filter(Boolean)
+        )
+      ];
       toast.success(
-        `Ingreso ${result.order.code} registrado: ${heads(result.order.received_count, 'cabeza', 'cabezas')} en ${result.order.batch_name}`
+        `Ingreso ${result.order.code} registrado: ${heads(result.order.received_count, 'cabeza', 'cabezas')}` +
+          (where.length > 0
+            ? ` en ${where.join(', ')}`
+            : result.order.batch_name
+              ? ` en ${result.order.batch_name}`
+              : '')
       );
       showWarnings(result);
     }

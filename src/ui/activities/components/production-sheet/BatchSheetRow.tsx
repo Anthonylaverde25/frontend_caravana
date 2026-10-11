@@ -21,13 +21,10 @@ interface BatchSheetRowProps {
  * managed (pen or pasture). An empty batch stays visible and states whether it was
  * emptied by a transfer or never held animals at all.
  */
-export default function BatchSheetRow({
-  batch,
-  stageColor,
-  showManagementSystem,
-  onOpenMenu,
-}: BatchSheetRowProps) {
-  const isEmpty = !batch.count;
+export default function BatchSheetRow({ batch, stageColor, showManagementSystem, onOpenMenu }: BatchSheetRowProps) {
+  // Head received by count are in the batch, though their caravans are still to write.
+  const pending = batch.pendingIdentificationCount ?? 0;
+  const isEmpty = !batch.count && pending === 0;
 
   return (
     <Box
@@ -118,8 +115,20 @@ export default function BatchSheetRow({
           justifyContent: 'center',
         }}
       >
-        <Typography variant="body2" sx={{ fontWeight: 900, fontSize: '0.85rem', color: stageColor }}>
-          {batch.count}
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 900, fontSize: '0.85rem', color: stageColor, textAlign: 'center' }}
+        >
+          {batch.count + pending}
+          {pending > 0 && (
+            <Typography
+              component="span"
+              title="Recibidas sin caravana todavía"
+              sx={{ display: 'block', fontSize: '0.62rem', fontWeight: 700, color: 'warning.dark' }}
+            >
+              {pending} por identificar
+            </Typography>
+          )}
         </Typography>
       </Box>
 

@@ -29,23 +29,6 @@ export const ExternalBreedsEditor: React.FC<{ form: ExternalBatchForm }> = ({ fo
 
           return (
             <Stack key={field.id} direction="row" spacing={1.5} alignItems="flex-start">
-              <Box
-                sx={{
-                  width: 28,
-                  height: 27,
-                  flexShrink: 0,
-                  borderRadius: '6px',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontFamily: 'monospace'
-                }}
-              >
-                {String.fromCharCode(65 + index)}
-              </Box>
               <TextField
                 select
                 fullWidth

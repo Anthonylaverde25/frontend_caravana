@@ -18,12 +18,36 @@ const receivedByCategoryOf = (order: EntryOrderSummary | EntryOrder): TroopSumma
   ];
 };
 
+/**
+ * Where the animals go: the destination of each line and sex, and the transit batch for what has
+ * none. A draft without destinations still shows the name its transit batch will take.
+ */
+const destinationItemsOf = (order: EntryOrderSummary | EntryOrder): TroopSummaryItem[] => {
+  const items: TroopSummaryItem[] = [];
+
+  if (order.destinations.length > 0) {
+    items.push({
+      label: 'Destino',
+      value: order.destinations.map((d) => `${d.label} → ${d.batch.name ?? `Lote #${d.batch.id}`}`).join(' · ')
+    });
+  }
+
+  if (order.needs_transit_batch || order.batch) {
+    items.push({
+      label: order.destinations.length > 0 && order.needs_transit_batch ? 'Sin destino → lote de tránsito' : 'Lote de tránsito',
+      value: order.batch_name ?? 'Sin nombre todavía'
+    });
+  }
+
+  return items;
+};
+
 /** The troop of a saved order as summary items: what the purchase declared. */
 export const troopItemsOf = (order: EntryOrderSummary | EntryOrder): TroopSummaryItem[] => [
   { label: 'Proveedor', value: order.provider.name },
   { label: 'Establecimiento', value: `${order.farm.name ?? '—'}${order.farm.renspa ? ` · ${order.farm.renspa}` : ''}` },
   { label: 'Subasta', value: order.auction_number ?? 'No' },
-  { label: 'Lote', value: order.batch_name ?? 'Sin nombre todavía' },
+  ...destinationItemsOf(order),
   { label: 'Tropa', value: troopOf(order) },
   ...receivedByCategoryOf(order),
   { label: 'Razas', value: breedsOf(order) },

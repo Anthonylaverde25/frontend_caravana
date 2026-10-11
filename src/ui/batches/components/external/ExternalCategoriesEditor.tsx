@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFieldArray } from 'react-hook-form';
-import { Box, Button, FormHelperText, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Button, FormHelperText, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
 import { ExternalBatchForm, filledSx } from './externalFormParts';
@@ -29,24 +29,6 @@ export const ExternalCategoriesEditor: React.FC<{ form: ExternalBatchForm }> = (
 
         return (
           <Stack key={field.id} direction="row" spacing={1.5} alignItems="flex-start">
-            <Box
-              sx={{
-                width: 28,
-                height: 27,
-                mt: 1.5,
-                flexShrink: 0,
-                borderRadius: '6px',
-                border: '1px solid',
-                borderColor: 'divider',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontFamily: 'monospace'
-              }}
-            >
-              {index + 1}
-            </Box>
             <TextField
               select
               fullWidth

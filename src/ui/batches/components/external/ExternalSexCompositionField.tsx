@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, FormHelperText, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Box, MenuItem, Stack, TextField } from '@mui/material';
 import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
 import { SEX_COMPOSITION_LABELS, SexComposition } from '@/features/entry-orders/types';
 import { ExternalBatchForm, filledSx } from './externalFormParts';
@@ -86,45 +86,43 @@ export const ExternalSexCompositionField: React.FC<{ form: ExternalBatchForm }> 
 
   return (
     <Box>
-      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 0.5 }}>
-        Sexo de la tropa
-      </Typography>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={composition ?? null}
-          onChange={(_, next: SexComposition | null) => next && setValue('sex_composition', next, { shouldValidate: true })}
-        >
-          {SEXES.map((sex) => (
-            <ToggleButton key={sex} value={sex} disabled={!allowed[sex]} sx={{ px: 2, textTransform: 'none', fontWeight: 700 }}>
-              {SEX_COMPOSITION_LABELS[sex]}
-            </ToggleButton>
+      <TextField
+        select
+        fullWidth
+        label="Sexo de la tropa"
+        variant="filled"
+        required
+        value={composition ?? ''}
+        onChange={(e) => setValue('sex_composition', e.target.value as SexComposition, { shouldValidate: true })}
+        error={!!errors.sex_composition}
+        helperText={hint ?? errors.sex_composition?.message}
+        sx={filledSx}
+      >
+        {SEXES.map((sex) => (
+          <MenuItem key={sex} value={sex} disabled={!allowed[sex]}>
+            {SEX_COMPOSITION_LABELS[sex]}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      {composition === 'MIXED' && (
+        <Stack direction="row" spacing={2} sx={{ mt: 1.5 }}>
+          {(['male_count', 'female_count'] as const).map((field) => (
+            <TextField
+              key={field}
+              value={(field === 'male_count' ? maleCount : femaleCount) ?? ''}
+              onChange={(e) => setSplit(field, e.target.value)}
+              label={field === 'male_count' ? 'Cabezas machos' : 'Cabezas hembras'}
+              type="number"
+              variant="filled"
+              disabled={allowed.splitIsFixed}
+              inputProps={{ min: 1 }}
+              error={!!errors[field] || !!errors.male_count}
+              helperText={errors[field]?.message || (field === 'male_count' ? errors.male_count?.message : undefined)}
+              sx={{ ...filledSx, flex: 1 }}
+            />
           ))}
-        </ToggleButtonGroup>
-        {composition === 'MIXED' && (
-          <Stack direction="row" spacing={1.5}>
-            {(['male_count', 'female_count'] as const).map((field) => (
-              <TextField
-                key={field}
-                value={(field === 'male_count' ? maleCount : femaleCount) ?? ''}
-                onChange={(e) => setSplit(field, e.target.value)}
-                label={field === 'male_count' ? 'Machos' : 'Hembras'}
-                type="number"
-                size="small"
-                variant="filled"
-                disabled={allowed.splitIsFixed}
-                inputProps={{ min: 1 }}
-                error={!!errors[field] || !!errors.male_count}
-                sx={{ ...filledSx, width: 110 }}
-              />
-            ))}
-          </Stack>
-        )}
-      </Stack>
-      {hint && <FormHelperText>{hint}</FormHelperText>}
-      {(errors.sex_composition || errors.male_count || errors.female_count) && (
-        <FormHelperText error>{errors.sex_composition?.message ?? errors.male_count?.message ?? errors.female_count?.message}</FormHelperText>
+        </Stack>
       )}
     </Box>
   );

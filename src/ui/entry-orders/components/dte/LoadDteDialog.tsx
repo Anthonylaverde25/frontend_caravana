@@ -6,7 +6,7 @@ import { useEntryOrder } from '@/features/entry-orders/hooks/useEntryOrders';
 import { useLoadEntryOrderDte } from '@/features/entry-orders/hooks/useEntryOrderMutations';
 import { entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
 import DiscardChangesDialog from '../DiscardChangesDialog';
-import { breedsOf, originOf, troopOf } from '../entryOrderFormat';
+import { breedsOf, destinationOf, originOf, troopOf } from '../entryOrderFormat';
 import DteEntryForm from './DteEntryForm';
 import { useDteDraft } from './useDteDraft';
 
@@ -79,8 +79,12 @@ export const LoadDteDialog: React.FC<LoadDteDialogProps> = ({ orderId, onClose }
             Cargar DTE
           </Typography>
           {order && (
-            <Typography variant="caption" color="text.secondary">
-              {order.code} · Lote {order.batch_name} · {order.with_dte_count} de {order.head_count} cabezas con DTE
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              {order.code} · {destinationOf(order)} · {order.with_dte_count} de {order.head_count} cabezas
+              con DTE
             </Typography>
           )}
         </Box>

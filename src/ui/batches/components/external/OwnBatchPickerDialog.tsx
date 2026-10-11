@@ -26,8 +26,8 @@ interface OwnBatchPickerDialogProps {
   /** Own active batches, the only valid destinations. */
   batches: Batch[];
   selectedId: number | '';
-  /** How many caravans are about to go, for the subtitle. */
-  caravanCount: number;
+  /** What is about to go there, for the subtitle: "3 caravanas", "Ternero · machos". */
+  subtitle: string;
   onClose: () => void;
   onPick: (batch: Batch) => void;
   /** "Crear lote nuevo": the quick-create dialog takes over. */
@@ -51,7 +51,15 @@ const managementOf = (batch: Batch): string | null => (batch.is_confined === tru
  * Follows the app's dialog tokens (Dest01BatchPickerDialog): 8px paper, header with icon tile and
  * x-mark, filled search on action.hover, and a tinted action bar.
  */
-export const OwnBatchPickerDialog: React.FC<OwnBatchPickerDialogProps> = ({ open, batches, selectedId, caravanCount, onClose, onPick, onCreate }) => {
+export const OwnBatchPickerDialog: React.FC<OwnBatchPickerDialogProps> = ({
+  open,
+  batches,
+  selectedId,
+  subtitle,
+  onClose,
+  onPick,
+  onCreate
+}) => {
   const palette = useTransferPalette();
   const [search, setSearch] = useState('');
   const [pickedId, setPickedId] = useState<number | ''>(selectedId);
@@ -130,8 +138,11 @@ export const OwnBatchPickerDialog: React.FC<OwnBatchPickerDialogProps> = ({ open
             <Typography variant="h6" sx={{ fontSize: '1.05rem', fontWeight: 600, lineHeight: 1.25 }}>
               Lote propio destino
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {caravanCount === 1 ? '1 caravana' : `${caravanCount} caravanas`} · elegí un lote o creá uno nuevo
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              {subtitle} · elegí un lote o creá uno nuevo
             </Typography>
           </Box>
         </Stack>
@@ -201,8 +212,16 @@ export const OwnBatchPickerDialog: React.FC<OwnBatchPickerDialogProps> = ({ open
                           >
                             <ListItemText
                               primary={b.name}
-                              primaryTypographyProps={{ fontWeight: 700, fontSize: '0.85rem' }}
-                              secondary={[b.batch_type_name, managementOf(b), b.caravans_count != null ? `${b.caravans_count} animales` : null, b.farm_name]
+                              primaryTypographyProps={{
+                                fontWeight: 700,
+                                fontSize: '0.85rem'
+                              }}
+                              secondary={[
+                                b.batch_type_name,
+                                managementOf(b),
+                                `${b.head_count} animales${b.pending_identification_count > 0 ? ` (${b.pending_identification_count} por identificar)` : ''}`,
+                                b.farm_name
+                              ]
                                 .filter(Boolean)
                                 .join(' · ')}
                               secondaryTypographyProps={{ fontSize: '0.72rem' }}

@@ -19,13 +19,32 @@ export interface ServiceBatchDetailDTO {
 export interface BatchEntryOrderSummary {
   id: number;
   code: string;
-  status: 'DRAFT' | 'AWAITING_DTE' | 'IN_TRANSIT' | 'COMPLETED' | 'CLOSED_INCOMPLETE' | 'CANCELLED';
+  status: 'DRAFT' | 'AWAITING_DTE' | 'IN_TRANSIT' | 'RECEIVED' | 'COMPLETED' | 'CLOSED_INCOMPLETE' | 'CANCELLED';
   status_label: string;
   head_count: number;
   with_dte_count: number;
   received_count: number;
   in_transit_count: number;
   open_incidents_count: number;
+}
+
+/**
+ * An open purchase that brings animals to an own batch: by a destination rule of its order
+ * ("Ternero · machos"), or with head already received there that still wait for their caravan.
+ */
+export interface BatchIncomingEntryOrder {
+  id: number;
+  code: string;
+  status: string;
+  status_label: string;
+  /** The rules of the order that send animals to this batch. */
+  rules: string[];
+  /** Head of the whole order still on their way (not split by batch when it has several). */
+  in_transit_count: number;
+  /** Head received by count in this batch, their caravans still to write. */
+  pending_count: number;
+  /** The order sends all its animals to this batch. */
+  single_destination: boolean;
 }
 
 export interface BatchDTO {
@@ -48,6 +67,11 @@ export interface BatchDTO {
   is_confined?: boolean | null;
   age_in_months?: number | null;
   caravans_count?: number;
+  /** Head received by count whose caravans are still to write: in the batch, not yet caravans. */
+  pending_identification_count?: number;
+  /** Caravans plus head pending identification: what the stock views count. */
+  head_count?: number | null;
+  incoming_entry_orders?: BatchIncomingEntryOrder[];
   observaciones?: string;
   is_active: boolean;
   is_system?: boolean;
@@ -147,7 +171,9 @@ export class Batch {
     public readonly created_at?: string,
     public readonly entry_order: BatchEntryOrderSummary | null = null,
     public readonly service_order_origin_batch_id?: number | null,
-  ) { }
+    public readonly pending_identification_count = 0,
+    public readonly incoming_entry_orders: BatchIncomingEntryOrder[] = []
+  ) {}
 
   public static create(dto: BatchDTO): Batch {
     if (!dto.name || dto.name.trim() === '') {
@@ -184,8 +210,18 @@ export class Batch {
       dto.service_detail ?? null,
       dto.created_at,
       dto.entry_order ?? null,
-      dto.service_order_origin_batch_id ?? null
+      dto.service_order_origin_batch_id ?? null,
+      dto.pending_identification_count ?? 0,
+      dto.incoming_entry_orders ?? []
     );
+  }
+
+  /**
+   * The head the batch holds: its caravans plus the head received by count still waiting for their
+   * caravan. Operations on animals (transfers, weaning, services) count caravans instead.
+   */
+  public get head_count(): number {
+    return (this.caravans_count ?? 0) + this.pending_identification_count;
   }
 
   // Domain Behaviors

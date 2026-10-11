@@ -70,8 +70,29 @@ export const caravansOf = (count: number): string => (count === 1 ? '1 caravana'
 /** The ING-02 document of an order. */
 export const sheetUrl = (orderId: number): string => `/work-templates/ING-02?entryOrderId=${orderId}`;
 
-export const normalize = (value: string): string =>
-  value
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+export const normalize = (value: string): string => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/**
+ * Where the animals of an order go, in a few words: its single destination, how many own batches,
+ * or its transit batch.
+ */
+export const destinationOf = (order: EntryOrderSummary): string => {
+  const own = [...new Set(order.destinations.map((d) => d.batch.name ?? `Lote #${d.batch.id}`))];
+
+  if (own.length === 1 && !order.needs_transit_batch) return own[0];
+
+  if (own.length > 1 && !order.needs_transit_batch) return `${own.length} lotes propios`;
+
+  if (own.length > 0)
+    return `${own.length === 1 ? own[0] : `${own.length} lotes`} + ${order.batch_name ?? 'tránsito'}`;
+
+  return order.batch_name ?? '—';
+};
+
+export const destinationCaptionOf = (order: EntryOrderSummary): string => {
+  if (order.destinations.length === 0) return order.batch ? 'Lote de tránsito' : 'Se crea al confirmar';
+
+  if (!order.needs_transit_batch) return 'Destino propio';
+
+  return order.batch ? 'Propio + tránsito' : 'Propio + tránsito al confirmar';
+};

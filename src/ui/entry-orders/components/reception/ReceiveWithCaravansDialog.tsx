@@ -10,6 +10,7 @@ import FullReceptionSidebar from './FullReceptionSidebar';
 import ReceptionRowsSection from './ReceptionRowsSection';
 import { useDteReception } from './useDteReception';
 import { troopContextOf } from './useReceptionRows';
+import { destinationOf } from '../entryOrderFormat';
 
 /** The slide-up of the Material UI full-screen dialog. */
 const SlideUp = forwardRef(function SlideUp(props: TransitionProps & { children: React.ReactElement }, ref: React.Ref<unknown>) {
@@ -61,8 +62,13 @@ export const ReceiveWithCaravansDialog: React.FC<ReceiveWithCaravansDialogProps>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
               Recibir y registrar caravanas · DTE {dte?.dte_number}
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8, display: { xs: 'none', md: 'block' } }} noWrap>
-              {order.code} · {order.batch_name ?? 'Lote externo'} · confirmá las cabezas que llegaron y cargá la caravana de cada animal.
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.8, display: { xs: 'none', md: 'block' } }}
+              noWrap
+            >
+              {order.code} · {destinationOf(order)} · confirmá las cabezas que llegaron y cargá la
+              caravana de cada animal.
             </Typography>
           </Box>
           <Button color="inherit" onClick={requestClose} disabled={reception.isPending} sx={{ textTransform: 'none', fontWeight: 600, display: { xs: 'none', sm: 'inline-flex' } }}>

@@ -24,6 +24,10 @@ interface DteReceptionOptions {
  * head confirmed against the DTE — which closes it —, the caravans, the TRI they were read from, and
  * the click that checks and sends it all. On a DTE already received by count it only identifies the
  * head left without caravan.
+ *
+ * Head confirmed by count that can go to more than one batch (the order's destinations, and its
+ * transit batch) say how many went to each: they are pending identification there. Caravans
+ * written for head already received enter with the day those head arrived, so the date starts there.
  */
 export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, onDone: () => void, { withCaravansAlways = false }: DteReceptionOptions = {}) {
   const receive = useReceiveEntryOrder();
@@ -35,6 +39,8 @@ export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, on
   const [triNumber, setTriNumber] = useState<string | null>(null);
   const [headsError, setHeadsError] = useState<string | null>(null);
   const [headerError, setHeaderError] = useState<string | null>(null);
+  const [headsByBatch, setHeadsByBatch] = useState<Record<number, string>>({});
+  const [splitError, setSplitError] = useState<string | null>(null);
 
   // A DTE with head in transit is received by count; one already received, only gets its caravans.
   const identifying = dte != null && dte.pending_count === 0 && dte.uncaravaned_count > 0;
@@ -43,19 +49,47 @@ export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, on
   const loadsCaravans = identifying || withCaravans || withCaravansAlways;
   const caravans = loadsCaravans ? rows.counts.total : 0;
   const isDirty = rows.counts.total > 0 || heads !== '' || note.trim() !== '';
+  // Head counted that can go to several batches are split by the person who received them.
+  const splitBatches = !identifying && order.possible_batches.length > 1 ? order.possible_batches : [];
+  const arrivalDate = identifying ? (dte?.heads_received_at ?? null) : null;
 
   useEffect(() => {
     if (!dte) return;
     rows.reset();
-    setReceivedAt(today());
+    setReceivedAt(
+      dte.pending_count === 0 && dte.uncaravaned_count > 0 && dte.heads_received_at
+        ? dte.heads_received_at
+        : today()
+    );
     setHeadsValue('');
     setNote('');
     setWithCaravans(withCaravansAlways);
     setTriNumber(null);
     setHeadsError(null);
     setHeaderError(null);
+    setHeadsByBatch({});
+    setSplitError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dte?.id]);
+
+  const setBatchHeads = (batchId: number, value: string) => {
+    setHeadsByBatch((prev) => ({ ...prev, [batchId]: value }));
+    setSplitError(null);
+  };
+
+  /** The split as sent, or an error when it does not add up to the head received. */
+  const splitOf = (): { batch_id: number; head_count: number }[] | string => {
+    const split = splitBatches.map((b) => ({ batch_id: b.id, head_count: Number(headsByBatch[b.id] || 0) }));
+
+    if (split.some((p) => !Number.isInteger(p.head_count) || p.head_count < 0))
+      return 'Las cabezas por lote son números enteros.';
+
+    const sum = split.reduce((total, p) => total + p.head_count, 0);
+
+    return sum === received
+      ? split.filter((p) => p.head_count > 0)
+      : `Las cabezas por lote suman ${sum}, pero llegaron ${received}.`;
+  };
 
   const setHeads = (value: string) => {
     setHeadsValue(value);
@@ -92,7 +126,12 @@ export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, on
     }
 
     if (received == null) setHeadsError('Indicá cuántas cabezas llegaron.');
-    else if (caravans > room) setHeadsError(`Hay ${caravans} caravanas para ${received} cabezas: no puede haber más caravanas que cabezas.`);
+    else if (caravans > room)
+      setHeadsError(
+        `Hay ${caravans} caravanas para ${received} cabezas: no puede haber más caravanas que cabezas.`
+      );
+    else if (splitBatches.length > 0 && received > 0 && typeof splitOf() === 'string')
+      setSplitError(splitOf() as string);
     else return true;
 
     return false;
@@ -113,7 +152,11 @@ export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, on
           received_head_count: identifying ? null : received,
           missing_head_count: 0,
           reason: identifying || note.trim() === '' ? null : note.trim(),
-          tri_number: caravans > 0 ? triNumber : null
+          tri_number: caravans > 0 ? triNumber : null,
+          heads_by_batch:
+            splitBatches.length > 0 && received != null && received > 0
+              ? (splitOf() as { batch_id: number; head_count: number }[])
+              : []
         }
       },
       {
@@ -125,6 +168,7 @@ export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, on
           rows.setRowErrors(body?.row_errors ?? []);
 
           if (first?.field === 'received_head_count') setHeadsError(first.message);
+          else if (first?.field === 'heads_by_batch') setSplitError(first.message);
           else setHeaderError(first?.message ?? (body?.row_errors?.length ? null : (body?.message ?? null)));
 
           toast.error(entryOrderErrorMessage(error, 'No se pudo registrar la recepción'));
@@ -155,6 +199,12 @@ export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, on
     caravansExpectedLabel: identifying ? 'sin caravana' : received == null ? 'en tránsito' : 'recibidas',
     headsError,
     headerError,
+    splitBatches,
+    headsByBatch,
+    setBatchHeads,
+    splitError,
+    /** Caravans of head already received enter with the day those head arrived. */
+    arrivalDate,
     isDirty,
     isPending: receive.isPending,
     submit

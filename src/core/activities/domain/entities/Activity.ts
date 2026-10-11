@@ -3,7 +3,10 @@ export interface ActivityBatch {
   id: number;
   name: string;
   farmName: string;
+  /** Caravans in the batch: what transfers and weights work over. */
   count: number;
+  /** Head of a purchase received by count in the batch, their caravans still to write. */
+  pendingIdentificationCount?: number;
   /** Average kg per head. Null when the batch is empty: an average of nothing is undefined. */
   current_weight?: number | null;
   /** Measured mass over the weighed animals. */

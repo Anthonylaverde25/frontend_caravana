@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Dialog, DialogActions, DialogContent, IconButton, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, IconButton, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { toast } from 'sonner';
 import { useCreateEntryOrder, useUpdateEntryOrderDraft } from '@/features/entry-orders/hooks/useEntryOrderMutations';
@@ -16,11 +16,13 @@ import {
   toDraftPayload,
   toEntryOrderPayload
 } from './externalBatchSchema';
-import { ExternalBatchForm, ExternalFormSection, filledSx } from './externalFormParts';
+import { ExternalBatchForm } from './externalFormParts';
 import ExternalOriginSection from './ExternalOriginSection';
-import ExternalBatchSection from './ExternalBatchSection';
+import ExternalPurchaseSection from './ExternalPurchaseSection';
 import ExternalTroopSection from './ExternalTroopSection';
 import ExternalBreedsEditor from './ExternalBreedsEditor';
+import ExternalDestinationSection from './destination/ExternalDestinationSection';
+import ExternalBatchSection from './ExternalBatchSection';
 import ExternalWeightsHealthSection from './ExternalWeightsHealthSection';
 
 export type ExternalBatchDialogMode = 'order' | 'register';
@@ -43,10 +45,11 @@ interface CreateExternalBatchDialogProps {
 }
 
 /**
- * "Alta de Lote Externo": declares a purchase — origin, batch name, troop, breeds, weights and
- * health — and creates its entry order. A confirmed purchase creates the batch empty, waiting for
- * its DTE. The batch is not classified here: its animals enter the productive flow only when they
- * are assigned to an own batch, which is the one that declares activity and type.
+ * "Alta de Lote Externo": declares a purchase — origin, troop, breeds, where its animals go,
+ * weights and health — and creates its entry order. Its animals enter their own destination batches
+ * directly when received; what has no destination goes to a transit batch, created empty when the
+ * purchase is confirmed. The transit batch is not classified: its animals enter the productive flow
+ * when they are assigned to an own batch, which is the one that declares activity and type.
  */
 export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps> = ({
   open,
@@ -141,7 +144,7 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
   const dteNote =
     mode === 'register'
       ? 'El DTE ya está en mano: después de la tropa se cargan sus caravanas.'
-      : 'La orden nace sin caravanas: el lote queda en espera del DTE.';
+      : 'La orden nace sin caravanas: queda en espera del DTE.';
 
   return (
     <Dialog
@@ -149,7 +152,13 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
       onClose={isPending ? undefined : onClose}
       fullWidth
       maxWidth="sm"
-      PaperProps={{ sx: { borderRadius: '8px', boxShadow: 1, bgcolor: 'background.paper' } }}
+      PaperProps={{
+        sx: {
+          borderRadius: '8px',
+          boxShadow: 1,
+          bgcolor: 'background.paper'
+        }
+      }}
     >
       <Box
         sx={{
@@ -172,30 +181,27 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
       </Box>
 
       <DialogContent ref={contentRef} sx={{ p: 3, bgcolor: 'background.paper' }}>
-        <Stack spacing={4}>
+        <Stack spacing={3}>
+          {/* 1. Origen */}
           <ExternalOriginSection form={form} />
-          <ExternalBatchSection form={form} open={open} orderNumber={draft?.number} dteNote={dteNote} />
+
+          {/* 2. Tropa y Categorías */}
           <ExternalTroopSection form={form} />
+
+          {/* 3. Razas y Pelajes */}
           <ExternalBreedsEditor form={form} />
+
+          {/* 4. Destino de los Animales y Lote de Tránsito */}
+          <Stack spacing={2.5}>
+            <ExternalDestinationSection form={form} />
+            <ExternalBatchSection form={form} open={open} orderNumber={draft?.number} dteNote={dteNote} />
+          </Stack>
+
+          {/* 5. Peso y Sanidad */}
           <ExternalWeightsHealthSection form={form} />
-          <ExternalFormSection title="Compra">
-            <Stack direction="row" spacing={2}>
-              <TextField
-                {...register('purchase_date')}
-                label="Fecha de compra"
-                type="date"
-                variant="filled"
-                required
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ max: new Date().toISOString().slice(0, 10) }}
-                error={!!formState.errors.purchase_date}
-                helperText={formState.errors.purchase_date?.message}
-                sx={{ ...filledSx, flex: 1 }}
-              />
-              <TextField {...register('responsable')} label="Responsable" variant="filled" sx={{ ...filledSx, flex: 1 }} />
-            </Stack>
-            <TextField {...register('observations')} label="Observaciones" variant="filled" fullWidth multiline rows={3} sx={filledSx} />
-          </ExternalFormSection>
+
+          {/* 6. Datos de Compra */}
+          <ExternalPurchaseSection form={form} />
         </Stack>
       </DialogContent>
 

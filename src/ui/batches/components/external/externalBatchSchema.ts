@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { EntryOrder, StoreEntryOrderPayload } from '@/features/entry-orders/types';
+import type { EntryOrder, EntryOrderDestinationPayload, StoreEntryOrderPayload } from '@/features/entry-orders/types';
+import { modeOf } from './destination/coverage';
 
 const optionalNumber = z.preprocess(
   (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
@@ -23,6 +24,11 @@ export const headCountOf = (lines: { head_count?: unknown }[] | undefined): numb
  * A troop brings one or more categories, each with its head; the head of the troop is their sum.
  * Whether the categories admit the declared sexes is enforced by the form itself, which fixes the
  * composition when the categories leave a single one, and by the server.
+ *
+ * Where the animals go: all to one own batch (SAME), distributed by category and sex (DISTRIBUTE),
+ * or to a transit batch to assign later (LATER). The transit batch's name is only demanded when
+ * something goes there (`needs_transit_batch`, kept by the destination section, which knows the
+ * categories' sexes).
  */
 export const externalBatchSchema = z
   .object({
@@ -35,6 +41,16 @@ export const externalBatchSchema = z
       .regex(/^[A-Za-z0-9]*$/, 'Sólo letras y números'),
     batch_name_mode: z.enum(['AUTO', 'CUSTOM']),
     batch_name: z.string().trim().max(255),
+    destination_mode: z.enum(['SAME', 'DISTRIBUTE', 'LATER']),
+    same_batch_id: z.number().nullable(),
+    destinations: z.array(
+      z.object({
+        category_position: z.number(),
+        sex_scope: z.enum(['ALL', 'M', 'H']),
+        destination_batch_id: z.number()
+      })
+    ),
+    needs_transit_batch: z.boolean(),
     categories: z
       .array(
         z.object({
@@ -80,11 +96,16 @@ export const externalBatchSchema = z
   .superRefine((data, ctx) => {
     const issue = (path: string, message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
 
-    if (data.batch_name_mode === 'AUTO' && data.auction_number === '') {
+    if (data.destination_mode === 'SAME' && data.same_batch_id == null) {
+      issue('same_batch_id', 'Elegí el lote propio de destino');
+    }
+
+    // Only a transit batch needs a name: when every animal has a destination there is none.
+    if (data.needs_transit_batch && data.batch_name_mode === 'AUTO' && data.auction_number === '') {
       issue('auction_number', 'El nombre automático necesita la terminación de subasta');
     }
 
-    if (data.batch_name_mode === 'CUSTOM' && data.batch_name === '') {
+    if (data.needs_transit_batch && data.batch_name_mode === 'CUSTOM' && data.batch_name === '') {
       issue('batch_name', 'Escribí el nombre del lote');
     }
 
@@ -167,6 +188,10 @@ export const emptyExternalBatchForm = (): ExternalBatchFormInput => ({
   auction_number: '',
   batch_name_mode: 'AUTO',
   batch_name: '',
+  destination_mode: 'SAME',
+  same_batch_id: null,
+  destinations: [],
+  needs_transit_batch: false,
   categories: [{ category_id: null, head_count: null }],
   sex_composition: undefined as unknown as 'MALE',
   male_count: null,
@@ -187,33 +212,78 @@ export const emptyExternalBatchForm = (): ExternalBatchFormInput => ({
 });
 
 /** A draft back into the form, to keep editing it. */
-export const formFromOrder = (order: EntryOrder): ExternalBatchFormInput => ({
-  provider_id: order.provider.id,
-  farm_id: order.farm.id,
-  auction_number: order.auction_number ?? '',
-  batch_name_mode: order.batch_name_mode,
-  batch_name: order.batch_name_mode === 'CUSTOM' ? (order.batch_name ?? '') : '',
-  categories:
-    order.categories.length > 0
-      ? order.categories.map((c) => ({ category_id: c.category_id, head_count: c.head_count }))
-      : [{ category_id: null, head_count: null }],
-  sex_composition: order.sex_composition ?? (undefined as unknown as 'MALE'),
-  male_count: order.male_count,
-  female_count: order.female_count,
-  condition: order.condition ?? (undefined as unknown as 'GOOD'),
-  age_min_months: order.age_min_months,
-  age_max_months: order.age_max_months,
-  knows_to_eat: order.knows_to_eat ?? (undefined as unknown as boolean),
-  tick_vaccinated: order.tick_vaccinated ?? (undefined as unknown as boolean),
-  shrink_percent: order.shrink_percent,
-  estimated_weight: order.estimated_weight ?? undefined,
-  min_weight: order.min_weight,
-  max_weight: order.max_weight,
-  purchase_date: order.purchase_date,
-  responsable: order.responsable ?? '',
-  observations: order.observations ?? '',
-  breeds: order.breeds.length > 0 ? order.breeds.map((b) => ({ breed_id: b.breed_id, color_id: b.color_id })) : [{ breed_id: null, color_id: null }]
-});
+export const formFromOrder = (order: EntryOrder): ExternalBatchFormInput => {
+  const rules: EntryOrderDestinationPayload[] = order.destinations.map((d) => ({
+    category_position: d.category_position,
+    sex_scope: d.sex_scope,
+    destination_batch_id: d.batch.id
+  }));
+  const mode = modeOf(rules, order.categories.length);
+
+  return {
+    provider_id: order.provider.id,
+    farm_id: order.farm.id,
+    auction_number: order.auction_number ?? '',
+    batch_name_mode: order.batch_name_mode,
+    batch_name: order.batch_name_mode === 'CUSTOM' ? (order.batch_name ?? '') : '',
+    destination_mode: mode,
+    same_batch_id: mode === 'SAME' ? rules[0].destination_batch_id : null,
+    destinations: mode === 'DISTRIBUTE' ? rules : [],
+    needs_transit_batch: order.needs_transit_batch,
+    categories:
+      order.categories.length > 0
+        ? order.categories.map((c) => ({ category_id: c.category_id, head_count: c.head_count }))
+        : [{ category_id: null, head_count: null }],
+    sex_composition: order.sex_composition ?? (undefined as unknown as 'MALE'),
+    male_count: order.male_count,
+    female_count: order.female_count,
+    condition: order.condition ?? (undefined as unknown as 'GOOD'),
+    age_min_months: order.age_min_months,
+    age_max_months: order.age_max_months,
+    knows_to_eat: order.knows_to_eat ?? (undefined as unknown as boolean),
+    tick_vaccinated: order.tick_vaccinated ?? (undefined as unknown as boolean),
+    shrink_percent: order.shrink_percent,
+    estimated_weight: order.estimated_weight ?? undefined,
+    min_weight: order.min_weight,
+    max_weight: order.max_weight,
+    purchase_date: order.purchase_date,
+    responsable: order.responsable ?? '',
+    observations: order.observations ?? '',
+    breeds:
+      order.breeds.length > 0
+        ? order.breeds.map((b) => ({ breed_id: b.breed_id, color_id: b.color_id }))
+        : [{ breed_id: null, color_id: null }]
+  };
+};
+
+/**
+ * The destinations as the server takes them, for the lines that are sent: a line's position is
+ * its place among the categories sent, which a blank line of a draft does not take.
+ */
+const destinationsOf = (
+  input: Pick<ExternalBatchFormInput, 'destination_mode' | 'same_batch_id' | 'destinations' | 'categories'>
+): EntryOrderDestinationPayload[] => {
+  const positions = new Map<number, number>();
+
+  input.categories.forEach((line, index) => {
+    if (line.category_id != null) positions.set(index + 1, positions.size + 1);
+  });
+
+  const rules: EntryOrderDestinationPayload[] =
+    input.destination_mode === 'SAME' && input.same_batch_id != null
+      ? [...positions.keys()].map((position) => ({
+          category_position: position,
+          sex_scope: 'ALL',
+          destination_batch_id: input.same_batch_id as number
+        }))
+      : input.destination_mode === 'DISTRIBUTE'
+        ? (input.destinations as EntryOrderDestinationPayload[])
+        : [];
+
+  return rules
+    .filter((rule) => positions.has(rule.category_position))
+    .map((rule) => ({ ...rule, category_position: positions.get(rule.category_position) as number }));
+};
 
 /**
  * A draft only needs to know who sells and from where: the rest can be completed later, and is
@@ -254,7 +324,10 @@ export const toDraftPayload = (input: ExternalBatchFormInput): Omit<StoreEntryOr
     purchase_date: input.purchase_date,
     responsable: text(input.responsable),
     observations: text(input.observations),
-    breeds: input.breeds.filter((b) => b.breed_id != null).map((b) => ({ breed_id: b.breed_id as number, color_id: b.color_id }))
+    breeds: input.breeds
+      .filter((b) => b.breed_id != null)
+      .map((b) => ({ breed_id: b.breed_id as number, color_id: b.color_id })),
+    destinations: destinationsOf(input)
   };
 };
 
@@ -287,6 +360,7 @@ export const toEntryOrderPayload = (values: ExternalBatchFormValues): Omit<Store
     breeds: values.breeds.map((b) => ({
       breed_id: b.breed_id as number,
       color_id: b.color_id
-    }))
+    })),
+    destinations: destinationsOf(values)
   };
 };

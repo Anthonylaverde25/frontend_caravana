@@ -92,9 +92,19 @@ export const ScanIng02Workspace: React.FC<{ reading: Ing02ScanReading; onIssuesC
         </Alert>
       )}
       {created && (
-        <Alert severity="success" sx={{ borderRadius: '6px' }}>
-          Orden {created.order.code} creada: el lote {created.order.batch_name} queda en espera del DTE.{' '}
-          <Button size="small" onClick={() => navigate(`/entry-orders?orderId=${created.order.id}`)} sx={{ textTransform: 'none' }}>
+        <Alert
+          severity="success"
+          sx={{ borderRadius: '6px' }}
+        >
+          Orden {created.order.code} creada:{' '}
+          {created.order.batch
+            ? `el lote ${created.order.batch_name} queda en espera del DTE.`
+            : 'en espera del DTE; sus animales entran directo a sus lotes de destino.'}{' '}
+          <Button
+            size="small"
+            onClick={() => navigate(`/entry-orders?orderId=${created.order.id}`)}
+            sx={{ textTransform: 'none' }}
+          >
             Abrir la orden
           </Button>
         </Alert>

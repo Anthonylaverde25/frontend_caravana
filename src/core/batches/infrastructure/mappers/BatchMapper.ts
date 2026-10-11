@@ -28,6 +28,8 @@ export class BatchMapper {
       knows_to_eat: raw.knows_to_eat,
       is_confined: raw.is_confined ?? null,
       caravans_count: raw.caravans_count ?? undefined,
+      pending_identification_count: raw.pending_identification_count ?? 0,
+      incoming_entry_orders: raw.incoming_entry_orders ?? [],
       age_in_months: raw.age_in_months,
       observaciones: raw.observaciones,
       is_active: raw.is_active !== undefined ? Boolean(raw.is_active) : true,

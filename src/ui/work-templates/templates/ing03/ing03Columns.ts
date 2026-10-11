@@ -114,3 +114,23 @@ export const ing03TroopBandOf = (
     cell('Raza / pelaje', defaults.breed, written ? 'RAZA y PELAJE' : 'RAZA')
   ];
 };
+
+/**
+ * Where the animals go, for the TROPA band: "1 Ternero M → Recría Macho · 1 Ternero H → Reposición ·
+ * resto → 338-16". Printed only when the order declares destinations; nobody writes it and the AI
+ * does not read it: it tells the chute which pen each animal goes to.
+ */
+export const ing03DestinationLineOf = (
+  order: Pick<EntryOrder, 'destinations' | 'needs_transit_batch' | 'batch_name'>
+): string | null => {
+  if (!order.destinations || order.destinations.length === 0) return null;
+
+  const rules = order.destinations.map(
+    (d) =>
+      `${d.category_position} ${d.label.replace(' · machos', ' M').replace(' · hembras', ' H')} → ${d.batch.name ?? `Lote #${d.batch.id}`}`
+  );
+
+  return [...rules, ...(order.needs_transit_batch ? [`resto → ${order.batch_name ?? 'lote de tránsito'}`] : [])].join(
+    ' · '
+  );
+};

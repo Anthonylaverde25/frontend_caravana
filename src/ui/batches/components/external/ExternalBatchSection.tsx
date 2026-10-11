@@ -13,15 +13,16 @@ interface ExternalBatchSectionProps {
 }
 
 /**
- * The batch the purchase lands in: only its name, suggested from the auction ("338-12") or written
- * by the user. No activity, type nor management system: an external batch only holds the purchase
- * until its animals are assigned to an own batch, and that one is classified when it is created.
+ * Transit batch configuration: dynamically enabled based on animal destination.
+ * When animals have an own destination, no transit batch is required.
+ * When some or all animals have no destination, a transit batch receives them.
  */
 export const ExternalBatchSection: React.FC<ExternalBatchSectionProps> = ({ form, open, orderNumber, dteNote }) => {
   const { watch, setValue, register, formState } = form;
   const { errors } = formState;
   const auction = (watch('auction_number') ?? '').trim();
   const mode = watch('batch_name_mode');
+  const needsBatch = watch('needs_transit_batch');
   const { data: nextNumber } = useNextEntryOrderNumber(open && orderNumber == null);
   const number = orderNumber ?? nextNumber;
 
@@ -74,8 +75,14 @@ export const ExternalBatchSection: React.FC<ExternalBatchSectionProps> = ({ form
     </ToggleButtonGroup>
   );
 
+  // The transit batch only exists when some animals are left to assign later ("Asignar después").
+  if (!needsBatch) return null;
+
   return (
-    <ExternalFormSection title="Lote externo" action={modeToggle}>
+    <ExternalFormSection
+      title="Lote de tránsito"
+      action={modeToggle}
+    >
       <TextField
         {...register('auction_number')}
         label="Terminación / N° de subasta (opcional)"
@@ -83,7 +90,10 @@ export const ExternalBatchSection: React.FC<ExternalBatchSectionProps> = ({ form
         variant="filled"
         fullWidth
         error={!!errors.auction_number}
-        helperText={errors.auction_number?.message ?? 'Si la compra es de un remate, con ella se sugiere el nombre del lote.'}
+        helperText={
+          errors.auction_number?.message ??
+          'Si la compra es de un remate, con ella se sugiere el nombre del lote.'
+        }
         sx={filledSx}
       />
       {mode === 'AUTO' ? (
@@ -103,8 +113,6 @@ export const ExternalBatchSection: React.FC<ExternalBatchSectionProps> = ({ form
           variant="filled"
           fullWidth
           required
-          // The field mounts when the name mode switches; a value already in the form must not
-          // leave the label sitting on top of it.
           InputLabelProps={{ shrink: (watch('batch_name') ?? '') !== '' || undefined }}
           error={!!errors.batch_name}
           helperText={errors.batch_name?.message ?? (auction === '' ? 'Sin subasta no hay nombre sugerido: escribilo.' : undefined)}
@@ -112,9 +120,12 @@ export const ExternalBatchSection: React.FC<ExternalBatchSectionProps> = ({ form
         />
       )}
 
-      <Alert severity="info" sx={{ fontSize: '0.75rem', py: 0.5, '& .MuiAlert-message': { width: '100%', lineHeight: 1.3 } }}>
-        <strong>Nota:</strong> es un lote de tránsito, sin actividad ni tipo de lote: se clasifican cuando sus animales pasan a un lote
-        propio. {dteNote}
+      <Alert
+        severity="info"
+        sx={{ fontSize: '0.75rem', py: 0.5, '& .MuiAlert-message': { width: '100%', lineHeight: 1.3 } }}
+      >
+        <strong>Nota:</strong> recibe los animales que no tienen destino. Es un lote de tránsito, sin
+        actividad ni tipo de lote: se clasifican cuando sus animales pasan a un lote propio. {dteNote}
       </Alert>
     </ExternalFormSection>
   );

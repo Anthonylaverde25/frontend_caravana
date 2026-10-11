@@ -60,7 +60,11 @@ export default function BatchDetailsToolbar({
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
         <Chip
           icon={<FuseSvgIcon size={16}>heroicons-outline:user-group</FuseSvgIcon>}
-          label={`${batch.caravans_count ?? 0} cabezas`}
+          label={
+            batch.pending_identification_count > 0
+              ? `${batch.head_count} cabezas (${batch.caravans_count ?? 0} con caravana + ${batch.pending_identification_count} por identificar)`
+              : `${batch.caravans_count ?? 0} cabezas`
+          }
           size="small"
           sx={{ fontWeight: 700, px: 0.5 }}
           color="default"

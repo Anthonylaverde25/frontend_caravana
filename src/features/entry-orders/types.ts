@@ -62,6 +62,42 @@ export interface EntryOrderCategory {
   label: string;
 }
 
+/** Which animals of a category line a destination takes: all, or only the males or the females. */
+export type DestinationSexScope = 'ALL' | 'M' | 'H';
+
+/**
+ * Where the animals of a category line go: an own batch they enter directly when received. A line
+ * that admits both sexes in a troop of both can send each sex to its own batch.
+ */
+export interface EntryOrderDestination {
+  category_position: number;
+  sex_scope: DestinationSexScope;
+  batch: { id: number; name: string | null };
+  /** "Ternero · machos", or the category alone for the whole line. */
+  label: string;
+}
+
+/** A destination as the form sends it. */
+export interface EntryOrderDestinationPayload {
+  category_position: number;
+  sex_scope: DestinationSexScope;
+  destination_batch_id: number;
+}
+
+/** Head received by count that wait for their caravan in a batch. */
+export interface EntryOrderPendingHeads {
+  batch: { id: number; name: string | null };
+  head_count: number;
+}
+
+/** A batch a head of the order can end up in: a destination, or the transit batch. */
+export interface EntryOrderPossibleBatch {
+  id: number;
+  name: string | null;
+  is_transit: boolean;
+  rules: string[];
+}
+
 /** SHEET: written on an ING-03 receipt sheet and scanned. CHUTE only on old rows. */
 export type ReceptionMethod = 'CHUTE' | 'MANUAL' | 'SHEET';
 
@@ -94,6 +130,8 @@ export interface EntryOrderAnimal {
   reception_method: ReceptionMethod | null;
   /** The boxes marked on its reception line. */
   arrival_findings: ArrivalFindingCode[];
+  /** Where the caravan is today: it may have been moved since it entered. Only in the detail. */
+  current_batch?: { id: number; name: string | null } | null;
 }
 
 /** A DTE declares head, not caravans: what is in transit is a count. */
@@ -110,6 +148,12 @@ export interface EntryOrderDte {
   caravaned_count: number;
   /** Head received by count whose caravan is still to write (on an ING-03 or by hand). */
   uncaravaned_count: number;
+  /** Those head, by the batch they went to. */
+  pending_by_batch: EntryOrderPendingHeads[];
+  /** The day its head were confirmed by count: caravans written later enter with it. */
+  heads_received_at: string | null;
+  /** Received without caravan and written off (dead or lost) before getting one. */
+  written_off_head_count: number;
   /** Lines an ING-03 of it expects: head in transit plus head received without caravan. */
   to_identify_count: number;
   /** Head still in transit: declared − received − missing, never below zero. */
@@ -134,7 +178,8 @@ export type EntryOrderIncidentType =
   | 'MISSING_HEAD'
   | 'MISSING_DTE'
   | 'ARRIVAL_EXCESS'
-  | 'BREED_MISMATCH';
+  | 'BREED_MISMATCH'
+  | 'HEAD_WRITTEN_OFF';
 
 export const ENTRY_ORDER_INCIDENT_LABELS: Record<EntryOrderIncidentType, string> = {
   EXCESS_HEAD: 'Cabezas de más',
@@ -143,7 +188,8 @@ export const ENTRY_ORDER_INCIDENT_LABELS: Record<EntryOrderIncidentType, string>
   MISSING_HEAD: 'Cabezas que no llegarán',
   MISSING_DTE: 'Cabezas sin DTE',
   ARRIVAL_EXCESS: 'Cabezas de más en la llegada',
-  BREED_MISMATCH: 'Raza distinta a la comprada'
+  BREED_MISMATCH: 'Raza distinta a la comprada',
+  HEAD_WRITTEN_OFF: 'Cabezas dadas de baja sin caravana'
 };
 
 export type ReceiptSheetStatus = 'ISSUED' | 'PARTIAL' | 'PROCESSED' | 'REPLACED';
@@ -246,9 +292,17 @@ export interface EntryOrderSummary {
   farm: { id: number; name: string | null; renspa: string | null };
   auction_number: string | null;
   batch: { id: number; name: string | null } | null;
-  /** Null on a draft that has no name yet; demanded when the purchase is confirmed. */
+  /** Null on a draft that has no name yet; demanded when the purchase is confirmed, if it needs a transit batch. */
   batch_name: string | null;
   batch_name_mode: BatchNameMode;
+  /** Where the animals go, by category line and sex. */
+  destinations: EntryOrderDestination[];
+  /** Some animal has no destination: it goes to the transit batch (`batch`). */
+  needs_transit_batch: boolean;
+  /** The line and sex pairs without destination. */
+  uncovered: { category_position: number; sex: 'M' | 'H' }[];
+  possible_batches: EntryOrderPossibleBatch[];
+  can_redistribute: boolean;
   /** Sum of its categories' head. The troop fields below are null only on a draft that has not declared them yet. */
   head_count: number | null;
   categories: EntryOrderCategory[];
@@ -282,6 +336,10 @@ export interface EntryOrderSummary {
   received_count: number;
   /** Head received by count whose caravan is still to write. */
   uncaravaned_count: number;
+  /** Those head, by the batch they went to. */
+  pending_by_batch: EntryOrderPendingHeads[];
+  written_off_count: number;
+  can_write_off: boolean;
   /** Head declared as never arriving. */
   missing_count: number;
   open_incidents_count: number;
@@ -346,6 +404,22 @@ export interface StoreEntryOrderPayload {
   responsable: string | null;
   observations: string | null;
   breeds: { breed_id: number; color_id: number | null }[];
+  /** Where the animals go; empty: everything goes to the transit batch. */
+  destinations: EntryOrderDestinationPayload[];
+}
+
+/** "Editar distribución": the whole set of destinations, and the transit batch's name when one is needed. */
+export interface RedistributePayload {
+  destinations: EntryOrderDestinationPayload[];
+  transit_batch_name: string | null;
+}
+
+/** "Dar de baja pendientes": head received without caravan that will never get one. */
+export interface WriteOffPendingPayload {
+  dte_id: number;
+  batch_id: number;
+  head_count: number;
+  reason: string;
 }
 
 /** A DTE as loaded: the head it declares. No caravans: they are written down on arrival. */
@@ -392,6 +466,8 @@ export interface RegisterEntryPayload extends Omit<StoreEntryOrderPayload, 'conf
  */
 export interface ReceivePayload {
   received_head_count?: number | null;
+  /** The head counted that went to each batch, when they went to more than one. */
+  heads_by_batch?: { batch_id: number; head_count: number }[];
   /** The SENASA TRI its caravans were read from, if one was attached. */
   tri_number?: string | null;
   method: 'MANUAL' | 'SHEET';

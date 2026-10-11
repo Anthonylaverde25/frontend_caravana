@@ -225,8 +225,15 @@ export default function BatchQuickTransferDialog({
               </MenuItem>
               <Divider sx={{ my: 0.5 }} />
               {candidateBatches.map((b: any) => (
-                <MenuItem key={b.id} value={String(b.id)}>
-                  {b.name} ({b.caravans_count ?? 0} cabezas)
+                <MenuItem
+                  key={b.id}
+                  value={String(b.id)}
+                >
+                  {b.name} ({b.head_count} cabezas
+                  {b.pending_identification_count > 0
+                    ? `, ${b.pending_identification_count} por identificar`
+                    : ''}
+                  )
                 </MenuItem>
               ))}
             </TextField>

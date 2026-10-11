@@ -3,6 +3,7 @@ import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
 import { useFarms } from '@/features/suppliers/hooks/useFarms';
 import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
+import { useOwnActiveBatches } from '@/features/batches/hooks/useOwnActiveBatches';
 import { SEX_COMPOSITION_LABELS, TROOP_CONDITION_LABELS } from '@/features/entry-orders/types';
 import { inheritedSexOf, needsCategoryPerAnimal } from '@/features/entry-orders/categoryLines';
 import { headCountOf, type ExternalBatchFormValues } from '@/ui/batches/components/external/externalBatchSchema';
@@ -19,6 +20,7 @@ export function useDeclaredTroop(values: ExternalBatchFormValues | null) {
   const { data: farms = [] } = useFarms(values?.provider_id);
   const { data: categories = [] } = useAnimalCategories();
   const { data: breeds = [] } = useBreeds();
+  const { batches: ownBatches } = useOwnActiveBatches();
 
   return useMemo(() => {
     if (!values) return null;
@@ -48,12 +50,29 @@ export function useDeclaredTroop(values: ExternalBatchFormValues | null) {
         ? `Ambos (${values.male_count} M / ${values.female_count} H)`
         : SEX_COMPOSITION_LABELS[values.sex_composition];
     const name = values.batch_name_mode === 'AUTO' ? `${values.auction_number}-(N° de orden)` : values.batch_name;
+    const batchName = (id: number) => ownBatches.find((b) => b.id === id)?.name ?? '…';
+    const destination =
+      values.destination_mode === 'SAME' && values.same_batch_id != null
+        ? batchName(values.same_batch_id)
+        : values.destination_mode === 'DISTRIBUTE' && values.destinations.length > 0
+          ? values.destinations
+              .map((d) => {
+                const line = categoryLines.find((c) => c.position === d.category_position);
+                const sex = d.sex_scope === 'M' ? ' · machos' : d.sex_scope === 'H' ? ' · hembras' : '';
+
+                return `${line?.name ?? '…'}${sex} → ${batchName(d.destination_batch_id)}`;
+              })
+              .join(' · ')
+          : null;
 
     const items: TroopSummaryItem[] = [
       { label: 'Proveedor', value: provider?.name ?? '…' },
       { label: 'Establecimiento', value: farm ? `${farm.name}${farm.renspa ? ` · ${farm.renspa}` : ''}` : '…' },
       { label: 'Subasta', value: values.auction_number || 'No' },
-      { label: 'Lote', value: name },
+      ...(destination ? [{ label: 'Destino', value: destination }] : []),
+      ...(values.needs_transit_batch
+        ? [{ label: destination ? 'Sin destino → lote de tránsito' : 'Lote de tránsito', value: name }]
+        : []),
       {
         label: 'Tropa',
         value: `${categoryLines.length > 1 ? `${headCountOf(values.categories)} cab. (${bought})` : bought} · ${sexes}`
@@ -83,5 +102,5 @@ export function useDeclaredTroop(values: ExternalBatchFormValues | null) {
     };
 
     return { items, context, subtitle: values.observations || undefined };
-  }, [values, suppliers, farms, categories, breeds]);
+  }, [values, suppliers, farms, categories, breeds, ownBatches]);
 }

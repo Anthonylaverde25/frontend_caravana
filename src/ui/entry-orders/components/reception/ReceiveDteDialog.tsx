@@ -4,6 +4,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { EntryOrder, EntryOrderDte } from '@/features/entry-orders/types';
 import DiscardChangesDialog from '../DiscardChangesDialog';
 import ReceivedHeadsField, { HeadsComparison } from './ReceivedHeadsField';
+import HeadsByBatchField from './HeadsByBatchField';
 import ReceptionCaravansPanel from './ReceptionCaravansPanel';
 import { useDteReception } from './useDteReception';
 
@@ -69,11 +70,32 @@ export const ReceiveDteDialog: React.FC<ReceiveDteDialogProps> = ({ order, dte, 
               InputLabelProps={{ shrink: true }}
               InputProps={{ disableUnderline: true }}
               inputProps={{ max: reception.maxDate, min: reception.minDate }}
+              helperText={
+                reception.arrivalDate
+                  ? 'Las caravanas entran con la fecha en que llegaron sus cabezas.'
+                  : undefined
+              }
               sx={{ ...filledSx, width: 200 }}
             />
             {!identifying && <ReceivedHeadsField expected={expected} value={reception.heads} onChange={reception.setHeads} error={reception.headsError} />}
           </Stack>
-          {!identifying && received != null && <HeadsComparison expected={expected} received={received} note={reception.note} onNote={reception.setNote} />}
+          {!identifying && received != null && (
+            <HeadsComparison
+              expected={expected}
+              received={received}
+              note={reception.note}
+              onNote={reception.setNote}
+            />
+          )}
+          {reception.splitBatches.length > 0 && (
+            <HeadsByBatchField
+              batches={reception.splitBatches}
+              values={reception.headsByBatch}
+              onChange={reception.setBatchHeads}
+              received={received}
+              error={reception.splitError}
+            />
+          )}
           {reception.headerError && (
             <Alert severity="error" sx={{ py: 0, borderRadius: '6px' }}>
               {reception.headerError}

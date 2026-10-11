@@ -15,6 +15,7 @@ export class ActivityMapper {
         name: b.name,
         farmName: b.farm_name,
         count: b.count,
+        pendingIdentificationCount: b.pending_identification_count ?? 0,
         current_weight: b.current_weight ?? null,
         total_weight: b.total_weight ?? null,
         weighed_count: b.weighed_count ?? null,

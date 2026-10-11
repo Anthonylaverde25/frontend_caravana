@@ -29,6 +29,7 @@ import EntryOrderStatusChip from '@/ui/entry-orders/components/EntryOrderStatusC
 import LoadDteDialog from '@/ui/entry-orders/components/dte/LoadDteDialog';
 import StartBatchServiceDialog from './dialogs/StartBatchServiceDialog';
 import { OwnBatchesContainer } from './own/OwnBatchesContainer';
+import BatchHeadCount from './BatchHeadCount';
 
 interface BatchesTableProps {
 	filter?: 'own' | 'external' | 'all';
@@ -329,7 +330,7 @@ export function BatchesTable({ filter = 'all', onCreateBatch }: BatchesTableProp
 																	</span>
 																</Tooltip>
 															) : (
-																(batch.caravans_count ?? '-')
+																<BatchHeadCount batch={batch} />
 															)}
 														</TableCell>
 														<TableCell sx={{ ...bodyCellStyle, textAlign: 'center' }}>

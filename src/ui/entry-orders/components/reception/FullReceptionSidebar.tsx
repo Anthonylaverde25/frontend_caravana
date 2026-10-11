@@ -3,6 +3,7 @@ import { Alert, Box, Paper, Stack, TextField, Typography } from '@mui/material';
 import type { EntryOrder, EntryOrderDte } from '@/features/entry-orders/types';
 import { filledInputProps, sectionTitleSx } from '@/ui/weaning-orders/components/form/formStyles';
 import ReceivedHeadsField, { HeadsComparison } from './ReceivedHeadsField';
+import HeadsByBatchField from './HeadsByBatchField';
 import TriAttachment from './TriAttachment';
 import type { DteReception } from './useDteReception';
 
@@ -49,8 +50,29 @@ export const FullReceptionSidebar: React.FC<FullReceptionSidebarProps> = ({ orde
             InputProps={filledInputProps}
             inputProps={{ max: reception.maxDate, min: reception.minDate }}
           />
-          <ReceivedHeadsField expected={expected} value={reception.heads} onChange={reception.setHeads} error={reception.headsError} />
-          {received != null && <HeadsComparison expected={expected} received={received} note={reception.note} onNote={reception.setNote} />}
+          <ReceivedHeadsField
+            expected={expected}
+            value={reception.heads}
+            onChange={reception.setHeads}
+            error={reception.headsError}
+          />
+          {received != null && (
+            <HeadsComparison
+              expected={expected}
+              received={received}
+              note={reception.note}
+              onNote={reception.setNote}
+            />
+          )}
+          {reception.splitBatches.length > 0 && (
+            <HeadsByBatchField
+              batches={reception.splitBatches}
+              values={reception.headsByBatch}
+              onChange={reception.setBatchHeads}
+              received={received}
+              error={reception.splitError}
+            />
+          )}
         </Stack>
       </Paper>
 

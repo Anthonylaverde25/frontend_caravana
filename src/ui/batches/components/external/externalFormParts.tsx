@@ -1,9 +1,22 @@
-import React from 'react';
-import { Box, FormHelperText, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { UseFormReturn } from 'react-hook-form';
 import type { ExternalBatchFormInput, ExternalBatchFormValues } from './externalBatchSchema';
 
 export type ExternalBatchForm = UseFormReturn<ExternalBatchFormInput, unknown, ExternalBatchFormValues>;
+
+/** Whether any of these values is filled in, so an optional group that holds one stays open. */
+export const hasValue = (...values: unknown[]): boolean => values.some((value) => value !== '' && value != null);
+
+/**
+ * Empties optional fields when their group is hidden. A hidden field must not keep a value, or a
+ * wrong one would block the purchase without the user seeing it.
+ */
+export const clearFields = (form: ExternalBatchForm, names: (keyof ExternalBatchFormInput)[]) => {
+  names.forEach((name) => form.setValue(name, null as never));
+  form.clearErrors(names);
+};
 
 /**
  * The filled input of "Alta Rápida de Lote" (CreateBatchDialog). The tint goes on the input itself,
@@ -34,9 +47,62 @@ export const ExternalFormSection: React.FC<ExternalFormSectionProps> = ({ title,
       <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.secondary' }}>{title}</Typography>
       {action}
     </Stack>
-    <Stack spacing={3}>{children}</Stack>
+    <Stack spacing={2.5}>{children}</Stack>
   </Box>
 );
+
+interface OptionalGroupProps {
+  /** The link that shows the group, such as "+ Rango de edad". */
+  addLabel: string;
+  /** Whether the group holds a value or an error. It opens by itself when it does. */
+  filled: boolean;
+  /** Empties the group's fields when it is hidden again. */
+  onClear: () => void;
+  children: React.ReactNode;
+}
+
+/**
+ * An optional group of fields, hidden until the user asks for it. Opens by itself when it already
+ * holds a value (a draft being edited) or an error, so nothing filled in is ever out of sight.
+ */
+export const OptionalGroup: React.FC<OptionalGroupProps> = ({ addLabel, filled, onClear, children }) => {
+  const [open, setOpen] = useState(filled);
+
+  useEffect(() => {
+    if (filled) setOpen(true);
+  }, [filled]);
+
+  if (!open) {
+    return (
+      <Button
+        size="small"
+        onClick={() => setOpen(true)}
+        startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}
+        sx={{ alignSelf: 'flex-start', textTransform: 'none', fontWeight: 600 }}
+      >
+        {addLabel}
+      </Button>
+    );
+  }
+
+  return (
+    <Stack spacing={2.5}>
+      {children}
+      <Button
+        size="small"
+        color="inherit"
+        onClick={() => {
+          onClear();
+          setOpen(false);
+        }}
+        startIcon={<FuseSvgIcon size={16}>heroicons-outline:x-mark</FuseSvgIcon>}
+        sx={{ alignSelf: 'flex-end', textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+      >
+        Quitar
+      </Button>
+    </Stack>
+  );
+};
 
 interface YesNoFieldProps {
   label: string;
@@ -44,36 +110,33 @@ interface YesNoFieldProps {
   value: boolean | null | undefined;
   onChange: (value: boolean) => void;
   error?: string;
+  sx?: object;
 }
 
 /**
- * A yes/no fact with no default: nothing is marked until the user answers, so the system never
- * states "no" on behalf of somebody who was not asked.
+ * A yes/no select field with filled styling and helper text hint.
  */
-export const YesNoField: React.FC<YesNoFieldProps> = ({ label, hint, value, onChange, error }) => (
-  <Box>
-    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>
-      {label}
-    </Typography>
-    {hint && (
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.68rem' }}>
-        {hint}
-      </Typography>
-    )}
-    <ToggleButtonGroup
-      exclusive
-      size="small"
-      value={value === true ? 'yes' : value === false ? 'no' : null}
-      onChange={(_, next: 'yes' | 'no' | null) => next && onChange(next === 'yes')}
-      sx={{ mt: 0.5 }}
-    >
-      <ToggleButton value="yes" sx={{ px: 2, textTransform: 'none', fontWeight: 700 }}>
-        Sí
-      </ToggleButton>
-      <ToggleButton value="no" sx={{ px: 2, textTransform: 'none', fontWeight: 700 }}>
-        No
-      </ToggleButton>
-    </ToggleButtonGroup>
-    {error && <FormHelperText error>{error}</FormHelperText>}
-  </Box>
+export const YesNoField: React.FC<YesNoFieldProps> = ({ label, hint, value, onChange, error, sx }) => (
+  <TextField
+    select
+    fullWidth
+    label={label}
+    variant="filled"
+    required
+    value={value === true ? 'true' : value === false ? 'false' : ''}
+    onChange={(e) => {
+      const val = e.target.value;
+      if (val === 'true') onChange(true);
+      else if (val === 'false') onChange(false);
+    }}
+    error={!!error}
+    helperText={error ?? hint}
+    sx={{ ...filledSx, ...sx }}
+  >
+    <MenuItem value="" disabled>
+      <em>Seleccionar…</em>
+    </MenuItem>
+    <MenuItem value="true">Sí</MenuItem>
+    <MenuItem value="false">No</MenuItem>
+  </TextField>
 );

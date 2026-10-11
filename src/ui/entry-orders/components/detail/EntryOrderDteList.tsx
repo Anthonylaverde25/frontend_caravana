@@ -1,21 +1,9 @@
 import React from 'react';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Button,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography
-} from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { ARRIVAL_FINDINGS, type EntryOrder, type EntryOrderDte } from '@/features/entry-orders/types';
-import { RECEPTION_METHOD_LABELS, formatDate } from '../entryOrderFormat';
+import { formatDate } from '../entryOrderFormat';
+import DteAnimalsTable from './DteAnimalsTable';
 
 interface EntryOrderDteListProps {
   order: EntryOrder;
@@ -45,6 +33,7 @@ const progressOf = (dte: EntryOrderDte): string =>
     `${dte.head_count} ${dte.head_count === 1 ? 'cabeza' : 'cabezas'}`,
     `recibidas ${dte.received_count}`,
     dte.uncaravaned_count > 0 ? `${dte.uncaravaned_count} sin caravana` : null,
+    dte.written_off_head_count > 0 ? `${dte.written_off_head_count} dadas de baja` : null,
     `en tránsito ${dte.pending_count}`,
     dte.missing_head_count > 0 ? `no llegan ${dte.missing_head_count}` : null,
     dte.excess_count > 0 ? `${dte.excess_count} de más` : null,
@@ -153,6 +142,20 @@ export const EntryOrderDteList: React.FC<EntryOrderDteListProps> = ({ order, onR
                     {dte.observations}
                   </Typography>
                 )}
+                {dte.pending_by_batch.length > 0 && (
+                  <Typography
+                    variant="body2"
+                    sx={{ mb: 1, color: 'warning.dark' }}
+                  >
+                    {dte.heads_received_at
+                      ? `Llegaron el ${formatDate(dte.heads_received_at)} · `
+                      : ''}
+                    por identificar:{' '}
+                    {dte.pending_by_batch
+                      .map((p) => `${p.batch.name ?? `Lote #${p.batch.id}`} ${p.head_count}`)
+                      .join(' · ')}
+                  </Typography>
+                )}
                 {(dte.animals ?? []).length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
                     {dte.uncaravaned_count > 0
@@ -160,39 +163,10 @@ export const EntryOrderDteList: React.FC<EntryOrderDteListProps> = ({ order, onR
                       : 'Todavía no llegó ningún animal de este DTE.'}
                   </Typography>
                 ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Caravana</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Sexo</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Categoría</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Raza</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Recibida</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Peso
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(dte.animals ?? []).map((animal) => (
-                      <TableRow key={animal.id}>
-                        <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{animal.identification}</TableCell>
-                        <TableCell>{animal.sex === 'M' ? 'Macho' : 'Hembra'}</TableCell>
-                        <TableCell>{order.categories.find((c) => c.position === animal.category_position)?.name ?? 'Sin declarar'}</TableCell>
-                        <TableCell>
-                          {animal.breed_position != null
-                            ? `${animal.breed_letter} · ${order.breeds.find((b) => b.position === animal.breed_position)?.label ?? ''}`
-                            : 'Sin declarar'}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(animal.received_at)}
-                          {animal.reception_method ? ` · ${RECEPTION_METHOD_LABELS[animal.reception_method]}` : ''}
-                        </TableCell>
-                        <TableCell align="right">{animal.entry_weight != null ? `${animal.entry_weight} kg` : '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                  <DteAnimalsTable
+                    order={order}
+                    dte={dte}
+                  />
                 )}
               </AccordionDetails>
             </Accordion>
