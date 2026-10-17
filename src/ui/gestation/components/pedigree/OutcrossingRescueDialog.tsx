@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { isBreedingCandidate } from '@/core/caravans/domain/rules/isBreedingCandidate';
 import { useNavigate } from 'react-router';
 import {
 	Dialog,
@@ -75,8 +76,9 @@ export default function OutcrossingRescueDialog({
 	const warning = isDark ? '#fb923c' : '#e6600d';
 	const negative = isDark ? '#f87171' : '#bb0000';
 
-	// 1. Data hooks
-	const { data: batches = [] } = useBatches();
+	// 1. Data hooks. A service runs on an own Cría batch, so only those can host the rescue.
+	const { data: allBatches = [] } = useBatches();
+	const batches = useMemo(() => allBatches.filter((b) => b.isCria() && !b.provider_id), [allBatches]);
 	const createOrderMutation = useCreateServiceOrder();
 
 	// 2. State
@@ -98,7 +100,7 @@ export default function OutcrossingRescueDialog({
 
 	// Filter available bulls from all caravans
 	const availableBulls = useMemo(() => {
-		return allCaravans.filter((c) => c.sex === 'M' && (c.category || '').toLowerCase() === 'toro');
+		return allCaravans.filter((c) => c.sex === 'M' && isBreedingCandidate(c));
 	}, [allCaravans]);
 
 	// Extract selected female IDs
@@ -124,10 +126,15 @@ export default function OutcrossingRescueDialog({
 			const randomSuffix = Math.floor(1000 + Math.random() * 9000);
 			setOrderCode(`RESCUE-FX0-${randomSuffix}`);
 			if (batches.length > 0 && selectedBatchId === '') {
-				setSelectedBatchId(batches[0].id);
+				// Default to the batch the selected females live in: the service runs where they are.
+				const femaleBatchIds = selectedFemaleRecords
+					.map((r) => caravansMap.get(r.id)?.batch_id)
+					.filter((id): id is number => typeof id === 'number');
+				const preferred = batches.find((b) => femaleBatchIds.includes(b.id));
+				setSelectedBatchId((preferred ?? batches[0]).id);
 			}
 		}
-	}, [open, batches, selectedBatchId]);
+	}, [open, batches, selectedBatchId, selectedFemaleRecords, caravansMap]);
 
 	// Handlers
 	const handleToggleBull = (bullId: number) => {

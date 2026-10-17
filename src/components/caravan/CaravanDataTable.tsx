@@ -12,7 +12,7 @@ import CaravanBatchGroupCard from './components/CaravanBatchGroupCard';
 import CaravanFlatTable from './components/CaravanFlatTable';
 import CaravanFormDialog from './dialogs/CaravanFormDialog';
 import CaravanTransferDialog from './dialogs/CaravanTransferDialog';
-import { CaravanWeightDialog } from './CaravanWeightDialog';
+import { CaravanWeightDialog } from '@/ui/weighing/components/caravan-weight/CaravanWeightDialog';
 import BatchDetailDrawer from './BatchDetailDrawer';
 import CaravanDetailDrawer from './CaravanDetailDrawer';
 

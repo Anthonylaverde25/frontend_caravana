@@ -75,7 +75,7 @@ function SireRotationFormFields({
 				</div>
 				<span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 font-mono">
 					<FuseSvgIcon size={14}>heroicons-outline:tag</FuseSvgIcon>
-					{orderCode}
+					Código al guardar
 				</span>
 			</div>
 
@@ -118,7 +118,7 @@ function SireRotationFormFields({
 					<TextField
 						id="codigo-orden"
 						label="Código de la Orden"
-						value={orderCode}
+						value="Se asigna al guardar (SO-AAAA-NNN)"
 						variant="filled"
 						size="small"
 						fullWidth

@@ -28,7 +28,7 @@ function BulkWeightView() {
   const handleSave = async (data: any[]) => {
     try {
       await bulkRecordWeights(data);
-      navigate('/caravans');
+      navigate(`/herd/batches/${batchId}`);
     } catch (error) {
       // Error handled by hook
     }
@@ -48,7 +48,7 @@ function BulkWeightView() {
       <Container maxWidth="sm" sx={{ py: 10, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>Lote no encontrado</Typography>
         <Typography color="text.secondary" sx={{ mb: 4 }}>No se encontraron animales asignados a este lote o el lote no existe.</Typography>
-        <Button variant="contained" onClick={() => navigate('/caravans')}>Volver al Inventario</Button>
+        <Button variant="contained" onClick={() => navigate(`/herd/batches/${batchId}`)}>Volver al Inventario</Button>
       </Container>
     );
   }
@@ -58,7 +58,7 @@ function BulkWeightView() {
       batchName={batchName}
       caravans={batchCaravans as any}
       onSave={handleSave}
-      onCancel={() => navigate('/caravans')}
+      onCancel={() => navigate(`/herd/batches/${batchId}`)}
     />
   );
 }

@@ -1,5 +1,6 @@
 import axiosInstance from '@/utils/axios';
 import { Batch, CreateBatchRequest } from '../../domain/entities/Batch';
+import { BatchOverview } from '../../domain/entities/BatchOverview';
 import { IBatchRepository } from '../../domain/repositories/IBatchRepository';
 import { BatchMapper } from '../mappers/BatchMapper';
 
@@ -26,11 +27,6 @@ export class ApiBatchRepository implements IBatchRepository {
     return BatchMapper.toDomain(response.data);
   }
 
-  async createServiceBatch(request: any): Promise<Batch> {
-    const response = await axiosInstance.post<any>('/batches/service', request);
-    return BatchMapper.toDomain(response.data);
-  }
-
   async changeActivity(id: number, activityId: number, weight?: number): Promise<Batch> {
     const response = await axiosInstance.patch<any>(`/batches/${id}/activity`, { 
       activity_id: activityId,
@@ -48,6 +44,11 @@ export class ApiBatchRepository implements IBatchRepository {
 
   async getWeightHistory(id: number): Promise<any[]> {
     const response = await axiosInstance.get<any[]>(`/batches/${id}/weights`);
+    return response.data;
+  }
+
+  async getOverview(id: number): Promise<BatchOverview> {
+    const response = await axiosInstance.get<BatchOverview>(`/batches/${id}/overview`);
     return response.data;
   }
 }

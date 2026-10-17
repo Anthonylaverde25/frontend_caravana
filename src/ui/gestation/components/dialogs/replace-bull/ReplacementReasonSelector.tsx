@@ -54,6 +54,13 @@ export const REPLACEMENT_REASONS: ReplacementReasonOption[] = [
     color: '#0f172a',
   },
   {
+    value: 'SANITARY_REJECTION',
+    label: 'Rechazo Sanitario',
+    description: 'Positivo a enfermedad contagiosa (Tricomonas, Campylobacter, Brucelosis): sale del rodeo de inmediato.',
+    icon: 'heroicons-outline:shield-exclamation',
+    color: '#b91c1c',
+  },
+  {
     value: 'OTHER',
     label: 'Otra Causa Veterinaria',
     description: 'Criterio clínico particular especificado en las notas de campo.',

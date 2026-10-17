@@ -1,3 +1,5 @@
+import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
+
 export interface SireDTO {
   id: number;
   identification: string;
@@ -8,8 +10,10 @@ export interface GestationDTO {
   id?: number;
   start_date: string | null;
   estimated_due_date: string | null;
-  gestation_stage: string;
-  gestation_months: number;
+  /** Optional: null when only "pregnant" was declared. */
+  gestation_stage: string | null;
+  /** Optional: null when not declared (never defaulted). */
+  gestation_months: number | null;
   is_current: boolean;
   notes?: string | null;
   sires?: SireDTO[];
@@ -97,6 +101,12 @@ export interface CaravanDTO {
   /** Calves born dead (NM), charged to her record. A calf that died at foot is not counted. */
   stillborn_count?: number;
   last_stillborn_date?: string | null;
+  /** The owner's breeding decision; independent from the veterinary verdict. */
+  is_breeding_eligible?: boolean;
+  breeding_exclusion_reason?: BreedingExclusionReasonCode | null;
+  breeding_exclusion_reason_label?: string | null;
+  /** Whether the category breeds (animal_categories.is_reproductive); null without category. */
+  is_reproductive_category?: boolean | null;
 }
 
 /**
@@ -157,6 +167,10 @@ export class Caravan {
     public readonly physiological_state: PhysiologicalStateDTO | null = null,
     public readonly stillborn_count: number = 0,
     public readonly last_stillborn_date: string | null = null,
+    public readonly is_breeding_eligible: boolean = true,
+    public readonly breeding_exclusion_reason: BreedingExclusionReasonCode | null = null,
+    public readonly breeding_exclusion_reason_label: string | null = null,
+    public readonly is_reproductive_category: boolean | null = null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -198,6 +212,10 @@ export class Caravan {
       dto.physiological_state ?? null,
       dto.stillborn_count ?? 0,
       dto.last_stillborn_date ?? null,
+      dto.is_breeding_eligible ?? true,
+      dto.breeding_exclusion_reason ?? null,
+      dto.breeding_exclusion_reason_label ?? null,
+      dto.is_reproductive_category ?? null,
     );
   }
 

@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
-import { useGridCellStyles } from '@/ui/birth-orders/components/grid/useGridCellStyles';
+import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import type { Par01Row } from '../../hooks/usePar01Pages';
 import type { Par01BirthOrderState } from '../../hooks/usePar01BirthOrder';
 import type { Par01Problems } from '../../hooks/usePar01Submission';

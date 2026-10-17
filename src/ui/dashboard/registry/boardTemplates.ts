@@ -14,7 +14,6 @@ export const CAMPAIGN_OPTIONS = ['2025/26', '2024/25', '2023/24'];
 
 /** Batch types from the tenant catalog that make sense as a board scope. */
 export const BATCH_TYPE_SCOPE_OPTIONS: { value: BatchTypeCode; label: string; helper: string }[] = [
-	{ value: 'SERVICE', label: 'Servicio / Entore', helper: 'Lotes de entore y vientres en servicio' },
 	{ value: 'GROWING_REPLACEMENT_FEMALES', label: 'Vientres de Reposición', helper: 'Vaquillonas y terneras de reposición' },
 	{ value: 'GROWING_HEIFERS', label: 'Vaquillonas de Recría', helper: 'Recría de hembras' },
 	{ value: 'GROWING_STEERS', label: 'Novillitos de Recría', helper: 'Recría de machos e invernada' },
@@ -66,6 +65,14 @@ export const SYSTEM_BOARDS: DashboardBoard[] = [
 		isSystem: true,
 		scope: DEFAULT_SCOPE,
 		widgets: buildTemplateWidgets('GENERAL')
+	},
+	{
+		id: 'sys_reproductive',
+		name: 'Reproductivo',
+		icon: 'heroicons-outline:heart',
+		isSystem: true,
+		scope: DEFAULT_SCOPE,
+		widgets: []
 	}
 ];
 

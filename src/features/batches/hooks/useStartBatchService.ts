@@ -2,9 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/utils/axios';
 import { useSnackbar } from 'notistack';
 
+/**
+ * Starts a service on an operational Cría batch. No batch is created: the service is an order
+ * over the batch, the females stay and the bulls join them.
+ */
 export interface StartBatchServicePayload {
-  service_batch_name?: string;
   male_caravan_ids: number[];
+  /** Only for controlled service / AI: natural service exposes every empty female of the batch. */
   selected_female_caravan_ids?: number[];
   target_bull_ratio?: number;
   planned_start_date: string;
@@ -30,14 +34,14 @@ export function useStartBatchService(batchId?: number) {
       return response.data;
     },
     onSuccess: () => {
-      enqueueSnackbar('Servicio de entore iniciado con éxito', { variant: 'success' });
+      enqueueSnackbar('Servicio iniciado sobre el lote', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['gestation'] });
     },
     onError: (error: any) => {
-      const msg = error.response?.data?.message || 'Error al iniciar el servicio de entore';
+      const msg = error.response?.data?.message || 'Error al iniciar el servicio';
       enqueueSnackbar(msg, { variant: 'error' });
     },
   });

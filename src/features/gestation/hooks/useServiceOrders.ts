@@ -10,12 +10,58 @@ export interface ServiceOrderHistory {
   created_at: string;
 }
 
+/** Why a female stopped being exposed to the bulls of a service. */
+export type ServiceExposureExitReason = 'TRANSFERRED_OUT' | 'BULLS_WITHDRAWN' | 'SERVICE_CLOSED' | 'DEATH' | 'SALE';
+
+/**
+ * Current verdict of a female for one order. UNCHECKED blocks the closing; NOT_DIAGNOSED is declared
+ * with a reason; EXITED means she died or was sold before any verdict.
+ */
+export type FemaleReproductiveVerdict = 'UNCHECKED' | 'PREGNANT' | 'EMPTY' | 'NOT_DIAGNOSED' | 'EXITED';
+
+export type NotDiagnosedReason = 'NOT_GATHERED' | 'NOT_FOUND' | 'OTHER';
+
+/** Exposure window of a female: from the day she shared the paddock with the bulls until she left. */
+export interface ServiceOrderFemaleExposure {
+  female_caravan_id: number;
+  exposed_from: string | null;
+  exposed_until: string | null;
+  exit_reason: ServiceExposureExitReason | null;
+  /** Entered the batch with the service already running. */
+  joined_after_start: boolean;
+  reproductive_status?: FemaleReproductiveVerdict;
+  diagnosed_at?: string | null;
+}
+
+/**
+ * Where the pregnancy diagnosis of the order stands, computed by the backend from the verdict of
+ * every female. A provisional empty (scanned while still with the bulls) counts as pending.
+ */
+export interface ServiceOrderDiagnosisSummary {
+  total: number;
+  unchecked: number;
+  pregnant: number;
+  empty: number;
+  provisional_empty: number;
+  not_diagnosed: number;
+  exited: number;
+  evaluated: number;
+  pending: number;
+  pending_female_ids: number[];
+  provisional_empty_female_ids: number[];
+  /** Pregnant over pregnant + final empty, in percent; null while nobody has a final verdict. */
+  partial_rate: number | null;
+}
+
+/**
+ * A service is an order over an operational Cría batch (batch_id): the batch keeps its animals,
+ * the order keeps the policies, the exposure of every female and the trace of the campaign.
+ */
 export interface ServiceOrder {
   id: number;
   company_id: number;
-  batch_id?: number | null;
-  origin_batch_id?: number | null;
-  service_batch_id?: number | null;
+  batch_id: number;
+  batch_name?: string | null;
   code: string;
   status: string;
   requested_by_user_id: number | null;
@@ -28,15 +74,27 @@ export interface ServiceOrder {
   planned_end_date?: string | null;
   actual_start_date: string | null;
   actual_end_date: string | null;
+  /** Day the pregnancy diagnosis was closed (status SUCCESS). */
+  diagnosis_completed_at?: string | null;
+  /** Bull withdrawal + 45 days: from then a pregnancy is reliably detected. Informative only. */
+  suggested_diagnosis_date?: string | null;
+  /** The order this one continues (the bulls stayed with the empty females). */
+  parent_service_order_id?: number | null;
+  diagnosis_summary?: ServiceOrderDiagnosisSummary;
+  /** Females still without a final verdict if the order were closed today. */
+  pending_if_closed_today?: number;
   observations: string | null;
   rejection_reason: string | null;
   male_caravan_ids: number[];
   active_male_caravan_ids?: number[];
   all_male_caravan_ids?: number[];
   female_caravan_ids: number[];
+  female_exposures?: ServiceOrderFemaleExposure[];
+  target_bull_ratio?: number | null;
+  final_pregnancy_rate?: number | null;
   male_details?: {
     male_caravan_id: number;
-    status: 'ACTIVE' | 'RETIRED_INJURED' | 'REPLACED' | 'COMPLETED' | string;
+    status: 'ACTIVE' | 'RETIRED_INJURED' | 'RETIRED_SANITARY' | 'REPLACED' | 'COMPLETED' | string;
     retired_at?: string | null;
     scrotal_circumference?: number | null;
     service_capacity?: string | null;
@@ -63,6 +121,20 @@ export function useServiceOrders() {
 }
 
 /**
+ * Service history of a batch: every service it went through, newest first.
+ */
+export function useBatchServiceOrders(batchId: number | null | undefined) {
+  return useQuery<ServiceOrder[]>({
+    queryKey: ['service-orders', 'batch', batchId],
+    queryFn: async () => {
+      const response = await axiosInstance.get(`/batches/${batchId}/service-orders`);
+      return response.data;
+    },
+    enabled: Boolean(batchId),
+  });
+}
+
+/**
  * Hook to approve an order (DRAFT -> APPROVED or REJECTED).
  */
 export function useApproveServiceOrder() {
@@ -74,30 +146,14 @@ export function useApproveServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
     }
   });
 }
 
 /**
- * Hook to complete an order manually (APPROVED -> SUCCESS).
- */
-export function useCompleteServiceOrder() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, observations, targetBatchId }: { id: number; observations?: string; targetBatchId?: number | null }) => {
-      const response = await axiosInstance.post(`/service-orders/${id}/complete`, { observations, target_batch_id: targetBatchId });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['caravans'] });
-    }
-  });
-}
-
-/**
- * Hook to close a service order with bull withdrawal to resting batches.
+ * Withdraws the whole torada before the diagnosis: the order waits for it (BULLS_WITHDRAWN).
  */
 export function useCloseServiceOrderWithBullWithdrawal() {
   const queryClient = useQueryClient();
@@ -143,6 +199,7 @@ export function useUpdateServiceOrderStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
     }
   });
@@ -184,6 +241,7 @@ export function useRegisterGestationDiagnosis() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
     }
   });
 }
@@ -212,6 +270,7 @@ export function useBulkRegisterGestationDiagnosis() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
     }
   });
 }
@@ -238,8 +297,184 @@ export function useCreateServiceOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
     }
+  });
+}
+
+/** One diagnosis day of an order, with what was loaded in it. */
+export interface DiagnosisRound {
+  id: number;
+  number: number;
+  round_date: string;
+  diagnosed: number;
+  pregnant: number;
+  empty: number;
+  not_diagnosed: number;
+  rechecks: number;
+}
+
+export interface DiagnosisFemale {
+  female_caravan_id: number;
+  identification: string;
+  current_batch_id: number | null;
+  current_batch_name: string | null;
+  reproductive_status: FemaleReproductiveVerdict;
+  diagnosed_at: string | null;
+  exposed_from: string | null;
+  exposed_until: string | null;
+  exit_reason: ServiceExposureExitReason | null;
+  gestation_id: number | null;
+  gestation_stage: 'head' | 'body' | 'tail' | null;
+  gestation_months: number | null;
+  not_diagnosed_reason: NotDiagnosedReason | null;
+  not_diagnosed_notes: string | null;
+  assigned_male_caravan_id: number | null;
+  /** The verdict before the current one (or the last one, when she was reopened as pending). */
+  previous_diagnosis: { verdict: FemaleReproductiveVerdict; round_number: number | null; round_date: string | null } | null;
+  diagnoses_count: number;
+  /** Empty scanned while still exposed to the bulls. */
+  is_provisional_empty: boolean;
+  is_final_if_closed_today: boolean;
+}
+
+export interface ServiceOrderIncident {
+  id: number;
+  type: string;
+  type_label: string;
+  female_caravan_id: number | null;
+  female_identification: string | null;
+  detail: string;
+  status: 'OPEN' | 'RESOLVED';
+  status_label: string;
+  resolution: string | null;
+  resolved_at: string | null;
+  created_at: string | null;
+}
+
+export interface ServiceOrderDiagnosis {
+  order_id: number;
+  status: string;
+  suggested_diagnosis_date: string | null;
+  summary: ServiceOrderDiagnosisSummary;
+  pending_if_closed_today: number;
+  rounds: DiagnosisRound[];
+  females: DiagnosisFemale[];
+  incidents: ServiceOrderIncident[];
+}
+
+/**
+ * Query keys of one order hang from ['service-orders']: every mutation that touches orders
+ * already invalidates that key, so the detail and the diagnosis of an order (the tacto screen,
+ * the drawer) refresh with it — a bull withdrawal, a replaced bull, a closing.
+ */
+export const serviceOrderKeys = {
+  all: ['service-orders'] as const,
+  detail: (id: number | null | undefined) => ['service-orders', 'detail', id] as const,
+  diagnosis: (id: number | null | undefined) => ['service-orders', 'diagnosis', id] as const,
+};
+
+/**
+ * Rounds, the verdict of every female (current and previous) and the incidents of an order.
+ */
+export function useServiceOrderDiagnosis(orderId: number | null | undefined) {
+  return useQuery<ServiceOrderDiagnosis>({
+    queryKey: serviceOrderKeys.diagnosis(orderId),
+    queryFn: async () => {
+      const response = await axiosInstance.get(`/service-orders/${orderId}/diagnosis`);
+      return response.data;
+    },
+    enabled: Boolean(orderId),
+  });
+}
+
+function invalidateServiceOrderQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: serviceOrderKeys.all });
+  queryClient.invalidateQueries({ queryKey: ['batches'] });
+  queryClient.invalidateQueries({ queryKey: ['caravans'] });
+}
+
+export type ServiceClosureBullAction = 'MOVE_NOW' | 'SCHEDULE' | 'STAY';
+export type ServiceClosureRemainingFemalesAction = 'MOVE_OUT' | 'CONTINUE_SERVICE';
+
+export interface ScreenDiagnosisPayload {
+  caravan_id: number;
+  is_pregnant: boolean;
+  gestation_stage?: 'head' | 'body' | 'tail' | null;
+  gestation_months?: number | null;
+  confirmed_sire_id?: number | null;
+  empty_destination_batch_id?: number | null;
+}
+
+export interface NotDiagnosedPayload {
+  female_caravan_id: number;
+  reason: NotDiagnosedReason;
+  notes?: string | null;
+}
+
+export interface CloseServiceOrderDiagnosisPayload {
+  closing_date: string;
+  round_date?: string;
+  observations?: string | null;
+  diagnoses: ScreenDiagnosisPayload[];
+  not_diagnosed: NotDiagnosedPayload[];
+  empties_target_batch_id?: number | null;
+  bull_action?: ServiceClosureBullAction | null;
+  bull_destination_batch_id?: number | null;
+  scheduled_movement_date?: string | null;
+  remaining_females_action?: ServiceClosureRemainingFemalesAction | null;
+  remaining_females_target_batch_id?: number | null;
+}
+
+export interface CloseServiceOrderDiagnosisResult {
+  message: string;
+  order: ServiceOrder;
+  continuation_order: { id: number; code: string } | null;
+  transfer_order: { id: number; code: string } | null;
+  moved_female_ids: number[];
+}
+
+/**
+ * "Cerrar orden": the missing verdicts, the decision on the bulls and the closing, at once.
+ * A 422 with code PENDING_DIAGNOSES carries the pending female ids.
+ */
+export function useCloseServiceOrderDiagnosis() {
+  const queryClient = useQueryClient();
+  return useMutation<CloseServiceOrderDiagnosisResult, unknown, { id: number; payload: CloseServiceOrderDiagnosisPayload }>({
+    mutationFn: async ({ id, payload }) => {
+      const response = await axiosInstance.post(`/service-orders/${id}/close-diagnosis`, payload);
+      return response.data;
+    },
+    onSuccess: () => invalidateServiceOrderQueries(queryClient),
+  });
+}
+
+/**
+ * "Guardar avance": females declared without diagnosis (only once the bulls are gone).
+ */
+export function useMarkNotDiagnosed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, roundDate, females }: { id: number; roundDate: string; females: NotDiagnosedPayload[] }) => {
+      const response = await axiosInstance.post(`/service-orders/${id}/not-diagnosed`, {
+        round_date: roundDate,
+        females,
+      });
+      return response.data;
+    },
+    onSuccess: () => invalidateServiceOrderQueries(queryClient),
+  });
+}
+
+export function useResolveServiceOrderIncident() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, incidentId, resolution }: { orderId: number; incidentId: number; resolution: string }) => {
+      const response = await axiosInstance.post(`/service-orders/${orderId}/incidents/${incidentId}/resolve`, { resolution });
+      return response.data;
+    },
+    onSuccess: () => invalidateServiceOrderQueries(queryClient),
   });
 }
 
@@ -248,7 +483,7 @@ export function useCreateServiceOrder() {
  */
 export function useServiceOrder(id: number | undefined | null) {
   return useQuery<ServiceOrder>({
-    queryKey: ['service-order', id],
+    queryKey: serviceOrderKeys.detail(id),
     queryFn: async () => {
       const response = await axiosInstance.get(`/service-orders/${id}`);
       return response.data;

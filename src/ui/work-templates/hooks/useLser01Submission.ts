@@ -5,15 +5,18 @@ import type {
   Lser01HeaderError,
   Lser01Metadata,
   Lser01ValidationErrors,
+  Lser01Warning,
   WorkTemplateScanRow,
 } from '../components/scan/types';
 
+/** The service started on the batch: no batch is created, the order runs on the existing one. */
 export interface Lser01SuccessResult {
   batch_id: number;
   batch_name: string;
-  service_order_id: number | null;
-  service_order_code: string | null;
+  service_order_id: number;
+  service_order_code: string;
   females_count: number;
+  warnings: Lser01Warning[];
 }
 
 /**
@@ -28,6 +31,7 @@ export interface Lser01RepairState {
 }
 
 export const emptyLser01Metadata = (): Lser01Metadata => ({
+  lote_id: null,
   lote: '',
   toro_caravana: '',
   planned_start_date: new Date().toISOString().slice(0, 10),
@@ -52,7 +56,7 @@ export function useLser01Submission() {
   const submit = useCallback(
     async (metadata: Lser01Metadata, rows: WorkTemplateScanRow[]): Promise<Lser01SuccessResult | null> => {
       const payload = {
-        lote: metadata.lote.trim(),
+        batch_id: metadata.lote_id,
         toro_caravana: metadata.toro_caravana.trim(),
         planned_start_date: metadata.planned_start_date,
         planned_end_date: metadata.planned_end_date || null,

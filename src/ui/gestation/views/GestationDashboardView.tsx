@@ -58,7 +58,11 @@ const getStageLabel = (stage?: string) => {
   }
 };
 
-function GestationDashboardView() {
+interface GestationDashboardViewProps {
+  embedded?: boolean;
+}
+
+export function GestationDashboardView({ embedded = false }: GestationDashboardViewProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const { activeCompanyId } = useCompany();
@@ -237,7 +241,7 @@ function GestationDashboardView() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: embedded ? 400 : '100vh', gap: 2 }}>
         <CircularProgress />
         <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600 }}>
           Cargando datos gestacionales...
@@ -246,43 +250,48 @@ function GestationDashboardView() {
     );
   }
 
-  return (
-    <ViewLayout
-      title="Panel de Control Gestacional"
-      subtitle="Monitoreo de preñez, distribución de parición y alertas reproductivas."
-      actions={
-        <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="outlined"
-            startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-path-round-square</FuseSvgIcon>}
-            onClick={() => navigate('/gestation/bull-rotation')}
-            sx={{ textTransform: 'none', fontWeight: 700 }}
-          >
-            Rotación de Toros
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<FuseSvgIcon size={20}>heroicons-outline:funnel</FuseSvgIcon>}
-            onClick={() => setFilterBarExpanded(!filterBarExpanded)}
-            sx={{ textTransform: 'none', fontWeight: 700 }}
-          >
-            {filterBarExpanded ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus</FuseSvgIcon>}
-            sx={{ textTransform: 'none', fontWeight: 800, bgcolor: 'primary.main', color: '#fff' }}
-          >
-            Nuevo Tacto
-          </Button>
-        </Stack>
-      }
-    >
-      <Stack spacing={4}>
-        {/* SAP Fiori Smart Filter Bar */}
-        <GestationFilterBar
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+  const actionButtons = (
+    <Stack direction="row" spacing={1.5} alignItems="center">
+      <Button
+        variant="outlined"
+        size={embedded ? 'small' : 'medium'}
+        startIcon={<FuseSvgIcon size={18}>heroicons-outline:arrow-path-round-square</FuseSvgIcon>}
+        onClick={() => navigate('/gestation/bull-rotation')}
+        sx={{ textTransform: 'none', fontWeight: 700 }}
+      >
+        Rotación de Toros
+      </Button>
+      <Button
+        variant="outlined"
+        size={embedded ? 'small' : 'medium'}
+        startIcon={<FuseSvgIcon size={18}>heroicons-outline:funnel</FuseSvgIcon>}
+        onClick={() => setFilterBarExpanded(!filterBarExpanded)}
+        sx={{ textTransform: 'none', fontWeight: 700 }}
+      >
+        {filterBarExpanded ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+      </Button>
+      <Button
+        variant="contained"
+        size={embedded ? 'small' : 'medium'}
+        startIcon={<FuseSvgIcon size={18}>heroicons-outline:plus</FuseSvgIcon>}
+        sx={{ textTransform: 'none', fontWeight: 800, bgcolor: 'primary.main', color: '#fff' }}
+      >
+        Nuevo Tacto
+      </Button>
+    </Stack>
+  );
+
+  const mainContent = (
+    <Stack spacing={3}>
+      {embedded && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 0.5 }}>
+          {actionButtons}
+        </Box>
+      )}
+      {/* SAP Fiori Smart Filter Bar */}
+      <GestationFilterBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
           selectedStage={selectedStage}
           setSelectedStage={setSelectedStage}
           selectedBatch={selectedBatch}
@@ -734,6 +743,19 @@ function GestationDashboardView() {
           </Stack>
         </Box>
       </Stack>
+  );
+
+  if (embedded) {
+    return <Box sx={{ width: '100%' }}>{mainContent}</Box>;
+  }
+
+  return (
+    <ViewLayout
+      title="Panel de Control Gestacional"
+      subtitle="Monitoreo de preñez, distribución de parición y alertas reproductivas."
+      actions={actionButtons}
+    >
+      {mainContent}
     </ViewLayout>
   );
 }

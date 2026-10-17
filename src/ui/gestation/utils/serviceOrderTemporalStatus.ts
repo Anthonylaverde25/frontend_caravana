@@ -1,6 +1,7 @@
 import { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
+import { formatDay } from './reproductiveVerdict';
 
-export type TemporalStatusKind = 'ON_TRACK' | 'CLOSING_SOON' | 'OVERDUE' | 'COMPLETED';
+export type TemporalStatusKind = 'ON_TRACK' | 'CLOSING_SOON' | 'OVERDUE' | 'BULLS_WITHDRAWN' | 'COMPLETED';
 
 export interface ServiceOrderTemporalStatus {
   daysInService: number | null;
@@ -12,6 +13,8 @@ export interface ServiceOrderTemporalStatus {
   isClosingSoon: boolean;
   isOverdue: boolean;
   isCompleted: boolean;
+  /** Bulls withdrawn: the service ended, the order stays open until its diagnosis is complete. */
+  isBullsWithdrawn: boolean;
   effectiveEndDate: string | null;
   effectivePlannedEndDate: string | null;
 }
@@ -36,12 +39,15 @@ export function computeServiceOrderTemporalStatus(
       isClosingSoon: false,
       isOverdue: false,
       isCompleted: false,
+      isBullsWithdrawn: false,
       effectiveEndDate: null,
       effectivePlannedEndDate: null,
     };
   }
 
-  const isCompleted = order.status === 'SUCCESS' || order.status === 'COMPLETED' || Boolean(order.actual_end_date);
+  // Closed only by its diagnosis: withdrawing the bulls ends the service, not the order.
+  const isCompleted = order.status === 'SUCCESS';
+  const isBullsWithdrawn = order.status === 'BULLS_WITHDRAWN';
 
   // 1. Resolve start date
   const startStr = order.actual_start_date || order.planned_start_date || batchPlannedStartDate;
@@ -69,18 +75,40 @@ export function computeServiceOrderTemporalStatus(
     daysInService = days >= 0 ? days : 0;
   }
 
-  // 5. If already completed, status is locked to COMPLETED
+  // 5. Closed by its diagnosis
   if (isCompleted) {
+    const rate = order.final_pregnancy_rate;
     return {
       daysInService,
       daysRemaining: null,
       statusKind: 'COMPLETED',
-      label: `Servicio Finalizado (${endStr || 'Torada en descanso'})`,
-      shortLabel: 'Finalizado',
+      label: rate !== null && rate !== undefined ? `Diagnosticada · preñez ${rate.toFixed(1)}%` : 'Diagnosticada',
+      shortLabel: 'Diagnosticada',
       chipColor: 'success',
       isClosingSoon: false,
       isOverdue: false,
       isCompleted: true,
+      isBullsWithdrawn: false,
+      effectiveEndDate: endStr,
+      effectivePlannedEndDate: plannedEndStr,
+    };
+  }
+
+  // 5b. Bulls withdrawn, the order still open (diagnosis suggested from withdrawal + 45 days)
+  if (isBullsWithdrawn) {
+    const suggested = order.suggested_diagnosis_date ?? null;
+    const overdue = suggested !== null && suggested < new Date().toISOString().slice(0, 10);
+    return {
+      daysInService,
+      daysRemaining: null,
+      statusKind: 'BULLS_WITHDRAWN',
+      label: suggested ? `Toros retirados · tactar desde ${formatDay(suggested)}` : 'Toros retirados',
+      shortLabel: 'Torada retirada',
+      chipColor: overdue ? 'warning' : 'primary',
+      isClosingSoon: false,
+      isOverdue: false,
+      isCompleted: false,
+      isBullsWithdrawn: true,
       effectiveEndDate: endStr,
       effectivePlannedEndDate: plannedEndStr,
     };
@@ -149,6 +177,7 @@ export function computeServiceOrderTemporalStatus(
     isClosingSoon,
     isOverdue,
     isCompleted: false,
+    isBullsWithdrawn: false,
     effectiveEndDate: endStr,
     effectivePlannedEndDate: plannedEndStr,
   };

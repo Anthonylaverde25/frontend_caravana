@@ -77,7 +77,7 @@ export const TemporalWindowExplanationDialog: React.FC<TemporalWindowExplanation
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
-              Ventana Temporal del Lote de Servicio
+              Ventana Temporal del Servicio
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
               Fundamentación Zootécnica &amp; Modelo de Dominio Ganadero

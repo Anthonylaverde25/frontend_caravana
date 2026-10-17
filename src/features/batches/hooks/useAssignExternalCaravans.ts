@@ -20,6 +20,8 @@ export function useAssignExternalCaravans() {
       queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      // A female entering or leaving a service batch opens or closes her exposure to its bulls.
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
     },
   });
 }

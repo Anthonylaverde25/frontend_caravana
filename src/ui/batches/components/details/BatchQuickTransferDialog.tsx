@@ -21,7 +21,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
@@ -32,12 +32,15 @@ interface BatchQuickTransferDialogProps {
   open: boolean;
   onClose: () => void;
   batch: any;
+  /** Caravans ticked when the dialog opens (e.g. females excluded from breeding to set apart). */
+  initialSelectedIds?: number[];
 }
 
 export default function BatchQuickTransferDialog({
   open,
   onClose,
   batch,
+  initialSelectedIds,
 }: BatchQuickTransferDialogProps) {
   const theme = useTheme();
   const { activeCompanyId } = useCompany();
@@ -55,6 +58,12 @@ export default function BatchQuickTransferDialog({
   );
   const [reason, setReason] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  useEffect(() => {
+    if (open && initialSelectedIds) {
+      setSelectedIds(initialSelectedIds);
+    }
+  }, [open, initialSelectedIds]);
 
   // Caravans belonging to this batch
   const batchCaravans = useMemo(() => {

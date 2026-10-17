@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router';
 import { Box, Stack } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import ViewLayout from 'src/components/ViewLayout';
@@ -11,6 +12,7 @@ import { BoardGrid } from '../components/board/BoardGrid';
 import { EmptyBoardState } from '../components/board/EmptyBoardState';
 import { CreateBoardDialog } from '../components/dialogs/create-board/CreateBoardDialog';
 import { AddWidgetDialog } from '../components/dialogs/add-widget/AddWidgetDialog';
+import GestationDashboardView from 'src/ui/gestation/views/GestationDashboardView';
 
 /**
  * Multi-board dashboard.
@@ -29,6 +31,20 @@ export function DashboardView() {
 	useEffect(() => {
 		setVisitedBoardIds((prev) => (prev.includes(activeBoard.id) ? prev : [...prev, activeBoard.id]));
 	}, [activeBoard.id]);
+
+	const [searchParams, setSearchParams] = useSearchParams();
+	const boardParam = searchParams.get('board');
+
+	useEffect(() => {
+		if (boardParam && api.boards.some((b) => b.id === boardParam)) {
+			api.selectBoard(boardParam);
+		}
+	}, [boardParam, api.boards, api.selectBoard]);
+
+	const handleSelectBoard = (id: string) => {
+		api.selectBoard(id);
+		setSearchParams({ board: id }, { replace: true });
+	};
 
 	/** Adding a widget always happens inside edit mode, so a saved empty board enters it first. */
 	const openLibrary = (initialWidgetId: string | null) => {
@@ -61,7 +77,7 @@ export function DashboardView() {
 					boards={api.boards}
 					activeBoardId={activeBoard.id}
 					disabled={isEditing}
-					onSelect={api.selectBoard}
+					onSelect={handleSelectBoard}
 					onCreate={() => setIsCreateOpen(true)}
 				/>
 				<BoardHeader
@@ -91,7 +107,9 @@ export function DashboardView() {
 								key={b.id}
 								sx={{ display: isThisActive ? 'block' : 'none' }}
 							>
-								{currentBoard.widgets.length === 0 && !currentBoard.isSystem ? (
+								{currentBoard.id === 'sys_reproductive' ? (
+									<GestationDashboardView embedded />
+								) : currentBoard.widgets.length === 0 && !currentBoard.isSystem ? (
 									<Box sx={{ py: 4 }}>
 										<EmptyBoardState
 											batchTypeCode={currentBoard.scope.batchTypeCode}

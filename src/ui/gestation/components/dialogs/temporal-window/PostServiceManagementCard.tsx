@@ -22,13 +22,13 @@ export const PostServiceManagementCard: React.FC = () => {
         </FuseSvgIcon>
         <Box sx={{ flex: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: isDark ? '#fb923c' : '#c2410c', mb: 0.75 }}>
-            3. Disolución del Lote al Tacto y Salida de Toros
+            3. Cierre del Servicio al Tacto y Salida de Toros
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.primary', fontSize: '0.84rem', lineHeight: 1.55 }}>
             • <strong>Salida de Toros:</strong> Finalizada la ventana temporal (60-90 días), los toros <em>deben retirarse obligatoriamente</em> al lote de torada en descanso para evitar servicios anómalos o fuera de época.
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.primary', fontSize: '0.84rem', lineHeight: 1.55, mt: 0.5 }}>
-            • <strong>Quiebre al Tacto (60 días post-cierre):</strong> El lote de servicio se disuelve: los <em>vientres preñados</em> pasan a lotes de gestación/preparto clasificados por cabeza, cuerpo o cola, mientras que las <em>vacías</em> se descartan y engordan para venta otoñal antes del invierno.
+            • <strong>Quiebre al Tacto (60 días post-cierre):</strong> La orden de servicio se cierra con el tacto: los <em>vientres preñados</em> se clasifican por cabeza, cuerpo o cola y las <em>vacías</em> se transfieren a otro lote (descarte o engorde para venta otoñal). El lote sigue existiendo para la próxima campaña.
           </Typography>
         </Box>
       </Stack>

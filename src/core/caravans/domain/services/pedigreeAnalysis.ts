@@ -290,7 +290,7 @@ export function analyzeCaravanInbreedingDetail(
     status = 'REJECT';
     title = 'Alerta de Endogamia Alta';
     description = `Parentesco cercano (${fxPercentage}% entre 6.25% y 12.5%). Se desaconseja para cría de reposición.`;
-    fieldAction = 'Separar de los lotes de servicio de toros emparentados o enviar a engorde.';
+    fieldAction = 'Separar de los rodeos en servicio con toros emparentados o enviar a engorde.';
   } else if (risk === 'MODERATE') {
     status = 'CAUTION';
     title = 'Endogamia Moderada (Precaución)';

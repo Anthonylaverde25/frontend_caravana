@@ -61,10 +61,10 @@ export const CloseServiceOrderDialog: React.FC<CloseServiceOrderDialogProps> = (
   const [individualDestinations, setIndividualDestinations] = useState<Record<number, number>>({});
   const [observations, setObservations] = useState('');
 
-  // Filter operational target batches for resting
+  // Resting destinations for the bulls: any own active batch other than the one in service.
   const operationalBatches = useMemo(() => {
-    return batches.filter((b) => b.isOperational() && b.id !== batch?.id);
-  }, [batches, batch]);
+    return batches.filter((b) => b.isActive() && !b.provider_id && !b.is_system && b.id !== order?.batch_id);
+  }, [batches, order?.batch_id]);
 
   // Default suggested resting batch (prefer name containing 'toro' or 'descanso')
   const defaultRestingBatch = useMemo(() => {
@@ -186,14 +186,14 @@ export const CloseServiceOrderDialog: React.FC<CloseServiceOrderDialogProps> = (
 
     closeService(payload, {
       onSuccess: () => {
-        enqueueSnackbar('¡Servicio finalizado exitosamente! Torada retirada a potrero de descanso.', {
+        enqueueSnackbar('Torada retirada. La orden queda esperando su diagnóstico de gestación.', {
           variant: 'success',
         });
         onClose();
         onSuccess?.();
       },
       onError: (err: any) => {
-        const msg = err?.response?.data?.message || err?.message || 'Error al finalizar el servicio';
+        const msg = err?.response?.data?.message || err?.message || 'Error al retirar la torada';
         enqueueSnackbar(msg, { variant: 'error' });
       },
     });
@@ -239,10 +239,10 @@ export const CloseServiceOrderDialog: React.FC<CloseServiceOrderDialogProps> = (
           </Box>
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.2 }}>
-              Finalizar Servicio Reproductivo
+              Retirar torada
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Retiro total de torada y apertura de ventana hacia el tacto rectal
+              Fin del servicio físico: la orden se cierra después, con su diagnóstico
             </Typography>
           </Box>
         </Box>
@@ -264,7 +264,7 @@ export const CloseServiceOrderDialog: React.FC<CloseServiceOrderDialogProps> = (
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {batch?.name || `Lote #${order?.batch_id}`}
+                {order?.batch_name || batch?.name || `Lote #${order?.batch_id}`}
               </Typography>
               <Chip
                 label={order?.code || 'ORDEN'}
@@ -424,7 +424,7 @@ export const CloseServiceOrderDialog: React.FC<CloseServiceOrderDialogProps> = (
           {/* Zootechnical Advisory Note */}
           <Alert severity="info" icon={<FuseSvgIcon size={20}>lucide:info</FuseSvgIcon>} sx={{ borderRadius: '6px' }}>
             <Typography variant="caption" sx={{ lineHeight: 1.4 }}>
-              <strong>Efecto en el Rodeo:</strong> Al confirmar, las caravanas de los toros se transferirán al lote de descanso con movimiento auditado. La orden pasará a estado completado y los vientres iniciarán el período de reposo previo al diagnóstico de preñez (tacto rectal en 60 días).
+              <strong>Efecto en el rodeo:</strong> los toros se transfieren al lote de descanso con movimiento auditado. La orden queda <strong>esperando el diagnóstico</strong> (tacto sugerido 45 días después del retiro) y se cierra con "Cerrar orden". Las vacías tactadas con los toros todavía en el lote vuelven a pendiente.
             </Typography>
           </Alert>
         </Stack>
@@ -456,7 +456,7 @@ export const CloseServiceOrderDialog: React.FC<CloseServiceOrderDialogProps> = (
             '&:hover': { bgcolor: '#b91c1c' },
           }}
         >
-          {isPending ? 'Finalizando...' : 'Confirmar Retiro & Cerrar Servicio'}
+          {isPending ? 'Retirando…' : 'Confirmar retiro de torada'}
         </Button>
       </DialogActions>
     </Dialog>

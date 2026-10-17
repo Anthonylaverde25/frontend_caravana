@@ -1,5 +1,7 @@
+import { CaravanWeightRecord, RecordCaravanWeightPayload } from '@/core/weighing/domain/entities/Weighing';
 import axiosInstance from '@/utils/axios';
 import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../../domain/entities/Caravan';
+import { CaravanSummaryPage, CaravanSummaryQuery } from '../../domain/entities/CaravanSummary';
 import { ICaravanRepository } from '../../domain/repositories/ICaravanRepository';
 import { CaravanMapper } from '../mappers/CaravanMapper';
 
@@ -47,12 +49,12 @@ export class ApiCaravanRepository implements ICaravanRepository {
     await axiosInstance.delete(`/caravans/${id}`);
   }
 
-  async getWeights(id: number): Promise<any[]> {
-    const response = await axiosInstance.get<any[]>(`/caravans/${id}/weights`);
+  async getWeights(id: number): Promise<CaravanWeightRecord[]> {
+    const response = await axiosInstance.get<CaravanWeightRecord[]>(`/caravans/${id}/weights`);
     return response.data;
   }
 
-  async recordWeight(id: number, data: { weight: number; weighing_date: string; notes?: string }): Promise<void> {
+  async recordWeight(id: number, data: RecordCaravanWeightPayload): Promise<void> {
     await axiosInstance.post(`/caravans/${id}/weights`, data);
   }
 
@@ -70,23 +72,7 @@ export class ApiCaravanRepository implements ICaravanRepository {
     return CaravanMapper.toDomain(response.data.data);
   }
 
-  async findSummary(params: {
-    companyId?: number;
-    scope?: 'own' | 'external' | 'all';
-    batchId?: number | string;
-    search?: string;
-    sex?: 'M' | 'H' | 'ALL';
-    page?: number;
-    perPage?: number;
-  }): Promise<{
-    data: any[];
-    meta: {
-      current_page: number;
-      last_page: number;
-      per_page: number;
-      total: number;
-    };
-  }> {
+  async findSummary(params: CaravanSummaryQuery): Promise<CaravanSummaryPage> {
     const headers: Record<string, string> = {};
     if (params.companyId) {
       headers['X-Company-ID'] = params.companyId.toString();
@@ -98,6 +84,7 @@ export class ApiCaravanRepository implements ICaravanRepository {
     if (params.sex && params.sex !== 'ALL') queryParams.sex = params.sex;
     if (params.page) queryParams.page = params.page;
     if (params.perPage) queryParams.per_page = params.perPage;
+    if (params.sort && params.sort !== 'identification') queryParams.sort = params.sort;
 
     const response = await axiosInstance.get<any>('/caravans/summary', {
       headers,

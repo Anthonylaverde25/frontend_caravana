@@ -39,6 +39,8 @@ interface BatchFiltersBarProps {
   farmOptions: BatchOptionCount[];
   summaryKPIs: BatchFilterSummaryKPIs;
   totalAvailableBatches: number;
+  /** Hides the results strip, for views that show their own KPIs. */
+  hideSummary?: boolean;
 }
 
 export const BatchFiltersBar: React.FC<BatchFiltersBarProps> = ({
@@ -56,6 +58,7 @@ export const BatchFiltersBar: React.FC<BatchFiltersBarProps> = ({
   farmOptions,
   summaryKPIs,
   totalAvailableBatches,
+  hideSummary = false,
 }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -446,6 +449,7 @@ export const BatchFiltersBar: React.FC<BatchFiltersBarProps> = ({
       </Stack>
 
       {/* Summary KPI Strip */}
+      {!hideSummary && (
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={2}
@@ -540,6 +544,7 @@ export const BatchFiltersBar: React.FC<BatchFiltersBarProps> = ({
           </Typography>
         )}
       </Stack>
+      )}
     </Box>
   );
 };

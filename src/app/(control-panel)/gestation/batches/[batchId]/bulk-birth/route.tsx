@@ -3,12 +3,12 @@ import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
 /**
  * The old bulk birth entry. Every calving is registered with a birth order now: the link lands on
- * "Registrar partos" with the batch's pregnant females already chosen.
+ * "Registrar partos" of the batch, over Monitoreo Gestacional.
  */
 function BulkBirthRedirect() {
   const { batchId } = useParams<{ batchId: string }>();
 
-  return <Navigate to={`/birth-orders/register?batchId=${batchId ?? ''}`} replace />;
+  return <Navigate to={batchId ? `/gestation/list/${batchId}/register-births` : '/birth-orders/register'} replace />;
 }
 
 const route: FuseRouteItemType = {

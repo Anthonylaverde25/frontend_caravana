@@ -10,7 +10,7 @@ import { BULL_RATIO_BY_BATCH, GESTATION_LOSSES, SERVICE_ORDERS } from '../../moc
 
 const RATIO_SCALE_MAX = 8;
 
-/** Actual bulls per 100 females vs. the target declared on the service batch. */
+/** Actual bulls per 100 females vs. the target declared on the service order of each batch. */
 export function BullRatioByBatchWidget({ instance }: WidgetRenderProps) {
 	const below = BULL_RATIO_BY_BATCH.filter((r) => r.actual < r.target).length;
 
@@ -24,7 +24,7 @@ export function BullRatioByBatchWidget({ instance }: WidgetRenderProps) {
 				/>
 			}
 			value={String(BULL_RATIO_BY_BATCH.length)}
-			unit="lotes de servicio"
+			unit="lotes en servicio"
 			context={
 				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
 					{BULL_RATIO_BY_BATCH.map((row) => (

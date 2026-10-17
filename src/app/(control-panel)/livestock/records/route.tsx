@@ -1,32 +1,52 @@
-import { lazy } from 'react';
+import { Navigate, useParams } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const RecordsView = lazy(() => import('./RecordsView'));
-const MovementsView = lazy(() => import('./CaravansMovements'));
-const BulkWeightView = lazy(() => import('./BulkWeightView'));
-const WeightControlSheetView = lazy(() => import('./WeightControlSheetView'));
+/**
+ * Keeps an old /caravans link working: sends it to the same screen under /herd.
+ */
+function RedirectToHerdBatch({ screen }: { screen: 'bulk-weight' | 'weight-sheet' }) {
+	const { batchId } = useParams();
+
+	return (
+		<Navigate
+			to={`/herd/batches/${batchId}/${screen}`}
+			replace
+		/>
+	);
+}
 
 /**
- * The Livestock Records page route.
+ * /caravans was replaced by /herd (Hacienda Propia). Its screens live there now; these
+ * redirects keep bookmarks and old links working.
  */
 const route: FuseRouteItemType = {
 	path: 'caravans',
 	children: [
 		{
 			index: true,
-			element: <RecordsView />
+			element: (
+				<Navigate
+					to="/herd"
+					replace
+				/>
+			)
 		},
 		{
 			path: 'movements',
-			element: <MovementsView />
+			element: (
+				<Navigate
+					to="/herd/movements"
+					replace
+				/>
+			)
 		},
 		{
 			path: 'bulk-weight/:batchId',
-			element: <BulkWeightView />
+			element: <RedirectToHerdBatch screen="bulk-weight" />
 		},
 		{
 			path: 'weight-sheet/:batchId',
-			element: <WeightControlSheetView />
+			element: <RedirectToHerdBatch screen="weight-sheet" />
 		}
 	]
 };

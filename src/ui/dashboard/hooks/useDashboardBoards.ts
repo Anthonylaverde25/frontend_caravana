@@ -37,6 +37,16 @@ function isBoard(value: unknown): value is DashboardBoard {
 	return Boolean(b && typeof b.id === 'string' && typeof b.name === 'string' && Array.isArray(b.widgets) && b.scope);
 }
 
+/**
+ * Boards saved before the service batch type was retired may still be scoped to 'SERVICE'.
+ * That type no longer exists (a service is an order over a Cría batch), so they widen to all types.
+ */
+function withKnownBatchType(scope: DashboardBoard['scope']): DashboardBoard['scope'] {
+	const code = scope.batchTypeCode as string | null;
+
+	return code === 'SERVICE' ? { ...scope, batchTypeCode: null } : scope;
+}
+
 function loadUserBoards(): DashboardBoard[] {
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
@@ -47,6 +57,7 @@ function loadUserBoards(): DashboardBoard[] {
 		return parsed.filter(isBoard).map((b) => ({
 			...b,
 			isSystem: false,
+			scope: withKnownBatchType(b.scope),
 			widgets: b.widgets.filter((w) => getWidgetDefinition(w.widgetId)?.component)
 		}));
 	} catch {

@@ -1,25 +1,23 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Typography,
   Stack,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Checkbox,
   Chip,
   Paper,
   InputAdornment,
-  useTheme,
+  Button,
   Alert,
+  alpha,
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { usePreServiceBulls } from '@/features/gestation/hooks/usePreServiceBulls';
+import { isSelectable, resolveSireAdmission } from '@/core/caravans/domain/rules/resolveSireAdmission';
+import BreedingEligibilityDialog from '@/ui/herd/components/shared/breeding-eligibility/BreedingEligibilityDialog';
+import StartBatchSiresTable from './StartBatchSiresTable';
+import { useStartServiceTableStyles } from './useStartServiceTableStyles';
 
 interface StartBatchSiresStepProps {
   availableMales: Caravan[];
@@ -30,6 +28,11 @@ interface StartBatchSiresStepProps {
   setMaleSearch: (val: string) => void;
 }
 
+/**
+ * StartBatchSiresStep
+ * Step 1 coordinator: manages bull selection, andrological evaluation mapping (ADR-5),
+ * live ratio calculations, search bar and delegates table to StartBatchSiresTable.
+ */
 export const StartBatchSiresStep: React.FC<StartBatchSiresStepProps> = ({
   availableMales,
   selectedMaleIds,
@@ -38,10 +41,9 @@ export const StartBatchSiresStep: React.FC<StartBatchSiresStepProps> = ({
   maleSearch,
   setMaleSearch,
 }) => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-
+  const { isDark, active } = useStartServiceTableStyles();
   const { data: preServiceBulls = [] } = usePreServiceBulls();
+
   const bullHealthMap = useMemo(
     () => new Map(preServiceBulls.map((b) => [b.caravan_id, b])),
     [preServiceBulls]
@@ -53,7 +55,8 @@ export const StartBatchSiresStep: React.FC<StartBatchSiresStepProps> = ({
     return availableMales.filter(
       (m) =>
         m.identification?.toLowerCase().includes(q) ||
-        m.batch_name?.toLowerCase().includes(q)
+        m.batch_name?.toLowerCase().includes(q) ||
+        m.breed?.toLowerCase().includes(q)
     );
   }, [availableMales, maleSearch]);
 
@@ -62,21 +65,38 @@ export const StartBatchSiresStep: React.FC<StartBatchSiresStepProps> = ({
     return Number(((selectedMaleIds.length / femaleCount) * 100).toFixed(1));
   }, [selectedMaleIds.length, femaleCount]);
 
+  const [enabling, setEnabling] = useState<Caravan | null>(null);
+
+  const eligibleMales = useMemo(() => {
+    return filteredMales.filter((m) =>
+      isSelectable(resolveSireAdmission(m, bullHealthMap.get(m.id!)))
+    );
+  }, [filteredMales, bullHealthMap]);
+
+  const eligibleMaleIds = useMemo(() => eligibleMales.map((m) => m.id!), [eligibleMales]);
+
+  const allEligibleSelected = eligibleMaleIds.length > 0 && eligibleMaleIds.every((id) => selectedMaleIds.includes(id));
+  const someEligibleSelected = eligibleMaleIds.some((id) => selectedMaleIds.includes(id)) && !allEligibleSelected;
+
   const handleToggleMale = (male: Caravan) => {
-    const health = bullHealthMap.get(male.id!);
-    // Si el toro está evaluado explícitamente como NO apto (ADR-5), advertimos
-    if (health && !health.is_apt) {
+    if (!isSelectable(resolveSireAdmission(male, bullHealthMap.get(male.id!)))) {
       return;
     }
-
     setSelectedMaleIds((prev) =>
       prev.includes(male.id!) ? prev.filter((id) => id !== male.id!) : [...prev, male.id!]
     );
   };
 
+  const handleToggleAllEligible = () => {
+    const idSet = new Set(eligibleMaleIds);
+    setSelectedMaleIds((prev) =>
+      allEligibleSelected ? prev.filter((id) => !idSet.has(id)) : Array.from(new Set([...prev, ...eligibleMaleIds]))
+    );
+  };
+
   return (
-    <Stack spacing={2.5}>
-      {/* Panel Superior: Velocímetro / Bull Ratio & Zootecnia */}
+    <Stack spacing={2}>
+      {/* Top Header Card: Bull Ratio & Guidelines */}
       <Paper
         elevation={0}
         sx={{
@@ -97,7 +117,7 @@ export const StartBatchSiresStep: React.FC<StartBatchSiresStepProps> = ({
             Asignación de Torada (Reproductores)
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Los toros seleccionados serán transferidos físicamente al nuevo lote de servicio.
+            Los toros seleccionados ingresan al lote junto a sus vientres.
           </Typography>
         </Box>
 
@@ -131,118 +151,133 @@ export const StartBatchSiresStep: React.FC<StartBatchSiresStepProps> = ({
         </Alert>
       )}
 
-      {/* Buscador */}
-      <TextField
-        fullWidth
-        size="small"
-        placeholder="Buscar reproductor por caravana o lote actual..."
-        value={maleSearch}
-        onChange={(e) => setMaleSearch(e.target.value)}
-        variant="filled"
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <FuseSvgIcon size={18}>heroicons-outline:magnifying-glass</FuseSvgIcon>
-            </InputAdornment>
-          ),
-          sx: { borderRadius: '6px', bgcolor: 'action.hover' },
-        }}
-      />
-
-      {/* Tabla de Toros con Semáforo ADR-5 */}
-      <TableContainer
-        component={Paper}
+      {/* Filter and Search Bar */}
+      <Paper
         elevation={0}
         sx={{
-          maxHeight: 300,
+          p: 1.5,
           borderRadius: '8px',
-          border: 1,
+          border: '1px solid',
           borderColor: 'divider',
+          bgcolor: isDark ? 'background.paper' : '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+          flexWrap: 'wrap',
         }}
       >
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox" />
-              <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>CARAVANA</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>LOTE ACTUAL</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>C. ESCROTAL</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }} align="center">
-                APTITUD ANDROLÓGICA (ADR-5)
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredMales.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                  No se encontraron reproductores machos disponibles en el establecimiento.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredMales.map((male) => {
-                const isChecked = selectedMaleIds.includes(male.id!);
-                const health = bullHealthMap.get(male.id!);
-                const isDisqualified = health && !health.is_apt;
+        <TextField
+          size="small"
+          placeholder="Buscar reproductor por caravana, raza o lote actual..."
+          value={maleSearch}
+          onChange={(e) => setMaleSearch(e.target.value)}
+          sx={{
+            flexGrow: 1,
+            maxWidth: { sm: 400 },
+            '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: '0.85rem' },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <FuseSvgIcon size={18} color="action">heroicons-outline:magnifying-glass</FuseSvgIcon>
+              </InputAdornment>
+            ),
+          }}
+        />
 
-                return (
-                  <TableRow
-                    key={male.id}
-                    hover={!isDisqualified}
-                    selected={isChecked}
-                    onClick={() => !isDisqualified && handleToggleMale(male)}
-                    sx={{
-                      cursor: isDisqualified ? 'not-allowed' : 'pointer',
-                      opacity: isDisqualified ? 0.5 : 1,
-                    }}
-                  >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        size="small"
-                        checked={isChecked}
-                        disabled={Boolean(isDisqualified)}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem' }}>
-                      {male.identification}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem' }}>
-                      {male.batch_name ?? 'Torada General'}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem' }}>
-                      {health?.scrotal_circumference_cm ? `${health.scrotal_circumference_cm} cm` : '-'}
-                    </TableCell>
-                    <TableCell align="center">
-                      {isDisqualified ? (
-                        <Chip
-                          label="NO APTO (Rechazo Sanitario)"
-                          size="small"
-                          color="error"
-                          sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800 }}
-                        />
-                      ) : health?.is_apt ? (
-                        <Chip
-                          label="APTO (Raspaje Negativo)"
-                          size="small"
-                          color="success"
-                          sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800 }}
-                        />
-                      ) : (
-                        <Chip
-                          label="EVALUADO CLÍNICO"
-                          size="small"
-                          color="default"
-                          sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Chip
+            size="small"
+            variant="outlined"
+            label={`${filteredMales.length} disponibles`}
+            sx={{ height: 28, px: 0.5, fontWeight: 700, fontSize: '0.75rem' }}
+          />
+
+          <Button
+            variant={allEligibleSelected ? 'contained' : 'outlined'}
+            size="small"
+            onClick={handleToggleAllEligible}
+            disabled={eligibleMaleIds.length === 0}
+            startIcon={
+              <FuseSvgIcon size={15}>
+                {allEligibleSelected ? 'heroicons-outline:x-mark' : 'heroicons-outline:check-circle'}
+              </FuseSvgIcon>
+            }
+            sx={{ textTransform: 'none', height: 28, fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px' }}
+          >
+            {allEligibleSelected ? 'Deseleccionar' : 'Seleccionar Aptos'}
+          </Button>
+        </Stack>
+      </Paper>
+
+      {/* Selection Banner (Pedigree style matching ExternalBatchAssignmentView) */}
+      {selectedMaleIds.length > 0 && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.25,
+            px: 2,
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: alpha(active, isDark ? 0.22 : 0.16),
+            bgcolor: alpha(active, isDark ? 0.08 : 0.05),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1.5,
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box
+              sx={{
+                px: 1.25,
+                py: 0.4,
+                borderRadius: '6px',
+                bgcolor: alpha(active, 0.14),
+                color: active,
+                fontSize: '0.75rem',
+                fontWeight: 800,
+              }}
+            >
+              {selectedMaleIds.length} {selectedMaleIds.length === 1 ? 'toro seleccionado' : 'toros seleccionados'} ({bullRatio}%)
+            </Box>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+              Reproductores asignados para ingresar al lote de servicio.
+            </Typography>
+          </Stack>
+
+          <Button
+            size="small"
+            onClick={() => setSelectedMaleIds([])}
+            startIcon={<FuseSvgIcon size={14}>heroicons-outline:x-circle</FuseSvgIcon>}
+            sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', p: 0.5 }}
+          >
+            Limpiar Selección
+          </Button>
+        </Paper>
+      )}
+
+      {/* Canonical Data Table Presenter */}
+      <StartBatchSiresTable
+        males={filteredMales}
+        bullHealthMap={bullHealthMap}
+        selectedMaleIds={selectedMaleIds}
+        onToggleMale={handleToggleMale}
+        onToggleAllEligible={handleToggleAllEligible}
+        allEligibleSelected={allEligibleSelected}
+        someEligibleSelected={someEligibleSelected}
+        onEnableExcluded={(male) => setEnabling(male)}
+      />
+
+      <BreedingEligibilityDialog
+        open={enabling !== null}
+        onClose={() => setEnabling(null)}
+        caravans={enabling ? [{ id: enabling.id, identification: enabling.identification, sex: enabling.sex, is_breeding_eligible: false }] : []}
+      />
     </Stack>
   );
 };
+
+export default StartBatchSiresStep;

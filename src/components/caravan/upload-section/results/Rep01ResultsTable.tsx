@@ -25,6 +25,8 @@ interface Rep01ResultsTableProps {
   rows: any[];
   onCellEdit: (rowIndex: number, field: string, value: string) => void;
   onRemoveRow: (rowIndex: number) => void;
+  /** Review notices per row (blank result, re-check, outside the order...). Never blocking. */
+  notices?: string[][];
 }
 
 interface Rep01RowProps {
@@ -36,6 +38,7 @@ interface Rep01RowProps {
   theme: any;
   zebraBg: string;
   headerBg: string;
+  notices?: string[];
 }
 
 const cellStyle = (theme: any) => ({
@@ -81,7 +84,8 @@ function Rep01Row({
   isDark,
   theme,
   zebraBg,
-  headerBg
+  headerBg,
+  notices = []
 }: Rep01RowProps) {
   const [localCaravan, setLocalCaravan] = useState(row.identification || '');
   const [localCategory, setLocalCategory] = useState(row.category || '');
@@ -186,6 +190,11 @@ function Rep01Row({
             }}
           />
           {renderConfidenceAlert('identification')}
+          {notices.map((notice) => (
+            <Typography key={notice} variant="caption" sx={{ display: 'block', px: 1.5, pb: 0.5, color: 'warning.main', fontWeight: 600, lineHeight: 1.3 }}>
+              {notice}
+            </Typography>
+          ))}
         </Box>
       </TableCell>
 
@@ -233,6 +242,7 @@ function Rep01Row({
               }
             }}
             value={diagnosis}
+            SelectProps={{ displayEmpty: true }}
             onChange={(e) => {
               const val = e.target.value;
               onCellEdit(index, 'diagnosis', val);
@@ -242,6 +252,9 @@ function Rep01Row({
               }
             }}
           >
+            <MenuItem value="">
+              <em>Sin resultado (queda pendiente)</em>
+            </MenuItem>
             <MenuItem value="PREGNANT">Preñada 🟢</MenuItem>
             <MenuItem value="EMPTY">Vacía 🔴</MenuItem>
           </TextField>
@@ -269,10 +282,11 @@ function Rep01Row({
               }
             }}
             value={row.gestational_stage || ''}
+            SelectProps={{ displayEmpty: true }}
             onChange={(e) => onCellEdit(index, 'gestational_stage', e.target.value)}
           >
             <MenuItem value="">
-              <em>-- N/A --</em>
+              <em>Sin estadio (opcional)</em>
             </MenuItem>
             <MenuItem value="head">Cabeza (&gt; 2 meses)</MenuItem>
             <MenuItem value="body">Cuerpo (1-2 meses)</MenuItem>
@@ -328,7 +342,8 @@ function Rep01Row({
 export default function Rep01ResultsTable({
   rows,
   onCellEdit,
-  onRemoveRow
+  onRemoveRow,
+  notices
 }: Rep01ResultsTableProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -470,6 +485,7 @@ export default function Rep01ResultsTable({
                   theme={theme}
                   zebraBg={zebraBg}
                   headerBg={headerBg}
+                  notices={notices?.[index]}
                 />
               ))}
             </TableBody>

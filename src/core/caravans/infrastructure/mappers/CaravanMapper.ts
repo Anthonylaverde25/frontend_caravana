@@ -48,7 +48,7 @@ export class CaravanMapper {
         start_date: raw.active_gestation.start_date,
         estimated_due_date: raw.active_gestation.estimated_due_date,
         gestation_stage: raw.active_gestation.gestation_stage,
-        gestation_months: Number(raw.active_gestation.gestation_months),
+        gestation_months: raw.active_gestation.gestation_months != null ? Number(raw.active_gestation.gestation_months) : null,
         is_current: Boolean(raw.active_gestation.is_current),
         notes: raw.active_gestation.notes,
         calving_overdue_reported_at: raw.active_gestation.calving_overdue_reported_at ?? null,
@@ -61,6 +61,11 @@ export class CaravanMapper {
       } : null,
       stillborn_count: raw.stillborn_count != null ? Number(raw.stillborn_count) : 0,
       last_stillborn_date: raw.last_stillborn_date ?? null,
+      // The owner's breeding decision; an older payload without it means eligible.
+      is_breeding_eligible: raw.is_breeding_eligible !== false,
+      breeding_exclusion_reason: raw.breeding_exclusion_reason ?? null,
+      breeding_exclusion_reason_label: raw.breeding_exclusion_reason_label ?? null,
+      is_reproductive_category: raw.is_reproductive_category ?? null,
       lineage: raw.lineage ? {
         mother_id: raw.lineage.mother_id ? Number(raw.lineage.mother_id) : null,
         mother_identification: raw.lineage.mother_identification ?? null,

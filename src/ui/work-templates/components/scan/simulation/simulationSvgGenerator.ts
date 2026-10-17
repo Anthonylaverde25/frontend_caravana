@@ -47,23 +47,15 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
       break;
 
     case 'LSER-01':
-      secondaryContextText = `TORO EXCLUSIVO: [ ${context.toro_caravana || 'ANTHONY-TORO-004'} ] | LOTE: ${context.lote || 'Entore Vaquillonas'} | INICIO: ${context.planned_start_date || date}`;
+      // Same grid as the printed record: the batch (name + pre-printed ID) and the single bull in
+      // the header, then one female per row with the chute notes.
+      secondaryContextText = `LOTE EN SERVICIO: [ ${context.lote || '—'}${context.lote_id ? ` • ID ${context.lote_id}` : ''} ] | TORO ÚNICO: [ ${context.toro_caravana || '—'} ] | INICIO: ${context.planned_start_date || date}`;
       columns = [
         { label: '#', width: 45, align: 'center' },
-        { label: 'CARAVANA VIENTRE', width: 180, align: 'left' },
-        { label: 'CATEGORÍA', width: 130, align: 'left' },
-        { label: 'CC (1-5)', width: 80, align: 'center' },
-        { label: 'ESTADO SANITARIO', width: 120, align: 'center' },
-        { label: 'OBSERVACIONES DE MANGA', width: 185, align: 'left' },
+        { label: 'CARAVANA DEL VIENTRE', width: 255, align: 'left' },
+        { label: 'OBSERVACIONES', width: 440, align: 'left' },
       ];
-      formatRowCells = (r, idx) => [
-        String(idx + 1),
-        r.caravana || '',
-        r.category || 'Vaquillona',
-        r.bcs ? String(r.bcs) : '3.5',
-        'VACUNADO',
-        r.observations || '',
-      ];
+      formatRowCells = (r, idx) => [String(idx + 1), r.caravana || '', r.observations || ''];
       break;
 
     case 'DEST-01': {
@@ -180,22 +172,36 @@ export function generateSimulationSvg(preset: SimulationPreset, pageNumber: numb
 
     case 'REP-01':
       secondaryContextText = `RODEO DE VIENTRES | MÉTODO: Tacto Rectal & Ultrasonografía | LOTE: ${context.lote || 'Vientres Cabeza'}`;
+      if (context.service_order_code) {
+        secondaryContextText = `ORDEN: ${context.service_order_code} | ${secondaryContextText}`;
+      }
       columns = [
         { label: '#', width: 45, align: 'center' },
-        { label: 'CARAVANA VIENTRE', width: 150, align: 'left' },
-        { label: 'CATEGORÍA', width: 130, align: 'left' },
-        { label: 'DIAGNÓSTICO', width: 130, align: 'center' },
-        { label: 'ESTADIO GESTACIONAL', width: 140, align: 'center' },
+        { label: 'CARAVANA VIENTRE', width: 140, align: 'left' },
+        { label: 'CATEGORÍA', width: 100, align: 'left' },
+        { label: 'P / V', width: 110, align: 'center' },
+        { label: 'ESTADIO (OPC.)', width: 110, align: 'center' },
+        { label: 'MESES (OPC.)', width: 90, align: 'center' },
         { label: 'OBSERVACIONES', width: 145, align: 'left' },
       ];
-      formatRowCells = (r, idx) => [
-        String(idx + 1),
-        r.caravana || '',
-        r.category || 'Vaca de Cría',
-        r.diagnosis === 'PREGNANT' ? '[X] PREÑADA' : '[X] VACÍA',
-        r.gestational_stage || '-',
-        r.observations || '',
-      ];
+      formatRowCells = (r, idx) => {
+        // What the hand wrote: a crossed box, an empty pair of boxes (not checked) or a scrawl.
+        const mark = String(r.diagnosis ?? '').trim().toUpperCase();
+        const box =
+          mark === 'P' || mark === 'PREGNANT' ? '[X]P [ ]V'
+          : mark === 'V' || mark === 'EMPTY' ? '[ ]P [X]V'
+          : mark === '' ? '[ ]P [ ]V'
+          : mark;
+        return [
+          String(idx + 1),
+          r.caravana || '',
+          r.category || 'Vaca',
+          box,
+          r.gestational_stage || '',
+          r.gestation_months || '',
+          r.observations || '',
+        ];
+      };
       break;
 
     case 'PAR-01': {

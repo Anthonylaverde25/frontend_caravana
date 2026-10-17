@@ -23,9 +23,11 @@ export type WidgetDataStatus = 'LIVE' | 'STATIC_MOCK' | 'REQUIRES_NEW_DATA';
 
 export type BoardTemplateType = 'BLANK' | 'GENERAL' | 'REPRODUCTIVE' | 'WEIGHTS' | 'HEALTH' | 'PASTURE';
 
-/** Batch type codes as seeded in the tenant `batch_types` catalog. */
+/**
+ * Batch type codes as seeded in the tenant `batch_types` catalog. There is no service batch type:
+ * a service is an order over an operational Cría batch.
+ */
 export type BatchTypeCode =
-	| 'SERVICE'
 	| 'WEANING'
 	| 'GROWING_HEIFERS'
 	| 'GROWING_STEERS'

@@ -1,5 +1,6 @@
-import { Box, Button, Chip, Stack, Typography, useTheme } from '@mui/material';
+import { Box, Button, Chip, Stack, useTheme } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { useNavigate } from 'react-router';
 
 interface BatchDetailsToolbarProps {
   batch: any;
@@ -8,6 +9,8 @@ interface BatchDetailsToolbarProps {
   testerOpen: boolean;
   onToggleTester: () => void;
   onStartService?: () => void;
+  /** Opens the running service of the batch (drawer with bulls, exposure and closing). */
+  onOpenActiveService?: () => void;
 }
 
 const formatNumber = (value: number | null | undefined, digits = 1): string => {
@@ -30,16 +33,14 @@ export default function BatchDetailsToolbar({
   testerOpen,
   onToggleTester,
   onStartService,
+  onOpenActiveService,
 }: BatchDetailsToolbarProps) {
   const theme = useTheme();
+  const navigate = useNavigate();
 
-  const isCria = Boolean(
-    batch.activity_name?.toLowerCase().includes('cria') ||
-    batch.activity_name?.toLowerCase().includes('cría') ||
-    batch.activity_id === 1
-  );
-  const isServiceBatch = Boolean(batch.is_service_batch || batch.batch_type_code === 'SERVICE');
-  const isInService = Boolean(batch.is_in_service || batch.active_service_order);
+  // A Cría batch enters service itself: no separate service batch exists.
+  const isCria = (batch.activity_code ?? '').toUpperCase() === 'CRIA';
+  const activeService = batch.active_service_order ?? null;
 
   return (
     <Box
@@ -88,12 +89,14 @@ export default function BatchDetailsToolbar({
             variant="outlined"
           />
         )}
-        {isInService && (
+        {activeService && (
           <Chip
             icon={<FuseSvgIcon size={16} sx={{ color: '#ea580c !important' }}>heroicons-outline:fire</FuseSvgIcon>}
-            label={batch.active_service_order?.order_number ? `En Entore Activo (${batch.active_service_order.order_number})` : 'En Entore Activo'}
+            label={`${activeService.status === 'DRAFT' ? 'Servicio planificado' : 'En servicio'} · ${activeService.code}`}
             size="small"
+            onClick={onOpenActiveService}
             sx={{
+              cursor: onOpenActiveService ? 'pointer' : 'default',
               fontWeight: 800,
               px: 0.5,
               bgcolor: 'rgba(234, 88, 12, 0.1)',
@@ -108,7 +111,7 @@ export default function BatchDetailsToolbar({
 
       {/* Action buttons */}
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-        {onStartService && isCria && !isServiceBatch && !isInService && (
+        {onStartService && isCria && !activeService && (
           <Button
             variant="contained"
             size="small"
@@ -124,7 +127,19 @@ export default function BatchDetailsToolbar({
               '&:hover': { bgcolor: '#b45309' },
             }}
           >
-            Iniciar Entore
+            Iniciar Servicio
+          </Button>
+        )}
+
+        {isCria && !activeService && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<FuseSvgIcon size={18}>heroicons-outline:printer</FuseSvgIcon>}
+            onClick={() => navigate(`/work-templates/LSER-01?batchId=${batch.id}`)}
+            sx={{ fontWeight: 700, textTransform: 'none', borderRadius: '6px' }}
+          >
+            Acta de Servicio (LSER-01)
           </Button>
         )}
 

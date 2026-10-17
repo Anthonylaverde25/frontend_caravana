@@ -37,10 +37,8 @@ export const Mon01ConfigDrawer: React.FC<Mon01ConfigDrawerProps> = ({ open, onCl
 
   const { data: batches = [] } = useBatches(undefined, undefined, 'own');
 
-  // Filter service batches or cria batches
-  const availableBatches = useMemo(() => {
-    return batches.filter((b) => b.isService() || b.activity_name?.toUpperCase().includes('CRIA') || b.name.toUpperCase().includes('CRIA'));
-  }, [batches]);
+  // Mounts are recorded on Cría batches (the batch in service).
+  const availableBatches = useMemo(() => batches.filter((b) => b.isCria()), [batches]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,7 +85,7 @@ export const Mon01ConfigDrawer: React.FC<Mon01ConfigDrawerProps> = ({ open, onCl
               Configuración MON-01
             </Typography>
             <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500 }}>
-              Ajustes de lote de servicio, orden y pre-carga INTA
+              Ajustes del lote en servicio, orden y pre-carga INTA
             </Typography>
           </Box>
         </Stack>
@@ -102,14 +100,14 @@ export const Mon01ConfigDrawer: React.FC<Mon01ConfigDrawerProps> = ({ open, onCl
           {/* Section: Contexto del Servicio */}
           <Box>
             <Typography variant="caption" sx={{ fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 1.5, display: 'block' }}>
-              1. Lote de Servicio & Asignaciones
+              1. Lote en Servicio & Asignaciones
             </Typography>
 
             <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '8px' }}>
               <Stack spacing={2}>
                 <TextField
                   select
-                  label="Lote de Servicio (Destino)"
+                  label="Lote en Servicio"
                   value={batchId || ''}
                   size="small"
                   fullWidth

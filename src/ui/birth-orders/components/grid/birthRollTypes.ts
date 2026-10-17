@@ -12,6 +12,8 @@ export interface BirthRollFemale {
   sires: SireDTO[];
   /** Already reported past her due date without calving (OVERDUE line): the day of the N. */
   overdueReportedAt: string | null;
+  /** Registering outside her order: the open order that holds her, where her calving goes. */
+  openOrderCode?: string | null;
 }
 
 /** What the screen declares for one female. Empty strings are "not said". */

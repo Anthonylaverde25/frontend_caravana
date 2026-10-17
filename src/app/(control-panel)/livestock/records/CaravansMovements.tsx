@@ -33,11 +33,11 @@ function CaravansMovements() {
 				<Button
 					variant="text"
 					component={Link}
-					to="/caravans"
+					to="/herd"
 					startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-left</FuseSvgIcon>}
 					sx={{ color: 'primary.main', fontWeight: 600, textTransform: 'none' }}
 				>
-					Volver a Caravanas
+					Volver a Hacienda Propia
 				</Button>
 			}
 		>

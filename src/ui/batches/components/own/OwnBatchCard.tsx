@@ -19,6 +19,7 @@ interface OwnBatchCardProps {
   onViewDetails: (batch: Batch) => void;
   onAddCaravans: (batch: Batch) => void;
   onStartService: (batch: Batch) => void;
+  onOpenService?: (serviceOrderId: number) => void;
 }
 
 export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
@@ -26,18 +27,12 @@ export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
   onViewDetails,
   onAddCaravans,
   onStartService,
+  onOpenService,
 }) => {
   const navigate = useNavigate();
 
-  const isCria = Boolean(
-    (batch.activity_name?.toLowerCase().includes('cria') ||
-      batch.activity_name?.toLowerCase().includes('cría') ||
-      batch.activity_id === 1) &&
-      !batch.is_service_batch &&
-      batch.batch_type_code !== 'SERVICE' &&
-      !batch.is_in_service &&
-      !batch.active_service_order
-  );
+  // Only a Cría batch without a running service can start one.
+  const isCria = (batch.activity_code ?? '').toUpperCase() === 'CRIA' && !batch.active_service_order;
 
   return (
     <Paper
@@ -128,15 +123,13 @@ export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
               />
             )}
 
-            {Boolean(batch.is_in_service || batch.active_service_order) && (
+            {batch.active_service_order && (
               <Tooltip
-                title={`Lote en Servicio activo. Orden: ${
-                  batch.active_service_order?.order_number ?? 'S/N'
-                }${
-                  batch.active_service_order?.service_batch_name
-                    ? ` (Lote servicio: ${batch.active_service_order.service_batch_name})`
-                    : ''
-                }`}
+                title={
+                  onOpenService
+                    ? `Servicio ${batch.active_service_order.code} sobre este lote. Clic para ver detalles y gestionar servicio`
+                    : `Servicio ${batch.active_service_order.code} sobre este lote`
+                }
               >
                 <Chip
                   icon={
@@ -144,12 +137,9 @@ export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
                       heroicons-outline:fire
                     </FuseSvgIcon>
                   }
-                  label={
-                    batch.active_service_order?.order_number
-                      ? `En Entore (${batch.active_service_order.order_number})`
-                      : 'En Entore'
-                  }
+                  label={`En servicio (${batch.active_service_order.code})`}
                   size="small"
+                  onClick={onOpenService ? () => onOpenService(batch.active_service_order!.id) : undefined}
                   sx={{
                     height: 20,
                     fontSize: '0.65rem',
@@ -158,6 +148,12 @@ export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
                     color: '#ea580c',
                     border: '1px solid',
                     borderColor: alpha('#ea580c', 0.35),
+                    cursor: onOpenService ? 'pointer' : 'default',
+                    '&:hover': onOpenService
+                      ? {
+                          bgcolor: alpha('#ea580c', 0.22),
+                        }
+                      : undefined,
                   }}
                 />
               </Tooltip>
@@ -167,6 +163,24 @@ export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
       </Stack>
 
       <Stack direction="row" spacing={1} alignItems="center">
+        {batch.active_service_order && onOpenService && (
+          <Tooltip title={`Ver Servicio en Curso (${batch.active_service_order.code})`}>
+            <IconButton
+              size="small"
+              onClick={() => onOpenService(batch.active_service_order!.id)}
+              sx={{
+                color: '#ea580c',
+                bgcolor: alpha('#ea580c', 0.1),
+                border: '1px solid',
+                borderColor: alpha('#ea580c', 0.35),
+                '&:hover': { bgcolor: alpha('#ea580c', 0.22) },
+              }}
+            >
+              <FuseSvgIcon size={20}>heroicons-outline:fire</FuseSvgIcon>
+            </IconButton>
+          </Tooltip>
+        )}
+
         {isCria && (
           <Tooltip title="Iniciar Servicio de Entore (Vientres + Torada)">
             <IconButton

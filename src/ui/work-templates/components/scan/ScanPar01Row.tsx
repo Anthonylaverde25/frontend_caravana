@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Checkbox, IconButton, MenuItem, TableCell, TableRow, TextField, Tooltip, Typography, alpha } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import BirthSireCell from '@/ui/birth-orders/components/grid/BirthSireCell';
-import { useGridCellStyles } from '@/ui/birth-orders/components/grid/useGridCellStyles';
+import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import { dueLabel } from '@/ui/birth-orders/components/birthOrderFormat';
 import type { BirthOrderAnimal } from '@/features/birth-orders/types';
 import type { Par01Row } from '../../hooks/usePar01Pages';

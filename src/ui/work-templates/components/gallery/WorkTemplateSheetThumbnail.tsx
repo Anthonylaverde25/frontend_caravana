@@ -28,7 +28,7 @@ const DOCUMENT_DEFINITIONS: Record<string, TemplateDocumentDefinition> = {
 		footerNotes: 'Umbral CE mínimo: 28.0 cm • Diagnóstico ETS por duplicado'
 	},
 	'LSER-01': {
-		officialTitle: 'CONFORMACIÓN DE LOTE DE SERVICIO — TORO ÚNICO',
+		officialTitle: 'ACTA DE INICIO DE SERVICIO — TORO ÚNICO',
 		headerBoxes: [
 			{ label: 'TORO PADRILLO ASIGNADO', value: 'TR-104 (Angus Negro)' },
 			{ label: 'LOTE DE ENTORE', value: 'Potrero 4 — Vaquillonas' },

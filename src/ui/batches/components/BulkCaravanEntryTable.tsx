@@ -123,15 +123,15 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
           batch_id: batch.id,
           farm_id: batch.getFarm().id,
           is_empty: isFemale ? (c.is_empty === 'true' || c.is_empty === true) : null,
-          gestation_stage: isPregnant ? c.gestation_stage : null,
-          gestation_months: isPregnant ? c.gestation_months : null
+          gestation_stage: isPregnant && c.gestation_stage ? c.gestation_stage : null,
+          gestation_months: isPregnant && typeof c.gestation_months === 'number' && !Number.isNaN(c.gestation_months) ? c.gestation_months : null
         };
       });
 
       await bulkCreate(payload);
       
       enqueueSnackbar(`${data.caravans.length} caravanas registradas con éxito`, { variant: 'success' });
-      navigate('/caravans');
+      navigate(`/herd/batches/${batch.id}`);
     } catch (error) {
       enqueueSnackbar('Error al registrar las caravanas', { variant: 'error' });
     }
@@ -312,19 +312,13 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
                           value={watchedCaravans?.[index]?.gestation_stage || ''}
                           onChange={(e) => {
                             const val = e.target.value;
+                            // A declared stage never fills the months: they stay as declared (or empty).
                             setValue(`caravans.${index}.gestation_stage`, val, { shouldValidate: true });
-                            if (val === 'tail') {
-                              setValue(`caravans.${index}.gestation_months`, 1.0, { shouldValidate: true });
-                            } else if (val === 'body') {
-                              setValue(`caravans.${index}.gestation_months`, 2.0, { shouldValidate: true });
-                            } else if (val === 'head') {
-                              setValue(`caravans.${index}.gestation_months`, 3.0, { shouldValidate: true });
-                            }
                           }}
                           error={!!errors.caravans?.[index]?.gestation_stage}
                           sx={inputSx}
                         >
-                          <MenuItem value="" disabled><em>-- Seleccionar --</em></MenuItem>
+                          <MenuItem value=""><em>Sin estadio (opcional)</em></MenuItem>
                           <MenuItem value="head">Cabeza (Head)</MenuItem>
                           <MenuItem value="body">Cuerpo (Body)</MenuItem>
                           <MenuItem value="tail">Cola (Tail)</MenuItem>
@@ -348,7 +342,7 @@ function BulkCaravanEntryTable({ batch }: { batch: Batch }) {
                           variant="outlined"
                           type="number"
                           inputProps={{ step: '0.1', min: '0', max: '12' }}
-                          placeholder="0.0"
+                          placeholder="Opcional"
                           value={watchedCaravans?.[index]?.gestation_months !== undefined && watchedCaravans?.[index]?.gestation_months !== null ? watchedCaravans?.[index]?.gestation_months : ''}
                           onChange={(e) => {
                             const valStr = e.target.value;

@@ -16,36 +16,22 @@ export const caravanSchema = z.object({
   gestation_stage: z.string().optional().nullable(),
   gestation_months: z.number().min(0).max(12).optional().nullable(),
 }).superRefine((data, ctx) => {
+  // Stage and months are optional: many producers only declare "pregnant". Only what was
+  // declared is validated.
   if (data.sex === 'H' && (data.is_empty === false || data.is_empty === 'false')) {
-    const hasStage = !!data.gestation_stage && ['head', 'body', 'tail'].includes(data.gestation_stage);
-    const hasMonths = typeof data.gestation_months === 'number' && data.gestation_months >= 0 && data.gestation_months <= 12;
-
-    if (!hasStage && !hasMonths) {
+    if (data.gestation_stage && !['head', 'body', 'tail'].includes(data.gestation_stage)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'El estado de preñez o los meses de gestación son requeridos',
+        message: 'El estadio seleccionado no es válido',
         path: ['gestation_stage'],
       });
+    }
+    if (data.gestation_months !== undefined && data.gestation_months !== null && !Number.isNaN(data.gestation_months) && (data.gestation_months < 0 || data.gestation_months > 12)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'El estado de preñez o los meses de gestación son requeridos',
+        message: 'Los meses de gestación deben estar entre 0 y 12',
         path: ['gestation_months'],
       });
-    } else {
-      if (data.gestation_stage && !['head', 'body', 'tail'].includes(data.gestation_stage)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'El estado de preñez seleccionado no es válido',
-          path: ['gestation_stage'],
-        });
-      }
-      if (data.gestation_months !== undefined && data.gestation_months !== null && (data.gestation_months < 0 || data.gestation_months > 12)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Los meses de gestación deben estar entre 0 y 12',
-          path: ['gestation_months'],
-        });
-      }
     }
   }
 });

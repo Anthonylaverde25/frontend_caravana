@@ -22,13 +22,13 @@ export const ConceptualDifferenceCard: React.FC = () => {
         </FuseSvgIcon>
         <Box sx={{ flex: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: isDark ? '#38bdf8' : '#0369a1', mb: 0.75 }}>
-            1. Lote de Servicio (Físico) vs. Orden de Entore (Operativo)
+            1. Lote en Servicio (Físico) y Orden de Servicio (Operativa)
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.primary', fontSize: '0.84rem', lineHeight: 1.55, mb: 1 }}>
-            • <strong>Lote de Servicio (Batch SERVICE):</strong> Es la agrupación viva y física de vientres homogéneos y toros conviviendo en un potrero determinado. <em>Es una entidad transitoria/efímera</em>: se conforma para el servicio y se disuelve tras el tacto rectal.
+            • <strong>Lote en servicio:</strong> Es el lote de Cría de siempre, con sus vientres en su potrero. <em>No se crea otro lote</em>: el lote entra en servicio cuando los toros se suman a sus vientres, y conserva su historia campaña tras campaña.
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.primary', fontSize: '0.84rem', lineHeight: 1.55 }}>
-            • <strong>Orden de Entore (ServiceOrder):</strong> Es el protocolo técnico y operativo (Monta Natural, IATF, IATF + Repaso) que define el calendario de manga, inseminación, veterinario a cargo y auditoría reproductiva.
+            • <strong>Orden de servicio:</strong> Es lo que el sistema llama "lote de servicio": agrupa las políticas (monta natural, controlada o IA, relación toro/vaca, ventana), la ventana de exposición de cada vientre (quién entró o salió durante el servicio) y la trazabilidad hasta el tacto.
           </Typography>
         </Box>
       </Stack>

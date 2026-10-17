@@ -20,6 +20,15 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:squares-2x2',
 		url: '/dashboard'
 	},
+	{
+		// The Virtual Assistant at full width: charts and tables over the herd's records (read-only).
+		id: 'assistant-workspace',
+		title: 'Análisis XIMON',
+		subtitle: 'Gráficos y consultas con IA',
+		type: 'item',
+		icon: 'heroicons-outline:presentation-chart-line',
+		url: '/assistant'
+	},
 
 	// ─── GESTIÓN GANADERA ────────────────────────────────────────────────────
 	{
@@ -30,12 +39,13 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:building-storefront',
 		children: [
 			{
-				id: 'livestock.records',
-				title: 'Caravanas',
-				subtitle: 'Stock e Historial',
+				// Own batches and their caravans in one view: replaced "Caravanas" (/caravans) and "Lotes Propios" (/batches/own).
+				id: 'livestock.herd',
+				title: 'Hacienda Propia',
+				subtitle: 'Lotes y Caravanas',
 				type: 'item',
-				icon: 'heroicons-outline:square-3-stack-3d',
-				url: '/caravans',
+				icon: 'heroicons-outline:rectangle-stack',
+				url: '/herd',
 				end: true
 			},
 			// {
@@ -62,21 +72,17 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'collapse',
 				icon: 'heroicons-outline:view-columns',
 				children: [
-					{
-						id: 'gestion.batches.own',
-						title: 'Lotes Propios',
-						type: 'item',
-						icon: 'heroicons-outline:home',
-						url: '/batches/own'
-					},
-					{
-						id: 'gestion.batches.external',
-						title: 'Lotes Externos',
-						subtitle: 'De Proveedores',
-						type: 'item',
-						icon: 'heroicons-outline:truck',
-						url: '/batches/external'
-					},
+					// NOTE: Under evaluation for complete deprecation and removal.
+					// Purchases and external incoming livestock are canonically managed in /entry-orders,
+					// and allocation to ranch herds is performed via /batches/external-assignment.
+					// {
+					// 	id: 'gestion.batches.external',
+					// 	title: 'Lotes Externos',
+					// 	subtitle: 'De Proveedores',
+					// 	type: 'item',
+					// 	icon: 'heroicons-outline:truck',
+					// 	url: '/batches/external'
+					// },
 					{
 						id: 'gestion.batches.entry-orders',
 						title: 'Órdenes de Ingreso',
@@ -130,7 +136,7 @@ const navigationConfig: FuseNavItemType[] = [
 				title: 'Movimientos',
 				type: 'item',
 				icon: 'heroicons-outline:arrow-path',
-				url: '/caravans/movements'
+				url: '/herd/movements'
 			},
 			{
 				id: 'gestion.activities',
@@ -157,13 +163,6 @@ const navigationConfig: FuseNavItemType[] = [
 		type: 'group',
 		icon: 'heroicons-outline:heart',
 		children: [
-			{
-				id: 'gestation.dashboard',
-				title: 'Panel Reproductivo',
-				type: 'item',
-				icon: 'heroicons-outline:presentation-chart-line',
-				url: '/gestation'
-			},
 			// Service planning collapse
 			{
 				id: 'gestation.planning-submenu',
@@ -181,14 +180,6 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/gestation/pre-service'
 					},
 					{
-						id: 'gestation.service-batches',
-						title: 'Lotes de Servicio',
-						subtitle: 'Entore y Categorías',
-						type: 'item',
-						icon: 'heroicons-outline:rectangle-group',
-						url: '/gestation/service-batches'
-					},
-					{
 						id: 'gestation.bull-rotation',
 						title: 'Rotación de Toros',
 						type: 'item',
@@ -197,7 +188,8 @@ const navigationConfig: FuseNavItemType[] = [
 					},
 					{
 						id: 'gestation.service-orders',
-						title: 'Órdenes de Servicio',
+						title: 'Órdenes de servicio',
+						subtitle: 'Registro por lote',
 						type: 'item',
 						icon: 'heroicons-outline:document-text',
 						url: '/gestation/service-orders'
@@ -229,7 +221,8 @@ const navigationConfig: FuseNavItemType[] = [
 				children: [
 					{
 						id: 'gestation.tacto',
-						title: 'Tacto / Ecografías',
+						title: 'Bandeja de tacto',
+						subtitle: 'Órdenes abiertas por diagnosticar',
 						type: 'item',
 						icon: 'heroicons-outline:clipboard-document-check',
 						url: '/gestation/tacto'

@@ -1,18 +1,13 @@
-export interface ServiceBatchDetailDTO {
-  id?: number;
-  female_category_id: number;
-  female_category_name?: string;
-  female_category_code?: string;
-  female_subcategory_id?: number | null;
-  female_subcategory_name?: string;
-  female_subcategory_code?: string;
-  male_category_id: number;
-  male_category_name?: string;
-  male_category_code?: string;
-  target_bull_ratio?: number;
+/**
+ * The service running on a batch (DRAFT or APPROVED). A service is an order over the batch, not a
+ * batch of its own: the batch keeps its animals and the order keeps the policies and the trace.
+ */
+export interface ActiveServiceOrderSummary {
+  id: number;
+  code: string;
+  status: 'DRAFT' | 'APPROVED';
   planned_start_date?: string | null;
-  planned_end_date?: string | null;
-  notes?: string | null;
+  is_controlled_service: boolean;
 }
 
 /** The entry order an external batch was born from (a purchase waiting for, or fed by, its DTEs). */
@@ -56,6 +51,7 @@ export interface BatchDTO {
   provider_name?: string;
   activity_id?: number;
   activity_name?: string;
+  activity_code?: string;
   batch_type_id?: number;
   batch_type_name?: string;
   batch_type_code?: string;
@@ -71,24 +67,18 @@ export interface BatchDTO {
   pending_identification_count?: number;
   /** Caravans plus head pending identification: what the stock views count. */
   head_count?: number | null;
+  /** Measured mass: the sum over the animals with a current weight (additive, unlike the average). */
+  total_weight?: number | null;
+  /** Head with a current weight: the set the average is computed over. */
+  weighed_count?: number | null;
   incoming_entry_orders?: BatchIncomingEntryOrder[];
   observaciones?: string;
   is_active: boolean;
   is_system?: boolean;
-  is_service_batch?: boolean;
   is_weaning_batch?: boolean;
+  /** An APPROVED service runs on the batch (the bulls are with the females). */
   is_in_service?: boolean;
-  active_service_order?: {
-    id: number;
-    order_number: string;
-    status: string;
-    service_batch_id: number;
-    service_batch_name?: string;
-    planned_start_date?: string;
-    planned_end_date?: string;
-  } | null;
-  service_order_origin_batch_id?: number | null;
-  service_detail?: ServiceBatchDetailDTO | null;
+  active_service_order?: ActiveServiceOrderSummary | null;
   entry_order?: BatchEntryOrderSummary | null;
   created_at?: string;
 }
@@ -112,22 +102,6 @@ export interface CreateBatchRequest {
   observaciones?: string;
 }
 
-export interface CreateServiceBatchRequest {
-  name: string;
-  female_category_id: number;
-  female_subcategory_id?: number | null;
-  male_category_id: number;
-  female_caravan_ids?: number[];
-  male_caravan_ids?: number[];
-  farm_id?: number | null;
-  target_bull_ratio?: number;
-  planned_start_date?: string | null;
-  planned_end_date?: string | null;
-  notes?: string | null;
-  observaciones?: string | null;
-  auto_create_service_order?: boolean;
-}
-
 /**
  * Rich Entity for Batch (Lote)
  */
@@ -142,6 +116,7 @@ export class Batch {
     public readonly provider_name?: string,
     public readonly activity_id?: number,
     public readonly activity_name?: string,
+    public readonly activity_code?: string,
     public readonly batch_type_id?: number,
     public readonly batch_type_name?: string,
     public readonly batch_type_code?: string,
@@ -155,24 +130,15 @@ export class Batch {
     public readonly caravans_count?: number,
     public readonly observaciones?: string,
     public readonly is_system: boolean = false,
-    public readonly is_service_batch: boolean = false,
     public readonly is_weaning_batch: boolean = false,
     public readonly is_in_service: boolean = false,
-    public readonly active_service_order?: {
-      id: number;
-      order_number: string;
-      status: string;
-      service_batch_id: number;
-      service_batch_name?: string;
-      planned_start_date?: string;
-      planned_end_date?: string;
-    } | null,
-    public readonly service_detail?: ServiceBatchDetailDTO | null,
+    public readonly active_service_order: ActiveServiceOrderSummary | null = null,
     public readonly created_at?: string,
     public readonly entry_order: BatchEntryOrderSummary | null = null,
-    public readonly service_order_origin_batch_id?: number | null,
     public readonly pending_identification_count = 0,
-    public readonly incoming_entry_orders: BatchIncomingEntryOrder[] = []
+    public readonly incoming_entry_orders: BatchIncomingEntryOrder[] = [],
+    public readonly total_weight: number | null = null,
+    public readonly weighed_count: number | null = null
   ) {}
 
   public static create(dto: BatchDTO): Batch {
@@ -190,6 +156,7 @@ export class Batch {
       dto.provider_name,
       dto.activity_id,
       dto.activity_name,
+      dto.activity_code,
       dto.batch_type_id,
       dto.batch_type_name,
       dto.batch_type_code,
@@ -203,16 +170,15 @@ export class Batch {
       dto.caravans_count,
       dto.observaciones,
       dto.is_system ?? false,
-      dto.is_service_batch ?? dto.batch_type_code === 'SERVICE',
       dto.is_weaning_batch ?? (dto.batch_type_code === 'WEANING' || (dto.name ? dto.name.toLowerCase().includes('destete') : false)),
       dto.is_in_service ?? false,
       dto.active_service_order ?? null,
-      dto.service_detail ?? null,
       dto.created_at,
       dto.entry_order ?? null,
-      dto.service_order_origin_batch_id ?? null,
       dto.pending_identification_count ?? 0,
-      dto.incoming_entry_orders ?? []
+      dto.incoming_entry_orders ?? [],
+      dto.total_weight ?? null,
+      dto.weighed_count ?? null
     );
   }
 
@@ -233,12 +199,14 @@ export class Batch {
     return this.is_active;
   }
 
-  public isService(): boolean {
-    return this.is_service_batch || this.batch_type_code === 'SERVICE';
+  /** A Cría batch is the only kind that can enter service. */
+  public isCria(): boolean {
+    return (this.activity_code ?? '').toUpperCase() === 'CRIA';
   }
 
-  public isOperational(): boolean {
-    return !this.isService();
+  /** A service (DRAFT or APPROVED) is open on the batch, so another one cannot start. */
+  public hasActiveService(): boolean {
+    return this.active_service_order != null;
   }
 
   public isWeaning(): boolean {

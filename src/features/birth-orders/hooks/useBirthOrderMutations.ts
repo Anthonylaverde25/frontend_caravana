@@ -60,7 +60,10 @@ export function useUpdateBirthOrderDraft() {
   });
 }
 
-/** "Registrar partos": the calvings already happened; the order is born executed. Row errors stay on the grid. */
+/**
+ * "Registrar partos": the calvings already happened. The free females go into a new order, born
+ * executed; the ones an open order holds are registered in it. Row errors stay on the grid.
+ */
 export function useRegisterBirths() {
   const invalidate = useInvalidateOrders();
 
@@ -69,8 +72,10 @@ export function useRegisterBirths() {
       (await axiosInstance.post<RegisterBirthsResult>('/birth-orders/register', payload)).data,
     onSuccess: (result) => {
       invalidate(true);
-      toast.success(`${result.order.code}: ${result.message}`);
-      toastWarnings(result.data);
+      result.orders.forEach((order) => {
+        toast.success(`${order.code}${order.created ? '' : ' (orden existente)'}: ${order.message}`);
+        order.warnings.slice(0, 4).forEach((warning) => toast.warning(warning.message, { duration: 8000 }));
+      });
     },
     onError: (error) => toast.error(birthOrderErrorMessage(error, 'No se pudieron registrar los partos'))
   });

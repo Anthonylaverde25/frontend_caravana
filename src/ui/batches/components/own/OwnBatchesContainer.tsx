@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { Box, Stack, CircularProgress, Typography, useTheme } from '@mui/material';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useActivities } from '@/features/activities/hooks/useActivities';
 import { useBatchTypes } from '@/features/batch-types/hooks/useBatchTypes';
 import { useFarms } from '@/features/suppliers/hooks/useFarms';
 import { useCompany } from '@/contexts/CompanyContext';
+import { useServiceOrders } from '@/features/gestation/hooks/useServiceOrders';
+import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { Batch } from '@/core/batches/domain/entities/Batch';
 import { BatchFiltersBar } from '../filters/BatchFiltersBar';
 import { useBatchFilters } from '../filters/useBatchFilters';
@@ -13,6 +16,7 @@ import { OwnBatchesEmptyState } from './OwnBatchesEmptyState';
 import AddCaravansDialog from '../AddCaravansDialog';
 import { BatchDetailsDialog } from '../BatchDetailsDialog';
 import StartBatchServiceDialog from '../dialogs/StartBatchServiceDialog';
+import ServiceOrderDetailDrawer from '@/ui/gestation/components/service-order-drawer/ServiceOrderDetailDrawer';
 
 interface OwnBatchesContainerProps {
   onCreateBatch?: () => void;
@@ -20,14 +24,16 @@ interface OwnBatchesContainerProps {
 
 export const OwnBatchesContainer: React.FC<OwnBatchesContainerProps> = ({ onCreateBatch }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isDark = theme.palette.mode === 'dark';
   const { activeCompanyId } = useCompany();
 
-  // Dialog States
+  // Dialog & Drawer States
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [isAddCaravansOpen, setIsAddCaravansOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [startServiceBatch, setStartServiceBatch] = useState<Batch | null>(null);
+  const [openServiceOrderId, setOpenServiceOrderId] = useState<number | null>(null);
 
   // Queries
   const { data: batches, isLoading: isLoadingBatches, isError: isErrorBatches } = useBatches(
@@ -38,6 +44,8 @@ export const OwnBatchesContainer: React.FC<OwnBatchesContainerProps> = ({ onCrea
   const { data: activities } = useActivities(activeCompanyId);
   const { data: batchTypes } = useBatchTypes();
   const { data: farms } = useFarms();
+  const { data: serviceOrders = [] } = useServiceOrders();
+  const { data: allCaravans = [] } = useCaravans(openServiceOrderId ? activeCompanyId : null, 'own');
 
   const safeBatches = useMemo(() => (Array.isArray(batches) ? batches : []), [batches]);
   const safeActivities = useMemo(() => (Array.isArray(activities) ? activities : []), [activities]);
@@ -71,6 +79,11 @@ export const OwnBatchesContainer: React.FC<OwnBatchesContainerProps> = ({ onCrea
     batchTypes: safeBatchTypes,
     farms: safeFarms,
   });
+
+  const openServiceOrder = useMemo(
+    () => serviceOrders.find((o) => o.id === openServiceOrderId) ?? null,
+    [serviceOrders, openServiceOrderId]
+  );
 
   const handleViewDetails = (batch: Batch) => {
     setSelectedBatch(batch);
@@ -139,6 +152,7 @@ export const OwnBatchesContainer: React.FC<OwnBatchesContainerProps> = ({ onCrea
                 onViewDetails={handleViewDetails}
                 onAddCaravans={handleAddCaravans}
                 onStartService={handleStartService}
+                onOpenService={(serviceOrderId) => setOpenServiceOrderId(serviceOrderId)}
               />
             ))}
           </Stack>
@@ -172,6 +186,16 @@ export const OwnBatchesContainer: React.FC<OwnBatchesContainerProps> = ({ onCrea
         open={Boolean(startServiceBatch)}
         onClose={() => setStartServiceBatch(null)}
         batch={startServiceBatch}
+      />
+
+      {/* Service Order Detail Drawer */}
+      <ServiceOrderDetailDrawer
+        open={openServiceOrder !== null}
+        onClose={() => setOpenServiceOrderId(null)}
+        order={openServiceOrder}
+        caravans={allCaravans}
+        batches={ownBatches}
+        onNavigateToServiceOrders={() => navigate('/gestation/service-orders')}
       />
     </Box>
   );

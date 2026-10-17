@@ -121,7 +121,7 @@ export function ServiceBatchesWidget({ instance }: WidgetRenderProps) {
 
 	return (
 		<WidgetCard
-			title={instance.title ?? 'Lotes de servicio · campaña 2025/26'}
+			title={instance.title ?? 'Servicios por lote · campaña 2025/26'}
 			subtitle={`La línea negra marca el promedio del establecimiento con tacto (${formatNumber(AVERAGE, 1)} %).`}
 			flush
 		>

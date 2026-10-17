@@ -10,6 +10,7 @@ import BirthOrdersTable from '../components/BirthOrdersTable';
 import BirthOrderDetailDrawer from '../components/BirthOrderDetailDrawer';
 import BirthOrderIssueDialog from '../components/BirthOrderIssueDialog';
 import BirthOrderStartDialog from '../components/start/BirthOrderStartDialog';
+import RegisterBirthsDialog from '../components/register/RegisterBirthsDialog';
 import { emptyBirthHeader, type BirthFormMode, type BirthOrderStart } from '../components/start/birthOrderStart';
 import { periodOf, sourcesOf } from '../components/birthOrderFormat';
 
@@ -28,8 +29,8 @@ const normalize = (value: string): string =>
  * ("Registrar partos").
  *
  * `?orderId=` opens an order directly, which is how the scan links here. On `/new` and `/register`
- * (`starting`) the list sits under the full-screen dialog that starts one; `?batchId=` preselects
- * the pregnant females of a batch (Monitoreo Gestacional).
+ * (`starting`) the list sits under the full-screen dialog: a new order preselects the pregnant
+ * females of `?batchId=`; a registration is scoped to that batch, or covers every batch without it.
  */
 export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starting }) => {
   const navigate = useNavigate();
@@ -40,10 +41,10 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
   const [search, setSearch] = useState('');
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [toIssue, setToIssue] = useState<BirthOrderSummary | null>(null);
-  const [isStarting, setIsStarting] = useState(Boolean(starting));
+  const [isStarting, setIsStarting] = useState(starting === 'order');
 
   useEffect(() => {
-    if (starting) setIsStarting(true);
+    if (starting === 'order') setIsStarting(true);
   }, [starting]);
 
   const openedId = Number(searchParams.get('orderId')) || null;
@@ -182,12 +183,19 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
       <BirthOrderDetailDrawer orderId={openedId} onClose={() => setOpened(null)} />
       <BirthOrderIssueDialog order={toIssue} onClose={() => setToIssue(null)} />
       <BirthOrderStartDialog
-        open={Boolean(starting) && isStarting}
-        mode={starting ?? 'order'}
+        open={starting === 'order' && isStarting}
         initial={initial}
         onClose={() => setIsStarting(false)}
         onExited={() => navigate('/birth-orders')}
       />
+      {starting === 'register' && (
+        <RegisterBirthsDialog
+          key={batchId ?? 'all'}
+          batchId={batchId}
+          onClose={() => navigate('/birth-orders')}
+          onDone={(orderId) => navigate(`/birth-orders?orderId=${orderId}`)}
+        />
+      )}
     </ViewLayout>
   );
 };

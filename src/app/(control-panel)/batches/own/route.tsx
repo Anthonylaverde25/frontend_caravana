@@ -1,14 +1,17 @@
-import { lazy } from 'react';
+import { Navigate } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const BatchesView = lazy(() => import('src/ui/batches/views/BatchesView'));
-
 /**
- * The Own Batches page route.
+ * Own batches were replaced by /herd (Hacienda Propia). Kept as a redirect for old links.
  */
 const route: FuseRouteItemType = {
-  path: 'batches/own',
-  element: <BatchesView />
+	path: 'batches/own',
+	element: (
+		<Navigate
+			to="/herd"
+			replace
+		/>
+	)
 };
 
 export default route;

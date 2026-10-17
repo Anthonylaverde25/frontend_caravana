@@ -311,10 +311,22 @@ export interface BirthResult {
   birth_order: BirthOrderExecutionSummary;
 }
 
+/** One order a registration touched: the new one, or an open one that held some of the females. */
+export interface RegisteredBirthOrder {
+  id: number;
+  code: string;
+  status: string;
+  created: boolean;
+  message: string;
+  warnings: BirthWarning[];
+}
+
+/** `order` and `data` are the first order touched (the new one, when there is one); `orders`, every one. */
 export interface RegisterBirthsResult {
   message: string;
   order: BirthOrder;
   data: BirthResult;
+  orders: RegisteredBirthOrder[];
 }
 
 /** One row problem of a PAR-01 422: the cell it points at, when it points at one. */

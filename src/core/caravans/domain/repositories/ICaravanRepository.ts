@@ -1,4 +1,6 @@
+import { CaravanWeightRecord, RecordCaravanWeightPayload } from '@/core/weighing/domain/entities/Weighing';
 import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../entities/Caravan';
+import { CaravanSummaryPage, CaravanSummaryQuery } from '../entities/CaravanSummary';
 
 /**
  * ICaravanRepository
@@ -12,7 +14,7 @@ export interface ICaravanRepository {
   findById(id: number): Promise<Caravan>;
 
   /** Retrieves paginated lightweight caravan summary for fast inventory display. */
-  findSummary(params: any): Promise<any>;
+  findSummary(params: CaravanSummaryQuery): Promise<CaravanSummaryPage>;
 
 
   /**
@@ -35,10 +37,10 @@ export interface ICaravanRepository {
   delete(id: number): Promise<void>;
 
   /** Retrieves the weight history for a caravan. */
-  getWeights(id: number): Promise<any[]>;
+  getWeights(id: number): Promise<CaravanWeightRecord[]>;
 
   /** Records a new weight for a caravan. */
-  recordWeight(id: number, data: { weight: number; weighing_date: string; notes?: string }): Promise<void>;
+  recordWeight(id: number, data: RecordCaravanWeightPayload): Promise<void>;
 
   /** Retrieves the 3G pedigree tree and inbreeding analysis for a caravan. */
   getPedigree(id: number): Promise<any>;

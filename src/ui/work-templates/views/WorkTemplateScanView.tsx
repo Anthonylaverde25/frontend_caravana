@@ -233,7 +233,7 @@ export const WorkTemplateScanView: React.FC = () => {
     urlTemplateCode === "TOR-01"
       ? "Revisación Andrológica de Toros"
       : urlTemplateCode === "LSER-01"
-        ? "Conformación de Lote de Servicio — Toro Único"
+        ? "Acta de Inicio de Servicio — Toro Único"
         : "Ingreso de Compra Directa"
   );
 
@@ -644,8 +644,8 @@ export const WorkTemplateScanView: React.FC = () => {
     }
 
     if (templateCode === "LSER-01") {
-      if (!lser01Metadata.lote.trim()) {
-        errors.push("Nombre del lote de servicio requerido");
+      if (!lser01Metadata.lote_id) {
+        errors.push("Elegí el lote de Cría que entra en servicio");
       }
       if (!lser01Metadata.toro_caravana.trim()) {
         errors.push("Caravana del toro requerida");
@@ -1054,7 +1054,7 @@ export const WorkTemplateScanView: React.FC = () => {
           (detectedCode === "TOR-01"
             ? "Revisación Andrológica de Toros"
             : detectedCode === "LSER-01"
-              ? "Conformación de Lote de Servicio — Toro Único"
+              ? "Acta de Inicio de Servicio — Toro Único"
               : "Ingreso de Compra Directa"),
       );
 
@@ -1087,6 +1087,8 @@ export const WorkTemplateScanView: React.FC = () => {
       } else if (detectedCode === "LSER-01") {
         lser01.clearRepair();
         setLser01Metadata({
+          // The batch ID is pre-printed next to its name; the name resolves it when the ID is unreadable.
+          lote_id: context.lote_id ? Number(context.lote_id) || null : null,
           lote: context.lote || "",
           toro_caravana: context.toro_caravana || "",
           planned_start_date: normalizeDateForInput(context.planned_start_date),
@@ -1651,7 +1653,7 @@ export const WorkTemplateScanView: React.FC = () => {
             <MenuItem value="ING-02">ING-02 • Orden de Ingreso Externo</MenuItem>
             <MenuItem value="ING-03">ING-03 • Recepción de DTE (anexo de ING-02)</MenuItem>
             <MenuItem value="TOR-01">TOR-01 • Revisación Andrológica & Manga</MenuItem>
-            <MenuItem value="LSER-01">LSER-01 • Conformación de Lote de Servicio</MenuItem>
+            <MenuItem value="LSER-01">LSER-01 • Acta de Inicio de Servicio</MenuItem>
             <MenuItem value="DEST-01">DEST-01 • Destete y Lote de Destete</MenuItem>
             <MenuItem value="CACT-01">CACT-01 • Cambio de Actividad</MenuItem>
             <MenuItem value="REP-01">REP-01 • Tacto & Ecografía</MenuItem>

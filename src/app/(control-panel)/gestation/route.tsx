@@ -1,14 +1,13 @@
-import { lazy } from 'react';
+import { Navigate } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const GestationDashboardView = lazy(() => import('src/ui/gestation/views/GestationDashboardView'));
-
 /**
- * The Gestation Dashboard page route.
+ * Gestation Dashboard has been integrated into the Reproductive Board on /dashboard.
+ * Redirects seamlessly to /dashboard?board=sys_reproductive.
  */
 const route: FuseRouteItemType = {
   path: 'gestation',
-  element: <GestationDashboardView />
+  element: <Navigate to="/dashboard?board=sys_reproductive" replace />
 };
 
 export default route;

@@ -1,6 +1,6 @@
 /**
  * Static data for reproductive widgets.
- * Sources: service_orders, service_batch_details, caravan_gestations (start_date, gestation_stage,
+ * Sources: service_orders, service_order_females (exposure window), caravan_gestations (start_date, gestation_stage,
  * success, loss_reason_id, estimated_due_date), female_caravan_details.is_empty, caravan_lineages.
  */
 export const PREGNANCY = {
@@ -116,7 +116,7 @@ export const SERVICE_BATCHES: ServiceBatchRow[] = [
 	}
 ];
 
-/** Bulls per 100 females vs. service_batch_details.target_bull_ratio. */
+/** Bulls per 100 females vs. service_orders.target_bull_ratio. */
 export const BULL_RATIO_BY_BATCH = [
 	{ label: 'Lote 01', actual: 4.2, target: 4.0 },
 	{ label: 'Lote 02', actual: 4.4, target: 4.0 },

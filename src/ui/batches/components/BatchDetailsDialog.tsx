@@ -17,8 +17,11 @@ import BatchDetailsToolbar from './details/BatchDetailsToolbar';
 import BatchQuickEntryDialog from './details/BatchQuickEntryDialog';
 import BatchQuickTransferDialog from './details/BatchQuickTransferDialog';
 import BatchGraphTesterPanel from './details/BatchGraphTesterPanel';
+import BatchServiceHistory from './details/BatchServiceHistory';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
+import { useBatchServiceOrders } from '@/features/gestation/hooks/useServiceOrders';
+import ServiceOrderDetailDrawer from '@/ui/gestation/components/service-order-drawer/ServiceOrderDetailDrawer';
 
 interface BatchDetailsDialogProps {
     open: boolean;
@@ -41,20 +44,19 @@ export function BatchDetailsDialog({ open, onClose, batch, onStartService }: Bat
     const [quickTransferOpen, setQuickTransferOpen] = useState(false);
     const [testerOpen, setTesterOpen] = useState(false);
 
-    const batchCaravans = useMemo(() => {
-        if (!batch?.id) return [];
-        return allCaravans.filter((c: any) => {
-            if (c.batch_id === batch.id) return true;
-            if (
-                (batch.is_service_batch || batch.batch_type_code === 'SERVICE') &&
-                batch.service_order_origin_batch_id &&
-                c.batch_id === batch.service_order_origin_batch_id
-            ) {
-                return true;
-            }
-            return false;
-        });
-    }, [allCaravans, batch?.id, batch?.is_service_batch, batch?.batch_type_code, batch?.service_order_origin_batch_id]);
+    // A service is an order over this batch: its history and the running one live on the batch.
+    const isCria = (batch?.activity_code ?? '').toUpperCase() === 'CRIA';
+    const { data: serviceOrders = [], isLoading: isLoadingServices } = useBatchServiceOrders(open && isCria ? batch?.id : null);
+    const [openServiceOrderId, setOpenServiceOrderId] = useState<number | null>(null);
+    const openServiceOrder = useMemo(
+        () => serviceOrders.find((o) => o.id === openServiceOrderId) ?? null,
+        [serviceOrders, openServiceOrderId]
+    );
+
+    const batchCaravans = useMemo(
+        () => (batch?.id ? allCaravans.filter((c: any) => c.batch_id === batch.id) : []),
+        [allCaravans, batch?.id]
+    );
 
     if (!batch) return null;
 
@@ -108,6 +110,9 @@ export function BatchDetailsDialog({ open, onClose, batch, onStartService }: Bat
                             testerOpen={testerOpen}
                             onToggleTester={() => setTesterOpen((prev) => !prev)}
                             onStartService={onStartService ? () => onStartService(batch) : undefined}
+                            onOpenActiveService={
+                                batch.active_service_order ? () => setOpenServiceOrderId(batch.active_service_order.id) : undefined
+                            }
                         />
 
                         {/* Interactive Graph Tester & Simulator */}
@@ -151,6 +156,14 @@ export function BatchDetailsDialog({ open, onClose, batch, onStartService }: Bat
 
                             <BatchWeightLogTable history={history} />
                         </Box>
+
+                        {isCria && (
+                            <BatchServiceHistory
+                                orders={serviceOrders}
+                                isLoading={isLoadingServices}
+                                onOpenOrder={(order) => setOpenServiceOrderId(order.id)}
+                            />
+                        )}
                     </Stack>
                 </DialogContent>
             </Dialog>
@@ -160,6 +173,13 @@ export function BatchDetailsDialog({ open, onClose, batch, onStartService }: Bat
                 open={quickEntryOpen}
                 onClose={() => setQuickEntryOpen(false)}
                 batch={batch}
+            />
+
+            <ServiceOrderDetailDrawer
+                open={openServiceOrder !== null}
+                onClose={() => setOpenServiceOrderId(null)}
+                order={openServiceOrder}
+                caravans={allCaravans}
             />
 
             {/* Quick transfer / egress dialog with custom movement date */}

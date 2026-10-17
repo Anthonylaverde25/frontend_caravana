@@ -99,7 +99,7 @@ function WeightControlSheetView() {
             <Button
               variant="outlined"
               color="inherit"
-              onClick={() => navigate('/caravans')}
+              onClick={() => navigate(batchIds.length === 1 ? `/herd/batches/${batchIds[0]}` : '/herd')}
               sx={{ fontWeight: 700 }}
             >
               Volver

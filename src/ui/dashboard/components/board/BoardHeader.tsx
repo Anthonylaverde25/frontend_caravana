@@ -31,7 +31,7 @@ export function BoardHeader({ board, isEditing, isCustomized, onEdit, onDelete, 
 				<Chip
 					size="small"
 					variant="outlined"
-					label={batchType}
+					label={board.id === 'sys_reproductive' ? 'Vientres y Gestación' : batchType}
 				/>
 				{board.isSystem && isCustomized && (
 					<Chip
@@ -66,20 +66,22 @@ export function BoardHeader({ board, isEditing, isCustomized, onEdit, onDelete, 
 							Eliminar
 						</Button>
 					)}
-					<Button
-						variant="contained"
-						color="primary"
-						onClick={onEdit}
-						startIcon={<FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>}
-						sx={{
-							textTransform: 'none',
-							fontWeight: 600,
-							borderRadius: '8px',
-							boxShadow: 1
-						}}
-					>
-						Personalizar tablero
-					</Button>
+					{board.id !== 'sys_reproductive' && (
+						<Button
+							variant="contained"
+							color="primary"
+							onClick={onEdit}
+							startIcon={<FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>}
+							sx={{
+								textTransform: 'none',
+								fontWeight: 600,
+								borderRadius: '8px',
+								boxShadow: 1
+							}}
+						>
+							Personalizar tablero
+						</Button>
+					)}
 				</Box>
 			)}
 		</Box>

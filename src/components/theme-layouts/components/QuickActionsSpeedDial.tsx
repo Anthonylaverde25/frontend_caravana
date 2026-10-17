@@ -23,7 +23,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 		label: 'Nueva Caravana',
 		sublabel: 'Registrar animal',
 		icon: 'heroicons-outline:square-3-stack-3d',
-		route: '/caravans/new',
+		route: '/herd?new=caravan',
 		color: '#6366f1'
 	},
 	{
@@ -82,7 +82,13 @@ function QuickActionsSpeedDial() {
 				position: 'fixed',
 				bottom: 28,
 				right: 28,
-				zIndex: 1300
+				zIndex: 1300,
+				// The closed actions still take room above the button: let clicks through to the page
+				// (e.g. the last column of a table) and catch them only on the button and the open menu.
+				pointerEvents: 'none',
+				'& .MuiFab-primary, & .MuiSpeedDial-actions:not(.MuiSpeedDial-actionsClosed)': {
+					pointerEvents: 'auto'
+				}
 			}}
 		>
 			<SpeedDial

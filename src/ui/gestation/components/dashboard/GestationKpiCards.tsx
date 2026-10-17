@@ -48,19 +48,23 @@ function GestationKpiCards({ caravans }: GestationKpiCardsProps) {
     let head = 0;
     let body = 0;
     let tail = 0;
+    let unknown = 0;
 
+    // The stage is optional: a pregnancy declared without it is its own group, never "head".
     pregnantCaravans.forEach(c => {
       const stage = c.active_gestation?.gestation_stage;
       if (stage === 'head') head++;
       else if (stage === 'body') body++;
       else if (stage === 'tail') tail++;
+      else unknown++;
     });
 
-    const total = head + body + tail || 1;
+    const total = head + body + tail + unknown || 1;
     return {
       head: Math.round((head / total) * 100),
       body: Math.round((body / total) * 100),
       tail: Math.round((tail / total) * 100),
+      unknown: Math.round((unknown / total) * 100),
     };
   }, [pregnantCaravans]);
 
@@ -214,6 +218,13 @@ function GestationKpiCards({ caravans }: GestationKpiCardsProps) {
                   sx={{ height: 4, borderRadius: 2, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                 />
               </Box>
+
+              {distribution.unknown > 0 && (
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'text.secondary' }}>Sin estadio declarado</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: 'text.secondary' }}>{distribution.unknown}%</Typography>
+                </Stack>
+              )}
             </Stack>
           </CardContent>
         </Card>

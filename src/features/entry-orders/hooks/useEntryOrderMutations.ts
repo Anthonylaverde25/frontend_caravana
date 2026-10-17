@@ -27,7 +27,8 @@ const useInvalidateOrders = () => {
     queryClient.invalidateQueries({ queryKey: [ENTRY_ORDERS_KEY] });
 
     if (alsoLivestock) {
-      ['caravans', 'batches', 'batch', 'batch-weight-history', 'caravan-movements'].forEach((key) =>
+      // A female entering or leaving a service batch opens or closes her exposure to its bulls.
+      ['caravans', 'batches', 'batch', 'batch-weight-history', 'caravan-movements', 'service-orders'].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] })
       );
     }

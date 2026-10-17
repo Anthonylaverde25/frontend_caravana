@@ -16,6 +16,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { usePreServiceBulls } from '@/features/gestation/hooks/usePreServiceBulls';
 import { useLser01Header } from './Lser01HeaderContext';
+import { useLser01Roster } from './useLser01Roster';
 
 interface Lser01ConfigDrawerProps {
   open: boolean;
@@ -31,12 +32,14 @@ const sectionTitleSx = {
 } as const;
 
 /**
- * Pre-fills the LSER-01 header before printing. Females are not pre-loaded: they are written in
- * the chute. Only APT bulls are offered, since an unfit bull will be rejected when the sheet is loaded.
+ * Pre-fills the LSER-01 header before printing. The batch is picked from the own Cría batches
+ * without a running service, and its empty females come pre-printed on the rows. Only APT bulls
+ * are offered, since an unfit bull will be rejected when the sheet is loaded.
  */
 export const Lser01ConfigDrawer: React.FC<Lser01ConfigDrawerProps> = ({ open, onClose }) => {
   const { header, setHeaderField, resetHeader } = useLser01Header();
   const { data: bulls = [], isLoading } = usePreServiceBulls();
+  const { eligibleBatches, batch, females } = useLser01Roster(header.lote_id);
 
   const aptBullTags = useMemo(
     () => bulls.filter((b) => b.is_apt).map((b) => b.caravan_number).sort(),
@@ -60,7 +63,7 @@ export const Lser01ConfigDrawer: React.FC<Lser01ConfigDrawerProps> = ({ open, on
               Configuración LSER-01
             </Typography>
             <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 500 }}>
-              Pre-carga del encabezado del lote de servicio
+              Acta de inicio de servicio sobre un lote
             </Typography>
           </Box>
         </Stack>
@@ -72,13 +75,27 @@ export const Lser01ConfigDrawer: React.FC<Lser01ConfigDrawerProps> = ({ open, on
       <Box sx={{ p: 3, flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Typography variant="subtitle2" sx={sectionTitleSx}>1. Lote y toro</Typography>
-          <TextField
-            label="Nombre del Lote de Servicio"
-            size="small"
-            fullWidth
-            value={header.lote}
-            onChange={(e) => setHeaderField('lote', e.target.value)}
-            placeholder="Ej: Entore Vaquillonas Toro 004"
+          <Autocomplete
+            options={eligibleBatches}
+            value={batch}
+            getOptionLabel={(option) => `${option.name} (ID ${option.id})`}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            onChange={(_, value) => {
+              setHeaderField('lote_id', value?.id ?? null);
+              setHeaderField('lote', value?.name ?? '');
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Lote de Cría que entra en servicio"
+                size="small"
+                helperText={
+                  batch
+                    ? `${females.length} vientre(s) vacío(s) se imprimen en la planilla`
+                    : `${eligibleBatches.length} lote(s) de Cría sin servicio en curso`
+                }
+              />
+            )}
           />
           <Autocomplete
             options={aptBullTags}
@@ -134,9 +151,11 @@ export const Lser01ConfigDrawer: React.FC<Lser01ConfigDrawerProps> = ({ open, on
             Al cargar la planilla
           </Typography>
           <Typography variant="caption" sx={{ color: '#64748b', display: 'block', lineHeight: 1.4, fontSize: '0.7rem' }}>
-            • Se crean el lote de servicio, su orden y el movimiento de cada animal.
+            • Se crea la orden de servicio sobre el lote: no se crea ningún lote nuevo y los vientres no se mueven.
             <br />
-            • Las categorías del lote salen de las registradas en el toro y los vientres.
+            • El toro ingresa al lote. Una caravana que no esté en el lote bloquea la carga.
+            <br />
+            • Un vientre del lote que no figure en la planilla queda igualmente en servicio (aviso).
             <br />
             • Si una fila tiene un problema no se guarda nada: se repara en una pantalla intermedia.
           </Typography>

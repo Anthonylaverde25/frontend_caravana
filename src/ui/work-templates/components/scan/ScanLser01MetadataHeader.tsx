@@ -1,6 +1,7 @@
-import React from 'react';
-import { Box, Chip, Collapse, Stack, TextField, Typography } from '@mui/material';
+import React, { useEffect, useMemo } from 'react';
+import { Autocomplete, Box, Chip, Collapse, Stack, TextField, Typography } from '@mui/material';
 import { ExpandLess as ExpandLessIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import { useBatches } from '@/features/batches/hooks/useBatches';
 import { Lser01HeaderError, Lser01Metadata } from './types';
 
 interface ScanLser01MetadataHeaderProps {
@@ -14,7 +15,10 @@ interface ScanLser01MetadataHeaderProps {
 const errorFor = (errors: Lser01HeaderError[], field: keyof Lser01Metadata): string | undefined =>
   errors.filter((e) => e.field === field).map((e) => e.message).join(' ') || undefined;
 
-/** Editable LSER-01 header: the batch name, the single bull and the service dates. */
+/**
+ * Editable LSER-01 header: the Cría batch that enters service (picked, never typed), the single
+ * bull and the service dates. The scan brings the pre-printed batch ID, or at least its name.
+ */
 export const ScanLser01MetadataHeader: React.FC<ScanLser01MetadataHeaderProps> = ({
   metadata,
   onChange,
@@ -23,6 +27,18 @@ export const ScanLser01MetadataHeader: React.FC<ScanLser01MetadataHeaderProps> =
   headerErrors = [],
 }) => {
   const bullError = errorFor(headerErrors, 'toro_caravana');
+  const batchError = errorFor(headerErrors, 'batch_id' as keyof Lser01Metadata);
+
+  const { data: batches = [] } = useBatches(undefined, undefined, 'own');
+  const criaBatches = useMemo(() => batches.filter((b) => b.isCria() && !b.provider_id), [batches]);
+  const selectedBatch = criaBatches.find((b) => b.id === metadata.lote_id) ?? null;
+
+  // The ID printed on the sheet is unreadable or missing: resolve the batch by the name read.
+  useEffect(() => {
+    if (metadata.lote_id !== null || !metadata.lote.trim()) return;
+    const byName = criaBatches.find((b) => b.name.trim().toLowerCase() === metadata.lote.trim().toLowerCase());
+    if (byName) onChange('lote_id', byName.id);
+  }, [metadata.lote_id, metadata.lote, criaBatches, onChange]);
 
   const fields = (
     <Box
@@ -33,16 +49,30 @@ export const ScanLser01MetadataHeader: React.FC<ScanLser01MetadataHeaderProps> =
         pt: 2.5,
       }}
     >
-      <TextField
-        label="Nombre del Lote de Servicio"
-        value={metadata.lote}
-        onChange={(e) => onChange('lote', e.target.value)}
-        size="small"
-        fullWidth
-        required
-        error={Boolean(errorFor(headerErrors, 'lote'))}
-        helperText={errorFor(headerErrors, 'lote')}
-        InputLabelProps={{ shrink: true }}
+      <Autocomplete
+        options={criaBatches}
+        value={selectedBatch}
+        getOptionLabel={(option) => `${option.name} (ID ${option.id})`}
+        getOptionDisabled={(option) => option.hasActiveService()}
+        isOptionEqualToValue={(option, value) => option.id === value.id}
+        onChange={(_, value) => {
+          onChange('lote_id', value?.id ?? null);
+          onChange('lote', value?.name ?? '');
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Lote que entra en servicio"
+            size="small"
+            required
+            error={Boolean(batchError) || (metadata.lote_id === null && Boolean(metadata.lote))}
+            helperText={
+              batchError ??
+              (metadata.lote_id === null && metadata.lote ? `Leído en la hoja: "${metadata.lote}". Elegí el lote.` : undefined)
+            }
+            InputLabelProps={{ shrink: true }}
+          />
+        )}
       />
       <TextField
         label="Caravana del Toro"
@@ -111,7 +141,7 @@ export const ScanLser01MetadataHeader: React.FC<ScanLser01MetadataHeaderProps> =
         <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
           <Box sx={{ pl: 1.5, borderLeft: '3px solid #0a6ed1' }}>
             <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}>
-              Lote de Servicio de Toro Único (LSER-01)
+              Acta de Inicio de Servicio (LSER-01)
             </Typography>
           </Box>
           <Chip
@@ -121,8 +151,14 @@ export const ScanLser01MetadataHeader: React.FC<ScanLser01MetadataHeaderProps> =
             label={metadata.toro_caravana ? `Toro: ${metadata.toro_caravana}` : 'Sin toro'}
             sx={{ fontWeight: 700, height: 24, borderRadius: '4px' }}
           />
-          {metadata.lote && (
-            <Chip size="small" variant="outlined" label={`Lote: ${metadata.lote}`} sx={{ fontWeight: 700, height: 24, borderRadius: '4px' }} />
+          {(selectedBatch || metadata.lote) && (
+            <Chip
+              size="small"
+              variant="outlined"
+              color={selectedBatch ? 'primary' : 'warning'}
+              label={`Lote: ${selectedBatch?.name ?? metadata.lote}`}
+              sx={{ fontWeight: 700, height: 24, borderRadius: '4px' }}
+            />
           )}
         </Stack>
         <Stack direction="row" spacing={1} alignItems="center">

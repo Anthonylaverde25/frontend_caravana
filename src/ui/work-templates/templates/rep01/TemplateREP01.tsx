@@ -9,6 +9,7 @@ import {
   TableBody,
   Typography
 } from '@mui/material';
+import { useSearchParams } from 'react-router';
 import PrintHeader from '@/ui/livestock/template/components/PrintHeader';
 import { useWorkTemplatePrint } from '@/contexts/WorkTemplatePrintContext';
 
@@ -25,13 +26,18 @@ const TemplateREP01: React.FC = () => {
     printAreaRef
   } = useWorkTemplatePrint();
 
-  // Map female caravan ids to full caravan details
+  // ?pending=1: printed from "Cerrar orden", only the females still without a final verdict.
+  const [searchParams] = useSearchParams();
+  const onlyPending = searchParams.get('pending') === '1';
+
   const targetAnimals = useMemo(() => {
     if (!order || !caravans.length) return [];
+    const pendingIds: number[] | null = onlyPending ? (order.diagnosis_summary?.pending_female_ids ?? []) : null;
     return order.female_caravan_ids
+      .filter((id: number) => pendingIds === null || pendingIds.includes(id))
       .map((id: number) => caravans.find((c) => c.id === id))
       .filter(Boolean);
-  }, [order, caravans]);
+  }, [order, caravans, onlyPending]);
 
   // Parse template schema fields
   const schemaFields = useMemo(() => {
@@ -203,7 +209,7 @@ const TemplateREP01: React.FC = () => {
 
             <Box sx={{ mb: 2, pb: 1, borderBottom: '1.5px solid #000' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#000', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                REGISTRO DE DIAGNÓSTICOS DE PREÑEZ EN CAMPO
+                REGISTRO DE DIAGNÓSTICOS DE PREÑEZ EN CAMPO{onlyPending ? ' · SÓLO PENDIENTES' : ''}
               </Typography>
             </Box>
 

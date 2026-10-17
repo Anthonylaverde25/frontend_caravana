@@ -97,7 +97,7 @@ export const WeaningBatchesView: React.FC = () => {
   }, [weaningBatches, batchStatsMap]);
 
   const handleViewCaravans = (batchId: number) => {
-    navigate(`/caravans?batch_id=${batchId}`);
+    navigate(`/herd/batches/${batchId}`);
   };
 
   const handleOpenDetailDrawer = (batch: Batch) => {

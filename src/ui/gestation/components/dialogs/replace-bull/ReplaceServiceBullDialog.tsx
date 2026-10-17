@@ -61,13 +61,17 @@ export const ReplaceServiceBullDialog: React.FC<ReplaceServiceBullDialogProps> =
 
   const { mutate: replaceBull, isPending } = useReplaceServiceBull();
 
-  // Find original donor batch (procedencia original del toro)
+  // Where the outgoing bull can go: any own active batch other than the one in service.
+  const destinationBatches = useMemo(
+    () => batches.filter((b) => b.isActive() && !b.provider_id && !b.is_system && b.id !== order?.batch_id),
+    [batches, order?.batch_id]
+  );
+
+  // Suggested destination: a bull paddock when there is one.
   const defaultDonorBatch = useMemo(() => {
     if (!bull) return null;
-    // Si el toro tiene lote previo registrado o buscamos un lote operativo de torada
-    return batches.find((b) => b.isOperational() && b.name.toLowerCase().includes('toro')) ||
-      batches.find((b) => b.isOperational()) || null;
-  }, [bull, batches]);
+    return destinationBatches.find((b) => b.name.toLowerCase().includes('toro')) || destinationBatches[0] || null;
+  }, [bull, destinationBatches]);
 
   // Reset form when opened with a new bull
   useEffect(() => {
@@ -188,7 +192,7 @@ export const ReplaceServiceBullDialog: React.FC<ReplaceServiceBullDialogProps> =
             />
 
             <ReplacementDestinationStep
-              batches={batches.filter((b) => b.isOperational())}
+              batches={destinationBatches}
               destinationBatchId={destinationBatchId}
               onDestinationBatchChange={setDestinationBatchId}
               defaultDonorBatch={defaultDonorBatch}

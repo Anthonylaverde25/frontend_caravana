@@ -3,7 +3,8 @@ import { styled } from "@mui/material/styles";
 import clsx from "clsx";
 import { memo } from "react";
 import Navigation from "src/components/theme-layouts/components/navigation/Navigation";
-import UserMenu from "src/components/theme-layouts/components/UserMenu";
+// import UserMenu from "src/components/theme-layouts/components/UserMenu";
+import VirtualAssistantNavButton from "src/components/theme-layouts/components/virtual-assistant/VirtualAssistantNavButton";
 import Logo from "../../../../components/Logo";
 import { useContrastTheme } from "@/contexts/ContrastThemeContext";
 import { Box } from "@mui/material";
@@ -146,7 +147,10 @@ function NavbarStyle1Content(props: NavbarStyle1ContentProps) {
           isContracted && "p-1 items-center justify-center w-full",
         )}
       >
+        {/* Profile menu commented out from flow without deleting:
         <UserMenu className="w-full" onlyAvatar={isContracted} />
+        */}
+        <VirtualAssistantNavButton className="w-full" onlyAvatar={isContracted} />
       </div>
     </Root>
   );

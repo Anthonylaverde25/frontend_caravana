@@ -62,15 +62,15 @@ export const ZOOTECHNICAL_CATALOG: Record<string, ZootechnicalTemplateMeta> = {
 		stageBadgeBg: '#f5f3ff',
 		stageIcon: 'heroicons-outline:user-group',
 		zootechnicalSummary:
-			'Conformación de lote de servicio uniparental. Asigna un toro específico a un conjunto cerrado de vientres seleccionados con fecha de inicio fija. Otorga certeza de paternidad para selección genética y cálculo de DEPs, permitiendo una carga controlada (2.5 a 4% de toros) y sincronía en la preñez.',
+			'Acta de inicio de servicio uniparental sobre un lote de Cría existente. Un toro específico ingresa al lote y sirve a sus vientres desde una fecha fija: el lote no cambia ni se crea otro, la orden registra la exposición de cada vientre. Otorga certeza de paternidad para selección genética y cálculo de DEPs, con una carga controlada (2.5 a 4% de toros) y sincronía en la preñez.',
 		biologicalObjective:
 			'Trazabilidad genealógica paternal estricta y sincronización de curvas de preñez en grupos homogéneos de hembras.',
 		fieldMetrics: [
 			{ label: 'Caravana del Toro', hint: 'Identificador del reproductor padre' },
-			{ label: 'Caravanas de Vientres', hint: 'Lista de hembras asignadas' },
+			{ label: 'Caravanas de Vientres', hint: 'Vientres del lote, preimpresos' },
 			{ label: 'Fecha Inicio Entore', hint: 'Inicio de la temporada de servicio' },
 			{ label: 'Fecha Estimada Retiro', hint: 'Fin de permanencia del reproductor' },
-			{ label: 'Lote de Servicio', hint: 'Potrero delimitado para el rodeo' }
+			{ label: 'Lote en Servicio', hint: 'Lote de Cría existente (nombre e ID preimpresos)' }
 		],
 		orderContext: 'Inicio de Temporada de Entore',
 		hasScanAi: true,

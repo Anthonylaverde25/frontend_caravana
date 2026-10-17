@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -9,12 +9,10 @@ import {
   Chip,
   useTheme,
 } from '@mui/material';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { TemporalWindowExplanationDialog } from '@/ui/gestation/components/dialogs/TemporalWindowExplanationDialog';
 
 interface StartBatchParametersStepProps {
   batchName: string;
-  serviceBatchName: string;
-  setServiceBatchName: (val: string) => void;
   plannedStartDate: string;
   setPlannedStartDate: (val: string) => void;
   plannedEndDate: string;
@@ -29,8 +27,6 @@ interface StartBatchParametersStepProps {
 
 export const StartBatchParametersStep: React.FC<StartBatchParametersStepProps> = ({
   batchName,
-  serviceBatchName,
-  setServiceBatchName,
   plannedStartDate,
   setPlannedStartDate,
   plannedEndDate,
@@ -44,6 +40,7 @@ export const StartBatchParametersStep: React.FC<StartBatchParametersStepProps> =
 }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const [isWindowInfoOpen, setIsWindowInfoOpen] = useState(false);
 
   const totalHeadCount = femaleCount + maleCount;
   const ratio = femaleCount > 0 ? ((maleCount / femaleCount) * 100).toFixed(1) : '0';
@@ -62,7 +59,7 @@ export const StartBatchParametersStep: React.FC<StartBatchParametersStepProps> =
         }}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>
-          Conformación Aritmética del Nuevo Lote de Servicio
+          Composición del Servicio sobre el Lote
         </Typography>
 
         <Box
@@ -74,7 +71,7 @@ export const StartBatchParametersStep: React.FC<StartBatchParametersStepProps> =
         >
           <Box>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              Lote Base (Origen)
+              Lote en Servicio
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
               {batchName}
@@ -83,7 +80,7 @@ export const StartBatchParametersStep: React.FC<StartBatchParametersStepProps> =
 
           <Box>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              Vientres Aptos
+              Vientres Expuestos
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main' }}>
               {femaleCount} cabezas
@@ -115,15 +112,14 @@ export const StartBatchParametersStep: React.FC<StartBatchParametersStepProps> =
 
       {/* Formulario de Configuración del Entore */}
       <Stack spacing={2}>
-        <TextField
-          label="Nombre del Lote de Servicio a Generar"
-          fullWidth
-          value={serviceBatchName}
-          onChange={(e) => setServiceBatchName(e.target.value)}
-          variant="filled"
-          helperText="El lote base de origen permanece intacto en inventario; este lote agrupará la campaña durante el entore."
-          InputProps={{ sx: { borderRadius: '6px', bgcolor: 'action.hover' } }}
-        />
+        <Typography variant="caption" color="text.secondary">
+          No se crea ningún lote: el servicio queda registrado como una orden sobre {batchName}. Los vientres no se
+          mueven y los toros ingresan al lote.{' '}
+          <Box component="span" onClick={() => setIsWindowInfoOpen(true)} sx={{ color: 'primary.main', fontWeight: 700, cursor: 'pointer' }}>
+            ¿Por qué una ventana de 60-90 días?
+          </Box>
+        </Typography>
+        <TemporalWindowExplanationDialog open={isWindowInfoOpen} onClose={() => setIsWindowInfoOpen(false)} />
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
@@ -131,7 +127,7 @@ export const StartBatchParametersStep: React.FC<StartBatchParametersStepProps> =
             label="Modalidad de Servicio"
             fullWidth
             value={serviceType}
-            onChange={(e) => setServiceType(e.target.value as any)}
+            onChange={(e) => setServiceType(e.target.value as 'single' | 'multi' | 'rotation')}
             variant="filled"
             InputProps={{ sx: { borderRadius: '6px', bgcolor: 'action.hover' } }}
           >

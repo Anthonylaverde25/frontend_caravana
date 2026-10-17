@@ -1,79 +1,101 @@
 import React, { useMemo } from 'react';
 import {
+  Alert,
   Box,
   Typography,
   Stack,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Checkbox,
   Chip,
   Paper,
   InputAdornment,
-  useTheme,
+  FormControlLabel,
+  Switch,
+  Button,
+  alpha,
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
+import ExcludedFemalesNotice from './ExcludedFemalesNotice';
+import StartBatchFemalesTable from './StartBatchFemalesTable';
+import { useStartServiceTableStyles } from './useStartServiceTableStyles';
 
 interface StartBatchFemalesStepProps {
   batchName: string;
-  batchFemales: Caravan[];
+  serviceableFemales: Caravan[];
+  pregnantCount: number;
+  isControlledService: boolean;
+  setIsControlledService: (value: boolean) => void;
   selectedFemaleIds: number[];
   setSelectedFemaleIds: React.Dispatch<React.SetStateAction<number[]>>;
   femaleSearch: string;
   setFemaleSearch: (val: string) => void;
+  onSetApart: (ids: number[]) => void;
 }
 
+/**
+ * StartBatchFemalesStep
+ * Step 0 coordinator: orchestrates filter state, controlled service mode,
+ * selection banners and delegates table rendering to StartBatchFemalesTable.
+ */
 export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
   batchName,
-  batchFemales,
+  serviceableFemales,
+  pregnantCount,
+  isControlledService,
+  setIsControlledService,
   selectedFemaleIds,
   setSelectedFemaleIds,
   femaleSearch,
   setFemaleSearch,
+  onSetApart,
 }) => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark, active } = useStartServiceTableStyles();
+
+  const excludedFemales = useMemo(
+    () => serviceableFemales.filter((c) => !c.is_breeding_eligible),
+    [serviceableFemales]
+  );
+
+  const listedFemales = useMemo(
+    () => (isControlledService ? serviceableFemales.filter((c) => c.is_breeding_eligible) : serviceableFemales),
+    [serviceableFemales, isControlledService]
+  );
 
   const filteredFemales = useMemo(() => {
-    if (!femaleSearch.trim()) return batchFemales;
+    if (!femaleSearch.trim()) return listedFemales;
     const q = femaleSearch.toLowerCase();
-    return batchFemales.filter(
+    return listedFemales.filter(
       (c) =>
         c.identification?.toLowerCase().includes(q) ||
-        c.category_name?.toLowerCase().includes(q)
+        c.category_name?.toLowerCase().includes(q) ||
+        c.breed?.toLowerCase().includes(q)
     );
-  }, [batchFemales, femaleSearch]);
+  }, [listedFemales, femaleSearch]);
 
-  const allSelected =
-    filteredFemales.length > 0 &&
-    filteredFemales.every((c) => selectedFemaleIds.includes(c.id!));
-  const someSelected =
-    filteredFemales.some((c) => selectedFemaleIds.includes(c.id!)) && !allSelected;
+  const eligibleFilteredIds = useMemo(
+    () => filteredFemales.filter((c) => c.is_breeding_eligible).map((c) => c.id!),
+    [filteredFemales]
+  );
+
+  const exposedCount = isControlledService ? selectedFemaleIds.length : serviceableFemales.length;
+  const allSelected = eligibleFilteredIds.length > 0 && eligibleFilteredIds.every((id) => selectedFemaleIds.includes(id));
+  const someSelected = eligibleFilteredIds.some((id) => selectedFemaleIds.includes(id)) && !allSelected;
 
   const handleToggleSelectAll = () => {
-    if (allSelected) {
-      const filteredIds = new Set(filteredFemales.map((c) => c.id!));
-      setSelectedFemaleIds((prev) => prev.filter((id) => !filteredIds.has(id)));
-    } else {
-      const newSelected = new Set([...selectedFemaleIds, ...filteredFemales.map((c) => c.id!)]);
-      setSelectedFemaleIds(Array.from(newSelected));
-    }
+    const idSet = new Set(eligibleFilteredIds);
+    setSelectedFemaleIds((prev) =>
+      allSelected ? prev.filter((id) => !idSet.has(id)) : Array.from(new Set([...prev, ...eligibleFilteredIds]))
+    );
   };
 
   const handleToggleFemale = (id: number) => {
-    setSelectedFemaleIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    if (!isControlledService) return;
+    setSelectedFemaleIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   return (
-    <Stack spacing={2.5}>
-      {/* Banner explicativo del Lote Base */}
+    <Stack spacing={2}>
+      {/* Top Header Card */}
       <Paper
         elevation={0}
         sx={{
@@ -91,107 +113,164 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
       >
         <Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-            Vientres Residentes en {batchName}
+            Vientres de {batchName}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Se cargan automáticamente las hembras de cría de este lote base. Podés desmarcar vientres de descarte o no aptos.
+            {isControlledService
+              ? 'Servicio controlado / IA: elegí individualmente los vientres que se exponen.'
+              : `Servicio natural: se exponen los ${serviceableFemales.length} vientres vacíos del lote.`}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <FormControlLabel
+            control={<Switch size="small" checked={isControlledService} onChange={(e) => setIsControlledService(e.target.checked)} />}
+            label={<Typography variant="caption" sx={{ fontWeight: 700 }}>Servicio controlado / IA</Typography>}
+          />
           <Chip
             size="small"
             color="primary"
             variant="outlined"
-            label={`${selectedFemaleIds.length} de ${batchFemales.length} seleccionadas`}
+            label={`${exposedCount} expuestas`}
             sx={{ fontWeight: 700 }}
           />
         </Stack>
       </Paper>
 
-      {/* Buscador de caravanas */}
-      <TextField
-        fullWidth
-        size="small"
-        placeholder="Buscar por caravana o categoría..."
-        value={femaleSearch}
-        onChange={(e) => setFemaleSearch(e.target.value)}
-        variant="filled"
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <FuseSvgIcon size={18}>heroicons-outline:magnifying-glass</FuseSvgIcon>
-            </InputAdornment>
-          ),
-          sx: { borderRadius: '6px', bgcolor: 'action.hover' },
-        }}
+      <ExcludedFemalesNotice
+        excludedFemales={excludedFemales}
+        isControlledService={isControlledService}
+        onSetApart={onSetApart}
       />
 
-      {/* Tabla de Vientres */}
-      <TableContainer
-        component={Paper}
+      {pregnantCount > 0 && (
+        <Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
+          {pregnantCount === 1
+            ? 'Hay 1 vientre preñado en el lote: queda excluido automáticamente.'
+            : `Hay ${pregnantCount} vientres preñados en el lote: quedan excluidos automáticamente.`}
+        </Alert>
+      )}
+
+      {/* Filter and Search Bar */}
+      <Paper
         elevation={0}
         sx={{
-          maxHeight: 320,
+          p: 1.5,
           borderRadius: '8px',
-          border: 1,
+          border: '1px solid',
           borderColor: 'divider',
+          bgcolor: isDark ? 'background.paper' : '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+          flexWrap: 'wrap',
         }}
       >
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  size="small"
-                  checked={allSelected}
-                  indeterminate={someSelected}
-                  onChange={handleToggleSelectAll}
-                />
-              </TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>CARAVANA</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>CATEGORÍA</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }} align="right">
-                PESO ACTUAL
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredFemales.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                  No se encontraron hembras registradas en este lote.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredFemales.map((female) => {
-                const isChecked = selectedFemaleIds.includes(female.id!);
-                return (
-                  <TableRow
-                    key={female.id}
-                    hover
-                    selected={isChecked}
-                    onClick={() => handleToggleFemale(female.id!)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    <TableCell padding="checkbox">
-                      <Checkbox size="small" checked={isChecked} />
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: '0.8rem' }}>
-                      {female.identification}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.8rem' }}>
-                      {female.category_name ?? 'Vientre'}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                      {female.current_weight ? `${female.current_weight} kg` : '-'}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+        <TextField
+          size="small"
+          placeholder="Buscar por caravana, raza o categoría..."
+          value={femaleSearch}
+          onChange={(e) => setFemaleSearch(e.target.value)}
+          sx={{
+            flexGrow: 1,
+            maxWidth: { sm: 400 },
+            '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: '0.85rem' },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <FuseSvgIcon size={18} color="action">heroicons-outline:magnifying-glass</FuseSvgIcon>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Chip
+            size="small"
+            variant="outlined"
+            label={`${filteredFemales.length} elegibles`}
+            sx={{ height: 28, px: 0.5, fontWeight: 700, fontSize: '0.75rem' }}
+          />
+
+          {isControlledService && (
+            <Button
+              variant={allSelected ? 'contained' : 'outlined'}
+              size="small"
+              onClick={handleToggleSelectAll}
+              startIcon={
+                <FuseSvgIcon size={15}>
+                  {allSelected ? 'heroicons-outline:x-mark' : 'heroicons-outline:check-circle'}
+                </FuseSvgIcon>
+              }
+              sx={{ textTransform: 'none', height: 28, fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px' }}
+            >
+              {allSelected ? 'Deseleccionar' : 'Seleccionar Todo'}
+            </Button>
+          )}
+        </Stack>
+      </Paper>
+
+      {/* Selection Banner (Pedigree style matching ExternalBatchAssignmentView) */}
+      {isControlledService && selectedFemaleIds.length > 0 && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.25,
+            px: 2,
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: alpha(active, isDark ? 0.22 : 0.16),
+            bgcolor: alpha(active, isDark ? 0.08 : 0.05),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1.5,
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box
+              sx={{
+                px: 1.25,
+                py: 0.4,
+                borderRadius: '6px',
+                bgcolor: alpha(active, 0.14),
+                color: active,
+                fontSize: '0.75rem',
+                fontWeight: 800,
+              }}
+            >
+              {selectedFemaleIds.length} {selectedFemaleIds.length === 1 ? 'vientre seleccionado' : 'vientres seleccionados'}
+            </Box>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+              Vientres expuestos para servicio controlado / inseminación artificial.
+            </Typography>
+          </Stack>
+
+          <Button
+            size="small"
+            onClick={() => setSelectedFemaleIds([])}
+            startIcon={<FuseSvgIcon size={14}>heroicons-outline:x-circle</FuseSvgIcon>}
+            sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 700, color: 'text.secondary', p: 0.5 }}
+          >
+            Limpiar Selección
+          </Button>
+        </Paper>
+      )}
+
+      {/* Canonical Data Table Presenter */}
+      <StartBatchFemalesTable
+        females={filteredFemales}
+        isControlledService={isControlledService}
+        selectedFemaleIds={selectedFemaleIds}
+        onToggleFemale={handleToggleFemale}
+        onToggleAll={handleToggleSelectAll}
+        allSelected={allSelected}
+        someSelected={someSelected}
+      />
     </Stack>
   );
 };
+
+export default StartBatchFemalesStep;

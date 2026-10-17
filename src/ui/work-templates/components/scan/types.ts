@@ -44,7 +44,12 @@ export interface Ing01Metadata {
   guia_dte: string;
 }
 
+/**
+ * LSER-01 header: the existing Cría batch that enters service (resolved to its id, the name is
+ * what the paper said), the single bull and the dates.
+ */
 export interface Lser01Metadata {
+  lote_id: number | null;
   lote: string;
   toro_caravana: string;
   planned_start_date: string;
@@ -66,6 +71,13 @@ export interface Lser01RowError {
   row_index: number;
   caravana: string;
   errors: Lser01Error[];
+}
+
+/** A non-blocking finding of a clean sheet (e.g. a female of the batch missing from it). */
+export interface Lser01Warning {
+  code: string;
+  caravana: string;
+  message: string;
 }
 
 /** 422 body returned by POST /work-templates/lser-01/process. */

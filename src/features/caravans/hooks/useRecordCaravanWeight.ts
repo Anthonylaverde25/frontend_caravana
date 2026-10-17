@@ -1,3 +1,4 @@
+import { RecordCaravanWeightPayload } from '@/core/weighing/domain/entities/Weighing';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiCaravanRepository } from '@/core/caravans/infrastructure/repositories/ApiCaravanRepository';
 import { toast } from 'sonner';
@@ -8,7 +9,7 @@ export function useRecordCaravanWeight() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { weight: number; weighing_date: string; notes?: string } }) =>
+    mutationFn: ({ id, data }: { id: number; data: RecordCaravanWeightPayload }) =>
       caravanRepository.recordWeight(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['caravan-weights', variables.id] });

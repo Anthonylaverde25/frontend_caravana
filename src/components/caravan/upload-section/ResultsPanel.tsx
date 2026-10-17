@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Box, Typography, Alert, Snackbar } from '@mui/material';
 import { Edit as EditIcon } from '@mui/icons-material';
 import axiosInstance from '@/utils/axios';
@@ -11,6 +12,8 @@ import { ResultsContextBar } from './results/ResultsContextBar';
 import { DocumentHeaderBar } from './results/DocumentHeaderBar';
 import { useResultsColumns } from './results/useResultsColumns';
 import Rep01ResultsTable from './results/Rep01ResultsTable';
+import Rep01ImportOutcome from './results/Rep01ImportOutcome';
+import { readDiagnosis, useRep01ReviewNotices } from './results/useRep01ReviewNotices';
 
 interface ResultsPanelProps {
   data: TableResult[];
@@ -27,11 +30,24 @@ interface ResultsPanelProps {
  * ResultsPanel Component (Container)
  * Orchestrates the data visualization, editing, and massive import process.
  */
+/** Y-m-d from the date read on the sheet (Y-m-d or dd/mm/yyyy), or null. */
+function toIsoDay(raw?: string | null): string | null {
+  const value = String(raw ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return match ? `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}` : null;
+}
+
 const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkdayCode, onReset, emptyDestinationBatchId, identifiedTemplate }: ResultsPanelProps) => {
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'done' | 'error'>('idle');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [localRows, setLocalRows] = useState<any[]>([]);
+  const queryClient = useQueryClient();
+  const isRep01 = identifiedTemplate?.code?.toUpperCase() === 'REP-01';
+  // The round day is the date written on the sheet (Y-m-d), today otherwise.
+  const sheetDate = toIsoDay(context?.fecha) ?? new Date().toISOString().slice(0, 10);
+  const rep01Notices = useRep01ReviewNotices(isRep01 ? localRows : [], isRep01 ? context?.service_order_id : null, sheetDate);
 
   // Initialize local rows by resolving the correct caravan data table
   useEffect(() => {
@@ -68,9 +84,15 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
         return hasCaravan || hasCategory || hasDiagnosis || hasStage || hasObservations || hasOtherValues;
       });
 
-      setLocalRows(filteredRows);
+      // REP-01: the sheet says P / V; the review shows it as Preñada / Vacía. A blank cell stays
+      // blank and an unreadable one keeps its raw text, so the review can flag it.
+      setLocalRows(
+        isRep01
+          ? filteredRows.map((row) => ({ ...row, diagnosis: readDiagnosis(row.diagnosis) ?? String(row.diagnosis ?? '').trim() }))
+          : filteredRows
+      );
     }
-  }, [data]);
+  }, [data, isRep01]);
 
   const handleCellEdit = useCallback((rowIndex: number, field: string, value: string) => {
     setLocalRows(prev => {
@@ -115,15 +137,18 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
       if (templateCode === 'REP-01') {
         // ─── REP-01: Gestation Diagnosis Flow ───
         // This flow evaluates EXISTING caravans, not creating new ones.
+        // A blank diagnosis stays blank: the female is not checked in this round. It is never
+        // read as empty. Stage and months are optional.
         response = await axiosInstance.post('/caravans/import-gestation-ocr', {
           rows: cleanedRows.map(row => ({
             identification: row.identification,
-            diagnostico: row.diagnostico || row.diagnosis || 'EMPTY',
+            diagnostico: String(row.diagnosis ?? row.diagnostico ?? '').trim() || null,
             gestation_stage: row.gestation_stage || row.gestational_stage || row.estadio_estimado || null,
+            gestation_months: row.gestation_months || row.meses || null,
             observations: row.observations || null,
           })),
           service_order_id: context?.service_order_id || null,
-          diagnosis_date: new Date().toISOString().split('T')[0],
+          diagnosis_date: sheetDate,
           empty_cows_batch_id: emptyDestinationBatchId || null,
         });
       } else {
@@ -142,6 +167,10 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
       if (response.status === 200 || response.status === 201) {
         setImportResult(response.data.data);
         setImportStatus('done');
+        // The verdicts changed: every screen showing orders or caravans must read them again.
+        ['service-orders', 'caravans', 'batches'].forEach((key) =>
+          queryClient.invalidateQueries({ queryKey: [key] })
+        );
       } else {
         throw new Error(response.data.message || 'Import failed');
       }
@@ -178,6 +207,10 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
       {/* Context Area */}
       <ResultsContextBar context={context} />
 
+      {isRep01 && importStatus === 'done' && (
+        <Rep01ImportOutcome serviceOrderId={context?.service_order_id} result={importResult as any} />
+      )}
+
       {/* Main Content (Helper + Table) */}
       <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -188,11 +221,12 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
         </Box>
 
         <Box sx={{ flex: 1, overflow: 'hidden', mx: 2, mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-          {identifiedTemplate?.code?.toUpperCase() === 'REP-01' ? (
+          {isRep01 ? (
             <Rep01ResultsTable
               rows={localRows}
               onCellEdit={handleCellEdit}
               onRemoveRow={handleRemoveRow}
+              notices={rep01Notices}
             />
           ) : (
             <DataTable

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -11,44 +11,36 @@ import {
 } from '@mui/material';
 import { useWorkTemplatePrint } from '@/contexts/WorkTemplatePrintContext';
 import { useLser01Header } from './Lser01HeaderContext';
+import { useLser01Roster } from './useLser01Roster';
+import Lser01SheetHeader from './Lser01SheetHeader';
 
 const ROWS_PER_PAGE = 22;
-const TOTAL_PAGES_DEFAULT = 1;
-
-const headCellStyle: React.CSSProperties = {
-  border: '1px solid #000',
-  backgroundColor: '#f0f0f0',
-  padding: '3px 8px',
-};
-
-const valueCellStyle: React.CSSProperties = {
-  border: '1px solid #000',
-  padding: '3px 10px',
-  verticalAlign: 'middle',
-};
-
-const formatDate = (isoDate: string): string => {
-  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return match ? `${match[3]} / ${match[2]} / ${match[1]}` : '____ / ____ / ________';
-};
-
-const HeadLabel: React.FC<{ children: React.ReactNode; color?: string }> = ({ children, color = '#000' }) => (
-  <Typography variant="caption" sx={{ fontWeight: 900, color, textTransform: 'uppercase', fontSize: '0.58rem', display: 'block' }}>
-    {children}
-  </Typography>
-);
+/** Free lines after the pre-printed females, for the ones that turn up at the chute. */
+const FREE_ROWS = 6;
 
 /**
- * LSER-01 printable sheet: single-bull service batch. The bull goes in the highlighted header box
- * and the females are written by hand in the table, one tag per row.
+ * LSER-01 printable sheet: service start record over an existing Cría batch. The bull goes in the
+ * highlighted header box; the females of the batch come pre-printed, one per row, followed by free
+ * lines with the same grid for the ones that turn up at the chute.
  */
 export const TemplateLSER01: React.FC = () => {
-  const { template, farm, activeCompany, printAreaRef, activeFarm } = useWorkTemplatePrint();
-  const { header } = useLser01Header();
+  const { template, farm, activeCompany, printAreaRef, activeFarm, batchId, batch: contextBatch } = useWorkTemplatePrint();
+  const { header, setHeaderField } = useLser01Header();
+  const { females } = useLser01Roster(header.lote_id);
+
+  // Printed from a batch (?batchId=): that batch is the one entering service.
+  useEffect(() => {
+    if (header.lote_id === null && batchId && contextBatch) {
+      setHeaderField('lote_id', batchId);
+      setHeaderField('lote', contextBatch.name);
+    }
+  }, [batchId, contextBatch, header.lote_id, setHeaderField]);
 
   const displayFarm = activeFarm || farm;
   const code = template?.code || 'LSER-01';
-  const pages = Array.from({ length: TOTAL_PAGES_DEFAULT });
+  const establishment = `${activeCompany?.name || 'ESTABLECIMIENTO GANADERO'}${displayFarm ? ` • ${displayFarm.name}` : ''}${displayFarm?.renspa ? ` • RENSPA: ${displayFarm.renspa}` : ''}`;
+  const totalRows = Math.max(ROWS_PER_PAGE, Math.ceil((females.length + FREE_ROWS) / ROWS_PER_PAGE) * ROWS_PER_PAGE);
+  const pages = Array.from({ length: totalRows / ROWS_PER_PAGE });
 
   return (
     <Box
@@ -86,125 +78,16 @@ export const TemplateLSER01: React.FC = () => {
           }}
         >
           <Box>
-            {/* Title */}
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 900, color: '#000', letterSpacing: '-1px', textTransform: 'uppercase', fontSize: '1.4rem' }}>
-                  {template?.title || 'Conformación de Lote de Servicio — Toro Único'}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#444', fontWeight: 600, mt: -0.5, fontSize: '0.72rem' }}>
-                  Movimiento de hacienda al lote de servicio • Genera lote, orden de servicio y movimientos al cargarse
-                </Typography>
-              </Box>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: '#000', fontSize: '0.65rem', textAlign: 'right' }}>
-                DOCUMENTO DE REGISTRO OFICIAL
-              </Typography>
-            </Box>
-
-            {/* Establishment & template code */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px', border: '2px solid #000', color: '#000' }}>
-              <tbody>
-                <tr>
-                  <td style={{ ...headCellStyle, width: '75%' }}>
-                    <HeadLabel>Establecimiento ganadero</HeadLabel>
-                  </td>
-                  <td style={{ ...headCellStyle, backgroundColor: '#000', width: '25%', textAlign: 'center' }}>
-                    <HeadLabel color="#fff">Template code</HeadLabel>
-                  </td>
-                </tr>
-                <tr style={{ height: 28 }}>
-                  <td style={valueCellStyle}>
-                    <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: '#000' }}>
-                      {`${activeCompany?.name || 'ESTABLECIMIENTO GANADERO'}${displayFarm ? ` • ${displayFarm.name}` : ''}${displayFarm?.renspa ? ` • RENSPA: ${displayFarm.renspa}` : ''}`}
-                    </Typography>
-                  </td>
-                  <td style={{ ...valueCellStyle, textAlign: 'center', backgroundColor: '#fafafa' }}>
-                    <Typography sx={{ fontWeight: 900, fontSize: '0.9rem', color: '#000', fontFamily: 'monospace', letterSpacing: '1px' }}>
-                      {code}
-                    </Typography>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Batch header: name, bull, dates, responsible */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12px', border: '2px solid #000', color: '#000' }}>
-              <tbody>
-                <tr>
-                  <td style={{ ...headCellStyle, width: '55%' }}>
-                    <HeadLabel>Nombre del lote de servicio</HeadLabel>
-                  </td>
-                  <td style={{ ...headCellStyle, width: '45%', backgroundColor: '#0f172a' }}>
-                    <HeadLabel color="#fff">Caravana del toro (único)</HeadLabel>
-                  </td>
-                </tr>
-                <tr style={{ height: 40 }}>
-                  <td style={valueCellStyle}>
-                    <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: '#002B49' }}>
-                      {header.lote || ''}
-                    </Typography>
-                  </td>
-                  <td style={{ ...valueCellStyle, border: '3px solid #000', backgroundColor: '#f8fafc' }}>
-                    <Typography sx={{ fontWeight: 900, fontSize: '1.15rem', fontFamily: 'monospace', color: '#000', letterSpacing: '1px' }}>
-                      {header.toro_caravana || ''}
-                    </Typography>
-                  </td>
-                </tr>
-                <tr>
-                  <td style={headCellStyle}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <tbody>
-                        <tr>
-                          <td style={{ width: '50%' }}><HeadLabel>Fecha inicio de servicio</HeadLabel></td>
-                          <td style={{ width: '50%' }}><HeadLabel>Fecha fin de servicio</HeadLabel></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </td>
-                  <td style={headCellStyle}>
-                    <HeadLabel>Responsable / Firma</HeadLabel>
-                  </td>
-                </tr>
-                <tr style={{ height: 30 }}>
-                  <td style={valueCellStyle}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <tbody>
-                        <tr>
-                          <td style={{ width: '50%' }}>
-                            <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#002B49' }}>
-                              {formatDate(header.planned_start_date)}
-                            </Typography>
-                          </td>
-                          <td style={{ width: '50%' }}>
-                            <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#002B49' }}>
-                              {formatDate(header.planned_end_date)}
-                            </Typography>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </td>
-                  <td style={valueCellStyle}>
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#002B49' }}>
-                      {header.responsable || ''}
-                    </Typography>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <Box sx={{ border: '1.5px solid #000', bgcolor: '#fffbeb', p: '4px 8px', mb: 1.5 }}>
-              <Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#92400e' }}>
-                UN SOLO TORO POR PLANILLA • Escribir una caravana de vientre por fila • Todos los vientres de la misma categoría • No incluir vientres preñados
-              </Typography>
-              <Typography sx={{ fontSize: '0.52rem', color: '#78350f' }}>
-                Si alguna fila tiene un problema, el sistema no carga la planilla hasta repararla. El toro debe estar APTO.
-              </Typography>
-            </Box>
+            <Lser01SheetHeader
+              title={template?.title || 'Acta de Inicio de Servicio — Toro Único'}
+              code={code}
+              establishment={establishment}
+              header={header}
+            />
 
             <Box sx={{ mb: 1.5, pb: 0.5, borderBottom: '1.5px solid #000' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#000', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.75rem' }}>
-                Vientres que ingresan al lote
+                Vientres del lote en servicio
               </Typography>
             </Box>
 
@@ -230,15 +113,21 @@ export const TemplateLSER01: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {Array.from({ length: ROWS_PER_PAGE }).map((__, index) => (
-                  <TableRow key={index}>
-                    <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '0.65rem' }}>
-                      {pageIndex * ROWS_PER_PAGE + index + 1}
-                    </TableCell>
-                    <TableCell />
-                    <TableCell />
-                  </TableRow>
-                ))}
+                {Array.from({ length: ROWS_PER_PAGE }).map((__, index) => {
+                  const rowIndex = pageIndex * ROWS_PER_PAGE + index;
+                  const female = females[rowIndex];
+                  return (
+                    <TableRow key={index}>
+                      <TableCell sx={{ textAlign: 'center', fontWeight: 700, fontSize: '0.65rem' }}>
+                        {rowIndex + 1}
+                      </TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.75rem' }}>
+                        {female?.identification ?? ''}
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </Box>
@@ -258,7 +147,7 @@ export const TemplateLSER01: React.FC = () => {
                   <td style={{ border: '1px solid #000', padding: '10px 12px 4px 12px', width: '50%', height: 44, verticalAlign: 'bottom' }}>
                     <div style={{ borderTop: '1px dashed #000', paddingTop: '4px', textAlign: 'center' }}>
                       <Typography variant="caption" sx={{ fontWeight: 800, color: '#000', fontSize: '0.6rem' }}>
-                        Firma y Aclaración: Responsable del Lote
+                        Firma y Aclaración: Responsable del Servicio
                       </Typography>
                     </div>
                   </td>
@@ -268,7 +157,7 @@ export const TemplateLSER01: React.FC = () => {
 
             <Box sx={{ pt: 1, borderTop: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="caption" sx={{ color: '#666', fontStyle: 'italic', fontSize: '0.65rem' }}>
-                Conformación de Lote de Servicio ({code}) • Jhoangel AI Microservice
+                Acta de Inicio de Servicio ({code}) • Jhoangel AI Microservice
               </Typography>
               <Typography variant="caption" sx={{ color: '#333', fontWeight: 700, fontSize: '0.65rem' }}>
                 HOJA {pageIndex + 1} DE {pages.length}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { isBreedingCandidate } from '@/core/caravans/domain/rules/isBreedingCandidate';
 import {
   Dialog,
   DialogTitle,
@@ -15,25 +16,24 @@ import {
   CircularProgress,
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { useSnackbar } from 'notistack';
 import { useCompany } from '@/contexts/CompanyContext';
+import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useStartBatchService } from '@/features/batches/hooks/useStartBatchService';
 import { StartBatchFemalesStep } from './start-service/StartBatchFemalesStep';
 import { StartBatchSiresStep } from './start-service/StartBatchSiresStep';
 import { StartBatchParametersStep } from './start-service/StartBatchParametersStep';
+import BatchQuickTransferDialog from '../details/BatchQuickTransferDialog';
 
 interface StartBatchServiceDialogProps {
   open: boolean;
   onClose: () => void;
-  batch: any;
+  batch: { id?: number; name?: string; farm_name?: string } | null;
   onSuccess?: () => void;
 }
 
-const steps = [
-  'Vientres del Lote Base',
-  'Selección de Torada',
-  'Parámetros del Entore',
-];
+const steps = ['Vientres del Lote', 'Selección de Torada', 'Parámetros del Servicio'];
 
 export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = ({
   open,
@@ -42,6 +42,7 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
   onSuccess,
 }) => {
   const { activeCompanyId } = useCompany();
+  const { enqueueSnackbar } = useSnackbar();
   const [activeStep, setActiveStep] = useState(0);
 
   // Queries
@@ -50,31 +51,34 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
     'all'
   );
 
-  // Hembras residentes del lote base
+  // Females of the batch: the empty ones are serviceable, the pregnant ones stay out.
   const batchFemales = useMemo(() => {
     if (!batch?.id) return [];
     return allCaravans.filter(
-      (c: any) =>
-        c.batch_id === batch.id &&
-        (c.sex === 'H' || c.sex === 'F' || (c.sex as string) === 'HEMBRA')
+      (c: Caravan) => c.batch_id === batch.id && (c.sex === 'H' || (c.sex as string) === 'F' || (c.sex as string) === 'HEMBRA')
     );
   }, [allCaravans, batch?.id]);
+  const serviceableFemales = useMemo(
+    () => batchFemales.filter((c: Caravan) => !c.active_gestation && isBreedingCandidate(c)),
+    [batchFemales]
+  );
+  const pregnantCount = batchFemales.length - serviceableFemales.length;
 
   // Toros disponibles en la empresa
   const availableMales = useMemo(() => {
     return allCaravans.filter(
-      (c: any) => c.sex === 'M' || (c.sex as string) === 'MACHO'
+      (c: Caravan) => (c.sex === 'M' || (c.sex as string) === 'MACHO') && isBreedingCandidate(c)
     );
   }, [allCaravans]);
 
-  // Estados de Selección
+  // Natural service exposes the whole batch; controlled service / AI picks a subset.
+  const [isControlledService, setIsControlledService] = useState(false);
   const [selectedFemaleIds, setSelectedFemaleIds] = useState<number[]>([]);
   const [selectedMaleIds, setSelectedMaleIds] = useState<number[]>([]);
   const [femaleSearch, setFemaleSearch] = useState('');
   const [maleSearch, setMaleSearch] = useState('');
 
   // Estados de Parámetros
-  const [serviceBatchName, setServiceBatchName] = useState('');
   const [plannedStartDate, setPlannedStartDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -90,16 +94,18 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
   useEffect(() => {
     if (open && batch) {
       setActiveStep(0);
-      setServiceBatchName(`${batch.name} - Servicio ${new Date().getFullYear()}`);
+      setIsControlledService(false);
     }
   }, [open, batch]);
 
-  // Autoseleccionar todas las hembras del lote por defecto
+  // Every serviceable female starts selected; a controlled service only picks among the ones
+  // the owner did not exclude from breeding.
   useEffect(() => {
-    if (batchFemales.length > 0) {
-      setSelectedFemaleIds(batchFemales.map((c) => c.id!));
-    }
-  }, [batchFemales]);
+    setSelectedFemaleIds(serviceableFemales.filter((c) => c.is_breeding_eligible).map((c) => c.id!));
+  }, [serviceableFemales]);
+  const [settingApart, setSettingApart] = useState<number[] | null>(null);
+
+  const exposedCount = isControlledService ? selectedFemaleIds.length : serviceableFemales.length;
 
   // Autoajuste de modalidad según cantidad de toros
   useEffect(() => {
@@ -112,13 +118,20 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
 
   const startMutation = useStartBatchService(batch?.id);
 
-  const canGoNext = useMemo(() => {
-    if (activeStep === 0) return selectedFemaleIds.length > 0;
-    if (activeStep === 1) return selectedMaleIds.length > 0;
-    return Boolean(serviceBatchName.trim() && plannedStartDate);
-  }, [activeStep, selectedFemaleIds.length, selectedMaleIds.length, serviceBatchName, plannedStartDate]);
+  // The primary button is never disabled for missing data: it validates on click.
+  const stepError = (): string | null => {
+    if (activeStep === 0 && exposedCount === 0) return 'No hay vientres vacíos para exponer al servicio.';
+    if (activeStep === 1 && selectedMaleIds.length === 0) return 'Seleccioná al menos un toro.';
+    if (activeStep === 2 && !plannedStartDate) return 'Indicá la fecha de inicio del servicio.';
+    return null;
+  };
 
   const handleNext = () => {
+    const error = stepError();
+    if (error) {
+      enqueueSnackbar(error, { variant: 'warning' });
+      return;
+    }
     if (activeStep < steps.length - 1) {
       setActiveStep((prev) => prev + 1);
     } else {
@@ -136,9 +149,9 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
     startMutation.mutate(
       {
         id: batch.id,
-        service_batch_name: serviceBatchName,
         male_caravan_ids: selectedMaleIds,
-        selected_female_caravan_ids: selectedFemaleIds,
+        is_controlled_service: isControlledService,
+        selected_female_caravan_ids: isControlledService ? selectedFemaleIds : undefined,
         planned_start_date: plannedStartDate,
         planned_end_date: plannedEndDate,
         service_type: serviceType,
@@ -159,7 +172,7 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="lg"
       fullWidth
       PaperProps={{
         sx: { borderRadius: '8px', boxShadow: 1 },
@@ -189,10 +202,10 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
-              Iniciar Servicio de Entore: {batch.name}
+              Iniciar Servicio: {batch.name}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Actividad Cría • Temporada Reproductiva Estacionada
+              El servicio es una orden sobre este lote: no se crea otro lote
             </Typography>
           </Box>
         </Stack>
@@ -226,11 +239,15 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
               {activeStep === 0 && (
                 <StartBatchFemalesStep
                   batchName={batch.name}
-                  batchFemales={batchFemales}
+                  serviceableFemales={serviceableFemales}
+                  pregnantCount={pregnantCount}
+                  isControlledService={isControlledService}
+                  setIsControlledService={setIsControlledService}
                   selectedFemaleIds={selectedFemaleIds}
                   setSelectedFemaleIds={setSelectedFemaleIds}
                   femaleSearch={femaleSearch}
                   setFemaleSearch={setFemaleSearch}
+                  onSetApart={setSettingApart}
                 />
               )}
 
@@ -239,7 +256,7 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
                   availableMales={availableMales}
                   selectedMaleIds={selectedMaleIds}
                   setSelectedMaleIds={setSelectedMaleIds}
-                  femaleCount={selectedFemaleIds.length}
+                  femaleCount={exposedCount}
                   maleSearch={maleSearch}
                   setMaleSearch={setMaleSearch}
                 />
@@ -248,8 +265,6 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
               {activeStep === 2 && (
                 <StartBatchParametersStep
                   batchName={batch.name}
-                  serviceBatchName={serviceBatchName}
-                  setServiceBatchName={setServiceBatchName}
                   plannedStartDate={plannedStartDate}
                   setPlannedStartDate={setPlannedStartDate}
                   plannedEndDate={plannedEndDate}
@@ -258,7 +273,7 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
                   setServiceType={setServiceType}
                   observations={observations}
                   setObservations={setObservations}
-                  femaleCount={selectedFemaleIds.length}
+                  femaleCount={exposedCount}
                   maleCount={selectedMaleIds.length}
                 />
               )}
@@ -290,7 +305,7 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
           <Button
             variant="contained"
             onClick={handleNext}
-            disabled={!canGoNext || startMutation.isPending}
+            disabled={startMutation.isPending}
             sx={{
               textTransform: 'none',
               fontWeight: 700,
@@ -316,6 +331,12 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
           </Button>
         </Stack>
       </DialogActions>
+      <BatchQuickTransferDialog
+        open={settingApart !== null}
+        onClose={() => setSettingApart(null)}
+        batch={batch}
+        initialSelectedIds={settingApart ?? undefined}
+      />
     </Dialog>
   );
 };

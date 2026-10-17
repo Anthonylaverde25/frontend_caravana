@@ -115,8 +115,8 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
         farm_id: batch?.farm_id,
         entry_date: data.entry_date,
         is_empty: isFemale ? (data.is_empty === 'true' || data.is_empty === true) : null,
-        gestation_stage: isPregnant ? data.gestation_stage : null,
-        gestation_months: isPregnant ? data.gestation_months : null
+        gestation_stage: isPregnant && data.gestation_stage ? data.gestation_stage : null,
+        gestation_months: isPregnant && typeof data.gestation_months === 'number' && !Number.isNaN(data.gestation_months) ? data.gestation_months : null
       };
       
       await upsertCaravan(payload);
@@ -347,18 +347,12 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                 <TextField
                   select
                   {...register('gestation_stage')}
-                  label="Estado de Preñez"
+                  label="Estadio (opcional)"
                   value={selectedGestationStage || ''}
                   onChange={(e) => {
                     const val = e.target.value;
+                    // A declared stage never fills the months: they stay as declared (or empty).
                     setValue('gestation_stage', val, { shouldValidate: true });
-                    if (val === 'tail') {
-                      setValue('gestation_months', 1.0, { shouldValidate: true });
-                    } else if (val === 'body') {
-                      setValue('gestation_months', 2.0, { shouldValidate: true });
-                    } else if (val === 'head') {
-                      setValue('gestation_months', 3.0, { shouldValidate: true });
-                    }
                   }}
                   variant="filled"
                   fullWidth
@@ -366,7 +360,7 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
                   helperText={errors.gestation_stage?.message}
                   InputProps={{ disableUnderline: true, sx: { borderRadius: 1 } }}
                 >
-                  <MenuItem value="" disabled>Seleccione un estado</MenuItem>
+                  <MenuItem value=""><em>Sin estadio</em></MenuItem>
                   <MenuItem value="head">Cabeza (Head)</MenuItem>
                   <MenuItem value="body">Cuerpo (Body)</MenuItem>
                   <MenuItem value="tail">Cola (Tail)</MenuItem>
@@ -374,7 +368,7 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
 
                 <TextField
                   {...register('gestation_months', { valueAsNumber: true })}
-                  label="Meses de Gestación"
+                  label="Meses de gestación (opcional)"
                   type="number"
                   inputProps={{ step: '0.1', min: '0', max: '12' }}
                   value={selectedGestationMonths !== undefined && selectedGestationMonths !== null ? selectedGestationMonths : ''}

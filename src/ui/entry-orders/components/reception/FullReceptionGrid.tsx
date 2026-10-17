@@ -1,6 +1,7 @@
 import React from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { useGridCellStyles } from '@/ui/birth-orders/components/grid/useGridCellStyles';
+import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import SheetGrid from '@/components/sheet-grid/SheetGrid';
+import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import FullReceptionRow from './FullReceptionRow';
 import type { ReceptionRows, ReceptionTroopContext } from './useReceptionRows';
 
@@ -29,12 +30,10 @@ const HEADERS: { label: string; width?: number; center?: boolean }[] = [
  * data the order fixes filled in grey. Writing or pasting caravans fills the rows in order.
  */
 export const FullReceptionGrid: React.FC<FullReceptionGridProps> = ({ draft, troop }) => {
-  const { cellSx, headerBg } = useGridCellStyles();
-  const head = { ...cellSx, bgcolor: headerBg, fontWeight: 700, px: 1.25, py: 1, fontSize: '0.74rem' };
+  const { headSx: head } = useGridCellStyles();
 
   return (
-    <TableContainer sx={{ maxHeight: { xs: 480, lg: 'calc(100vh - 260px)' }, border: '1px solid', borderColor: 'divider', borderRadius: '4px' }}>
-      <Table stickyHeader size="small" sx={{ borderCollapse: 'collapse', minWidth: 1100 }}>
+    <SheetGrid minWidth={1100} maxHeight={{ xs: 480, lg: 'calc(100vh - 260px)' }}>
         <TableHead>
           <TableRow>
             <TableCell align="center" sx={{ ...head, width: 40 }}>
@@ -53,8 +52,7 @@ export const FullReceptionGrid: React.FC<FullReceptionGridProps> = ({ draft, tro
             <FullReceptionRow key={row.key} row={row} index={index} draft={draft} troop={troop} />
           ))}
         </TableBody>
-      </Table>
-    </TableContainer>
+    </SheetGrid>
   );
 };
 

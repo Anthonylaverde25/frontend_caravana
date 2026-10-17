@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Checkbox, IconButton, MenuItem, TableCell, TableRow, TextField, Tooltip } from '@mui/material';
+import { Checkbox, IconButton, MenuItem, TableCell, TableRow, TextField, Tooltip } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useGridCellStyles } from '@/ui/birth-orders/components/grid/useGridCellStyles';
+import SheetGridStatusCell from '@/components/sheet-grid/SheetGridStatusCell';
+import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import { ARRIVAL_FINDINGS, type ArrivalFindingCode } from '@/features/entry-orders/types';
 import { breedPatchOf, troopChoicesOf } from './troopChoices';
 import type { ReceptionRow, ReceptionRows, ReceptionTroopContext } from './useReceptionRows';
@@ -26,7 +27,7 @@ const focusTagOf = (index: number) =>
  * The server's objections are drawn on the cell and told in the last column.
  */
 export const FullReceptionRow: React.FC<FullReceptionRowProps> = ({ row, index, draft, troop }) => {
-  const { theme, cellSx, inputSx, headerBg, zebraBg } = useGridCellStyles();
+  const { theme, cellSx, inputSx, indexSx, zebraBg } = useGridCellStyles();
   const choices = troopChoicesOf(row, troop);
   const sent = draft.sentIndexOf(row.key);
   const errors = sent < 0 ? [] : draft.rowErrors.filter((e) => e.row === sent);
@@ -81,7 +82,7 @@ export const FullReceptionRow: React.FC<FullReceptionRowProps> = ({ row, index, 
 
   return (
     <TableRow sx={{ '&:nth-of-type(even)': { bgcolor: zebraBg } }}>
-      <TableCell align="center" sx={{ ...cellSx, bgcolor: headerBg, color: 'text.disabled', fontSize: '0.72rem' }}>
+      <TableCell align="center" sx={indexSx}>
         {index + 1}
       </TableCell>
       <TableCell sx={cellSx}>
@@ -133,21 +134,16 @@ export const FullReceptionRow: React.FC<FullReceptionRowProps> = ({ row, index, 
           />
         </TableCell>
       ))}
-      <TableCell align="center" sx={{ ...cellSx, borderRight: 0 }}>
-        {errors.length > 0 || warning || outOfRange ? (
-          <Tooltip title={errors.length > 0 ? errors.map((e) => e.message).join(' ') : (warning?.message ?? 'Peso fuera del rango de la compra')}>
-            <Box component="span" sx={{ color: errors.length > 0 ? 'error.main' : 'warning.main', display: 'inline-flex' }}>
-              <FuseSvgIcon size={18}>{errors.length > 0 ? 'heroicons-outline:exclamation-circle' : 'heroicons-outline:exclamation-triangle'}</FuseSvgIcon>
-            </Box>
-          </Tooltip>
-        ) : (
-          <Tooltip title="Quitar fila">
-            <IconButton size="small" onClick={() => draft.removeRow(row.key)} sx={{ color: 'text.disabled', '&:hover': { color: theme.palette.error.main } }}>
-              <FuseSvgIcon size={16}>heroicons-outline:x-mark</FuseSvgIcon>
-            </IconButton>
-          </Tooltip>
-        )}
-      </TableCell>
+      <SheetGridStatusCell
+        error={errors.length > 0 ? errors.map((e) => e.message).join(' ') : undefined}
+        warning={warning?.message ?? (outOfRange ? 'Peso fuera del rango de la compra' : undefined)}
+      >
+        <Tooltip title="Quitar fila">
+          <IconButton size="small" onClick={() => draft.removeRow(row.key)} sx={{ color: 'text.disabled', '&:hover': { color: theme.palette.error.main } }}>
+            <FuseSvgIcon size={16}>heroicons-outline:x-mark</FuseSvgIcon>
+          </IconButton>
+        </Tooltip>
+      </SheetGridStatusCell>
     </TableRow>
   );
 };

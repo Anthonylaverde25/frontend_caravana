@@ -1,12 +1,14 @@
 import React from 'react';
-import { Box, IconButton, MenuItem, TableCell, TableRow, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, MenuItem, TableCell, TableRow, TextField, Tooltip } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { dueLabel, stageLabel } from '../birthOrderFormat';
 import BirthBreedCoatCells, { BirthBreedOption } from './BirthBreedCoatCells';
 import BirthOutcomeCell from './BirthOutcomeCell';
 import BirthSireCell from './BirthSireCell';
 import type { BirthCellError, BirthRollFemale, BirthRollField, BirthRollValue } from './birthRollTypes';
-import { useGridCellStyles } from './useGridCellStyles';
+import SheetGridStatusCell from '@/components/sheet-grid/SheetGridStatusCell';
+import SheetGridTagCell from '@/components/sheet-grid/SheetGridTagCell';
+import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 
 interface BirthRollGridRowProps {
   index: number;
@@ -16,7 +18,6 @@ interface BirthRollGridRowProps {
   breeds: BirthBreedOption[];
   males: { id: number; identification: string }[];
   onChange: (change: Partial<BirthRollValue>) => void;
-  onRemove?: () => void;
   allowOverdue: boolean;
 }
 
@@ -26,8 +27,8 @@ interface BirthRollGridRowProps {
  * seen. The date and the observations are asked whenever something is declared. A row left empty
  * is a female that did not calve yet.
  */
-export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, female, value, errors, breeds, males, onChange, onRemove, allowOverdue }) => {
-  const { theme, cellSx, inputSx, headerBg, zebraBg } = useGridCellStyles();
+export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, female, value, errors, breeds, males, onChange, allowOverdue }) => {
+  const { cellSx, inputSx, indexSx, zebraBg } = useGridCellStyles();
   const live = value.outcome === 'LIVE';
   const calved = value.outcome !== '';
   const resolved = calved || value.overdue;
@@ -50,18 +51,24 @@ export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, femal
 
   return (
     <TableRow sx={{ '&:nth-of-type(even)': { bgcolor: zebraBg } }}>
-      <TableCell align="center" sx={{ ...cellSx, bgcolor: headerBg, color: theme.palette.text.disabled, fontSize: '0.75rem', width: 40 }}>
+      <TableCell align="center" sx={indexSx}>
         {index + 1}
       </TableCell>
 
-      <TableCell sx={{ ...cellSx, ...(hasError('mother') ? { boxShadow: `inset 0 0 0 2px ${theme.palette.error.main}` } : {}) }}>
-        <Box sx={{ px: 1.5, py: 0.75, minHeight: 40 }}>
-          <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', color: 'primary.main' }}>{female.identification}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.66rem', display: 'block' }}>
-            {female.categoryLabel ?? 'Vientre'} · {stageLabel(female.stage)} · FPP {dueLabel(female.dueDate)}
-          </Typography>
-        </Box>
-      </TableCell>
+      <SheetGridTagCell
+        tag={female.identification}
+        caption={`${female.categoryLabel ?? 'Vientre'} · ${stageLabel(female.stage)} · FPP ${dueLabel(female.dueDate)}`}
+        error={hasError('mother')}
+        adornment={
+          female.openOrderCode && (
+            <Tooltip title={`Está en la orden ${female.openOrderCode}: su parto se registra en esa orden.`}>
+              <Box component="span" sx={{ color: 'info.main', display: 'inline-flex', cursor: 'help' }}>
+                <FuseSvgIcon size={14}>heroicons-outline:document-text</FuseSvgIcon>
+              </Box>
+            </Tooltip>
+          )
+        }
+      />
 
       <TableCell sx={cellSx}>
         <BirthOutcomeCell
@@ -130,21 +137,7 @@ export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, femal
         {text('observations', { placeholder: resolved ? (calved && !live ? 'Causa observada' : 'Observaciones') : '', enabled: resolved })}
       </TableCell>
 
-      <TableCell align="center" sx={{ ...cellSx, borderRight: 0, width: 48 }}>
-        {rowMessages.length > 0 ? (
-          <Tooltip title={rowMessages.join(' ')}>
-            <Box component="span" sx={{ color: 'error.main', display: 'inline-flex' }}>
-              <FuseSvgIcon size={18}>heroicons-outline:exclamation-circle</FuseSvgIcon>
-            </Box>
-          </Tooltip>
-        ) : onRemove ? (
-          <Tooltip title="Quitar del registro">
-            <IconButton size="small" onClick={onRemove} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
-              <FuseSvgIcon size={16}>heroicons-outline:x-mark</FuseSvgIcon>
-            </IconButton>
-          </Tooltip>
-        ) : null}
-      </TableCell>
+      <SheetGridStatusCell error={rowMessages.length > 0 ? rowMessages.join(' ') : undefined} />
     </TableRow>
   );
 };

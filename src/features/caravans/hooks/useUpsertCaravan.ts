@@ -25,6 +25,8 @@ export function useUpsertCaravan() {
       queryClient.invalidateQueries({ queryKey: ['batch'] });
       queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
+      // A female entering or leaving a service batch opens or closes her exposure to its bulls.
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
       
       const message = response.action === 'created' 
         ? 'Caravana registrada exitosamente' 

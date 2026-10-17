@@ -54,7 +54,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: 'Hace 2 horas',
     read: true,
     type: 'info',
-    link: '/caravans',
+    link: '/herd',
   },
 ];
 

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { isBreedingCandidate } from '@/core/caravans/domain/rules/isBreedingCandidate';
 import { useNavigate } from 'react-router';
 import { Alert, CircularProgress } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -71,7 +72,7 @@ function SireRotationManager() {
 	// 3. Filter Male Caravans (available bulls) directly from database
 	const availableBulls = useMemo(() => {
 		return caravans
-			.filter((c) => c.sex === 'M' && (c.category || '').toLowerCase() === 'toro')
+			.filter((c) => c.sex === 'M' && isBreedingCandidate(c))
 			.sort((a, b) => a.identification.localeCompare(b.identification));
 	}, [caravans]);
 

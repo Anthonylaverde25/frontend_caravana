@@ -69,7 +69,7 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
           : isDest01
           ? '¡Destete Registrado Exitosamente!'
           : isLser01
-          ? '¡Lote de Servicio Creado Exitosamente!'
+          ? '¡Servicio Iniciado sobre el Lote!'
           : isTor01
             ? '¡Planilla Andrológica Procesada Exitosamente!'
             : '¡Tropa Ingresada Exitosamente!'}
@@ -85,13 +85,20 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
         ) : result && isLser01 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Alert severity="success" sx={{ borderRadius: '6px' }}>
-              Se creó el lote de servicio <strong>{result.batch_name}</strong> con{' '}
-              <strong>{result.females_count}</strong> vientre(s), su orden de servicio y los movimientos de hacienda.
+              Se inició el servicio <strong>{result.service_order_code}</strong> sobre el lote{' '}
+              <strong>{result.batch_name}</strong> con <strong>{result.females_count}</strong> vientre(s) expuesto(s). Los
+              vientres no se movieron y el toro ingresó al lote.
             </Alert>
+            {(result.warnings ?? []).length > 0 && (
+              <Alert severity="warning" sx={{ borderRadius: '6px' }}>
+                {result.warnings.length} vientre(s) del lote no figuraban en la planilla y quedaron igualmente en servicio:{' '}
+                <strong>{result.warnings.map((w: any) => w.caravana).join(', ')}</strong>
+              </Alert>
+            )}
             <Paper variant="outlined" sx={{ p: 2, borderRadius: '6px' }}>
               <Stack spacing={1.2}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Lote de servicio:</Typography>
+                  <Typography variant="body2" color="text.secondary">Lote en servicio:</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 800 }}>{result.batch_name}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -101,7 +108,7 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Vientres ingresados:</Typography>
+                  <Typography variant="body2" color="text.secondary">Vientres expuestos:</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 800 }}>{result.females_count}</Typography>
                 </Box>
               </Stack>
@@ -282,7 +289,17 @@ export const ScanSuccessDialog: React.FC<ScanSuccessDialogProps> = ({
           >
             Ver orden de destete
           </Button>
-        ) : isTor01 || isLser01 ? (
+        ) : isLser01 && result ? (
+          <Button
+            onClick={() => navigate(`/gestation/service-orders?batchId=${result.batch_id}&orderId=${result.service_order_id}`)}
+            variant="contained"
+            color="primary"
+            startIcon={<PetsIcon />}
+            sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '6px' }}
+          >
+            Ver servicio
+          </Button>
+        ) : isTor01 ? (
           <Button
             onClick={() => navigate('/gestation/pre-service')}
             variant="contained"

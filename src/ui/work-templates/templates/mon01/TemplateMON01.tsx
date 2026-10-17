@@ -53,7 +53,14 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
     if (!order || !caravans.length) {
       return caravans.filter((c: any) => c.sex === 'H' || (c.batch_id === batch?.id && c.sex === 'H'));
     }
+    // Only the females still exposed: one that left the batch is no longer with the bulls.
+    const left = new Set(
+      (order.female_exposures || [])
+        .filter((e: any) => e.exposed_until && e.exit_reason === 'TRANSFERRED_OUT')
+        .map((e: any) => e.female_caravan_id)
+    );
     return (order.female_caravan_ids || [])
+      .filter((id: number) => !left.has(id))
       .map((id: number) => caravans.find((c: any) => c.id === id))
       .filter(Boolean);
   }, [order, caravans, batch]);
@@ -70,7 +77,15 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
     return [Array.from({ length: ROWS_PER_PAGE }).map(() => null)];
   }, [femaleCaravans]);
 
-  const detail = batch?.service_detail;
+  // The category most of the exposed females share (the service has no category of its own).
+  const dominantFemaleCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    femaleCaravans.forEach((c: any) => {
+      const name = c?.category_name || c?.category;
+      if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  }, [femaleCaravans]);
 
   const ratio = useMemo(() => {
     if (femaleCaravans.length === 0) return 0;
@@ -100,7 +115,7 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
 
         {/* 3. Categoría */}
         <TableCell sx={{ fontSize: '0.68rem', fontWeight: 600 }}>
-          {caravan?.category_name || caravan?.category || detail?.female_category_name || 'Vientre'}
+          {caravan?.category_name || caravan?.category || 'Vientre'}
         </TableCell>
 
         {/* 4. Raza */}
@@ -275,7 +290,7 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
                 <tr>
                   <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '3px 6px', width: '26%' }}>
                     <Typography variant="caption" sx={{ fontWeight: 900, color: '#000', display: 'block', fontSize: '0.58rem' }}>
-                      LOTE DE SERVICIO (DESTINO)
+                      LOTE EN SERVICIO
                     </Typography>
                   </td>
                   <td style={{ border: '1px solid #000', backgroundColor: '#f0f0f0', padding: '3px 6px', width: '24%' }}>
@@ -313,7 +328,7 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
                   </td>
                   <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle' }}>
                     <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.76rem', color: '#002B49' }}>
-                      {detail?.female_category_name || 'Vaca de Cría (Homogénea)'}
+                      {dominantFemaleCategory || 'Vaca de Cría'}
                     </Typography>
                   </td>
                   <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -360,14 +375,14 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
                 <tr style={{ height: 26 }}>
                   <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle' }}>
                     <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.78rem' }}>
-                      {order?.planned_start_date || detail?.planned_start_date || '____ / ____ / ________'}
+                      {order?.planned_start_date || '____ / ____ / ________'}
                     </Typography>
                   </td>
                   <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle', backgroundColor: order?.actual_end_date ? '#fffbeb' : 'transparent' }}>
                     <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.78rem', color: order?.actual_end_date ? '#b45309' : 'inherit' }}>
                       {order?.actual_end_date
                         ? `${order.actual_end_date} (Retiro)`
-                        : (order?.planned_end_date || detail?.planned_end_date || '____ / ____ / ________')}
+                        : (order?.planned_end_date || '____ / ____ / ________')}
                     </Typography>
                   </td>
                   <td style={{ border: '1px solid #000', padding: '3px 8px', verticalAlign: 'middle' }}>
@@ -426,6 +441,8 @@ export const TemplateMON01: React.FC<TemplateMON01Props> = (props) => {
                         ? 'Torada en Descanso'
                         : maleDetail?.status === 'RETIRED_INJURED'
                         ? 'Baja por Lesión'
+                        : maleDetail?.status === 'RETIRED_SANITARY'
+                        ? 'Baja Sanitaria'
                         : maleDetail?.status === 'REPLACED'
                         ? 'Sustituido'
                         : (order?.is_controlled_service ? 'Controlado / Fijo' : 'Rodeo General');

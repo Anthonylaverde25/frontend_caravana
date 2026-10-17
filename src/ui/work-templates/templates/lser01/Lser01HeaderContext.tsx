@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 
+/**
+ * Header of the LSER-01 service start record. The batch is picked with a selector (never typed)
+ * and printed with its ID, so the scanned sheet points back at the exact batch.
+ */
 export interface Lser01PrintHeader {
+  lote_id: number | null;
   lote: string;
   toro_caravana: string;
   planned_start_date: string;
@@ -9,6 +14,7 @@ export interface Lser01PrintHeader {
 }
 
 const EMPTY_HEADER: Lser01PrintHeader = {
+  lote_id: null,
   lote: '',
   toro_caravana: '',
   planned_start_date: '',

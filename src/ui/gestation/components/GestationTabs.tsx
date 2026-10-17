@@ -13,8 +13,9 @@ function GestationTabs() {
   const getActiveTab = () => {
     const path = location.pathname;
     if (path.includes('/gestation/pre-service')) return 1;
+    // "Cargar tacto" lives under the order route but belongs to the diagnosis tray.
+    if (path.includes('/gestation/tacto') || path.endsWith('/bulk-tacto')) return 3;
     if (path.includes('/gestation/service-orders')) return 2;
-    if (path.includes('/gestation/tacto')) return 3;
     if (path.includes('/gestation/list')) return 4;
     // Exactly matches the main /gestation dashboard
     return 0;
@@ -99,12 +100,12 @@ function GestationTabs() {
         <Tab
           icon={<FuseSvgIcon size={18}>heroicons-outline:queue-list</FuseSvgIcon>}
           iconPosition="start"
-          label="Órdenes de Servicio"
+          label="Órdenes de servicio"
         />
         <Tab
           icon={<FuseSvgIcon size={18}>heroicons-outline:clipboard-document-check</FuseSvgIcon>}
           iconPosition="start"
-          label="Tactos y Ecografías"
+          label="Bandeja de tacto"
         />
         <Tab
           icon={<FuseSvgIcon size={18}>heroicons-outline:heart</FuseSvgIcon>}

@@ -40,12 +40,11 @@ src/
 ### A. Atomic & Modular Components (SRP)
 - **Monolithic components (> 200-250 lines) are strictly prohibited.**
 - Complex views, multi-step wizards, large tables, and dialogs must be decomposed into dedicated subcomponents under `src/ui/{domain}/components/{subfeature}/`.
-- Example canonical wizard decomposition:
-  - `CreateServiceBatchWizardDialog.tsx` (Thin Orchestrator: ~130 lines).
-  - `Step1Definition.tsx` (Form inputs & category constraints).
-  - `Step2FemaleRecruitment.tsx` (Multi-source filters & interactive female table).
-  - `Step3SireSelection.tsx` (Breeder selection & live bull ratio calculations).
-  - `Step4Summary.tsx` (Overview metric cards & atomic actions summary).
+- Example canonical wizard decomposition (`src/ui/batches/components/dialogs/`):
+  - `StartBatchServiceDialog.tsx` (Orchestrator: step index, selections, mutation, validation on click).
+  - `start-service/StartBatchFemalesStep.tsx` (Females of the batch; read-only under natural service).
+  - `start-service/StartBatchSiresStep.tsx` (Bull selection & live bull ratio calculations).
+  - `start-service/StartBatchParametersStep.tsx` (Service type, window and notes).
 
 ### B. Container / Presenter Pattern
 - **Parent Components (Orchestrators):** Manage open/close dialog state, active step index, centralized form state, TanStack Query mutations, and notification triggers.
@@ -71,6 +70,17 @@ All dialogs, forms, and control panels must strictly adhere to the unified visua
    - Primary Button (Right): `variant="contained"`, `sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', px: 3.5, fontWeight: 700, borderRadius: '6px', textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: 'primary.dark' } }}` (`Siguiente` / `Crear` / `Confirmar`).
 4. **Notifications:**
    - Use `useSnackbar` from `notistack` (`enqueueSnackbar(msg, { variant: 'success' | 'warning' | 'error' })`).
+5. **Data Tables (Spreadsheet Grid — canonical "Recibir y registrar caravanas", `FullReceptionGrid.tsx`):**
+   Every table that loads, selects or reviews records (bulk entry, animal selection, scanned-sheet review), above all inside the full-screen entries, uses this pattern; a plain MUI table is not acceptable. Live references: `FullReceptionGrid`, `BirthRollGrid`, `TactoEntrySheet`, `PregnantFemalesByBatchSelector`, `WeaningCalvesGrid`.
+   - Building blocks: always `src/components/sheet-grid/`; never copy its tokens.
+     - `useGridCellStyles()`: `cellSx` on every cell (right + bottom border), `inputSx` on inputs inside cells (borderless, 40px, focus and error drawn as an inset ring, disabled in grey), `headSx` for header cells, `indexSx` for the `#` / checkbox column, `textCellSx` for read-only values, `zebraBg` on even rows, `selectedBg` on selected rows, `errorRing` on a cell the server objected to.
+     - `SheetGrid` (frame: 1px divider border, `4px` radius, sticky header, `maxHeight` and `minWidth` so horizontal scroll stays inside), `SheetGridTagCell`, `SheetGridGroupRow`, `SheetGridStatusCell`, `SheetGridEmptyRow`.
+   - Header: a single row, sentence case (`Caravana`, `Peso (kg)`; never uppercase, never a two-level band). First column `#` (or the select-all checkbox), one column per field with its width, an empty last column (48px) for the row status.
+   - One value per cell; never stack several inputs in one cell. Cells that do not apply to the row (or that the order fixes) stay visible, disabled, in grey.
+   - Identification cell (`SheetGridTagCell`): ear tag in `monospace`, bold, `primary.main`; at most one `0.66rem` caption line below. Extra context goes in a small icon with tooltip, not in more lines.
+   - Grouping (e.g. by batch): `SheetGridGroupRow` — background `#eef2ef` (dark: `rgba(255, 255, 255, 0.06)`), its own checkbox, optional fold chevron, bold name and count.
+   - Row status (`SheetGridStatusCell`, last column): error (from the backend, on click, never live) → `exclamation-circle` red; warning → `exclamation-triangle` amber; info → `information-circle` grey; the message in the tooltip. With nothing to tell, it holds the row action (e.g. "Quitar fila"). The offending cell also gets the inset error ring.
+   - Above the grid: search field, `ToggleButtonGroup` filters showing their counts, and a selection bar (count chips + "Marcar visibles").
 
 ---
 

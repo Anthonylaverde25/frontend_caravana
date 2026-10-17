@@ -1,449 +1,258 @@
 import { useMemo, useState } from 'react';
-import {
-  Paper,
-  Typography,
-  Box,
-  Stack,
-  Chip,
-  IconButton,
-  Tooltip,
-  useTheme,
-  Button,
-  CircularProgress,
-  Avatar
-} from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ViewLayout from 'src/components/ViewLayout';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
-import DataTable from 'src/components/data-table/DataTable';
-import { MRT_ColumnDef } from 'material-react-table';
+import { useBatches } from '@/features/batches/hooks/useBatches';
+import { useServiceOrders } from '@/features/gestation/hooks/useServiceOrders';
+import ServiceOrderDetailDrawer from '@/ui/gestation/components/service-order-drawer/ServiceOrderDetailDrawer';
+import HerdCaravanDialogs from '@/ui/herd/components/shared/HerdCaravanDialogs';
+import HerdBatchListSkeleton from '@/ui/herd/components/list/HerdBatchListSkeleton';
+import { useHerdCaravanDialogs } from '@/ui/herd/hooks/useHerdCaravanDialogs';
+import { UNASSIGNED_BATCH } from '@/ui/herd/utils/herdFormat';
 import GestationKpiCards from '../components/dashboard/GestationKpiCards';
-import ReproductiveAlertsCell, { calvingOverdueCount } from '../components/monitoring/ReproductiveAlertsCell';
+import { isCalvingOverdue } from '../components/monitoring/ReproductiveAlertsCell';
+import GestationBatchRow from '../components/list/GestationBatchRow';
+import GestationFiltersBar from '../components/list/GestationFiltersBar';
+import {
+	getDaysLeft,
+	getRiskDetails,
+	type GestationBatchGroup,
+	type GestationListFilters
+} from '../components/list/gestationListUtils';
 
-// Helper to compute remaining days of pregnancy
-const getDaysLeft = (dueDateStr?: string | null) => {
-  if (!dueDateStr) return 0;
-  const dueDate = new Date(dueDateStr);
-  const today = new Date();
-  dueDate.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  const diffTime = dueDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays > 0 ? diffDays : 0;
+const INITIAL_FILTERS: GestationListFilters = {
+	search: '',
+	stage: 'ALL',
+	risk: 'ALL',
+	alertFilter: 'ALL'
 };
-
-// Helper to resolve risk based on category and days left
-const getRiskDetails = (category: string | null, daysLeft: number) => {
-  const catNormalized = (category || '').toLowerCase();
-  if (catNormalized.includes('vaquillona') || catNormalized.includes('vaquilla')) {
-    if (daysLeft <= 45) {
-      return { risk: 'High', label: 'Alto (1er Parto Temprano)' };
-    }
-    return { risk: 'Medium', label: 'Medio (Vaquillona)' };
-  }
-  if (daysLeft <= 30) {
-    return { risk: 'Medium', label: 'Medio (Parto Próximo)' };
-  }
-  return { risk: 'Low', label: 'Bajo' };
-};
-
-// Helper to get Spanish labels for gestation stages
-const getStageLabel = (stage?: string) => {
-  switch (stage) {
-    case 'head': return 'Cabeza';
-    case 'body': return 'Cuerpo';
-    case 'tail': return 'Cola';
-    default: return '-';
-  }
-};
-
 
 /**
  * GestationListView Component
- * Renders the list of batches and their pregnant caravans using an expanded Master-Detail DataTable.
+ * Renders the gestational monitoring batches and their pregnant females using the canonical
+ * expandable batch card pattern from /herd.
  */
 function GestationListView() {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const { activeCompanyId } = useCompany();
+	const navigate = useNavigate();
+	const { activeCompanyId } = useCompany();
+	const dialogs = useHerdCaravanDialogs();
+	const [filters, setFilters] = useState<GestationListFilters>(INITIAL_FILTERS);
+	const [openServiceOrderId, setOpenServiceOrderId] = useState<number | null>(null);
 
-  // Fetch caravans from active company
-  const { data: caravans = [], isLoading } = useCaravans(activeCompanyId);
+	const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId);
+	const { data: batches = [], isLoading: isLoadingBatches } = useBatches(undefined, undefined, 'own');
+	const { data: serviceOrders = [] } = useServiceOrders();
 
+	const ownBatches = useMemo(
+		() => (Array.isArray(batches) ? batches.filter((b) => b && b.provider_id == null) : []),
+		[batches]
+	);
 
+	const openServiceOrder = useMemo(
+		() => serviceOrders.find((o) => o.id === openServiceOrderId) ?? null,
+		[serviceOrders, openServiceOrderId]
+	);
 
-  // Filter only pregnant caravans
-  const gestatingCaravans = useMemo(() => {
-    return caravans.filter(c => c.active_gestation !== null);
-  }, [caravans]);
+	const allBatchGroups = useMemo<GestationBatchGroup[]>(() => {
+		const batchLookup = new Map(ownBatches.map((b) => [b.id, b]));
+		const groupsMap = new Map<string, GestationBatchGroup>();
 
-  // Group pregnant caravans by batch for the Master Table
-  const groupedBatches = useMemo(() => {
-    const batchesMap: Record<string, { id: string | number; name: string; caravans: typeof caravans }> = {};
-    
-    gestatingCaravans.forEach(caravan => {
-      const batchName = caravan.batch_name || 'SIN LOTE ASIGNADO';
-      if (!batchesMap[batchName]) {
-        batchesMap[batchName] = {
-          id: caravan.batch_id || batchName,
-          name: batchName,
-          caravans: []
-        };
-      }
-      batchesMap[batchName].caravans.push(caravan);
-    });
-    
-    return Object.values(batchesMap);
-  }, [gestatingCaravans]);
+		for (const caravan of caravans) {
+			if (!caravan.active_gestation) continue;
 
+			const hasBatch = caravan.batch_id !== null && caravan.batch_id > 0;
+			const key = hasBatch ? `batch-${caravan.batch_id}` : UNASSIGNED_BATCH;
 
+			if (!groupsMap.has(key)) {
+				const matchedBatch = hasBatch && caravan.batch_id ? (batchLookup.get(caravan.batch_id) ?? null) : null;
+				groupsMap.set(key, {
+					id: hasBatch && caravan.batch_id ? caravan.batch_id : UNASSIGNED_BATCH,
+					name: matchedBatch?.name ?? caravan.batch_name ?? 'Sin lote asignado',
+					isUnassigned: !hasBatch,
+					batch: matchedBatch,
+					caravans: []
+				});
+			}
 
-  // Common spreadsheet properties for Material React Table
-  const spreadsheetProps = useMemo(() => ({
-    enableColumnBorders: true,
-    enableRowBorders: true,
-    muiTableProps: {
-      sx: {
-        border: '1px solid',
-        borderColor: 'divider',
-      },
-    },
-    muiTableHeadCellProps: {
-      sx: {
-        borderRight: '1px solid',
-        borderBottom: '2px solid',
-        borderColor: 'divider',
-        backgroundColor: 'action.hover',
-        fontWeight: 800,
-        fontSize: '0.75rem',
-        p: '6px 8px',
-      },
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        borderRight: '1px solid',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        fontSize: '0.75rem',
-        p: '6px 8px',
-      },
-    },
-  }), []);
+			groupsMap.get(key)!.caravans.push(caravan);
+		}
 
-  // Columns for the Batch Rows (Master Level)
-  const batchColumns = useMemo<MRT_ColumnDef<any>[]>(() => [
-    {
-      accessorKey: 'name',
-      header: 'Lote / Grupo',
-      size: 300,
-      Cell: ({ cell, row }: any) => (
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Avatar 
-            sx={{ 
-              bgcolor: (theme) => theme.palette.primary.main, 
-              width: 36, 
-              height: 36, 
-              fontSize: '0.875rem', 
-              fontWeight: 800,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-          >
-            {(cell.getValue() as string).substring(0, 2).toUpperCase()}
-          </Avatar>
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary', lineHeight: 1.2 }}>
-              {cell.getValue() as string}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
-              {row.original.caravans.length} Vientres gestantes
-            </Typography>
-            {calvingOverdueCount(row.original.caravans) > 0 && (
-              <Typography variant="caption" sx={{ color: 'warning.dark', fontWeight: 800, display: 'block' }}>
-                {calvingOverdueCount(row.original.caravans)} con parto vencido
-              </Typography>
-            )}
-          </Box>
-        </Stack>
-      )
-    },
-    {
-      header: 'Categoría Predominante',
-      size: 200,
-      accessorFn: (row: any) => row.caravans[0]?.category || '-',
-      Cell: ({ cell }: any) => (
-        <Chip 
-          label={cell.getValue() || '-'} 
-          size="small" 
-          variant="outlined"
-          sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase' }}
-        />
-      )
-    }
-  ], []);
+		const assigned: GestationBatchGroup[] = [];
+		let unassigned: GestationBatchGroup | null = null;
+		groupsMap.forEach((group) => {
+			if (group.isUnassigned) unassigned = group;
+			else assigned.push(group);
+		});
 
-  // Columns for the Caravans (Detail Level)
-  const caravanColumns = useMemo<MRT_ColumnDef<any>[]>(() => [
-    {
-      accessorKey: 'identification',
-      header: 'Caravana',
-      size: 150,
-      Cell: ({ cell }) => (
-        <Typography variant="body2" sx={{ fontWeight: 700, color: '#0a6ed1', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-          {cell.getValue() as string}
-        </Typography>
-      ),
-    },
-    {
-      accessorKey: 'category',
-      header: 'Categoría',
-      size: 140,
-      Cell: ({ cell }) => (
-        <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-          {(cell.getValue() as string) || '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'gestation_stage',
-      header: 'Estadio Preñez',
-      size: 140,
-      accessorFn: (row) => row.active_gestation?.gestation_stage,
-      muiTableHeadCellProps: { align: 'center' },
-      muiTableBodyCellProps: { align: 'center' },
-      Cell: ({ cell }) => {
-        const stage = cell.getValue() as string;
-        if (!stage) return '-';
-        return (
-          <Chip
-            label={getStageLabel(stage)}
-            size="small"
-            sx={{
-              fontWeight: 700,
-              height: 18,
-              fontSize: '0.65rem',
-              bgcolor:
-                stage === 'head'
-                  ? 'rgba(16, 185, 129, 0.1)'
-                  : stage === 'body'
-                  ? 'rgba(245, 158, 11, 0.1)'
-                  : 'rgba(239, 68, 68, 0.1)',
-              color:
-                stage === 'head'
-                  ? '#10b981'
-                  : stage === 'body'
-                  ? '#f59e0b'
-                  : '#ef4444',
-              border: 1,
-              borderColor:
-                stage === 'head'
-                  ? 'rgba(16, 185, 129, 0.2)'
-                  : stage === 'body'
-                  ? 'rgba(245, 158, 11, 0.2)'
-                  : 'rgba(239, 68, 68, 0.2)'
-            }}
-          />
-        );
-      },
-    },
-    {
-      id: 'estimated_due_date',
-      header: 'Parto Estimado (FPP)',
-      size: 150,
-      accessorFn: (row) => row.active_gestation?.estimated_due_date,
-      muiTableHeadCellProps: { align: 'center' },
-      muiTableBodyCellProps: { align: 'center' },
-      Cell: ({ cell }) => (
-        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.75rem' }}>
-          {(cell.getValue() as string) || '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'days_left',
-      header: 'Restante',
-      size: 100,
-      accessorFn: (row) => getDaysLeft(row.active_gestation?.estimated_due_date),
-      muiTableHeadCellProps: { align: 'right' },
-      muiTableBodyCellProps: { align: 'right' },
-      Cell: ({ cell }) => (
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
-          {cell.getValue() as number} d
-        </Typography>
-      ),
-    },
-    {
-      id: 'reproductive_alerts',
-      header: 'Alertas / Antecedentes',
-      size: 260,
-      accessorFn: (row) => (row.active_gestation?.calving_overdue_reported_at ? 1 : 0) + (row.stillborn_count ?? 0),
-      Cell: ({ row }) => <ReproductiveAlertsCell caravan={row.original} />,
-    },
-    {
-      id: 'risk',
-      header: 'Riesgo',
-      size: 140,
-      accessorFn: (row) => {
-        const daysLeft = getDaysLeft(row.active_gestation?.estimated_due_date);
-        return getRiskDetails(row.category, daysLeft).label;
-      },
-      Cell: ({ row }) => {
-        const daysLeft = getDaysLeft(row.original.active_gestation?.estimated_due_date);
-        const riskInfo = getRiskDetails(row.original.category, daysLeft);
-        return (
-          <Chip
-            label={riskInfo.label}
-            size="small"
-            variant="outlined"
-            sx={{
-              fontWeight: 700,
-              height: 18,
-              fontSize: '0.65rem',
-              color: riskInfo.risk === 'High' ? 'error.main' : riskInfo.risk === 'Medium' ? 'warning.main' : 'success.main',
-              borderColor: riskInfo.risk === 'High' ? 'error.light' : riskInfo.risk === 'Medium' ? 'warning.light' : 'success.light',
-              bgcolor: riskInfo.risk === 'High' ? 'rgba(239, 68, 68, 0.05)' : riskInfo.risk === 'Medium' ? 'rgba(245, 158, 11, 0.05)' : 'rgba(16, 185, 129, 0.05)',
-              borderRadius: '2px'
-            }}
-          />
-        );
-      },
-    },
-  ], []);
+		return unassigned ? [...assigned, unassigned] : assigned;
+	}, [caravans, ownBatches]);
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: 2 }}>
-        <CircularProgress />
-        <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600 }}>
-          Cargando listado gestacional...
-        </Typography>
-      </Box>
-    );
-  }
+	const activeFiltersCount = useMemo(
+		() =>
+			(filters.search.trim().length > 0 ? 1 : 0) +
+			(filters.stage !== 'ALL' ? 1 : 0) +
+			(filters.risk !== 'ALL' ? 1 : 0) +
+			(filters.alertFilter !== 'ALL' ? 1 : 0),
+		[filters]
+	);
 
-  return (
-    <ViewLayout
-      title="Monitoreo Gestacional por Lotes"
-      subtitle="Listado completo y detallado de vientres en proceso de gestación activo organizados por lote."
-      actions={
-        <Button
-          variant="text"
-          startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-left</FuseSvgIcon>}
-          onClick={() => navigate('/gestation')}
-          sx={{ textTransform: 'none', fontWeight: 700 }}
-        >
-          Volver al Dashboard
-        </Button>
-      }
-    >
-      <GestationKpiCards caravans={caravans} />
-      <Stack spacing={3}>
+	const filteredGroups = useMemo<GestationBatchGroup[]>(() => {
+		const query = filters.search.trim().toLowerCase();
 
+		return allBatchGroups
+			.map((group) => {
+				const batchNameMatches = query.length > 0 && group.name.toLowerCase().includes(query);
+				const matchingCaravans = group.caravans.filter((caravan) => {
+					if (query.length > 0 && !batchNameMatches) {
+						const idMatch = caravan.identification.toLowerCase().includes(query);
+						const catMatch = (caravan.category_name ?? caravan.category ?? '').toLowerCase().includes(query);
+						if (!idMatch && !catMatch) return false;
+					}
+					if (filters.stage !== 'ALL' && caravan.active_gestation?.gestation_stage !== filters.stage) {
+						return false;
+					}
+					const daysLeft = getDaysLeft(caravan.active_gestation?.estimated_due_date);
+					if (
+						filters.risk !== 'ALL' &&
+						getRiskDetails(caravan.category_name ?? caravan.category, daysLeft).risk !== filters.risk
+					) {
+						return false;
+					}
+					if (filters.alertFilter === 'IMMINENT' && (daysLeft === null || daysLeft > 45)) return false;
+					if (filters.alertFilter === 'OVERDUE' && !isCalvingOverdue(caravan)) return false;
+					return true;
+				});
+				return { ...group, caravans: matchingCaravans };
+			})
+			.filter((group) => group.caravans.length > 0);
+	}, [allBatchGroups, filters]);
 
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            Listado de Animales Agrupados por Lote
-          </Typography>
-        </Stack>
+	const selectedCaravanId = dialogs.viewing?.id ?? null;
 
-        {/* Detailed Worklist Table using Master-Detail DataTable */}
-        <Paper
-          elevation={0}
-          sx={{
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: '4px',
-            overflow: 'hidden',
-            bgcolor: 'background.paper',
-          }}
-        >
-          <DataTable
-            columns={batchColumns}
-            data={groupedBatches}
-            enableExpanding={true}
-            enableTopToolbar={false}
-            enableBottomToolbar={true}
-            enableRowActions={false}
-            enableRowSelection={false}
-            initialState={{
-              density: 'compact',
-              expanded: true,
-              pagination: { pageSize: 15, pageIndex: 0 }
-            }}
-            renderDetailPanel={({ row }) => (
-              <Box
-                sx={{
-                  display: 'grid',
-                  width: '100%',
-                  px: 1,
-                  py: 3,
-                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
-                  borderTop: '1px solid',
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 700, display: 'block' }}>
-                    Detalle de Vientres en Lote: {row.original.name} ({row.original.caravans.length})
-                  </Typography>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="primary"
-                      startIcon={<FuseSvgIcon size={16}>heroicons-outline:clipboard-document-list</FuseSvgIcon>}
-                      onClick={() => navigate(`/birth-orders/new?batchId=${row.original.id}`)}
-                      sx={{ textTransform: 'none', py: 0.5, px: 1.5, fontSize: '0.75rem', borderRadius: '4px', color: '#fff', fontWeight: 700 }}
-                    >
-                      Nueva Orden de Parición
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="primary"
-                      startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus-circle</FuseSvgIcon>}
-                      onClick={() => navigate(`/birth-orders/register?batchId=${row.original.id}`)}
-                      sx={{ textTransform: 'none', py: 0.5, px: 1.5, fontSize: '0.75rem', borderRadius: '4px', color: '#fff', fontWeight: 700 }}
-                    >
-                      Registrar Partos
-                    </Button>
-                  </Stack>
-                </Box>
+	return (
+		<ViewLayout
+			title="Monitoreo Gestacional por Lotes"
+			subtitle="Tus lotes con vientres gestantes y sus próximos partos en un solo lugar. Expandí un lote para revisar su estado obstétrico."
+			actions={
+				<Button
+					variant="text"
+					startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-left</FuseSvgIcon>}
+					onClick={() => navigate('/gestation')}
+					sx={{ textTransform: 'none', fontWeight: 700, color: 'primary.main' }}
+				>
+					Volver al Dashboard
+				</Button>
+			}
+		>
+			<GestationKpiCards caravans={caravans} />
 
-                <DataTable
-                  columns={caravanColumns}
-                  data={row.original.caravans}
-                  enableTopToolbar={false}
-                  enableBottomToolbar={false}
-                  enableRowActions={true}
-                  enableRowSelection={false}
-                  renderRowActions={({ row: caravanRow }) => (
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <Tooltip title="Ver Ficha / Editar">
-                        <IconButton size="small" color="primary" sx={{ p: 0.25 }}>
-                          <FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  )}
-                  initialState={{
-                    density: 'compact'
-                  }}
-                  {...spreadsheetProps}
-                />
-              </Box>
-            )}
-            {...spreadsheetProps}
-          />
-        </Paper>
-      </Stack>
+			<Box component="main">
+				<Paper
+					elevation={0}
+					sx={{ borderRadius: '8px', border: 1, borderColor: 'divider', overflow: 'hidden' }}
+				>
+					{isLoadingCaravans && isLoadingBatches ? (
+						<HerdBatchListSkeleton />
+					) : (
+						<Box sx={{ width: '100%' }}>
+							<GestationFiltersBar
+								filters={filters}
+								activeFiltersCount={activeFiltersCount}
+								onSearchChange={(search) => setFilters((prev) => ({ ...prev, search }))}
+								onStageChange={(stage) => setFilters((prev) => ({ ...prev, stage }))}
+								onRiskChange={(risk) => setFilters((prev) => ({ ...prev, risk }))}
+								onAlertFilterChange={(alertFilter) => setFilters((prev) => ({ ...prev, alertFilter }))}
+								onResetFilters={() => setFilters(INITIAL_FILTERS)}
+							/>
 
+							<Box sx={{ p: { xs: 2, md: 3 }, bgcolor: 'background.default' }}>
+								{filteredGroups.length > 0 ? (
+									<Stack spacing={1.5}>
+										<Typography
+											variant="caption"
+											sx={{ color: 'text.secondary', textAlign: 'right' }}
+										>
+											{`${filteredGroups.length} de ${allBatchGroups.length} lotes con gestación`}
+											{activeFiltersCount > 0 &&
+												` · ${activeFiltersCount} filtro${activeFiltersCount > 1 ? 's' : ''} aplicado${activeFiltersCount > 1 ? 's' : ''}`}
+										</Typography>
+										{filteredGroups.map((group, index) => (
+											<GestationBatchRow
+												key={String(group.id)}
+												group={group}
+												defaultExpanded={index === 0}
+												selectedCaravanId={selectedCaravanId}
+												onViewCaravan={dialogs.openView}
+												onEditCaravan={dialogs.openEdit}
+												onWeighCaravan={dialogs.openWeigh}
+												onOpenServiceOrder={setOpenServiceOrderId}
+											/>
+										))}
+									</Stack>
+								) : (
+									<Paper
+										elevation={0}
+										sx={{
+											p: 5,
+											textAlign: 'center',
+											borderRadius: '10px',
+											border: 1,
+											borderColor: 'divider',
+											bgcolor: 'background.paper'
+										}}
+									>
+										<Typography
+											variant="subtitle1"
+											sx={{ fontWeight: 700 }}
+										>
+											{activeFiltersCount > 0
+												? 'No se encontraron vientres gestantes con los filtros seleccionados'
+												: 'No hay vientres en gestación activa registrados'}
+										</Typography>
+										<Typography
+											variant="body2"
+											color="text.secondary"
+											sx={{ mt: 0.5 }}
+										>
+											{activeFiltersCount > 0
+												? 'Probá limpiar los filtros para ver todos los lotes con preñeces activas.'
+												: 'Los lotes aparecerán aquí automáticamente cuando se registren diagnósticos de preñez.'}
+										</Typography>
+										{activeFiltersCount > 0 && (
+											<Button
+												variant="outlined"
+												size="small"
+												onClick={() => setFilters(INITIAL_FILTERS)}
+												sx={{ mt: 2, textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}
+											>
+												Limpiar filtros
+											</Button>
+										)}
+									</Paper>
+								)}
+							</Box>
+						</Box>
+					)}
+				</Paper>
+			</Box>
 
-    </ViewLayout>
-  );
+			<HerdCaravanDialogs
+				dialogs={dialogs}
+				ownBatches={ownBatches}
+			/>
+			<ServiceOrderDetailDrawer
+				open={openServiceOrder !== null}
+				onClose={() => setOpenServiceOrderId(null)}
+				order={openServiceOrder}
+				caravans={caravans}
+				batches={ownBatches}
+				onNavigateToServiceOrders={() => navigate('/gestation/service-orders')}
+			/>
+		</ViewLayout>
+	);
 }
 
 export default GestationListView;

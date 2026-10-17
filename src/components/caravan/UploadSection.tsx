@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
+import { useState, useRef, useCallback, useMemo, type DragEvent, type ChangeEvent } from 'react';
+import { useSearchParams } from 'react-router';
 import {
   Box,
   Typography,
@@ -29,10 +30,11 @@ import { MOCK_AZURE_RESPONSE } from './upload-section/MockAzureData';
 import { REALISTIC_CARAVAN_MOCK, UPDATE_CARAVANS_MOCK } from './upload-section/RealisticMockData';
 
 // Atomized Components & Types
-import { UploadResponse, UploadStatus } from './upload-section/types';
+import { DocumentContext, UploadResponse, UploadStatus } from './upload-section/types';
 import ResultsPanel from './upload-section/ResultsPanel';
 import IntegrationCards from './upload-section/IntegrationCards';
 import AnalysisSidebar from './upload-section/AnalysisSidebar';
+import Rep01SimulationMenu from './upload-section/Rep01SimulationMenu';
 
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/tiff', 'application/pdf'];
 const ACCEPTED_EXTENSIONS = '.pdf,.png,.jpg,.jpeg,.tiff';
@@ -78,6 +80,18 @@ const UploadSection = () => {
   const [workdayType, setWorkdayType] = useState('entry');
   const [emptyDestinationBatchId, setEmptyDestinationBatchId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // ?orderId: the sheet comes from "Cerrar orden" of that service order (REP-01).
+  const [searchParams] = useSearchParams();
+  const presetServiceOrderId = Number(searchParams.get('orderId')) || null;
+
+  const context = useMemo<DocumentContext | undefined>(() => {
+    if (!result) return undefined;
+    if (!presetServiceOrderId || result.context?.service_order_id) return result.context;
+    return { ...(result.context ?? ({} as DocumentContext)), service_order_id: presetServiceOrderId };
+  }, [result, presetServiceOrderId]);
+
+  const updateContext = (fields: Partial<DocumentContext>) =>
+    setResult((prev) => (prev ? { ...prev, context: { ...(prev.context ?? ({} as DocumentContext)), ...fields } } : prev));
 
   const { openPicker, disconnect, isConnected, isDriveLoading, driveError } = useGoogleDrive((file) => {
     handleFile(file);
@@ -186,7 +200,8 @@ const UploadSection = () => {
               suggestedWorkdayCode={result.suggested_workday_code} 
               workdayType={workdayType}
               setWorkdayType={setWorkdayType}
-              context={result.context}
+              context={context}
+              onUpdateContext={updateContext}
               templateCode={result.identified_template?.code}
               emptyDestinationBatchId={emptyDestinationBatchId}
               setEmptyDestinationBatchId={setEmptyDestinationBatchId}
@@ -197,7 +212,7 @@ const UploadSection = () => {
           <Box sx={{ flex: '1 1 75%', minWidth: 0, order: { xs: 1, lg: 2 } }}>
             <ResultsPanel 
               data={result.data} 
-              context={result.context}
+              context={context}
               ocrProvider={ocrProvider} 
               workdayType={workdayType}
               suggestedWorkdayCode={result.suggested_workday_code}
@@ -268,6 +283,14 @@ const UploadSection = () => {
                       <Button variant="outlined" color="warning" onClick={(e) => { e.stopPropagation(); handleUpdateMockTest(); }} sx={{ textTransform: 'none' }} startIcon={<CloudUploadIcon />}>
                         Load Update (Exit Weights)
                       </Button>
+                      <Rep01SimulationMenu
+                        onLoad={(response, fileName) => {
+                          resetState();
+                          setStatus('success');
+                          setResult(response);
+                          setSelectedFile({ name: fileName, size: 0 } as File);
+                        }}
+                      />
                     </Box>
                   )}
                 </>

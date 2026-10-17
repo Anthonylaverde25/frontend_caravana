@@ -10,7 +10,7 @@ import { useOpenBirthOrderMothers } from '@/features/birth-orders/hooks/useBirth
 import { filledInputProps, sectionTitleSx } from '@/ui/weaning-orders/components/form/formStyles';
 import PregnantFemalesByBatchSelector from './PregnantFemalesByBatchSelector';
 import { usePregnantFemalesByBatch } from './usePregnantFemalesByBatch';
-import { BirthFormMode, BirthOrderHeader, BirthOrderStart, emptyBirthHeader } from './birthOrderStart';
+import { BirthOrderHeader, BirthOrderStart, emptyBirthHeader } from './birthOrderStart';
 
 /** The slide-up of the Material UI full-screen dialog. */
 const SlideUp = forwardRef(function SlideUp(props: TransitionProps & { children: React.ReactElement }, ref: React.Ref<unknown>) {
@@ -19,7 +19,6 @@ const SlideUp = forwardRef(function SlideUp(props: TransitionProps & { children:
 
 interface BirthOrderStartDialogProps {
   open: boolean;
-  mode: BirthFormMode;
   /** What was already declared: a batch chosen in Monitoreo Gestacional, or the order coming back from its confirmation. */
   initial?: BirthOrderStart | null;
   onClose: () => void;
@@ -29,11 +28,11 @@ interface BirthOrderStartDialogProps {
 const NO_IDS: number[] = [];
 
 /**
- * "Nueva orden de parición" / "Registrar partos" (`/birth-orders/new`, `/birth-orders/register`):
- * which pregnant females, chosen by batch, and — for an order — the calving window and who walks the
- * rounds. There is no destination to choose: each calf is born in its mother's batch.
+ * "Nueva orden de parición" (`/birth-orders/new`): which pregnant females, chosen by batch, the
+ * calving window and who walks the rounds. There is no destination to choose: each calf is born in
+ * its mother's batch. Calvings that already happened are registered in "Registrar partos".
  */
-export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ open, mode, initial, onClose, onExited }) => {
+export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ open, initial, onClose, onExited }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings: contrast } = useContrastTheme();
@@ -84,7 +83,7 @@ export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ op
     navigate(confirm, { state: start });
   };
 
-  const title = mode === 'register' ? 'Registrar partos' : initial?.orderId ? `Editar borrador ${initial.orderCode ?? ''}`.trim() : 'Nueva orden de parición';
+  const title = initial?.orderId ? `Editar borrador ${initial.orderCode ?? ''}`.trim() : 'Nueva orden de parición';
 
   return (
     <Dialog
@@ -105,9 +104,7 @@ export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ op
               {title}
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.8, display: { xs: 'none', md: 'block' } }} noWrap>
-              {mode === 'register'
-                ? 'Qué vientres parieron o perdieron la preñez. Después se carga vientre por vientre.'
-                : 'Qué vientres se esperan parir y en qué período. La planilla PAR-01 se cumple en las recorridas.'}
+              Qué vientres se esperan parir y en qué período. La planilla PAR-01 se cumple en las recorridas.
             </Typography>
           </Box>
           <Button color="inherit" onClick={onClose} sx={{ textTransform: 'none', fontWeight: 600, display: { xs: 'none', sm: 'inline-flex' } }}>
@@ -156,32 +153,30 @@ export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ op
           </Paper>
 
           <Paper variant="outlined" sx={{ p: 2, borderRadius: '8px' }}>
-            <Typography sx={sectionTitleSx}>2. {mode === 'register' ? 'Quién' : 'Cuándo y quién'}</Typography>
+            <Typography sx={sectionTitleSx}>2. Cuándo y quién</Typography>
             <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-              {mode === 'order' && (
-                <Stack direction="row" spacing={1.5}>
-                  <TextField
-                    label="Período desde"
-                    type="date"
-                    variant="filled"
-                    value={header.periodStart}
-                    onChange={(e) => setField('periodStart', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={filledInputProps}
-                    sx={{ flex: 1 }}
-                  />
-                  <TextField
-                    label="Período hasta"
-                    type="date"
-                    variant="filled"
-                    value={header.periodEnd}
-                    onChange={(e) => setField('periodEnd', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={filledInputProps}
-                    sx={{ flex: 1 }}
-                  />
-                </Stack>
-              )}
+              <Stack direction="row" spacing={1.5}>
+                <TextField
+                  label="Período desde"
+                  type="date"
+                  variant="filled"
+                  value={header.periodStart}
+                  onChange={(e) => setField('periodStart', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={filledInputProps}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Período hasta"
+                  type="date"
+                  variant="filled"
+                  value={header.periodEnd}
+                  onChange={(e) => setField('periodEnd', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={filledInputProps}
+                  sx={{ flex: 1 }}
+                />
+              </Stack>
               <TextField
                 label="Responsable de las recorridas"
                 variant="filled"

@@ -63,7 +63,7 @@ export const Lser01RepairDialog: React.FC<Lser01RepairDialogProps> = ({
 
   const rowProblems = Object.keys(repair.rowErrorsById).length;
   const pendingRows = Object.keys(repair.rowErrorsById).filter((key) => !repair.editedRowIds.has(key)).length;
-  const generalErrors = repair.headerErrors.filter((e) => !['lote', 'toro_caravana', 'planned_start_date', 'planned_end_date'].includes(e.field));
+  const generalErrors = repair.headerErrors.filter((e) => !['batch_id', 'toro_caravana', 'planned_start_date', 'planned_end_date'].includes(e.field));
 
   return (
     <Dialog open={open} fullScreen onClose={onBack}>
@@ -77,7 +77,7 @@ export const Lser01RepairDialog: React.FC<Lser01RepairDialogProps> = ({
               Reparar planilla LSER-01
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.85 }}>
-              La carga está bloqueada: no se guardó ningún lote, orden ni movimiento.
+              La carga está bloqueada: no se inició el servicio ni se movió ningún toro.
             </Typography>
           </Box>
           <ScanIssuesChip templateCode="LSER-01" issues={issues} onDark />

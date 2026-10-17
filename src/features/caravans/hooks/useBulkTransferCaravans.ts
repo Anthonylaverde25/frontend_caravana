@@ -53,6 +53,8 @@ export function useBulkTransferCaravans() {
       queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
       queryClient.invalidateQueries({ queryKey: ['caravan-movements'] });
       queryClient.invalidateQueries({ queryKey: ['activities'] });
+      // A female entering or leaving a service batch opens or closes her exposure to its bulls.
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
       toast.success(`Se transfirieron ${data.transferred_count} animales a "${data.target_batch_name}" correctamente`);
     },
     onError: (error: any) => {

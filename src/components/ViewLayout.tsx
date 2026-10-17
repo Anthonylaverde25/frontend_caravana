@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import FusePageSimple from '@fuse/core/FusePageSimple';
 import { styled } from '@mui/material/styles';
 import { Box } from '@mui/material';
+import clsx from 'clsx';
 import ViewHeader from './ViewHeader';
 
 const Root = styled(FusePageSimple)(({ theme }) => ({
@@ -33,10 +34,19 @@ const Root = styled(FusePageSimple)(({ theme }) => ({
       flex: '1 1 auto',
     },
   },
+  '&.FusePageSimple-scroll-content .FusePageSimple-content': {
+    height: '100%',
+    minHeight: 0,
+    overflow: 'hidden',
+    '& > .container': {
+      height: '100%',
+      minHeight: 0,
+    },
+  },
 }));
 
 interface ViewLayoutProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   actions?: ReactNode;
   children: ReactNode;
@@ -45,6 +55,8 @@ interface ViewLayoutProps {
   backUrl?: string;
   showBackButton?: boolean;
   backTitle?: string;
+  scroll?: 'page' | 'content';
+  showHeader?: boolean;
 }
 
 /**
@@ -52,7 +64,7 @@ interface ViewLayoutProps {
  * A clean, minimalist layout wrapper for consistent full-width views with a standardized header.
  */
 export function ViewLayout({
-  title,
+  title = '',
   subtitle,
   actions,
   children,
@@ -61,21 +73,26 @@ export function ViewLayout({
   backUrl,
   showBackButton,
   backTitle,
+  scroll = 'page',
+  showHeader = true,
 }: ViewLayoutProps) {
   return (
     <Root
+      scroll={scroll}
       header={
-        <ViewHeader
-          title={title}
-          subtitle={subtitle}
-          actions={actions}
-          className={headerClassName}
-          backUrl={backUrl}
-          showBackButton={showBackButton}
-          backTitle={backTitle}
-        />
+        showHeader ? (
+          <ViewHeader
+            title={title}
+            subtitle={subtitle}
+            actions={actions}
+            className={headerClassName}
+            backUrl={backUrl}
+            showBackButton={showBackButton}
+            backTitle={backTitle}
+          />
+        ) : undefined
       }
-      content={<Box className={className}>{children}</Box>}
+      content={<Box className={clsx('flex flex-col flex-1 min-h-0', className)}>{children}</Box>}
     />
   );
 }
