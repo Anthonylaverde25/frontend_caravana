@@ -142,7 +142,7 @@ export const FarmsCardsView = ({ farms }: FarmsCardsViewProps) => {
             <Stack direction="row" spacing={3}>
                <Box>
                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, display: 'block', fontSize: '0.65rem' }}>RENSPA</Typography>
-                 <Typography variant="body2" sx={{ fontWeight: 750, color: 'text.primary', fontSize: '0.85rem' }}>{farm.renspa || 'N/A'}</Typography>
+                 <Typography variant="body2" sx={{ fontWeight: 750, color: 'text.primary', fontSize: '0.85rem' }}>{farm.renspa || 'Sin RENSPA'}</Typography>
                </Box>
                <Box>
                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, display: 'block', fontSize: '0.65rem' }}>CARAVANAS</Typography>

@@ -10,6 +10,7 @@ import SupplierSelectionBanner from './SupplierSelectionBanner';
 import SupplierGroupCard from './SupplierGroupCard';
 import SupplierFlatTable from './SupplierFlatTable';
 import AddFarmDialog from './AddFarmDialog';
+import SupplierRolesDialog, { SupplierRolesTarget } from './SupplierRolesDialog';
 
 /**
  * SuppliersTable Component
@@ -34,6 +35,7 @@ export function SuppliersTable() {
 	// Dialog States
 	const [isAddFarmDialogOpen, setIsAddFarmDialogOpen] = useState(false);
 	const [activeSupplierId, setActiveSupplierId] = useState<number | undefined>();
+	const [rolesTarget, setRolesTarget] = useState<SupplierRolesTarget | null>(null);
 
 	// Reset pagination on filter change
 	useEffect(() => {
@@ -223,6 +225,7 @@ export function SuppliersTable() {
 					onToggleAllPage={handleToggleAllPage}
 					onAddFarm={handleOpenAddFarm}
 					onViewDetails={handleViewDetails}
+					onEditRoles={setRolesTarget}
 				/>
 			)}
 
@@ -232,6 +235,8 @@ export function SuppliersTable() {
 				onClose={() => setIsAddFarmDialogOpen(false)}
 				onAdd={handleAddFarm}
 			/>
+
+			<SupplierRolesDialog supplier={rolesTarget} onClose={() => setRolesTarget(null)} />
 		</Box>
 	);
 }

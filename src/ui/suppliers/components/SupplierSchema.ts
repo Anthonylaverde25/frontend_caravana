@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const farmSchema = z.object({
   name: z.string().min(1, 'El nombre del establecimiento es requerido'),
-  renspa: z.string().min(1, 'El RENSPA es requerido'),
+  renspa: z.string().optional().default(''),
   country: z.string().min(1, 'El país es requerido'),
   province: z.string().optional(),
   city: z.string().min(1, 'La ciudad es requerida'),
@@ -22,6 +22,16 @@ export const supplierSchema = z.object({
   location: z.string().optional().nullable(),
   email: z.string().email('Email inválido').optional().nullable().or(z.literal('')),
   phone: z.string().optional().nullable(),
+  // A nested object, so its rule is checked on the same click as the other fields (a refine on
+  // the whole form would only run once every other field is valid).
+  roles: z
+    .object({
+      supplies_livestock: z.boolean(),
+      supplies_items: z.boolean(),
+    })
+    .refine((roles) => roles.supplies_livestock || roles.supplies_items, {
+      message: 'Marcá al menos qué vende: hacienda, o artículos y servicios.',
+    }),
   farms: z.array(farmSchema).optional().default([]),
 });
 

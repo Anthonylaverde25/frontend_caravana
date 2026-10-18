@@ -71,6 +71,8 @@ export interface BatchDTO {
   total_weight?: number | null;
   /** Head with a current weight: the set the average is computed over. */
   weighed_count?: number | null;
+  /** The batch's RENSPA: its provider farm's when external, the company's when own. */
+  renspa?: string | null;
   incoming_entry_orders?: BatchIncomingEntryOrder[];
   observaciones?: string;
   is_active: boolean;
@@ -138,7 +140,8 @@ export class Batch {
     public readonly pending_identification_count = 0,
     public readonly incoming_entry_orders: BatchIncomingEntryOrder[] = [],
     public readonly total_weight: number | null = null,
-    public readonly weighed_count: number | null = null
+    public readonly weighed_count: number | null = null,
+    public readonly renspa: string | null = null
   ) {}
 
   public static create(dto: BatchDTO): Batch {
@@ -178,7 +181,8 @@ export class Batch {
       dto.pending_identification_count ?? 0,
       dto.incoming_entry_orders ?? [],
       dto.total_weight ?? null,
-      dto.weighed_count ?? null
+      dto.weighed_count ?? null,
+      dto.renspa && dto.renspa !== 'NO_DEFINIDO' ? dto.renspa : null
     );
   }
 

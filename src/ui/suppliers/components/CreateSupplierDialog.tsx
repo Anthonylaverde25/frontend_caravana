@@ -18,11 +18,14 @@ import { supplierSchema, SupplierFormValues } from './SupplierSchema';
 import AddFarmDialog from './AddFarmDialog';
 import SupplierGeneralFields from './create/SupplierGeneralFields';
 import SupplierFarmsList from './create/SupplierFarmsList';
+import SupplierRoleFields from './create/SupplierRoleFields';
 
 interface CreateSupplierDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: (createdSupplier?: any) => void;
+  /** What the new provider sells by default, e.g. "items" when opened from an item's providers. */
+  defaultRoles?: { supplies_livestock: boolean; supplies_items: boolean };
 }
 
 /**
@@ -30,7 +33,7 @@ interface CreateSupplierDialogProps {
  * Canonical modal for registering new livestock providers and associated establishments.
  * Adheres strictly to CreateBatchDialog design tokens and container/presenter architecture.
  */
-function CreateSupplierDialog({ open, onClose, onSuccess }: CreateSupplierDialogProps) {
+function CreateSupplierDialog({ open, onClose, onSuccess, defaultRoles }: CreateSupplierDialogProps) {
   const [isFarmDialogOpen, setIsFarmDialogOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const { mutate, isPending } = useCreateSupplier();
@@ -50,6 +53,7 @@ function CreateSupplierDialog({ open, onClose, onSuccess }: CreateSupplierDialog
       location: '',
       email: '',
       phone: '',
+      roles: defaultRoles ?? { supplies_livestock: true, supplies_items: false },
       farms: []
     }
   });
@@ -67,9 +71,11 @@ function CreateSupplierDialog({ open, onClose, onSuccess }: CreateSupplierDialog
       location: data.location?.trim() || null,
       email: data.email?.trim() || null,
       phone: data.phone?.trim() || null,
+      supplies_livestock: data.roles.supplies_livestock,
+      supplies_items: data.roles.supplies_items,
       farms: (data.farms || []).map((farm) => ({
         name: farm.name.trim(),
-        renspa: farm.renspa.trim(),
+        renspa: farm.renspa?.trim() || null,
         location: [farm.city, farm.province, farm.country].filter(Boolean).join(', ')
       }))
     };
@@ -131,6 +137,7 @@ function CreateSupplierDialog({ open, onClose, onSuccess }: CreateSupplierDialog
         <DialogContent sx={{ p: 3, bgcolor: 'background.paper' }}>
           <Stack spacing={4}>
             <SupplierGeneralFields register={register} errors={errors} />
+            <SupplierRoleFields control={control} errors={errors} />
             <SupplierFarmsList
               farms={fields}
               onRemove={remove}

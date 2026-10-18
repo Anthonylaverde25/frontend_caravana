@@ -3,7 +3,8 @@ import { Batch } from '@/core/batches/domain/entities/Batch';
 export interface FarmDTO {
   id?: number;
   name: string;
-  renspa: string;
+  /** Optional: a provider's farm may be loaded before its RENSPA is known. */
+  renspa: string | null;
   location: string | null;
   provider_id: number;
   is_active: boolean;
@@ -16,7 +17,7 @@ export class Farm {
   private constructor(
     public readonly id: number,
     public readonly name: string,
-    public readonly renspa: string,
+    public readonly renspa: string | null,
     public readonly provider_id: number,
     public readonly is_active: boolean,
     public readonly location: string | null,
@@ -29,9 +30,6 @@ export class Farm {
     if (!dto.name || dto.name.trim() === '') {
       throw new Error('Farm name cannot be empty');
     }
-    if (!dto.renspa || dto.renspa.trim() === '') {
-      throw new Error('Farm RENSPA cannot be empty');
-    }
     if (dto.provider_id <= 0) {
       throw new Error('Farm must be associated with a valid provider');
     }
@@ -39,7 +37,7 @@ export class Farm {
     return new Farm(
       dto.id ?? 0,
       dto.name,
-      dto.renspa,
+      dto.renspa && dto.renspa.trim() !== '' ? dto.renspa : null,
       dto.provider_id,
       dto.is_active ?? true,
       dto.location,

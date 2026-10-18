@@ -5,7 +5,6 @@ import type { Batch } from '@/core/batches/domain/entities/Batch';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useActivities } from '@/features/activities/hooks/useActivities';
 import { useBatchTypes } from '@/features/batch-types/hooks/useBatchTypes';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
 import { useServiceOrders } from '@/features/gestation/hooks/useServiceOrders';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useCompany } from '@/contexts/CompanyContext';
@@ -45,7 +44,6 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 	const { data: batches, isLoading, isError } = useBatches(undefined, undefined, 'own');
 	const { data: activities } = useActivities(activeCompanyId);
 	const { data: batchTypes } = useBatchTypes();
-	const { data: farms } = useFarms();
 	const { data: serviceOrders = [] } = useServiceOrders();
 	const { data: allCaravans = [] } = useCaravans(openServiceOrderId ? activeCompanyId : null, 'own');
 
@@ -59,8 +57,8 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 	const filtersState = useBatchFilters({
 		batches: ownBatches,
 		activities: asArray(activities),
-		batchTypes: asArray(batchTypes),
-		farms: asArray(farms)
+		// No farms: own batches have none (the company is its own farm), so there is no farm filter.
+		batchTypes: asArray(batchTypes)
 	});
 	const { filters, filteredBatches, activeFiltersCount, resetFilters } = filtersState;
 

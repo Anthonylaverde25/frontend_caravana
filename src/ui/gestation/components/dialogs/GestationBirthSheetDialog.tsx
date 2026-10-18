@@ -184,7 +184,7 @@ const GestationBirthSheetDialog: React.FC<GestationBirthSheetDialogProps> = ({
             <PrintHeader
               establishment={batch?.farm_name || ''}
               cuit={provider?.cuit || ''}
-              renspa={farm?.renspa || ''}
+              renspa={batch?.renspa || farm?.renspa || ''}
               lote={batch?.name || ''}
               title="Planilla de Parición"
             />

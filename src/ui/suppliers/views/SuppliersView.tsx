@@ -28,7 +28,7 @@ function SuppliersView() {
 	return (
 		<ViewLayout
 			title="Gestión de Proveedores"
-			subtitle="Administra la base de datos de proveedores, información de contacto y orígenes de compra."
+			subtitle="Proveedores de hacienda, artículos y servicios: contacto, qué vende cada uno y sus campos de origen."
 			actions={
 				<Stack
 					direction="row"

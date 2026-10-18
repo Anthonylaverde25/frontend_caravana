@@ -35,7 +35,7 @@ function FarmCard({ farm, onRemove }: FarmCardProps) {
           {farm.city}{farm.province ? `, ${farm.province}` : ''}
         </Typography>
         <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
-          RENSPA: {farm.renspa}
+          RENSPA: {farm.renspa || 'Sin RENSPA'}
         </Typography>
       </Box>
       <IconButton 

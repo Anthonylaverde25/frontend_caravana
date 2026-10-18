@@ -22,6 +22,21 @@ import MatingAdvisorDialog from './pedigree/MatingAdvisorDialog';
  * Orchestrates Service Order / Entore creation with live Wright Fx inbreeding audit,
  * bull battery kinship detection, and assisted/optional exclusion of risky crossbreeds.
  */
+type FemaleCategoryBucket = 'vaca' | 'vaquillona' | 'vaca_vacia';
+
+/** The chip a female is counted under, by the catalog code of her category (not its display name). */
+function categoryBucket(caravan: Caravan): FemaleCategoryBucket | null {
+	const code = (caravan.category_code || '').toUpperCase();
+
+	if (code === 'VACA') return 'vaca';
+
+	if (code === 'VAQUILLONA') return 'vaquillona';
+
+	if (code === 'VACA_VACIA') return 'vaca_vacia';
+
+	return null;
+}
+
 function SireRotationManager() {
 	// Helper to generate default service order code
 	const generateDefaultCode = () => {
@@ -76,14 +91,15 @@ function SireRotationManager() {
 			.sort((a, b) => a.identification.localeCompare(b.identification));
 	}, [caravans]);
 
-	// 4. Filter eligible female caravans from selected source batch (cows & heifers with no active gestation)
+	// 4. Filter eligible female caravans from selected source batch: females of a breeding category
+	// (cows and heifers, never a calf) with no active gestation. The category is read from the
+	// catalog's flag and code, not from its display name, which each company may word differently.
 	const eligibleFemales = useMemo(() => {
 		const list = caravans.filter((c) => {
 			const matchBatch = selectedBatchId === 'all' ? true : c.batch_id === selectedBatchId;
 			const isFemale = c.sex === 'H';
-			const isCorrectCategory = ['vaca', 'vaquillona', 'vaca_vacia'].includes((c.category || '').toLowerCase());
 			const hasNoActiveGestation = c.active_gestation === null;
-			return matchBatch && isFemale && isCorrectCategory && hasNoActiveGestation;
+			return matchBatch && isFemale && isBreedingCandidate(c) && hasNoActiveGestation;
 		});
 
 		return list.sort((a, b) => a.identification.localeCompare(b.identification));
@@ -93,11 +109,9 @@ function SireRotationManager() {
 	const categoryCounts = useMemo(() => {
 		const counts = { all: eligibleFemales.length, vaca: 0, vaquillona: 0, vaca_vacia: 0 };
 		eligibleFemales.forEach((f) => {
-			const cat = (f.category || '').toLowerCase();
+			const bucket = categoryBucket(f);
 
-			if (cat === 'vaca') counts.vaca++;
-			else if (cat === 'vaquillona') counts.vaquillona++;
-			else if (cat === 'vaca_vacia') counts.vaca_vacia++;
+			if (bucket) counts[bucket]++;
 		});
 		return counts;
 	}, [eligibleFemales]);
@@ -107,9 +121,7 @@ function SireRotationManager() {
 		return eligibleFemales.filter((f) => {
 			const matchesSearch = f.identification.toLowerCase().includes(searchQuery.toLowerCase());
 			const matchesCategory =
-				selectedCategoryFilter === 'all'
-					? true
-					: (f.category || '').toLowerCase() === selectedCategoryFilter.toLowerCase();
+				selectedCategoryFilter === 'all' ? true : categoryBucket(f) === selectedCategoryFilter.toLowerCase();
 			return matchesSearch && matchesCategory;
 		});
 	}, [eligibleFemales, searchQuery, selectedCategoryFilter]);

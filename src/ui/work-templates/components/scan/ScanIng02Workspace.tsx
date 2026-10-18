@@ -49,7 +49,7 @@ const text = (value: unknown): string => {
  */
 export const ScanIng02Workspace: React.FC<{ reading: Ing02ScanReading; onIssuesChange?: (issues: ScanIssue[]) => void }> = ({ reading, onIssuesChange }) => {
   const navigate = useNavigate();
-  const { data: suppliers = [] } = useSuppliers();
+  const { data: suppliers = [] } = useSuppliers('livestock');
   // The farms of the provider the sheet names: the unfiltered list also holds the company's own
   // farms, which the farm mapper refuses, so it is not usable here.
   const providerId = useMemo(

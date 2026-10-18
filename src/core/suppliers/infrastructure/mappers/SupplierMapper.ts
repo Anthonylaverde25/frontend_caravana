@@ -11,6 +11,8 @@ export class SupplierMapper {
       email: raw.email,
       phone: raw.phone,
       is_active: raw.is_active !== undefined ? Boolean(raw.is_active) : true,
+      supplies_livestock: raw.supplies_livestock !== undefined ? Boolean(raw.supplies_livestock) : true,
+      supplies_items: Boolean(raw.supplies_items),
       farms: raw.farms, // In a real scenario, map these to Farm entities if needed using FarmMapper
       created_at: raw.created_at,
     };
@@ -27,6 +29,8 @@ export class SupplierMapper {
       email: entity.email,
       phone: entity.phone,
       is_active: entity.is_active,
+      supplies_livestock: entity.supplies_livestock,
+      supplies_items: entity.supplies_items,
       farms: entity.farms,
       created_at: entity.created_at,
     };

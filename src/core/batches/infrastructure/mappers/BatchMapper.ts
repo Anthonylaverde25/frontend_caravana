@@ -33,6 +33,7 @@ export class BatchMapper {
       incoming_entry_orders: raw.incoming_entry_orders ?? [],
       total_weight: raw.total_weight ?? null,
       weighed_count: raw.weighed_count ?? null,
+      renspa: raw.renspa ?? null,
       age_in_months: raw.age_in_months,
       observaciones: raw.observaciones,
       is_active: raw.is_active !== undefined ? Boolean(raw.is_active) : true,

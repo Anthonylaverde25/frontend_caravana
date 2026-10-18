@@ -1,11 +1,11 @@
 import axiosInstance from '@/utils/axios';
-import { Supplier } from '../../domain/entities/Supplier';
+import { Supplier, SupplierRole } from '../../domain/entities/Supplier';
 import { ISupplierRepository } from '../../domain/repositories/ISupplierRepository';
 import { SupplierMapper } from '../mappers/SupplierMapper';
 
 export class ApiSupplierRepository implements ISupplierRepository {
-  async findAll(): Promise<Supplier[]> {
-    const response = await axiosInstance.get<any[]>('/providers');
+  async findAll(supplies?: SupplierRole): Promise<Supplier[]> {
+    const response = await axiosInstance.get<any[]>('/providers', { params: supplies ? { supplies } : undefined });
     return response.data.map(SupplierMapper.toDomain);
   }
 
@@ -23,6 +23,11 @@ export class ApiSupplierRepository implements ISupplierRepository {
     }
     
     const response = await axiosInstance.post<any>('/providers', dto);
+    return SupplierMapper.toDomain(response.data);
+  }
+
+  async updateRoles(id: number, roles: { supplies_livestock: boolean; supplies_items: boolean }): Promise<Supplier> {
+    const response = await axiosInstance.patch<any>(`/providers/${id}/roles`, roles);
     return SupplierMapper.toDomain(response.data);
   }
 }

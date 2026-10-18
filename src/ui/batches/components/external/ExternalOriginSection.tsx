@@ -21,7 +21,7 @@ export const ExternalOriginSection: React.FC<{ form: ExternalBatchForm }> = ({ f
   const { errors } = formState;
   const providerId = watch('provider_id') as number | undefined;
   const farmId = watch('farm_id') as number | undefined;
-  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers();
+  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers('livestock');
   const { data: farms = [], isLoading: isLoadingFarms } = useFarms(providerId);
   const createFarm = useCreateFarm();
   const [isSupplierOpen, setIsSupplierOpen] = useState(false);

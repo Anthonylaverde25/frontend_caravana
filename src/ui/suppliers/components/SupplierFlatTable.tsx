@@ -20,6 +20,7 @@ import {
 	alpha
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import SupplierRoleChips from './SupplierRoleChips';
 
 interface SupplierFlatTableProps {
 	suppliers: any[];
@@ -32,6 +33,7 @@ interface SupplierFlatTableProps {
 	onToggleAllPage: (pageIds: number[]) => void;
 	onAddFarm: (supplierId: number) => void;
 	onViewDetails: (supplierId: number) => void;
+	onEditRoles: (supplier: any) => void;
 }
 
 const getInitials = (name: string) => {
@@ -59,7 +61,8 @@ export function SupplierFlatTable({
 	onToggleSupplier,
 	onToggleAllPage,
 	onAddFarm,
-	onViewDetails
+	onViewDetails,
+	onEditRoles
 }: SupplierFlatTableProps) {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -135,7 +138,7 @@ export function SupplierFlatTable({
 								Datos de la Empresa / Proveedor
 							</TableCell>
 							<TableCell
-								colSpan={3}
+								colSpan={4}
 								align="center"
 								sx={{
 									bgcolor: alpha(theme.palette.primary.main, isDark ? 0.09 : 0.06),
@@ -170,6 +173,7 @@ export function SupplierFlatTable({
 							<TableCell sx={{ ...headerCellStyle, minWidth: 150 }}>CUIT</TableCell>
 							<TableCell sx={{ ...headerCellStyle, minWidth: 180 }}>Email</TableCell>
 							<TableCell sx={{ ...headerCellStyle, minWidth: 130 }}>Teléfono</TableCell>
+							<TableCell sx={{ ...headerCellStyle, minWidth: 170, textAlign: 'center' }}>Qué vende</TableCell>
 							<TableCell sx={{ ...headerCellStyle, minWidth: 150, textAlign: 'center' }}>
 								Establecimientos
 							</TableCell>
@@ -183,7 +187,7 @@ export function SupplierFlatTable({
 					<TableBody>
 						{paginatedRows.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={10} sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+								<TableCell colSpan={11} sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
 									No se encontraron proveedores con los filtros seleccionados.
 								</TableCell>
 							</TableRow>
@@ -263,6 +267,9 @@ export function SupplierFlatTable({
 											{supplier.phone || '-'}
 										</TableCell>
 										<TableCell sx={{ ...bodyCellStyle, textAlign: 'center' }}>
+											<SupplierRoleChips suppliesLivestock={supplier.supplies_livestock} suppliesItems={supplier.supplies_items} />
+										</TableCell>
+										<TableCell sx={{ ...bodyCellStyle, textAlign: 'center' }}>
 											<Chip
 												label={`${farms.length} ${farms.length === 1 ? 'granja' : 'granjas'}`}
 												size="small"
@@ -285,6 +292,11 @@ export function SupplierFlatTable({
 												<Tooltip title="Añadir Granja">
 													<IconButton size="small" onClick={() => onAddFarm(supplier.id)}>
 														<FuseSvgIcon size={16}>heroicons-outline:plus-circle</FuseSvgIcon>
+													</IconButton>
+												</Tooltip>
+												<Tooltip title="Editar qué vende">
+													<IconButton size="small" onClick={() => onEditRoles(supplier)}>
+														<FuseSvgIcon size={16}>heroicons-outline:tag</FuseSvgIcon>
 													</IconButton>
 												</Tooltip>
 												<Tooltip title="Ver Detalles">

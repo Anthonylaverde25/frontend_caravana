@@ -56,14 +56,6 @@ const navigationConfig: FuseNavItemType[] = [
 			// 	icon: 'heroicons-outline:home-modern',
 			// 	url: '/farms'
 			// },
-			{
-				id: 'gestion.providers',
-				title: 'Proveedores',
-				subtitle: 'Orígenes de Hacienda',
-				type: 'item',
-				icon: 'heroicons-outline:user-group',
-				url: '/providers'
-			},
 			// All batch types consolidated under one collapse
 			{
 				id: 'gestion.batches-collapse',
@@ -271,6 +263,42 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/gestation/pedigree'
 					}
 				]
+			}
+		]
+	},
+
+	// ─── COMPRAS E INSUMOS ───────────────────────────────────────────────────
+	{
+		id: 'supplies-management',
+		title: 'COMPRAS E INSUMOS',
+		subtitle: 'Proveedores y Catálogo',
+		type: 'group',
+		icon: 'heroicons-outline:shopping-bag',
+		children: [
+			{
+				// Moved from GESTIÓN GANADERA: a provider sells livestock, items or both (D1).
+				id: 'supplies.providers',
+				title: 'Proveedores',
+				subtitle: 'Hacienda, artículos y servicios',
+				type: 'item',
+				icon: 'heroicons-outline:user-group',
+				url: '/providers'
+			},
+			{
+				id: 'supplies.items',
+				title: 'Artículos y servicios',
+				subtitle: 'Catálogo de la empresa',
+				type: 'item',
+				icon: 'heroicons-outline:cube',
+				url: '/items',
+				end: true
+			},
+			{
+				id: 'supplies.item-settings',
+				title: 'Unidades y categorías',
+				type: 'item',
+				icon: 'heroicons-outline:adjustments-horizontal',
+				url: '/items/settings'
 			}
 		]
 	},

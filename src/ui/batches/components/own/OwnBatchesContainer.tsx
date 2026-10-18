@@ -4,7 +4,6 @@ import { Box, Stack, CircularProgress, Typography, useTheme } from '@mui/materia
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useActivities } from '@/features/activities/hooks/useActivities';
 import { useBatchTypes } from '@/features/batch-types/hooks/useBatchTypes';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useServiceOrders } from '@/features/gestation/hooks/useServiceOrders';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
@@ -43,14 +42,12 @@ export const OwnBatchesContainer: React.FC<OwnBatchesContainerProps> = ({ onCrea
   );
   const { data: activities } = useActivities(activeCompanyId);
   const { data: batchTypes } = useBatchTypes();
-  const { data: farms } = useFarms();
   const { data: serviceOrders = [] } = useServiceOrders();
   const { data: allCaravans = [] } = useCaravans(openServiceOrderId ? activeCompanyId : null, 'own');
 
   const safeBatches = useMemo(() => (Array.isArray(batches) ? batches : []), [batches]);
   const safeActivities = useMemo(() => (Array.isArray(activities) ? activities : []), [activities]);
   const safeBatchTypes = useMemo(() => (Array.isArray(batchTypes) ? batchTypes : []), [batchTypes]);
-  const safeFarms = useMemo(() => (Array.isArray(farms) ? farms : []), [farms]);
 
   // Separate own batches (batches without provider)
   const ownBatches = useMemo(() => {
@@ -76,8 +73,8 @@ export const OwnBatchesContainer: React.FC<OwnBatchesContainerProps> = ({ onCrea
   } = useBatchFilters({
     batches: ownBatches,
     activities: safeActivities,
+    // No farms: own batches have none (the company is its own farm), so there is no farm filter.
     batchTypes: safeBatchTypes,
-    farms: safeFarms,
   });
 
   const openServiceOrder = useMemo(

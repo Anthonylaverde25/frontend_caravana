@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { setGlobalHeaders, removeGlobalHeaders } from '@/utils/axios';
 import useUser from '@auth/useUser';
 
@@ -23,6 +24,7 @@ const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export const CompanyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { data: user } = useUser();
+  const queryClient = useQueryClient();
   
   const [activeCompanyId, setActiveCompanyId] = useState<number | null>(() => {
     const saved = localStorage.getItem('activeCompanyId');
@@ -55,8 +57,16 @@ export const CompanyProvider: React.FC<{ children: ReactNode }> = ({ children })
   const handleSelectCompany = (id: number | null) => {
     if (id) {
       localStorage.setItem('activeCompanyId', id.toString());
+      // The header goes first, so the refetch below already asks for the new company.
+      setGlobalHeaders({ 'X-Company-ID': id.toString() });
     } else {
       localStorage.removeItem('activeCompanyId');
+      removeGlobalHeaders(['X-Company-ID']);
+    }
+    // Every list in the cache belongs to the previous company (providers, batches, items...).
+    // reset (not remove): the queries on screen are told to refetch, now with the new header.
+    if (id !== activeCompanyId) {
+      queryClient.resetQueries();
     }
     setActiveCompanyId(id);
   };

@@ -16,7 +16,7 @@ import { formatDate, yesNo } from '../components/entryOrderFormat';
  * to names, and what the reception grid needs. Names still loading show as "…"; nothing is guessed.
  */
 export function useDeclaredTroop(values: ExternalBatchFormValues | null) {
-  const { data: suppliers = [] } = useSuppliers();
+  const { data: suppliers = [] } = useSuppliers('livestock');
   const { data: farms = [] } = useFarms(values?.provider_id);
   const { data: categories = [] } = useAnimalCategories();
   const { data: breeds = [] } = useBreeds();

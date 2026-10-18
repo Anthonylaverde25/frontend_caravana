@@ -1,5 +1,8 @@
 import { Farm } from './Farm';
 
+/** What a provider sells: livestock (origin of animals) or items (articles and services). */
+export type SupplierRole = 'livestock' | 'items';
+
 export interface SupplierDTO {
   id?: number;
   name: string;
@@ -9,6 +12,10 @@ export interface SupplierDTO {
   email: string | null;
   phone: string | null;
   is_active: boolean;
+  /** Sells livestock: shown in the origin selectors (entry orders, external batches). */
+  supplies_livestock?: boolean;
+  /** Sells articles or services. */
+  supplies_items?: boolean;
   farms?: (Farm | any)[];
   created_at?: string;
 }
@@ -25,6 +32,8 @@ export class Supplier {
     public readonly phone: string | null,
     public readonly farms?: (Farm | any)[],
     public readonly created_at?: string,
+    public readonly supplies_livestock: boolean = true,
+    public readonly supplies_items: boolean = false,
   ) {}
 
   public static create(dto: SupplierDTO): Supplier {
@@ -45,7 +54,9 @@ export class Supplier {
       dto.email,
       dto.phone,
       dto.farms,
-      dto.created_at
+      dto.created_at,
+      dto.supplies_livestock ?? true,
+      dto.supplies_items ?? false
     );
   }
 

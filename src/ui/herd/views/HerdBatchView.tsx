@@ -18,6 +18,7 @@ import HerdBatchWeightSection from '../components/detail/HerdBatchWeightSection'
 import HerdCaravanDialogs from '../components/shared/HerdCaravanDialogs';
 import { useHerdCaravanDialogs } from '../hooks/useHerdCaravanDialogs';
 import { UNASSIGNED_BATCH } from '../utils/herdFormat';
+import { useCompany } from '@/contexts/CompanyContext';
 
 type BatchDialog = 'add' | 'transfer' | 'weigh' | 'service' | null;
 
@@ -34,6 +35,8 @@ function HerdBatchView() {
 	const highlightId = Number(searchParams.get('caravan')) || null;
 	const initialSearch = searchParams.get('q') ?? '';
 
+	const { activeCompanyId, companies } = useCompany();
+	const companyName = companies.find((c) => c.id === activeCompanyId)?.name;
 	const dialogs = useHerdCaravanDialogs();
 	const [openDialog, setOpenDialog] = useState<BatchDialog>(null);
 	const { data: batch, isLoading, isError } = useBatch(batchId);
@@ -97,7 +100,8 @@ function HerdBatchView() {
 	}
 
 	const subtitle = [
-		batch.farm_name ?? 'Campo propio',
+		// An own batch has no farm: its place is the company itself.
+		batch.farm_name ?? companyName,
 		batch.activity_name,
 		batch.batch_type_name,
 		batch.is_active ? null : 'Inactivo'
