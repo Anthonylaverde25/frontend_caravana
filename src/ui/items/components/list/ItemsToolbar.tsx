@@ -16,11 +16,14 @@ interface ItemsToolbarProps {
 	categories: CategoryNode[];
 	includeInactive: boolean;
 	onIncludeInactive: (value: boolean) => void;
+	onlyAlerts: boolean;
+	onOnlyAlerts: (value: boolean) => void;
+	alertsCount: number;
 }
 
 /** Search, the behavior filter with its counts, the category (with its descendants) and the state. */
 export default function ItemsToolbar(props: ItemsToolbarProps) {
-	const { search, onSearch, behavior, onBehavior, counts, categoryId, onCategory, categories, includeInactive, onIncludeInactive } = props;
+	const { search, onSearch, behavior, onBehavior, counts, categoryId, onCategory, categories, includeInactive, onIncludeInactive, onlyAlerts, onOnlyAlerts, alertsCount } = props;
 
 	return (
 		<Stack spacing={1.5}>
@@ -75,6 +78,11 @@ export default function ItemsToolbar(props: ItemsToolbarProps) {
 				<FormControlLabel
 					control={<Switch size="small" checked={includeInactive} onChange={(e) => onIncludeInactive(e.target.checked)} />}
 					label="Mostrar desactivados"
+					sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.85rem' } }}
+				/>
+				<FormControlLabel
+					control={<Switch size="small" color="warning" checked={onlyAlerts} onChange={(e) => onOnlyAlerts(e.target.checked)} />}
+					label={`Con alertas de stock (${alertsCount})`}
 					sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.85rem' } }}
 				/>
 			</Stack>

@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Alert, Button, Stack, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Alert, Button, Link, Stack, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { SheetGrid } from 'src/components/sheet-grid/SheetGrid';
 import { SheetGridEmptyRow } from 'src/components/sheet-grid/SheetGridEmptyRow';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
 import { ItemDetail } from '@/core/items/domain/entities/Item';
+import { formatDate, formatMoney } from '@/core/stock/domain/rules/quantityFormat';
 import ItemProvidersDialog from '../dialogs/ItemProvidersDialog';
 
-/** Who sells the item. Price and date of the last purchase arrive with purchases (B2). */
+/** Who sells the item, and the price and date of its last purchase to each one (derived, DS2). */
 export default function ItemProvidersTab({ item }: { item: ItemDetail }) {
 	const { headSx, indexSx, textCellSx } = useGridCellStyles();
 	const [editing, setEditing] = useState(false);
@@ -21,7 +23,7 @@ export default function ItemProvidersTab({ item }: { item: ItemDetail }) {
 					Editar proveedores
 				</Button>
 			</Stack>
-			<SheetGrid minWidth={640}>
+			<SheetGrid minWidth={900}>
 				<TableHead>
 					<TableRow>
 						<TableCell sx={indexSx}>#</TableCell>
@@ -29,10 +31,11 @@ export default function ItemProvidersTab({ item }: { item: ItemDetail }) {
 						<TableCell sx={{ ...headSx, width: 150 }}>CUIT</TableCell>
 						<TableCell sx={{ ...headSx, width: 130 }} align="right">Demora (días)</TableCell>
 						<TableCell sx={{ ...headSx, width: 100 }} align="center">Preferido</TableCell>
+						<TableCell sx={{ ...headSx, width: 300 }}>Última compra</TableCell>
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					{item.providers.length === 0 && <SheetGridEmptyRow colSpan={5}>Todavía no hay proveedores vinculados.</SheetGridEmptyRow>}
+					{item.providers.length === 0 && <SheetGridEmptyRow colSpan={6}>Todavía no hay proveedores vinculados.</SheetGridEmptyRow>}
 					{item.providers.map((p, index) => (
 						<TableRow key={p.providerId} hover>
 							<TableCell sx={indexSx}>{index + 1}</TableCell>
@@ -42,12 +45,24 @@ export default function ItemProvidersTab({ item }: { item: ItemDetail }) {
 							<TableCell sx={{ ...textCellSx, color: 'warning.main' }} align="center">
 								{p.isPreferred ? <FuseSvgIcon size={18}>heroicons-solid:star</FuseSvgIcon> : ''}
 							</TableCell>
+							<TableCell sx={{ ...textCellSx, fontSize: '0.8rem' }}>
+								{p.lastPurchase ? (
+									<>
+										{formatDate(p.lastPurchase.issuedAt)} · {formatMoney(p.lastPurchase.unitPrice)} por {p.lastPurchase.inputLabel} ·{' '}
+										<Link component={RouterLink} to={`/fiscal-documents/${p.lastPurchase.fiscalDocumentId}`} onClick={(e) => e.stopPropagation()}>
+											{p.lastPurchase.label}
+										</Link>
+									</>
+								) : (
+									<Typography component="span" variant="body2" color="text.secondary">Sin compras cargadas</Typography>
+								)}
+							</TableCell>
 						</TableRow>
 					))}
 				</TableBody>
 			</SheetGrid>
 			<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-				El precio y la fecha de la última compra aparecen cuando se carguen compras.
+				La última compra sale del último comprobante registrado de cada proveedor; uno anulado no cuenta.
 			</Alert>
 
 			<ItemProvidersDialog open={editing} item={item} onClose={() => setEditing(false)} />

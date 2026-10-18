@@ -30,8 +30,8 @@ interface OwnBatchPickerDialogProps {
   subtitle: string;
   onClose: () => void;
   onPick: (batch: Batch) => void;
-  /** "Crear lote nuevo": the quick-create dialog takes over. */
-  onCreate: () => void;
+  /** "Crear lote nuevo": the quick-create dialog takes over. Without it, only existing batches are offered. */
+  onCreate?: () => void;
 }
 
 const normalize = (value: string): string =>
@@ -240,20 +240,24 @@ export const OwnBatchPickerDialog: React.FC<OwnBatchPickerDialogProps> = ({
           </Box>
           {showMissing && !picked && (
             <Typography variant="caption" color="error" sx={{ fontWeight: 600 }}>
-              Elegí un lote de la lista, o creá uno nuevo.
+              {onCreate ? 'Elegí un lote de la lista, o creá uno nuevo.' : 'Elegí un lote de la lista.'}
             </Typography>
           )}
         </Stack>
       </DialogContent>
 
       <DialogActions sx={{ p: 2, px: { xs: 2, sm: 3 }, bgcolor: palette.softBg, borderTop: '1px solid', borderColor: palette.cardBorder }}>
-        <Button
-          onClick={onCreate}
-          startIcon={<FuseSvgIcon size={16}>heroicons-outline:folder-plus</FuseSvgIcon>}
-          sx={{ textTransform: 'none', fontWeight: 600, mr: 'auto' }}
-        >
-          Crear lote nuevo
-        </Button>
+        {onCreate ? (
+          <Button
+            onClick={onCreate}
+            startIcon={<FuseSvgIcon size={16}>heroicons-outline:folder-plus</FuseSvgIcon>}
+            sx={{ textTransform: 'none', fontWeight: 600, mr: 'auto' }}
+          >
+            Crear lote nuevo
+          </Button>
+        ) : (
+          <span style={{ marginRight: 'auto' }} />
+        )}
         <Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}>
           Cancelar
         </Button>

@@ -25,6 +25,7 @@ export default function ItemsView() {
 	const [behavior, setBehavior] = useState<BehaviorFilter>('ALL');
 	const [categoryId, setCategoryId] = useState<number | ''>('');
 	const [includeInactive, setIncludeInactive] = useState(false);
+	const [onlyAlerts, setOnlyAlerts] = useState(false);
 	const [creating, setCreating] = useState(false);
 
 	const { data: items = [], isLoading } = useItems({ categoryId: categoryId || undefined, includeInactive });
@@ -40,10 +41,13 @@ export default function ItemsView() {
 		}
 	}, [searchParams, setSearchParams]);
 
+	const hasAlert = (i: (typeof items)[number]) => !!i.stock && (i.stock.hasNegative || i.stock.hasCritical);
+	const alertsCount = items.filter(hasAlert).length;
 	const searched = useMemo(() => {
 		const term = normalize(search.trim());
-		return term ? items.filter((i) => normalize(`${i.code} ${i.name}`).includes(term)) : items;
-	}, [items, search]);
+		const alerted = onlyAlerts ? items.filter(hasAlert) : items;
+		return term ? alerted.filter((i) => normalize(`${i.code} ${i.name}`).includes(term)) : alerted;
+	}, [items, search, onlyAlerts]);
 
 	const counts = useMemo(
 		() => ({
@@ -94,6 +98,9 @@ export default function ItemsView() {
 					categories={tree}
 					includeInactive={includeInactive}
 					onIncludeInactive={setIncludeInactive}
+					onlyAlerts={onlyAlerts}
+					onOnlyAlerts={setOnlyAlerts}
+					alertsCount={alertsCount}
 				/>
 				<Box>
 					<ItemsGrid

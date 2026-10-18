@@ -8,15 +8,17 @@ import ItemDetailHeader from '../components/detail/ItemDetailHeader';
 import ItemGeneralTab from '../components/detail/ItemGeneralTab';
 import ItemPresentationsTab from '../components/detail/ItemPresentationsTab';
 import ItemProvidersTab from '../components/detail/ItemProvidersTab';
+import ItemStockTab from '../components/stock/ItemStockTab';
+import ItemKardexTab from '../components/stock/ItemKardexTab';
 import ItemFormDialog from '../components/dialogs/ItemFormDialog';
 import SetActiveDialog from '../components/dialogs/SetActiveDialog';
 
-type DetailTab = 'general' | 'presentations' | 'providers';
-const TABS: DetailTab[] = ['general', 'presentations', 'providers'];
+type DetailTab = 'general' | 'presentations' | 'providers' | 'stock' | 'kardex';
+const TABS: DetailTab[] = ['general', 'presentations', 'providers', 'stock', 'kardex'];
 
 /**
- * The item's file: general data, presentations and providers. B2 adds Stock and Kardex here.
- * An item of another company answers 404 and is shown as not found.
+ * The item's file: general data, presentations, providers and, for stock-tracked articles, Stock and
+ * Kardex. An item of another company answers 404 and is shown as not found.
  */
 export default function ItemDetailView() {
 	const { itemId } = useParams();
@@ -60,11 +62,15 @@ export default function ItemDetailView() {
 						<Tab value="general" label="General" sx={{ textTransform: 'none', fontWeight: 600 }} />
 						<Tab value="presentations" label={`Presentaciones ${item.presentations.length}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
 						<Tab value="providers" label={`Proveedores ${item.providers.length}`} sx={{ textTransform: 'none', fontWeight: 600 }} />
+						{item.trackStock && <Tab value="stock" label="Stock" sx={{ textTransform: 'none', fontWeight: 600 }} />}
+						{item.trackStock && <Tab value="kardex" label="Kardex" sx={{ textTransform: 'none', fontWeight: 600 }} />}
 					</Tabs>
 				</Box>
 				{tab === 'general' && <ItemGeneralTab item={item} />}
 				{tab === 'presentations' && <ItemPresentationsTab item={item} />}
 				{tab === 'providers' && <ItemProvidersTab item={item} />}
+				{tab === 'stock' && item.trackStock && <ItemStockTab item={item} />}
+				{tab === 'kardex' && item.trackStock && <ItemKardexTab item={item} />}
 			</Stack>
 
 			<ItemFormDialog open={editing} item={item} onClose={() => setEditing(false)} />

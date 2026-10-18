@@ -106,7 +106,7 @@ export default function ItemFormDialog({ open, onClose, item, onSaved }: ItemFor
 				error={domainError}
 			>
 				<Stack spacing={2.5}>
-					<Controller name="behavior" control={control} render={({ field }) => <ItemBehaviorPicker value={field.value} onChange={field.onChange} />} />
+					<Controller name="behavior" control={control} render={({ field }) => <ItemBehaviorPicker value={field.value} onChange={field.onChange} locked={!!item?.hasMovements} />} />
 					<ItemNameField register={register} errors={errors} serverErrors={serverErrors} />
 					<Controller
 						name="item_category_id"
@@ -125,6 +125,7 @@ export default function ItemFormDialog({ open, onClose, item, onSaved }: ItemFor
 								onCreate={() => setCreatingUnit(true)}
 								units={units}
 								behavior={behavior}
+								locked={!!item?.hasMovements}
 								error={errors.unit_of_measure_id?.message ?? serverErrors.unit_of_measure_id}
 							/>
 						)}

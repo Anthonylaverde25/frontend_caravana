@@ -285,13 +285,30 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/providers'
 			},
 			{
+				// Provider papers (DS14): their stocked lines enter the warehouse when registered.
+				id: 'supplies.fiscal-documents',
+				title: 'Comprobantes de proveedores',
+				subtitle: 'Facturas, notas de crédito y tickets',
+				type: 'item',
+				icon: 'heroicons-outline:receipt-percent',
+				url: '/fiscal-documents'
+			},
+			{
 				id: 'supplies.items',
 				title: 'Artículos y servicios',
-				subtitle: 'Catálogo de la empresa',
+				subtitle: 'Catálogo y stock',
 				type: 'item',
 				icon: 'heroicons-outline:cube',
 				url: '/items',
 				end: true
+			},
+			{
+				id: 'supplies.item-documents',
+				title: 'Movimientos de stock',
+				subtitle: 'Ingresos, consumos y conteos',
+				type: 'item',
+				icon: 'heroicons-outline:arrows-up-down',
+				url: '/item-documents'
 			},
 			{
 				id: 'supplies.item-settings',

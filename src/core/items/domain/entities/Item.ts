@@ -24,6 +24,15 @@ export interface ItemPresentation {
 	isActive: boolean;
 }
 
+/** The last registered invoice or ticket line of the item from one provider (DS2). */
+export interface ItemLastPurchase {
+	fiscalDocumentId: number;
+	label: string;
+	issuedAt: string;
+	unitPrice: string;
+	inputLabel: string;
+}
+
 /** A provider that sells the item. */
 export interface ItemProviderLink {
 	providerId: number;
@@ -31,6 +40,15 @@ export interface ItemProviderLink {
 	cuit: string;
 	leadTimeDays: number | null;
 	isPreferred: boolean;
+	lastPurchase: ItemLastPurchase | null;
+}
+
+/** Balance of a stock-tracked article across warehouses, and its open stock alerts. */
+export interface ItemStockSummary {
+	quantity: string;
+	value: string;
+	hasNegative: boolean;
+	hasCritical: boolean;
 }
 
 /** An article or a service of the company's catalog. */
@@ -47,11 +65,17 @@ export interface Item {
 	category: ItemCategoryRef | null;
 	presentationsCount: number;
 	providersCount: number;
+	/** Null for services and non-stock articles. */
+	stock: ItemStockSummary | null;
+	/** VAT rate of its last letter-A invoice, to preload it on the next one (DS18). */
+	lastVatRateId: number | null;
 }
 
 export interface ItemDetail extends Item {
 	presentations: ItemPresentation[];
 	providers: ItemProviderLink[];
+	/** With lines in documents or operations, unit and behavior can no longer change. */
+	hasMovements: boolean;
 }
 
 export interface ItemFilters {

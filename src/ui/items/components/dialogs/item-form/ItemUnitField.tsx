@@ -12,10 +12,12 @@ interface ItemUnitFieldProps {
 	units: UnitOfMeasure[];
 	behavior: ItemBehavior;
 	error?: string;
+	/** The item has movements: its unit is frozen (plan 4.10). */
+	locked?: boolean;
 }
 
 /** Active units grouped by dimension, the D17 warning, and "Crear unidad…" at the end. */
-export default function ItemUnitField({ value, onChange, onCreate, units, behavior, error }: ItemUnitFieldProps) {
+export default function ItemUnitField({ value, onChange, onCreate, units, behavior, error, locked = false }: ItemUnitFieldProps) {
 	const groups = UNIT_DIMENSIONS.map((d) => ({ ...d, units: units.filter((u) => u.dimension === d.value && u.isActive) })).filter(
 		(g) => g.units.length > 0
 	);
@@ -31,6 +33,7 @@ export default function ItemUnitField({ value, onChange, onCreate, units, behavi
 				onChange={(e) => (Number(e.target.value) === CREATE ? onCreate() : onChange(Number(e.target.value)))}
 				error={!!error}
 				helperText={error}
+				disabled={locked}
 				sx={{ bgcolor: 'action.hover' }}
 			>
 				{groups.flatMap((g) => [
@@ -49,7 +52,9 @@ export default function ItemUnitField({ value, onChange, onCreate, units, behavi
 				</MenuItem>
 			</TextField>
 			<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-				La unidad no se podrá cambiar cuando el ítem tenga movimientos. {behaviorInfo(behavior).unitHint}
+				{locked
+					? 'Tiene movimientos: la unidad ya no se puede cambiar.'
+					: `La unidad no se podrá cambiar cuando el ítem tenga movimientos. ${behaviorInfo(behavior).unitHint}`}
 			</Alert>
 		</Stack>
 	);
