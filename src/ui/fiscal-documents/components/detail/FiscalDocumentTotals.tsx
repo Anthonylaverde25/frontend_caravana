@@ -4,11 +4,22 @@ import { dec, isZero } from '@/core/stock/domain/rules/decimal';
 import { formatMoney } from '@/core/stock/domain/rules/quantityFormat';
 
 const Row = ({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: string }) => (
-	<Stack direction="row" justifyContent="space-between" spacing={4}>
-		<Typography variant="body2" color={tone ?? (strong ? 'text.primary' : 'text.secondary')} sx={{ fontWeight: strong ? 700 : 400 }}>
+	<Stack
+		direction="row"
+		justifyContent="space-between"
+		spacing={4}
+	>
+		<Typography
+			variant="body2"
+			color={tone ?? (strong ? 'text.primary' : 'text.secondary')}
+			sx={{ fontWeight: strong ? 700 : 400 }}
+		>
 			{label}
 		</Typography>
-		<Typography variant="body2" sx={{ fontWeight: strong ? 800 : 600, fontVariantNumeric: 'tabular-nums' }}>
+		<Typography
+			variant="body2"
+			sx={{ fontWeight: strong ? 800 : 600, fontVariantNumeric: 'tabular-nums' }}
+		>
 			{value}
 		</Typography>
 	</Stack>
@@ -19,15 +30,34 @@ export default function FiscalDocumentTotals({ document }: { document: FiscalDoc
 	const difference = dec(document.totalDifference);
 
 	return (
-		<Paper variant="outlined" sx={{ p: 2, borderRadius: '8px', minWidth: 320, alignSelf: 'flex-end' }}>
+		<Paper
+			variant="outlined"
+			sx={{ p: 2, borderRadius: '8px', minWidth: 320, alignSelf: 'flex-end' }}
+		>
 			<Stack spacing={0.75}>
-				<Row label="Neto" value={formatMoney(document.linesAmount)} strong />
+				<Row
+					label="Neto"
+					value={formatMoney(document.linesAmount)}
+					strong
+				/>
 				{document.taxSummary.map((t) => (
-					<Row key={t.label} label={`${t.label}${t.isRecoverable ? '' : ' (costo)'}`} value={formatMoney(t.amount)} />
+					<Row
+						key={t.label}
+						label={`${t.label}${t.isRecoverable ? '' : ' (costo)'}`}
+						value={formatMoney(t.amount)}
+					/>
 				))}
-				<Row label="Total" value={formatMoney(document.totalAmount)} strong />
+				<Row
+					label="Total"
+					value={formatMoney(document.totalAmount)}
+					strong
+				/>
 				{difference !== null && !isZero(difference) && (
-					<Row label={`Difiere del papel (${formatMoney(document.declaredTotal)})`} value={formatMoney(difference)} tone="warning.main" />
+					<Row
+						label={`Difiere del papel (${formatMoney(document.declaredTotal)})`}
+						value={formatMoney(difference)}
+						tone="warning.main"
+					/>
 				)}
 			</Stack>
 		</Paper>

@@ -13,12 +13,19 @@ interface ReasonDialogProps {
 	error: string | null;
 	onClose: () => void;
 	onConfirm: (reason: string) => void;
+	/** "Motivo" by default; "Cómo se resolvió" when resolving a notice. */
+	reasonLabel?: string;
+	/** The note under the field; voids and reversals warn that they cannot be undone. */
+	note?: string;
+	confirmColor?: 'error' | 'primary';
 }
 
 const filled = { disableUnderline: true, sx: { borderRadius: '6px', bgcolor: 'action.hover' } } as const;
 
 /** Voiding a provider document or reversing a stock operation: always with a reason, never undone. */
-export default function ReasonDialog({ open, title, consequences, confirmLabel, busy, error, onClose, onConfirm }: ReasonDialogProps) {
+export default function ReasonDialog(props: ReasonDialogProps) {
+	const { open, title, consequences, confirmLabel, busy, error, onClose, onConfirm } = props;
+	const { reasonLabel = 'Motivo', note = 'No se puede deshacer. Si hubo un error de carga, después se vuelve a cargar bien.', confirmColor = 'error' } = props;
 	const [reason, setReason] = useState('');
 	const [missing, setMissing] = useState(false);
 	useEffect(() => {
@@ -55,10 +62,10 @@ export default function ReasonDialog({ open, title, consequences, confirmLabel, 
 							</Typography>
 						))}
 					</Stack>
-					<TextField label="Motivo" variant="filled" fullWidth multiline minRows={2} value={reason} InputProps={filled} autoFocus
-						onChange={(e) => setReason(e.target.value)} error={missing} helperText={missing ? 'Indicá el motivo.' : ' '} />
+					<TextField label={reasonLabel} variant="filled" fullWidth multiline minRows={2} value={reason} InputProps={filled} autoFocus
+						onChange={(e) => setReason(e.target.value)} error={missing} helperText={missing ? `Completá: ${reasonLabel.toLowerCase()}.` : ' '} />
 					<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-						No se puede deshacer. Si hubo un error de carga, después se vuelve a cargar bien.
+						{note}
 					</Alert>
 					{error && <Alert severity="error" sx={{ fontSize: '0.85rem' }}>{error}</Alert>}
 				</Stack>
@@ -67,7 +74,7 @@ export default function ReasonDialog({ open, title, consequences, confirmLabel, 
 				<Button onClick={onClose} sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}>
 					Cancelar
 				</Button>
-				<Button variant="contained" color="error" onClick={confirm} disabled={busy} startIcon={busy ? <CircularProgress size={14} color="inherit" /> : undefined}
+				<Button variant="contained" color={confirmColor} onClick={confirm} disabled={busy} startIcon={busy ? <CircularProgress size={14} color="inherit" /> : undefined}
 					sx={{ px: 3.5, fontWeight: 700, borderRadius: '6px', textTransform: 'none', boxShadow: 'none' }}>
 					{confirmLabel}
 				</Button>

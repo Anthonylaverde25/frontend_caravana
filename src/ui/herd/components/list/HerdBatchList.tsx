@@ -16,6 +16,7 @@ import StartBatchServiceDialog from 'src/ui/batches/components/dialogs/StartBatc
 import ServiceOrderDetailDrawer from '@/ui/gestation/components/service-order-drawer/ServiceOrderDetailDrawer';
 import HerdBatchRow from './HerdBatchRow';
 import { BatchWeighingDialog } from '@/ui/weighing/components/batch-weighing/BatchWeighingDialog';
+import ConsumptionDialog from '@/ui/stock/components/consumption/ConsumptionDialog';
 import HerdUnassignedRow from './HerdUnassignedRow';
 import HerdKpiStrip from './HerdKpiStrip';
 import HerdCaravanDialogs from '../shared/HerdCaravanDialogs';
@@ -39,6 +40,7 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 	const [addingTo, setAddingTo] = useState<Batch | null>(null);
 	const [serviceFor, setServiceFor] = useState<Batch | null>(null);
 	const [weighing, setWeighing] = useState<Batch | null>(null);
+	const [consumingIn, setConsumingIn] = useState<Batch | null>(null);
 	const [openServiceOrderId, setOpenServiceOrderId] = useState<number | null>(null);
 
 	const { data: batches, isLoading, isError } = useBatches(undefined, undefined, 'own');
@@ -120,6 +122,7 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 								onViewCaravan={dialogs.openView}
 								onAddCaravans={setAddingTo}
 								onWeighBatch={setWeighing}
+								onConsume={setConsumingIn}
 								onStartService={setServiceFor}
 								onOpenServiceOrder={setOpenServiceOrderId}
 							/>
@@ -153,6 +156,13 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 					open
 					onClose={() => setWeighing(null)}
 					batch={weighing}
+				/>
+			)}
+			{consumingIn && (
+				<ConsumptionDialog
+					open
+					onClose={() => setConsumingIn(null)}
+					batch={consumingIn}
 				/>
 			)}
 			{serviceFor && (

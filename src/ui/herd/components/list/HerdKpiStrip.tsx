@@ -3,7 +3,7 @@ import { Box, ButtonBase, Paper, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import type { Batch } from '@/core/batches/domain/entities/Batch';
 import { useCaravansSummary } from '@/features/caravans/hooks/useCaravansSummary';
-import { computeHerdKpis } from '../../utils/herdKpis';
+import { computeHerdKpis, type HerdKpis } from '../../utils/herdKpis';
 import { EMPTY_VALUE, formatKg, UNASSIGNED_ANCHOR, UNASSIGNED_BATCH } from '../../utils/herdFormat';
 
 interface HerdKpiStripProps {
@@ -19,6 +19,20 @@ interface KpiCellProps {
 
 const plural = (count: number, one: string, many: string) =>
 	`${count.toLocaleString('es-AR')} ${count === 1 ? one : many}`;
+
+/** Weighed over what, and the calves at foot apart: they are left out of the average. */
+function averageDetail(kpis: HerdKpis): string {
+	if (kpis.averageKg === null) return 'Sin pesajes';
+
+	const adults = kpis.heads - kpis.calves;
+	const weighed = `${kpis.weighedHeads.toLocaleString('es-AR')} de ${adults.toLocaleString('es-AR')} cab. pesadas`;
+
+	if (kpis.calves === 0) return weighed;
+
+	return kpis.calfAverageKg !== null
+		? `${weighed} · al pie ${formatKg(kpis.calfAverageKg)}`
+		: `${weighed} · al pie sin pesar`;
+}
 
 function KpiCell({ label, value, detail, valueColor }: KpiCellProps) {
 	return (
@@ -75,7 +89,11 @@ export function HerdKpiStrip({ batches }: HerdKpiStripProps) {
 			<KpiCell
 				label="Cabezas"
 				value={kpis.heads.toLocaleString('es-AR')}
-				detail={`en ${plural(kpis.stockedBatches, 'lote', 'lotes')}`}
+				detail={
+					kpis.calves > 0
+						? `${plural(kpis.heads - kpis.calves, 'adulto', 'adultos')} + ${kpis.calves.toLocaleString('es-AR')} al pie · ${plural(kpis.stockedBatches, 'lote', 'lotes')}`
+						: `en ${plural(kpis.stockedBatches, 'lote', 'lotes')}`
+				}
 			/>
 			<KpiCell
 				label="Lotes activos"
@@ -93,13 +111,9 @@ export function HerdKpiStrip({ batches }: HerdKpiStripProps) {
 				}
 			/>
 			<KpiCell
-				label="Peso promedio"
+				label={kpis.calves > 0 ? 'Peso promedio adultos' : 'Peso promedio'}
 				value={formatKg(kpis.averageKg)}
-				detail={
-					kpis.averageKg !== null
-						? `${kpis.weighedHeads.toLocaleString('es-AR')} de ${kpis.heads.toLocaleString('es-AR')} cab. pesadas`
-						: 'Sin pesajes'
-				}
+				detail={averageDetail(kpis)}
 			/>
 			<ButtonBase
 				onClick={goToUnassigned}

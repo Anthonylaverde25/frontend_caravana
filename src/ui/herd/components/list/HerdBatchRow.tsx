@@ -18,6 +18,7 @@ interface HerdBatchRowProps {
 	onViewCaravan: (caravan: CaravanSummary) => void;
 	onAddCaravans: (batch: Batch) => void;
 	onWeighBatch: (batch: Batch) => void;
+	onConsume: (batch: Batch) => void;
 	onStartService: (batch: Batch) => void;
 	onOpenServiceOrder?: (serviceOrderId: number) => void;
 }
@@ -33,6 +34,7 @@ export function HerdBatchRow({
 	onViewCaravan,
 	onAddCaravans,
 	onWeighBatch,
+	onConsume,
 	onStartService,
 	onOpenServiceOrder
 }: HerdBatchRowProps) {
@@ -110,6 +112,7 @@ export function HerdBatchRow({
 					batch={batch}
 					onAddCaravans={() => onAddCaravans(batch)}
 					onWeighBatch={() => onWeighBatch(batch)}
+					onConsume={() => onConsume(batch)}
 					onStartService={() => onStartService(batch)}
 					onOpenServiceOrder={openServiceOrder}
 				/>

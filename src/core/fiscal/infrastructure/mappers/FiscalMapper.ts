@@ -59,7 +59,16 @@ export const FiscalMapper = {
 			voidReason: raw.void_reason ?? null,
 			voidedAt: raw.voided_at ?? null,
 			related: raw.related ?? null,
-			stockOperation: raw.stock_operation ?? null
+			stockOperation: raw.stock_operation ?? null,
+			isValued: raw.is_valued ?? null,
+			deliveryNoteStatus: raw.delivery_note_status ?? null,
+			invoicedBy: raw.invoiced_by ?? null,
+			deliveryNotes: (raw.delivery_notes ?? []).map((n: any) => ({
+				id: n.id,
+				label: n.label,
+				issuedAt: n.issued_at,
+				isValued: !!n.is_valued
+			}))
 		};
 	},
 
@@ -72,21 +81,42 @@ export const FiscalMapper = {
 			lines: (raw.lines ?? []).map((l: any) => ({
 				id: l.id,
 				position: l.position,
-				item: { id: l.item.id, name: l.item.name ?? null, unitSymbol: l.item.unit_symbol ?? null, trackStock: !!l.item.track_stock },
+				item: {
+					id: l.item.id,
+					name: l.item.name ?? null,
+					unitSymbol: l.item.unit_symbol ?? null,
+					trackStock: !!l.item.track_stock
+				},
 				inputQuantity: l.input_quantity,
 				inputLabel: l.input_label ?? null,
 				quantity: l.quantity,
-				unitPrice: l.unit_price,
-				lineAmount: l.line_amount,
+				unitPrice: l.unit_price ?? null,
+				lineAmount: l.line_amount ?? null,
 				nonRecoverableTaxAmount: l.non_recoverable_tax_amount,
-				costAmount: l.cost_amount,
-				unitCost: l.unit_cost,
+				costAmount: l.cost_amount ?? null,
+				unitCost: l.unit_cost ?? null,
 				batch: l.batch ?? null,
 				headsTreated: l.heads_treated ?? null,
-				taxes: (l.taxes ?? []).map(tax)
+				taxes: (l.taxes ?? []).map(tax),
+				deliveryNoteLineId: l.delivery_note_line_id ?? null,
+				deliveryNoteLabel: l.delivery_note_label ?? null,
+				unvaluedLot: l.unvalued_lot
+					? {
+							status: l.unvalued_lot.status,
+							quantity: l.unvalued_lot.quantity,
+							remainingQuantity: l.unvalued_lot.remaining_quantity,
+							consumedQuantity: l.unvalued_lot.consumed_quantity,
+							valuedUnitCost: l.unvalued_lot.valued_unit_cost ?? null
+						}
+					: null
 			})),
 			documentTaxes: (raw.document_taxes ?? []).map(tax),
-			taxSummary: (raw.tax_summary ?? []).map((s: any) => ({ label: s.label, amount: s.amount, isRecoverable: !!s.is_recoverable }))
+			taxSummary: (raw.tax_summary ?? []).map((s: any) => ({
+				label: s.label,
+				amount: s.amount,
+				isRecoverable: !!s.is_recoverable
+			})),
+			discrepancies: raw.discrepancies ?? null
 		};
 	}
 };

@@ -6,6 +6,7 @@ import ViewLayout from 'src/components/ViewLayout';
 import { useItemDocuments } from '@/features/stock/hooks/useItemDocuments';
 import { ITEM_DOCUMENT_TYPES, ItemDocumentType } from '@/core/stock/domain/entities/ItemDocument';
 import ItemDocumentsGrid from '../components/list/ItemDocumentsGrid';
+import ConsumptionDialog from '@/ui/stock/components/consumption/ConsumptionDialog';
 
 const TEXT_BUTTON = { fontWeight: 600, color: 'primary.main', textTransform: 'none' } as const;
 
@@ -15,6 +16,7 @@ export default function ItemDocumentsView() {
 	const [type, setType] = useState<ItemDocumentType | 'ALL'>('ALL');
 	const [dates, setDates] = useState({ from: '', to: '' });
 	const [page, setPage] = useState(1);
+	const [consuming, setConsuming] = useState(false);
 	const { data, isLoading } = useItemDocuments({ type: type === 'ALL' ? undefined : type, from: dates.from || undefined, to: dates.to || undefined, page });
 	const pages = data ? Math.max(1, Math.ceil(data.total / data.perPage)) : 1;
 
@@ -23,10 +25,16 @@ export default function ItemDocumentsView() {
 			title="Movimientos de stock"
 			subtitle="Ingresos por compra, stock inicial, consumos, conteos, devoluciones y anulaciones."
 			actions={
-				<Button variant="text" onClick={() => navigate('/item-documents/new/initial-stock')}
-					startIcon={<FuseSvgIcon size={20}>heroicons-outline:archive-box-arrow-down</FuseSvgIcon>} sx={TEXT_BUTTON}>
-					Stock inicial
-				</Button>
+				<Stack direction="row" spacing={1.5}>
+					<Button variant="text" onClick={() => navigate('/item-documents/new/initial-stock')}
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:archive-box-arrow-down</FuseSvgIcon>} sx={TEXT_BUTTON}>
+						Stock inicial
+					</Button>
+					<Button variant="contained" onClick={() => setConsuming(true)} startIcon={<FuseSvgIcon size={20}>heroicons-outline:beaker</FuseSvgIcon>}
+						sx={{ bgcolor: 'primary.main', borderRadius: '6px', px: 3, fontWeight: 700, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: 'primary.dark' } }}>
+						Registrar consumo
+					</Button>
+				</Stack>
 			}
 		>
 			<Stack spacing={2} component="main">
@@ -49,6 +57,7 @@ export default function ItemDocumentsView() {
 					onOpen={(d) => navigate(`/item-documents/${d.id}`)} />
 				{pages > 1 && <Pagination count={pages} page={page} onChange={(_, p) => setPage(p)} sx={{ alignSelf: 'center' }} />}
 			</Stack>
+			{consuming && <ConsumptionDialog open onClose={() => setConsuming(false)} />}
 		</ViewLayout>
 	);
 }

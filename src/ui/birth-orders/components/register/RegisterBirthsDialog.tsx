@@ -109,7 +109,7 @@ export default function RegisterBirthsDialog({ batchId, onClose, onDone }: Regis
                 <RegisterBirthsSheetToolbar query={query} onQuery={setQuery} counts={counts} />
                 <BirthRollGrid
                   females={shown}
-                  state={roll}
+                  state={submit.state}
                   errors={submit.errors}
                   grouped={batchId == null}
                   externalRoundDate

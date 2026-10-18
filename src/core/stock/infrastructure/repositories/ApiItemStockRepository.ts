@@ -1,6 +1,6 @@
 import axiosInstance from '@/utils/axios';
-import { Page } from '../../domain/entities/ItemDocument';
-import { ItemStockView, KardexFilters, KardexRow, Warehouse } from '../../domain/entities/ItemStock';
+import { Page, StockIncident } from '../../domain/entities/ItemDocument';
+import { BatchConsumptionHistory, ItemStockView, KardexFilters, KardexRow, Warehouse } from '../../domain/entities/ItemStock';
 import { IItemStockRepository } from '../../domain/repositories/IItemStockRepository';
 import { StockMapper } from '../mappers/StockMapper';
 
@@ -18,6 +18,16 @@ export class ApiItemStockRepository implements IItemStockRepository {
 	async setCriticalStock(itemId: number, warehouseId: number, level: string | null): Promise<ItemStockView> {
 		const response = await axiosInstance.patch<any>(`/items/${itemId}/stock/${warehouseId}/critical`, { critical_stock: level });
 		return StockMapper.stockView(response.data);
+	}
+
+	async resolveIncident(id: number, resolution: string): Promise<StockIncident> {
+		const response = await axiosInstance.patch<any>(`/stock-incidents/${id}/resolve`, { resolution });
+		return StockMapper.incident(response.data);
+	}
+
+	async batchHistory(batchId: number): Promise<BatchConsumptionHistory> {
+		const response = await axiosInstance.get<any>(`/batches/${batchId}/consumption-history`);
+		return StockMapper.batchHistory(response.data);
 	}
 
 	async warehouses(): Promise<Warehouse[]> {

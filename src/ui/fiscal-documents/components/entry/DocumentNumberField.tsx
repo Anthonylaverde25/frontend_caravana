@@ -15,7 +15,14 @@ interface DocumentNumberFieldProps {
  * Point of sale and number as the paper prints them ("0004-00001050"), padded with zeros on blur. A
  * ticket has a free reference instead.
  */
-export default function DocumentNumberField({ requiresNumber, pointOfSale, number, reference, onChange, errors }: DocumentNumberFieldProps) {
+export default function DocumentNumberField({
+	requiresNumber,
+	pointOfSale,
+	number,
+	reference,
+	onChange,
+	errors
+}: DocumentNumberFieldProps) {
 	if (!requiresNumber) {
 		return (
 			<TextField
@@ -35,7 +42,11 @@ export default function DocumentNumberField({ requiresNumber, pointOfSale, numbe
 
 	return (
 		<Stack spacing={0.5}>
-			<Stack direction="row" spacing={1} alignItems="center">
+			<Stack
+				direction="row"
+				spacing={1}
+				alignItems="center"
+			>
 				<TextField
 					label="PV"
 					variant="filled"
@@ -61,7 +72,11 @@ export default function DocumentNumberField({ requiresNumber, pointOfSale, numbe
 				/>
 			</Stack>
 			{error && (
-				<Typography variant="caption" color="error" sx={{ pl: 1.5 }}>
+				<Typography
+					variant="caption"
+					color="error"
+					sx={{ pl: 1.5 }}
+				>
 					{error}
 				</Typography>
 			)}

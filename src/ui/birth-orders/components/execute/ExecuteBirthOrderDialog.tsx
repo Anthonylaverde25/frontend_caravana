@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
 import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { toast } from 'sonner';
 import type { BirthOrder } from '@/features/birth-orders/types';
-import { birthOrderErrorMessage, birthRowErrors, isOpenBirthLine } from '@/features/birth-orders/types';
+import { birthOrderErrorMessage, isOpenBirthLine } from '@/features/birth-orders/types';
 import { useExecuteBirthOrder } from '@/features/birth-orders/hooks/useBirthOrderMutations';
 import BirthRollGrid from '../grid/BirthRollGrid';
-import { cellErrorsByFemale, femaleFromOrderAnimal } from '../grid/birthRollTypes';
+import { femaleFromOrderAnimal } from '../grid/birthRollTypes';
+import { useBirthCellErrors } from '../grid/useBirthCellErrors';
 import { useBirthRollState } from '../grid/useBirthRollState';
 
 interface ExecuteBirthOrderDialogProps {
@@ -34,11 +36,24 @@ const ExecuteBirthOrderContent: React.FC<{ order: BirthOrder; onClose: () => voi
     [order.animals]
   );
   const roll = useBirthRollState(females);
-  const errors = useMemo(() => cellErrorsByFemale(birthRowErrors(execute.error), females), [execute.error, females]);
+  const { errors, state, refusedRows } = useBirthCellErrors(execute.error, females, roll);
   const rowErrorCount = Object.keys(errors).length;
-  const generalError = execute.error && rowErrorCount === 0 ? birthOrderErrorMessage(execute.error, 'No se pudo registrar la recorrida.') : null;
+  const generalError = execute.error && refusedRows === 0 ? birthOrderErrorMessage(execute.error, 'No se pudo registrar la recorrida.') : null;
 
-  const submit = () => execute.mutate({ id: order.id, body: { animals: roll.payload() } }, { onSuccess: onClose });
+  // Validated on click, never by disabling the button: the warning says what is missing.
+  const submit = () => {
+    if (roll.resolved.length === 0) {
+      toast.warning('Marcá el resultado de al menos un vientre. Los que quedan sin resultado siguen pendientes.');
+      return;
+    }
+
+    if (roll.problems.length > 0) {
+      toast.warning(`Revisá ${roll.problems.length} fila(s) antes de registrar: ${roll.problems[0]}`);
+      return;
+    }
+
+    execute.mutate({ id: order.id, body: { animals: roll.payload() } }, { onSuccess: onClose });
+  };
 
   return (
     <>
@@ -71,7 +86,7 @@ const ExecuteBirthOrderContent: React.FC<{ order: BirthOrder; onClose: () => voi
             {generalError}
           </Alert>
         )}
-        <BirthRollGrid females={females} state={roll} errors={errors} maxHeight="calc(100vh - 380px)" allowOverdue />
+        <BirthRollGrid females={females} state={state} errors={errors} maxHeight="calc(100vh - 380px)" allowOverdue />
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 1.5 }}>
         <Button onClick={onClose} disabled={execute.isPending} color="inherit" sx={{ textTransform: 'none', fontWeight: 600 }}>
@@ -80,7 +95,7 @@ const ExecuteBirthOrderContent: React.FC<{ order: BirthOrder; onClose: () => voi
         <Button
           variant="contained"
           disableElevation
-          disabled={execute.isPending || roll.resolved.length === 0 || roll.problems.length > 0}
+          disabled={execute.isPending}
           onClick={submit}
           startIcon={execute.isPending ? <CircularProgress size={14} color="inherit" /> : <FuseSvgIcon size={16}>heroicons-outline:check-circle</FuseSvgIcon>}
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}

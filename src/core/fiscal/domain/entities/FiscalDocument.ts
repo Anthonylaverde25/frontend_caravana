@@ -19,14 +19,37 @@ export interface FiscalDocumentLine {
 	inputQuantity: string;
 	inputLabel: string | null;
 	quantity: string;
-	unitPrice: string;
-	lineAmount: string;
+	/** The four amounts are null together, only on a delivery note without prices (delivery C). */
+	unitPrice: string | null;
+	lineAmount: string | null;
 	nonRecoverableTaxAmount: string;
-	costAmount: string;
-	unitCost: string;
+	costAmount: string | null;
+	unitCost: string | null;
 	batch: { id: number; name: string | null } | null;
 	headsTreated: number | null;
 	taxes: FiscalTax[];
+	/** An invoice line converted from a delivery-note line (DC5). */
+	deliveryNoteLineId: number | null;
+	deliveryNoteLabel: string | null;
+	/** A line of a delivery note without prices: its units waiting for the invoice. */
+	unvaluedLot: UnvaluedLot | null;
+}
+
+export interface UnvaluedLot {
+	status: 'PENDING' | 'VALUED' | 'VOIDED';
+	quantity: string;
+	remainingQuantity: string;
+	consumedQuantity: string;
+	valuedUnitCost: string | null;
+}
+
+export type DeliveryNoteStatus = 'PENDING_INVOICE' | 'INVOICED' | 'VOIDED';
+
+export interface DeliveryNoteRef {
+	id: number;
+	label: string;
+	issuedAt: string;
+	isValued: boolean;
 }
 
 /** A provider document as it is on paper (DS14). Amounts are positive; the type's sign says cost or credit. */
@@ -37,10 +60,11 @@ export interface FiscalDocument {
 	provider: { id: number; name: string | null };
 	formattedNumber: string;
 	issuedAt: string;
-	linesAmount: string;
-	lineTaxesAmount: string;
-	documentTaxesAmount: string;
-	totalAmount: string;
+	/** Null only on a delivery note without prices: it has no amounts at all. */
+	linesAmount: string | null;
+	lineTaxesAmount: string | null;
+	documentTaxesAmount: string | null;
+	totalAmount: string | null;
 	declaredTotal: string | null;
 	totalDifference: string | null;
 	linesCount: number;
@@ -49,6 +73,12 @@ export interface FiscalDocument {
 	voidedAt: string | null;
 	related: { id: number; label: string | null } | null;
 	stockOperation: { id: number; number: number } | null;
+	/** Delivery notes only (DC14). */
+	isValued: boolean | null;
+	deliveryNoteStatus: { code: DeliveryNoteStatus; label: string } | null;
+	invoicedBy: { id: number; label: string | null } | null;
+	/** An invoice converted from delivery notes. */
+	deliveryNotes: DeliveryNoteRef[];
 }
 
 export interface FiscalDocumentDetail extends FiscalDocument {
@@ -58,6 +88,8 @@ export interface FiscalDocumentDetail extends FiscalDocument {
 	lines: FiscalDocumentLine[];
 	documentTaxes: FiscalTax[];
 	taxSummary: { label: string; amount: string; isRecoverable: boolean }[];
+	/** Differences with delivery notes (DC7). */
+	discrepancies: { open: number; resolved: number; cancelled: number } | null;
 }
 
 export interface FiscalDocumentFilters {
@@ -83,10 +115,11 @@ export interface FiscalLinePayload {
 	input_quantity: string;
 	input_unit_id: number | null;
 	input_presentation_id: number | null;
-	unit_price: string;
+	unit_price: string | null;
 	batch_id: number | null;
 	heads_treated: number | null;
 	taxes: TaxPayload[];
+	delivery_note_line_id?: number | null;
 }
 
 export interface FiscalDocumentPayload {
@@ -102,4 +135,8 @@ export interface FiscalDocumentPayload {
 	idempotency_key: string;
 	lines: FiscalLinePayload[];
 	document_taxes: TaxPayload[];
+	/** Delivery notes only: whether the paper carries prices. */
+	is_valued?: boolean | null;
+	/** An invoice converted from delivery notes (DC5). */
+	delivery_note_ids?: number[];
 }

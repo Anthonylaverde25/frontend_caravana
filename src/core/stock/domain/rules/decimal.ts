@@ -22,11 +22,17 @@ function roundDiv(numerator: bigint, denominator: bigint): bigint {
  */
 export function dec(value: string | number | null | undefined): Dec | null {
 	if (value === null || value === undefined) return null;
+
 	let text = String(value).trim();
+
 	if (text === '') return null;
+
 	if (text.includes(',')) text = text.replace(/\./g, '').replace(',', '.');
+
 	const match = /^(-)?(\d*)(?:\.(\d*))?$/.exec(text);
+
 	if (!match || (match[2] === '' && (match[3] ?? '') === '')) return null;
+
 	const fraction = (match[3] ?? '').padEnd(SCALE + 1, '0');
 	const scaled = BigInt(match[2] || '0') * ONE + BigInt(fraction.slice(0, SCALE));
 	const rounded = Number(fraction[SCALE]) >= 5 ? scaled + 1n : scaled;
@@ -42,6 +48,11 @@ export const sum = (values: Dec[]): Dec => values.reduce(add, ZERO);
 export const isZero = (a: Dec): boolean => a === 0n;
 export const isPositive = (a: Dec): boolean => a > 0n;
 export const isNegative = (a: Dec): boolean => a < 0n;
+/** A decimal text from the API that is above zero ("0.0000" and null are not). */
+export const isPositiveText = (value: string | null | undefined): boolean => {
+	const parsed = dec(value);
+	return parsed !== null && parsed > 0n;
+};
 
 /** Rounded to a column's scale: round(1234.56789, 4) → 1234.5679. */
 export function round(a: Dec, scale: number): Dec {

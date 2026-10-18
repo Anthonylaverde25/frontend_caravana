@@ -1,4 +1,17 @@
-import { Button, IconButton, MenuItem, Paper, Stack, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography } from '@mui/material';
+import {
+	Button,
+	IconButton,
+	MenuItem,
+	Paper,
+	Stack,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableRow,
+	TextField,
+	Tooltip,
+	Typography
+} from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { SheetGrid } from 'src/components/sheet-grid/SheetGrid';
 import { SheetGridEmptyRow } from 'src/components/sheet-grid/SheetGridEmptyRow';
@@ -23,19 +36,42 @@ export default function DocumentTaxesGrid({ rows, taxes, errors, onAdd, onChange
 	const options = taxes.filter((t) => t.appliesTo === 'DOCUMENT');
 	const input = (row: DocumentTaxState, name: 'rate' | 'taxableBase' | 'amount', width: number) => (
 		<TableCell sx={{ ...cellSx, width }}>
-			<TextField fullWidth size="small" value={row[name]} sx={inputSx} inputProps={{ inputMode: 'decimal' }} onChange={(e) => onChange(row.key, { [name]: e.target.value })} />
+			<TextField
+				fullWidth
+				size="small"
+				value={row[name]}
+				sx={inputSx}
+				inputProps={{ inputMode: 'decimal' }}
+				onChange={(e) => onChange(row.key, { [name]: e.target.value })}
+			/>
 		</TableCell>
 	);
 
 	return (
-		<Paper variant="outlined" sx={{ p: 2, borderRadius: '8px' }}>
-			<Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+		<Paper
+			variant="outlined"
+			sx={{ p: 2, borderRadius: '8px' }}
+		>
+			<Stack
+				direction="row"
+				justifyContent="space-between"
+				alignItems="center"
+				sx={{ mb: 1.5 }}
+			>
 				<Typography sx={sectionTitleSx}>4. Impuestos del comprobante</Typography>
-				<Button size="small" onClick={onAdd} startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>} sx={{ textTransform: 'none', fontWeight: 600 }}>
+				<Button
+					size="small"
+					onClick={onAdd}
+					startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}
+					sx={{ textTransform: 'none', fontWeight: 600 }}
+				>
 					Agregar impuesto
 				</Button>
 			</Stack>
-			<SheetGrid minWidth={640} maxHeight={240}>
+			<SheetGrid
+				minWidth={640}
+				maxHeight={240}
+			>
 				<TableHead>
 					<TableRow>
 						<TableCell sx={indexSx}>#</TableCell>
@@ -47,15 +83,34 @@ export default function DocumentTaxesGrid({ rows, taxes, errors, onAdd, onChange
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					{rows.length === 0 && <SheetGridEmptyRow colSpan={6}>Sin percepciones. Agregalas si el papel las trae.</SheetGridEmptyRow>}
+					{rows.length === 0 && (
+						<SheetGridEmptyRow colSpan={6}>
+							Sin percepciones. Agregalas si el papel las trae.
+						</SheetGridEmptyRow>
+					)}
 					{rows.map((row, index) => (
 						<TableRow key={row.key}>
 							<TableCell sx={indexSx}>{index + 1}</TableCell>
 							<TableCell sx={{ ...cellSx, ...(errors[row.key] ? errorRing : {}) }}>
-								<TextField select fullWidth size="small" value={row.taxId ?? ''} sx={inputSx} onChange={(e) => onChange(row.key, { taxId: Number(e.target.value) })}
-									SelectProps={{ displayEmpty: true, renderValue: (v) => options.find((t) => t.id === v)?.name ?? 'Elegí el impuesto' }}>
+								<TextField
+									select
+									fullWidth
+									size="small"
+									value={row.taxId ?? ''}
+									sx={inputSx}
+									onChange={(e) => onChange(row.key, { taxId: Number(e.target.value) })}
+									SelectProps={{
+										displayEmpty: true,
+										renderValue: (v) => options.find((t) => t.id === v)?.name ?? 'Elegí el impuesto'
+									}}
+								>
 									{options.map((t) => (
-										<MenuItem key={t.id} value={t.id} disabled={rows.some((r) => r.key !== row.key && r.taxId === t.id)} sx={{ fontSize: '0.85rem' }}>
+										<MenuItem
+											key={t.id}
+											value={t.id}
+											disabled={rows.some((r) => r.key !== row.key && r.taxId === t.id)}
+											sx={{ fontSize: '0.85rem' }}
+										>
 											{t.name}
 										</MenuItem>
 									))}
@@ -66,7 +121,10 @@ export default function DocumentTaxesGrid({ rows, taxes, errors, onAdd, onChange
 							{input(row, 'amount', 130)}
 							<SheetGridStatusCell error={errors[row.key]}>
 								<Tooltip title="Quitar">
-									<IconButton size="small" onClick={() => onRemove(row.key)}>
+									<IconButton
+										size="small"
+										onClick={() => onRemove(row.key)}
+									>
 										<FuseSvgIcon size={16}>heroicons-outline:x-mark</FuseSvgIcon>
 									</IconButton>
 								</Tooltip>

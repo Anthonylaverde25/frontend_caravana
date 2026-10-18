@@ -10,6 +10,7 @@ interface HerdBatchRowActionsProps {
 	batch: Batch;
 	onAddCaravans: () => void;
 	onWeighBatch: () => void;
+	onConsume: () => void;
 	onStartService: () => void;
 	onOpenServiceOrder?: () => void;
 }
@@ -24,6 +25,7 @@ export function HerdBatchRowActions({
 	batch,
 	onAddCaravans,
 	onWeighBatch,
+	onConsume,
 	onStartService,
 	onOpenServiceOrder
 }: HerdBatchRowActionsProps) {
@@ -124,6 +126,17 @@ export function HerdBatchRowActions({
 						<FuseSvgIcon size={16}>heroicons-outline:arrow-top-right-on-square</FuseSvgIcon>
 					</ListItemIcon>
 					<ListItemText primaryTypographyProps={{ fontSize: '0.82rem' }}>Abrir lote</ListItemText>
+				</MenuItem>
+				<MenuItem
+					onClick={() => {
+						setMenuAnchor(null);
+						onConsume();
+					}}
+				>
+					<ListItemIcon>
+						<FuseSvgIcon size={16}>heroicons-outline:beaker</FuseSvgIcon>
+					</ListItemIcon>
+					<ListItemText primaryTypographyProps={{ fontSize: '0.82rem' }}>Registrar consumo</ListItemText>
 				</MenuItem>
 				<MenuItem onClick={() => go(`/herd/batches/${batch.id}/bulk-weight`)}>
 					<ListItemIcon>

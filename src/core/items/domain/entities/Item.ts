@@ -46,6 +46,8 @@ export interface ItemProviderLink {
 /** Balance of a stock-tracked article across warehouses, and its open stock alerts. */
 export interface ItemStockSummary {
 	quantity: string;
+	/** Units waiting for their invoice (delivery C): in the balance, not in the value. */
+	unvaluedQuantity: string;
 	value: string;
 	hasNegative: boolean;
 	hasCritical: boolean;

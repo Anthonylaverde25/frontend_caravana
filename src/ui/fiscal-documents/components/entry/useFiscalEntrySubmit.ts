@@ -42,8 +42,14 @@ export function useFiscalEntrySubmit({ header, lines, documentTaxes, type, taxes
 			const document = await mutateAsync(built.payload);
 			setErrors(NONE);
 			renewKey();
-			const stock = document.stockOperation ? ` · ingreso de stock N.º ${document.stockOperation.number}` : '';
-			enqueueSnackbar(`Se registró ${document.label}${stock}.`, { variant: 'success' });
+			const stock = document.stockOperation ? ` · movimiento de stock N.º ${document.stockOperation.number}` : '';
+			const open = document.discrepancies?.open ?? 0;
+			enqueueSnackbar(
+				open > 0
+					? `Se registró ${document.label}${stock}. Quedaron ${open} diferencia(s) con los remitos para resolver con el proveedor.`
+					: `Se registró ${document.label}${stock}.`,
+				{ variant: open > 0 ? 'warning' : 'success' }
+			);
 			onDone(document);
 		} catch (error) {
 			const { fields, domain } = readApiErrors(error, 'No se pudo registrar el comprobante.');
@@ -51,6 +57,7 @@ export function useFiscalEntrySubmit({ header, lines, documentTaxes, type, taxes
 			Object.entries(fields).forEach(([field, message]) => {
 				const line = /^lines\.(\d+)\.(.+)$/.exec(field);
 				const tax = /^document_taxes\.(\d+)\./.exec(field);
+
 				if (line && built.lineKeys[Number(line[1])]) {
 					const rowKey = built.lineKeys[Number(line[1])];
 					next.cells[rowKey] = { ...next.cells[rowKey], [cellOf(line[2])]: message };

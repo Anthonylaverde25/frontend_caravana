@@ -29,7 +29,8 @@ export function herdBatchPath(
 /** "—" for an aggregate over nothing: an empty set has no value, and 0 would invent one. */
 export const EMPTY_VALUE = '—';
 
-export function formatKg(value: number | null | undefined, digits = 0): string {
+/** Weights are recorded to one decimal: fewer digits would turn 35,5 kg into 36. Whole values print without ",0". */
+export function formatKg(value: number | null | undefined, digits = 1): string {
 	if (value === null || value === undefined) return EMPTY_VALUE;
 
 	return `${value.toLocaleString('es-AR', { maximumFractionDigits: digits })} kg`;

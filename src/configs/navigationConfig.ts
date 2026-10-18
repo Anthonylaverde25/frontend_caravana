@@ -288,10 +288,19 @@ const navigationConfig: FuseNavItemType[] = [
 				// Provider papers (DS14): their stocked lines enter the warehouse when registered.
 				id: 'supplies.fiscal-documents',
 				title: 'Comprobantes de proveedores',
-				subtitle: 'Facturas, notas de crédito y tickets',
+				subtitle: 'Facturas, notas de crédito, tickets y remitos',
 				type: 'item',
 				icon: 'heroicons-outline:receipt-percent',
 				url: '/fiscal-documents'
+			},
+			{
+				// Delivery C: what arrived with a delivery note and waits for its invoice (DC12).
+				id: 'supplies.delivery-notes',
+				title: 'Remitos a facturar',
+				subtitle: 'Recibido sin factura',
+				type: 'item',
+				icon: 'heroicons-outline:truck',
+				url: '/fiscal-documents/delivery-notes'
 			},
 			{
 				id: 'supplies.items',

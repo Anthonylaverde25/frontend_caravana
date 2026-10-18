@@ -9,6 +9,7 @@ interface HerdBatchActionsProps {
 	onAddCaravans: () => void;
 	onTransfer: () => void;
 	onWeighBatch: () => void;
+	onConsume: () => void;
 	onStartService: () => void;
 }
 
@@ -18,7 +19,7 @@ const textButtonSx = { fontWeight: 600, color: 'primary.main', textTransform: 'n
  * Header actions of the batch page: the work on the batch as a whole. Weighing and the control
  * sheet open their own screens under /herd/batches/:id.
  */
-export function HerdBatchActions({ batch, onAddCaravans, onTransfer, onWeighBatch, onStartService }: HerdBatchActionsProps) {
+export function HerdBatchActions({ batch, onAddCaravans, onTransfer, onWeighBatch, onConsume, onStartService }: HerdBatchActionsProps) {
 	const navigate = useNavigate();
 	const service = batch.active_service_order;
 	const serviceLink = service ? orderLink('service_order', service.id) : null;
@@ -46,6 +47,14 @@ export function HerdBatchActions({ batch, onAddCaravans, onTransfer, onWeighBatc
 				sx={textButtonSx}
 			>
 				Pesar lote
+			</Button>
+			<Button
+				variant="text"
+				onClick={onConsume}
+				startIcon={<FuseSvgIcon size={18}>heroicons-outline:beaker</FuseSvgIcon>}
+				sx={textButtonSx}
+			>
+				Registrar consumo
 			</Button>
 			<Button
 				variant="text"

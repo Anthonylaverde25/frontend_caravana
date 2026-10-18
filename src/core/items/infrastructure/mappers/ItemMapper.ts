@@ -12,13 +12,27 @@ export const ItemMapper = {
 			behavior: raw.behavior,
 			isActive: !!raw.is_active,
 			unit: raw.unit
-				? { id: raw.unit.id, code: raw.unit.code, symbol: raw.unit.symbol, name: raw.unit.name, isConvertible: !!raw.unit.is_convertible }
+				? {
+						id: raw.unit.id,
+						code: raw.unit.code,
+						symbol: raw.unit.symbol,
+						name: raw.unit.name,
+						isConvertible: !!raw.unit.is_convertible
+					}
 				: null,
-			category: raw.category ? { id: raw.category.id, name: raw.category.name, path: raw.category.path ?? raw.category.name } : null,
+			category: raw.category
+				? { id: raw.category.id, name: raw.category.name, path: raw.category.path ?? raw.category.name }
+				: null,
 			presentationsCount: raw.presentations_count ?? 0,
 			providersCount: raw.providers_count ?? 0,
 			stock: raw.stock
-				? { quantity: raw.stock.quantity, value: raw.stock.value, hasNegative: !!raw.stock.has_negative, hasCritical: !!raw.stock.has_critical }
+				? {
+						quantity: raw.stock.quantity,
+						unvaluedQuantity: raw.stock.unvalued_quantity ?? '0.0000',
+						value: raw.stock.value,
+						hasNegative: !!raw.stock.has_negative,
+						hasCritical: !!raw.stock.has_critical
+					}
 				: null,
 			lastVatRateId: raw.last_vat_rate_id ?? null
 		};

@@ -1,5 +1,5 @@
 import { ItemDocument, ItemDocumentLine, Page, StockIncident } from '../../domain/entities/ItemDocument';
-import { ItemStockView, KardexRow } from '../../domain/entities/ItemStock';
+import { BatchConsumptionHistory, ItemStockView, KardexRow } from '../../domain/entities/ItemStock';
 
 export const StockMapper = {
 	incident(raw: any): StockIncident {
@@ -28,8 +28,10 @@ export const StockMapper = {
 			inputLabel: raw.input_label ?? null,
 			quantity: raw.quantity,
 			inputUnitPrice: raw.input_unit_price ?? null,
-			unitCost: raw.unit_cost,
+			unitCost: raw.unit_cost ?? null,
 			totalCost: raw.total_cost,
+			unvaluedQuantity: raw.unvalued_quantity ?? '0.0000',
+			unabsorbedCost: raw.unabsorbed_cost ?? null,
 			countedQuantity: raw.counted_quantity ?? null,
 			movement: raw.movement
 				? {
@@ -69,21 +71,67 @@ export const StockMapper = {
 	},
 
 	page<T>(raw: any, map: (row: any) => T): Page<T> {
-		return { data: (raw.data ?? []).map(map), total: raw.total ?? 0, page: raw.page ?? 1, perPage: raw.per_page ?? 25 };
+		return {
+			data: (raw.data ?? []).map(map),
+			total: raw.total ?? 0,
+			page: raw.page ?? 1,
+			perPage: raw.per_page ?? 25
+		};
 	},
 
 	stockView(raw: any): ItemStockView {
 		return {
-			item: { id: raw.item.id, name: raw.item.name, unitSymbol: raw.item.unit_symbol ?? null, trackStock: !!raw.item.track_stock },
+			item: {
+				id: raw.item.id,
+				name: raw.item.name,
+				unitSymbol: raw.item.unit_symbol ?? null,
+				trackStock: !!raw.item.track_stock
+			},
 			warehouses: (raw.warehouses ?? []).map((w: any) => ({
 				warehouse: { id: w.warehouse.id, name: w.warehouse.name ?? null },
 				quantity: w.quantity,
+				unvaluedQuantity: w.unvalued_quantity ?? '0.0000',
+				valuedQuantity: w.valued_quantity ?? w.quantity,
 				averageUnitCost: w.average_unit_cost,
 				value: w.value,
 				criticalStock: w.critical_stock ?? null,
 				isBelowCritical: !!w.is_below_critical
 			})),
-			openIncidents: (raw.open_incidents ?? []).map(StockMapper.incident)
+			openIncidents: (raw.open_incidents ?? []).map(StockMapper.incident),
+			pendingLots: (raw.pending_lots ?? []).map((l: any) => ({
+				warehouseId: l.warehouse_id,
+				deliveryNoteId: l.delivery_note_id,
+				deliveryNoteLabel: l.delivery_note_label,
+				issuedAt: l.issued_at,
+				quantity: l.quantity,
+				remainingQuantity: l.remaining_quantity,
+				consumedQuantity: l.consumed_quantity
+			}))
+		};
+	},
+
+	batchHistory(raw: any): BatchConsumptionHistory {
+		return {
+			rows: (raw.rows ?? []).map((r: any) => ({
+				source: r.source,
+				lineId: r.line_id,
+				occurredAt: r.occurred_at,
+				itemName: r.item_name,
+				behavior: r.behavior,
+				category: r.category ?? null,
+				quantity: r.quantity,
+				unitSymbol: r.unit_symbol,
+				headsTreated: r.heads_treated,
+				cost: r.cost,
+				pendingCostQuantity: r.pending_cost_quantity ?? '0.0000',
+				costPerHead: r.cost_per_head ?? null,
+				reference: r.reference,
+				voided: r.voided ?? null
+			})),
+			totalCost: raw.total_cost,
+			costPerHead: raw.cost_per_head,
+			byCategory: raw.by_category ?? [],
+			hasPendingCost: !!raw.has_pending_cost
 		};
 	},
 
@@ -100,10 +148,12 @@ export const StockMapper = {
 			fiscalDocument: raw.fiscal_document ?? null,
 			direction: raw.direction,
 			quantity: raw.quantity,
-			unitCost: raw.unit_cost,
+			unitCost: raw.unit_cost ?? null,
 			totalCost: raw.total_cost,
 			balanceAfter: raw.balance_after,
-			averageCostAfter: raw.average_cost_after
+			averageCostAfter: raw.average_cost_after,
+			unvaluedQuantity: raw.unvalued_quantity ?? '0.0000',
+			unvaluedBalanceAfter: raw.unvalued_balance_after ?? '0.0000'
 		};
 	}
 };

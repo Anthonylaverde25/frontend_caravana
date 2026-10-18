@@ -71,6 +71,12 @@ export interface BatchDTO {
   total_weight?: number | null;
   /** Head with a current weight: the set the average is computed over. */
   weighed_count?: number | null;
+  /** Calves at foot (unweaned) inside head_count: born into their mother's batch. */
+  nursing_count?: number | null;
+  /** Calves at foot inside weighed_count. */
+  nursing_weighed_count?: number | null;
+  /** Kilos of the calves at foot inside total_weight. */
+  nursing_total_weight?: number | null;
   /** The batch's RENSPA: its provider farm's when external, the company's when own. */
   renspa?: string | null;
   incoming_entry_orders?: BatchIncomingEntryOrder[];
@@ -141,7 +147,10 @@ export class Batch {
     public readonly incoming_entry_orders: BatchIncomingEntryOrder[] = [],
     public readonly total_weight: number | null = null,
     public readonly weighed_count: number | null = null,
-    public readonly renspa: string | null = null
+    public readonly renspa: string | null = null,
+    public readonly nursing_count = 0,
+    public readonly nursing_weighed_count = 0,
+    public readonly nursing_total_weight = 0
   ) {}
 
   public static create(dto: BatchDTO): Batch {
@@ -182,7 +191,10 @@ export class Batch {
       dto.incoming_entry_orders ?? [],
       dto.total_weight ?? null,
       dto.weighed_count ?? null,
-      dto.renspa && dto.renspa !== 'NO_DEFINIDO' ? dto.renspa : null
+      dto.renspa && dto.renspa !== 'NO_DEFINIDO' ? dto.renspa : null,
+      dto.nursing_count ?? 0,
+      dto.nursing_weighed_count ?? 0,
+      dto.nursing_total_weight ?? 0
     );
   }
 

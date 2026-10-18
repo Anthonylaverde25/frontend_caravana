@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { useRegisterBirths } from '@/features/birth-orders/hooks/useBirthOrderMutations';
-import { birthRowErrors } from '@/features/birth-orders/types';
-import { cellErrorsByFemale, type BirthRollFemale } from '../grid/birthRollTypes';
+import type { BirthRollFemale } from '../grid/birthRollTypes';
+import { useBirthCellErrors } from '../grid/useBirthCellErrors';
 import type { BirthRollState } from '../grid/useBirthRollState';
 import { toRegisterPayload, type RegisterBirthsHeader } from './registerBirths';
 
@@ -15,11 +14,12 @@ interface UseRegisterBirthsSubmitArgs {
 
 /**
  * "Registrar N parto(s)", validated on click: at least one result, and every row with a result
- * complete. The server's row errors come back on the cells.
+ * complete. The server's row errors come back on the cells, and leave each one as it is corrected:
+ * the grid takes `state`, not the bare roll.
  */
 export function useRegisterBirthsSubmit({ females, roll, header, onDone }: UseRegisterBirthsSubmitArgs) {
   const register = useRegisterBirths();
-  const errors = useMemo(() => cellErrorsByFemale(birthRowErrors(register.error), females), [register.error, females]);
+  const { errors, state } = useBirthCellErrors(register.error, females, roll);
 
   const submit = () => {
     if (roll.resolved.length === 0) {
@@ -35,5 +35,5 @@ export function useRegisterBirthsSubmit({ females, roll, header, onDone }: UseRe
     register.mutate(toRegisterPayload(header, roll), { onSuccess: (result) => onDone(result.order.id) });
   };
 
-  return { submit, errors, isSaving: register.isPending, statedCount: roll.resolved.length };
+  return { submit, errors, state, isSaving: register.isPending, statedCount: roll.resolved.length };
 }
