@@ -11,7 +11,7 @@ export class ApiItemStockRepository implements IItemStockRepository {
 	}
 
 	async kardex(itemId: number, filters: KardexFilters): Promise<Page<KardexRow>> {
-		const response = await axiosInstance.get<any>(`/items/${itemId}/kardex`, { params: { from: filters.from, to: filters.to, page: filters.page } });
+		const response = await axiosInstance.get<any>(`/items/${itemId}/kardex`, { params: { warehouse_id: filters.warehouseId, from: filters.from, to: filters.to, page: filters.page } });
 		return StockMapper.page(response.data, StockMapper.kardexRow);
 	}
 
@@ -32,6 +32,31 @@ export class ApiItemStockRepository implements IItemStockRepository {
 
 	async warehouses(): Promise<Warehouse[]> {
 		const response = await axiosInstance.get<any[]>('/warehouses');
-		return response.data.map((w) => ({ id: w.id, code: w.code, name: w.name, isDefault: !!w.is_default }));
+		return response.data.map(StockMapper.warehouse);
+	}
+
+	async nextWarehouseCode(): Promise<string> {
+		const response = await axiosInstance.get<{ code: string }>('/warehouses/next-code');
+		return response.data.code;
+	}
+
+	async createWarehouse(code: string, name: string): Promise<Warehouse> {
+		const response = await axiosInstance.post<any>('/warehouses', { code, name });
+		return StockMapper.warehouse(response.data);
+	}
+
+	async updateWarehouse(id: number, code: string, name: string): Promise<Warehouse> {
+		const response = await axiosInstance.patch<any>(`/warehouses/${id}`, { code, name });
+		return StockMapper.warehouse(response.data);
+	}
+
+	async setDefaultWarehouse(id: number): Promise<Warehouse[]> {
+		const response = await axiosInstance.patch<any[]>(`/warehouses/${id}/default`);
+		return response.data.map(StockMapper.warehouse);
+	}
+
+	async setWarehouseActive(id: number, active: boolean, newDefaultId: number | null): Promise<Warehouse[]> {
+		const response = await axiosInstance.patch<any[]>(`/warehouses/${id}/active`, { is_active: active, new_default_id: newDefaultId });
+		return response.data.map(StockMapper.warehouse);
 	}
 }

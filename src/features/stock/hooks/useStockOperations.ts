@@ -4,9 +4,10 @@ import {
 	GetBatchConsumptionHistoryUseCase,
 	RegisterConsumptionUseCase,
 	RegisterStockCountUseCase,
+	RegisterStockTransferUseCase,
 	ResolveStockIncidentUseCase
 } from '@/core/stock/application/use-cases/StockUseCases';
-import { ConsumptionPayload, StockCountPayload } from '@/core/stock/domain/entities/ItemDocument';
+import { ConsumptionPayload, StockCountPayload, StockTransferPayload } from '@/core/stock/domain/entities/ItemDocument';
 import { ApiItemDocumentRepository } from '@/core/stock/infrastructure/repositories/ApiItemDocumentRepository';
 import { ApiItemStockRepository } from '@/core/stock/infrastructure/repositories/ApiItemStockRepository';
 import { useInvalidateStock } from './useInvalidateStock';
@@ -28,6 +29,16 @@ export const useRegisterStockCount = () => {
 
 	return useMutation({
 		mutationFn: (payload: StockCountPayload) => new RegisterStockCountUseCase(documents).execute(payload),
+		onSuccess: invalidate
+	});
+};
+
+/** A transfer changes two warehouses: their summaries are refreshed with the rest of the ledger. */
+export const useRegisterTransfer = () => {
+	const invalidate = useInvalidateStock();
+
+	return useMutation({
+		mutationFn: (payload: StockTransferPayload) => new RegisterStockTransferUseCase(documents).execute(payload),
 		onSuccess: invalidate
 	});
 };

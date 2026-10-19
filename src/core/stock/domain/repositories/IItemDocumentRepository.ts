@@ -1,4 +1,4 @@
-import { ConsumptionPayload, InitialStockPayload, ItemDocument, ItemDocumentFilters, Page, StockCountPayload } from '../entities/ItemDocument';
+import { ConsumptionPayload, InitialStockPayload, ItemDocument, ItemDocumentFilters, Page, StockCountPayload, StockTransferPayload } from '../entities/ItemDocument';
 
 export interface IItemDocumentRepository {
 	search(filters: ItemDocumentFilters): Promise<Page<ItemDocument>>;
@@ -6,5 +6,7 @@ export interface IItemDocumentRepository {
 	registerInitialStock(payload: InitialStockPayload): Promise<ItemDocument>;
 	registerConsumption(payload: ConsumptionPayload): Promise<ItemDocument>;
 	registerCount(payload: StockCountPayload): Promise<ItemDocument>;
+	/** Answers with the exit; its `paired` is the entry. */
+	registerTransfer(payload: StockTransferPayload): Promise<ItemDocument>;
 	reverse(id: number, reason: string, idempotencyKey: string): Promise<ItemDocument>;
 }

@@ -51,6 +51,15 @@ export interface ItemStockSummary {
 	value: string;
 	hasNegative: boolean;
 	hasCritical: boolean;
+	/** What each active warehouse holds (delivery D, H5): the available amount of a consumption or a transfer. */
+	byWarehouse: WarehouseBalance[];
+}
+
+export interface WarehouseBalance {
+	warehouseId: number;
+	quantity: string;
+	unvaluedQuantity: string;
+	value: string;
 }
 
 /** An article or a service of the company's catalog. */

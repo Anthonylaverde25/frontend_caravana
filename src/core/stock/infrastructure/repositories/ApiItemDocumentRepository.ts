@@ -1,5 +1,5 @@
 import axiosInstance from '@/utils/axios';
-import { ConsumptionPayload, InitialStockPayload, ItemDocument, ItemDocumentFilters, Page, StockCountPayload } from '../../domain/entities/ItemDocument';
+import { ConsumptionPayload, InitialStockPayload, ItemDocument, ItemDocumentFilters, Page, StockCountPayload, StockTransferPayload } from '../../domain/entities/ItemDocument';
 import { IItemDocumentRepository } from '../../domain/repositories/IItemDocumentRepository';
 import { StockMapper } from '../mappers/StockMapper';
 
@@ -28,6 +28,11 @@ export class ApiItemDocumentRepository implements IItemDocumentRepository {
 
 	async registerCount(payload: StockCountPayload): Promise<ItemDocument> {
 		const response = await axiosInstance.post<any>('/item-documents/counts', payload);
+		return StockMapper.document(response.data);
+	}
+
+	async registerTransfer(payload: StockTransferPayload): Promise<ItemDocument> {
+		const response = await axiosInstance.post<any>('/item-documents/transfers', payload);
 		return StockMapper.document(response.data);
 	}
 

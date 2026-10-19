@@ -6,6 +6,7 @@ import { Item } from '@/core/items/domain/entities/Item';
 import { type Dec, dec, div, isPositive, mul, round, sub, ZERO } from '@/core/stock/domain/rules/decimal';
 import { convertPreview } from '@/core/stock/domain/rules/lineConversion';
 import { formatMoney, formatQuantity } from '@/core/stock/domain/rules/quantityFormat';
+import { stockIn } from '@/core/stock/domain/rules/warehouseRules';
 import ItemPickerCell from '../cells/ItemPickerCell';
 import InputUnitSelectCell from '../cells/InputUnitSelectCell';
 import { useItemInputOptions } from '../cells/useItemInputOptions';
@@ -16,20 +17,24 @@ interface ConsumptionLineRowProps {
 	line: ConsumptionLine;
 	items: Item[];
 	errors: Record<string, string>;
+	/** The warehouse it leaves from; null: the default, whose figures are the item's total while it is the only one. */
+	warehouseId: number | null;
 	onChange: (patch: Partial<ConsumptionLine>) => void;
 	onRemove: () => void;
 }
 
+type Figures = ReturnType<typeof stockIn>;
+
 /** Units with a cost: the balance minus what waits for its invoice (delivery C). */
-const valuedOf = (item: Item | undefined): Dec | null => {
-	const quantity = dec(item?.stock?.quantity);
-	return quantity === null ? null : sub(quantity, dec(item?.stock?.unvaluedQuantity) ?? ZERO);
+const valuedOf = (stock: Figures): Dec | null => {
+	const quantity = dec(stock?.quantity);
+	return quantity === null ? null : sub(quantity, dec(stock?.unvaluedQuantity) ?? ZERO);
 };
 
-/** The current average of an item, over its valued units; null without valued stock. */
-export function averageOf(item: Item | undefined): Dec | null {
-	const valued = valuedOf(item);
-	const value = dec(item?.stock?.value);
+/** The current average in the warehouse, over its valued units; null without valued stock. */
+function averageOf(stock: Figures): Dec | null {
+	const valued = valuedOf(stock);
+	const value = dec(stock?.value);
 	return valued !== null && value !== null && isPositive(valued) ? div(value, valued) : null;
 }
 
@@ -39,9 +44,9 @@ const min = (a: Dec, b: Dec): Dec => (a < b ? a : b);
  * What of a consumption has a known cost (model 2.4): the valued units first, then the units of
  * unpriced delivery notes, whose cost comes with the invoice.
  */
-function split(quantity: Dec, item: Item | undefined): { known: Dec; pending: Dec } {
-	const valued = valuedOf(item) ?? ZERO;
-	const unvalued = dec(item?.stock?.unvaluedQuantity) ?? ZERO;
+function split(quantity: Dec, stock: Figures): { known: Dec; pending: Dec } {
+	const valued = valuedOf(stock) ?? ZERO;
+	const unvalued = dec(stock?.unvaluedQuantity) ?? ZERO;
 	const fromValued = min(quantity, valued > ZERO ? valued : ZERO);
 	const pending = min(sub(quantity, fromValued), unvalued);
 	return { known: sub(quantity, pending), pending };
@@ -53,6 +58,7 @@ export default function ConsumptionLineRow({
 	line,
 	items,
 	errors,
+	warehouseId,
 	onChange,
 	onRemove
 }: ConsumptionLineRowProps) {
@@ -63,8 +69,9 @@ export default function ConsumptionLineRow({
 		line.inputQuantity,
 		options.find((o) => o.value === line.inputSource)
 	);
-	const average = averageOf(item);
-	const parts = quantity !== null ? split(quantity, item) : null;
+	const stock = stockIn(item, warehouseId);
+	const average = averageOf(stock);
+	const parts = quantity !== null ? split(quantity, stock) : null;
 	const estimate = parts !== null && average !== null ? round(mul(parts.known, average), 2) : null;
 	const pendingUnits = parts !== null && isPositive(parts.pending) ? parts.pending : null;
 

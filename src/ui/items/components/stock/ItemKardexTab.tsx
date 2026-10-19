@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Pagination, Stack, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Pagination, Stack, TableBody, TableCell, TableHead, TableRow, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { isPositiveText } from '@/core/stock/domain/rules/decimal';
 import { SheetGrid } from 'src/components/sheet-grid/SheetGrid';
 import { SheetGridEmptyRow } from 'src/components/sheet-grid/SheetGridEmptyRow';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
 import { useItemKardex } from '@/features/stock/hooks/useItemStock';
+import { useWarehouses } from '@/features/stock/hooks/useWarehouses';
 import { ItemDetail } from '@/core/items/domain/entities/Item';
 import { formatDate, formatMoney, formatQuantity, formatUnitCost } from '@/core/stock/domain/rules/quantityFormat';
 
@@ -14,7 +15,9 @@ export default function ItemKardexTab({ item }: { item: ItemDetail }) {
 	const navigate = useNavigate();
 	const { headSx, indexSx, textCellSx, zebraBg } = useGridCellStyles();
 	const [page, setPage] = useState(1);
-	const { data, isLoading } = useItemKardex(item.id, { page });
+	const [warehouseId, setWarehouseId] = useState<number | 'ALL'>('ALL');
+	const { data: warehouses = [] } = useWarehouses();
+	const { data, isLoading } = useItemKardex(item.id, { page, warehouseId: warehouseId === 'ALL' ? undefined : warehouseId });
 	const symbol = item.unit?.symbol ?? null;
 	const pages = data ? Math.max(1, Math.ceil(data.total / data.perPage)) : 1;
 	const head = (label: string, width?: number, align?: 'right') => (
@@ -28,6 +31,15 @@ export default function ItemKardexTab({ item }: { item: ItemDetail }) {
 
 	return (
 		<Stack spacing={1.5}>
+			{warehouses.length > 1 && (
+				<ToggleButtonGroup size="small" exclusive value={warehouseId} onChange={(_, v) => { if (v !== null) { setWarehouseId(v); setPage(1); } }}
+					sx={{ flexWrap: 'wrap', '& .MuiToggleButton-root': { textTransform: 'none', fontWeight: 600, px: 1.5 } }}>
+					<ToggleButton value="ALL">Todos los almacenes</ToggleButton>
+					{warehouses.map((w) => (
+						<ToggleButton key={w.id} value={w.id}>{w.code}</ToggleButton>
+					))}
+				</ToggleButtonGroup>
+			)}
 			<SheetGrid
 				minWidth={1100}
 				maxHeight={{ xs: 520, lg: 'calc(100vh - 380px)' }}
@@ -65,7 +77,7 @@ export default function ItemKardexTab({ item }: { item: ItemDetail }) {
 							<TableCell sx={{ ...textCellSx, color: 'text.secondary' }}>
 								{row.fiscalDocument
 									? `${row.fiscalDocument.label} · ${row.fiscalDocument.provider}`
-									: (row.batch ?? '—')}
+									: (row.transfer ?? row.batch ?? '—')}
 							</TableCell>
 							<TableCell
 								sx={{ ...textCellSx, color: 'success.main' }}

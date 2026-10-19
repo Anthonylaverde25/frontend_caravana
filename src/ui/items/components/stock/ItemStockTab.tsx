@@ -10,13 +10,15 @@ import { readApiErrors } from '@/ui/items/components/apiErrors';
 import ReasonDialog from '@/ui/stock/components/dialogs/ReasonDialog';
 import WarehouseStockCard from './WarehouseStockCard';
 import CountStockDialog from './CountStockDialog';
+import TransferDialog from '@/ui/stock/components/transfer/TransferDialog';
 
-/** The Stock tab: one card per warehouse with "Contar", and the item's open notices with "Resolver". */
+/** The Stock tab: one card per warehouse with "Transferir" and "Contar", and the item's open notices with "Resolver". */
 export default function ItemStockTab({ item }: { item: ItemDetail }) {
 	const { enqueueSnackbar } = useSnackbar();
 	const { data, isLoading } = useItemStock(item.id);
 	const { mutateAsync: resolve, isPending } = useResolveStockIncident();
 	const [counting, setCounting] = useState<WarehouseStock | null>(null);
+	const [transferFrom, setTransferFrom] = useState<number | null>(null);
 	const [resolving, setResolving] = useState<StockIncident | null>(null);
 	const [resolveError, setResolveError] = useState<string | null>(null);
 
@@ -42,6 +44,7 @@ export default function ItemStockTab({ item }: { item: ItemDetail }) {
 			) : (
 				data.warehouses.map((stock) => (
 					<WarehouseStockCard key={stock.warehouse.id} itemId={item.id} stock={stock} unitSymbol={item.unit?.symbol ?? null} onCount={() => setCounting(stock)}
+						onTransfer={() => setTransferFrom(stock.warehouse.id)}
 						pendingLots={data.pendingLots.filter((lot) => lot.warehouseId === stock.warehouse.id)} />
 				))
 			)}
@@ -67,6 +70,9 @@ export default function ItemStockTab({ item }: { item: ItemDetail }) {
 			)}
 
 			{counting && <CountStockDialog item={item} stock={counting} onClose={() => setCounting(null)} />}
+			{transferFrom !== null && (
+				<TransferDialog fromWarehouseId={transferFrom} item={{ id: item.id, unitId: item.unit?.id ?? null }} onClose={() => setTransferFrom(null)} />
+			)}
 			<ReasonDialog
 				open={!!resolving}
 				title={`Resolver ${resolving?.typeLabel.toLowerCase() ?? ''}`}

@@ -320,6 +320,15 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/item-documents'
 			},
 			{
+				// Delivery D: the company's warehouses; provider papers always enter the default one (DD5).
+				id: 'supplies.warehouses',
+				title: 'Almacenes',
+				subtitle: 'Dónde se guarda el stock',
+				type: 'item',
+				icon: 'heroicons-outline:building-storefront',
+				url: '/warehouses'
+			},
+			{
 				id: 'supplies.item-settings',
 				title: 'Unidades y categorías',
 				type: 'item',

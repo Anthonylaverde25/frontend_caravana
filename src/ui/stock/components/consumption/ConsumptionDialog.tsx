@@ -39,6 +39,7 @@ export default function ConsumptionDialog({ open, onClose, batch }: ConsumptionD
 	const { mutateAsync, isPending } = useRegisterConsumption();
 	const [key, renewKey] = useIdempotencyKey();
 	const [header, setHeader] = useState<ConsumptionHeader>({
+		warehouseId: null,
 		batchId: batch?.id ?? null,
 		batchName: batch?.name ?? null,
 		heads: batch?.head_count ? String(batch.head_count) : '',
@@ -99,7 +100,7 @@ export default function ConsumptionDialog({ open, onClose, batch }: ConsumptionD
 					</TableHead>
 					<TableBody>
 						{lines.map((line, index) => (
-							<ConsumptionLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive)} errors={errors.cells[line.key] ?? {}}
+							<ConsumptionLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive)} errors={errors.cells[line.key] ?? {}} warehouseId={header.warehouseId}
 								onChange={(patch) => setLines((current) => withTrailingConsumption(current.map((l) => (l.key === line.key ? { ...l, ...patch } : l))))}
 								onRemove={() => setLines((current) => withTrailingConsumption(current.filter((l) => l.key !== line.key)))} />
 						))}

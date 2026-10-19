@@ -1,5 +1,5 @@
-import { ItemDocument, ItemDocumentLine, Page, StockIncident } from '../../domain/entities/ItemDocument';
-import { BatchConsumptionHistory, ItemStockView, KardexRow } from '../../domain/entities/ItemStock';
+import { ItemDocument, ItemDocumentLine, Page, StockIncident, WarehouseRef } from '../../domain/entities/ItemDocument';
+import { BatchConsumptionHistory, ItemStockView, KardexRow, Warehouse } from '../../domain/entities/ItemStock';
 
 export const StockMapper = {
 	incident(raw: any): StockIncident {
@@ -52,7 +52,10 @@ export const StockMapper = {
 			type: raw.type,
 			typeLabel: raw.type_label,
 			occurredAt: raw.occurred_at,
-			warehouse: { id: raw.warehouse?.id, name: raw.warehouse?.name ?? null },
+			warehouse: StockMapper.warehouseRef(raw.warehouse),
+			paired: raw.paired
+				? { id: raw.paired.id, number: raw.paired.number, type: raw.paired.type, warehouse: StockMapper.warehouseRef(raw.paired.warehouse) }
+				: null,
 			fiscalDocument: raw.fiscal_document ?? null,
 			batch: raw.batch ?? null,
 			headsTreated: raw.heads_treated ?? null,
@@ -67,6 +70,31 @@ export const StockMapper = {
 			createdAt: raw.created_at ?? null,
 			lines: (raw.lines ?? []).map(StockMapper.line),
 			incidentsRaised: (raw.incidents_raised ?? []).map(StockMapper.incident)
+		};
+	},
+
+	warehouseRef(raw: any): WarehouseRef {
+		return { id: raw?.id, code: raw?.code ?? null, name: raw?.name ?? null };
+	},
+
+	warehouse(raw: any): Warehouse {
+		const s = raw.summary;
+		return {
+			id: raw.id,
+			code: raw.code,
+			name: raw.name,
+			isDefault: !!raw.is_default,
+			isActive: !!raw.is_active,
+			summary: s
+				? {
+						itemsWithBalance: s.items_with_balance ?? 0,
+						valuedValue: s.valued_value ?? '0.0000',
+						itemsWithUnvalued: s.items_with_unvalued ?? 0,
+						pendingLots: s.pending_lots ?? 0,
+						negativeItems: s.negative_items ?? 0,
+						openIncidents: s.open_incidents ?? 0
+					}
+				: null
 		};
 	},
 
@@ -88,7 +116,7 @@ export const StockMapper = {
 				trackStock: !!raw.item.track_stock
 			},
 			warehouses: (raw.warehouses ?? []).map((w: any) => ({
-				warehouse: { id: w.warehouse.id, name: w.warehouse.name ?? null },
+				warehouse: { id: w.warehouse.id, code: w.warehouse.code ?? null, name: w.warehouse.name ?? null, isActive: w.warehouse.is_active ?? true },
 				quantity: w.quantity,
 				unvaluedQuantity: w.unvalued_quantity ?? '0.0000',
 				valuedQuantity: w.valued_quantity ?? w.quantity,
@@ -145,6 +173,7 @@ export const StockMapper = {
 			documentType: raw.document_type,
 			documentTypeLabel: raw.document_type_label,
 			batch: raw.batch ?? null,
+			transfer: raw.transfer ?? null,
 			fiscalDocument: raw.fiscal_document ?? null,
 			direction: raw.direction,
 			quantity: raw.quantity,

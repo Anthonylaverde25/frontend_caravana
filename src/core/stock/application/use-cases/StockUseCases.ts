@@ -1,5 +1,5 @@
-import { ConsumptionPayload, InitialStockPayload, ItemDocument, ItemDocumentFilters, Page, StockCountPayload, StockIncident } from '../../domain/entities/ItemDocument';
-import { BatchConsumptionHistory, ItemStockView, KardexFilters, KardexRow } from '../../domain/entities/ItemStock';
+import { ConsumptionPayload, InitialStockPayload, ItemDocument, ItemDocumentFilters, Page, StockCountPayload, StockIncident, StockTransferPayload } from '../../domain/entities/ItemDocument';
+import { BatchConsumptionHistory, ItemStockView, KardexFilters, KardexRow, Warehouse } from '../../domain/entities/ItemStock';
 import { IItemDocumentRepository } from '../../domain/repositories/IItemDocumentRepository';
 import { IItemStockRepository } from '../../domain/repositories/IItemStockRepository';
 
@@ -42,6 +42,49 @@ export class RegisterStockCountUseCase {
 
 	execute(payload: StockCountPayload): Promise<ItemDocument> {
 		return this.repository.registerCount(payload);
+	}
+}
+
+/** Only valued units move and the origin never goes below zero (DD8): the backend answers per line. */
+export class RegisterStockTransferUseCase {
+	constructor(private repository: IItemDocumentRepository) {}
+
+	execute(payload: StockTransferPayload): Promise<ItemDocument> {
+		return this.repository.registerTransfer(payload);
+	}
+}
+
+export class ListWarehousesUseCase {
+	constructor(private repository: IItemStockRepository) {}
+
+	execute(): Promise<Warehouse[]> {
+		return this.repository.warehouses();
+	}
+}
+
+/** Code and name, unique per company (DD1); the backend answers each field. */
+export class SaveWarehouseUseCase {
+	constructor(private repository: IItemStockRepository) {}
+
+	execute(id: number | null, code: string, name: string): Promise<Warehouse> {
+		return id === null ? this.repository.createWarehouse(code.trim(), name.trim()) : this.repository.updateWarehouse(id, code.trim(), name.trim());
+	}
+}
+
+export class SetDefaultWarehouseUseCase {
+	constructor(private repository: IItemStockRepository) {}
+
+	execute(id: number): Promise<Warehouse[]> {
+		return this.repository.setDefaultWarehouse(id);
+	}
+}
+
+/** Never refused for what it holds (DD4); the default leaves only naming the next one (DD3). */
+export class SetWarehouseActiveUseCase {
+	constructor(private repository: IItemStockRepository) {}
+
+	execute(id: number, active: boolean, newDefaultId: number | null = null): Promise<Warehouse[]> {
+		return this.repository.setWarehouseActive(id, active, newDefaultId);
 	}
 }
 

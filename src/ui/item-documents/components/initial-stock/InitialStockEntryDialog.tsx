@@ -13,6 +13,7 @@ import { ItemDocument } from '@/core/stock/domain/entities/ItemDocument';
 import { readApiErrors } from '@/ui/items/components/apiErrors';
 import { buildInitialPayload, emptyInitialLine, InitialStockLine, isBlankInitial } from './initialStockState';
 import InitialStockLineRow from './InitialStockLineRow';
+import WarehouseSelectField from '@/ui/stock/components/cells/WarehouseSelectField';
 
 const SlideUp = forwardRef(function SlideUp(props: TransitionProps & { children: React.ReactElement }, ref: React.Ref<unknown>) {
 	return <Slide direction="up" ref={ref} {...props} />;
@@ -28,6 +29,7 @@ export default function InitialStockEntryDialog({ onClose, onDone }: { onClose: 
 	const { data: items = [] } = useItems({ behavior: 'STOCKED_ARTICLE' });
 	const { mutateAsync, isPending } = useRegisterInitialStock();
 	const [key, renewKey] = useIdempotencyKey();
+	const [warehouseId, setWarehouseId] = useState<number | null>(null);
 	const [occurredAt, setOccurredAt] = useState(today);
 	const [notes, setNotes] = useState('');
 	const [lines, setLines] = useState<InitialStockLine[]>([emptyInitialLine()]);
@@ -35,7 +37,7 @@ export default function InitialStockEntryDialog({ onClose, onDone }: { onClose: 
 	const filled = useMemo(() => lines.filter((l) => !isBlankInitial(l)), [lines]);
 
 	const submit = async () => {
-		const built = buildInitialPayload(lines, occurredAt, notes, key);
+		const built = buildInitialPayload(lines, warehouseId, occurredAt, notes, key);
 		try {
 			const document = await mutateAsync(built.payload);
 			renewKey();
@@ -63,6 +65,7 @@ export default function InitialStockEntryDialog({ onClose, onDone }: { onClose: 
 				<Paper variant="outlined" sx={{ p: 2, borderRadius: '8px' }}>
 					<Typography sx={sectionTitleSx}>1. Carga</Typography>
 					<Stack spacing={2} sx={{ mt: 1.5 }}>
+						<WarehouseSelectField value={warehouseId} onChange={setWarehouseId} error={errors.header.warehouse_id} />
 						<TextField label="Fecha" type="date" variant="filled" fullWidth value={occurredAt} InputProps={filledInputProps} InputLabelProps={{ shrink: true }}
 							inputProps={{ max: today() }} onChange={(e) => setOccurredAt(e.target.value)} error={!!errors.header.occurred_at} helperText={errors.header.occurred_at} />
 						<TextField label="Notas" variant="filled" fullWidth multiline value={notes} InputProps={filledInputProps} onChange={(e) => setNotes(e.target.value)} />

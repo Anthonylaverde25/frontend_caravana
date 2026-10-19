@@ -2,7 +2,7 @@ import { StockIncident } from './ItemDocument';
 
 /** An item's balance in one warehouse. */
 export interface WarehouseStock {
-	warehouse: { id: number; name: string | null };
+	warehouse: { id: number; code: string | null; name: string | null; isActive: boolean };
 	quantity: string;
 	/** Units waiting for their invoice (delivery C): the average and the value are of the rest. */
 	unvaluedQuantity: string;
@@ -40,6 +40,8 @@ export interface KardexRow {
 	documentType: string;
 	documentTypeLabel: string;
 	batch: string | null;
+	/** "ALM-01 → ALM-02" on either half of a transfer (delivery D). */
+	transfer: string | null;
 	fiscalDocument: { id: number; label: string; provider: string | null } | null;
 	/** 0: a valuation, value without units (delivery C). */
 	direction: 1 | 0 | -1;
@@ -53,6 +55,7 @@ export interface KardexRow {
 }
 
 export interface KardexFilters {
+	warehouseId?: number;
 	from?: string;
 	to?: string;
 	page?: number;
@@ -86,9 +89,25 @@ export interface BatchConsumptionHistory {
 	hasPendingCost: boolean;
 }
 
+/**
+ * A storage place of the company (D8). Provider papers always enter the default one (DD5); the
+ * default is always active (DD3). Never deleted, only deactivated (DD4).
+ */
 export interface Warehouse {
 	id: number;
 	code: string;
 	name: string;
 	isDefault: boolean;
+	isActive: boolean;
+	/** What it holds, shown before deactivating it (DD4); only in the list. */
+	summary: WarehouseSummary | null;
+}
+
+export interface WarehouseSummary {
+	itemsWithBalance: number;
+	valuedValue: string;
+	itemsWithUnvalued: number;
+	pendingLots: number;
+	negativeItems: number;
+	openIncidents: number;
 }

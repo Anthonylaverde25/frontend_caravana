@@ -7,6 +7,7 @@ import ViewLayout from 'src/components/ViewLayout';
 import { useItemDocument, useReverseItemDocument } from '@/features/stock/hooks/useItemDocuments';
 import { useIdempotencyKey } from '@/features/stock/hooks/useIdempotencyKey';
 import { formatDate } from '@/core/stock/domain/rules/quantityFormat';
+import { transferRoute } from '@/core/stock/domain/entities/ItemDocument';
 import { readApiErrors } from '@/ui/items/components/apiErrors';
 import ReasonDialog from '@/ui/stock/components/dialogs/ReasonDialog';
 import ItemDocumentLinesGrid from '../components/detail/ItemDocumentLinesGrid';
@@ -33,12 +34,25 @@ export default function ItemDocumentDetailView() {
 		);
 	}
 
+	const route = transferRoute(document);
+	const paired = document.paired;
+	const consequences = route && paired
+		? [
+				`Se anulan las dos mitades de la transferencia ${route}: la ${document.type === 'TRANSFER_OUT' ? 'salida' : 'entrada'} N.º ${document.number} y la ${document.type === 'TRANSFER_OUT' ? 'entrada' : 'salida'} N.º ${paired.number}.`,
+				'Se rechaza si el destino ya no tiene lo que recibió: anulá antes esos movimientos o transferí de vuelta.'
+			]
+		: [
+				`Se registra un movimiento de anulación que revierte ${document.lines.map((l) => l.item.name).join(', ')} con su mismo costo.`,
+				...(document.batch ? [`Sale de la historia de ${document.batch.name}.`] : [])
+			];
+
 	const confirm = async (reason: string) => {
 		try {
 			const reversal = await reverse({ id: document.id, reason, idempotencyKey: key });
 			renewKey();
 			setReversing(false);
-			enqueueSnackbar(`Movimiento N.º ${document.number} anulado por el N.º ${reversal.number}.`, { variant: 'success' });
+			// A transfer gets two reversals: name it by its warehouses rather than by one of their numbers.
+			enqueueSnackbar(route ? `Transferencia ${route} anulada.` : `Movimiento N.º ${document.number} anulado por el N.º ${reversal.number}.`, { variant: 'success' });
 		} catch (error) {
 			setReverseError(readApiErrors(error, 'No se pudo anular.').domain ?? 'No se pudo anular.');
 		}
@@ -47,7 +61,7 @@ export default function ItemDocumentDetailView() {
 	return (
 		<ViewLayout
 			title={`${document.typeLabel} N.º ${document.number}`}
-			subtitle={`${formatDate(document.occurredAt)} · ${document.warehouse.name ?? ''}`}
+			subtitle={`${formatDate(document.occurredAt)} · ${route ?? [document.warehouse.code, document.warehouse.name].filter(Boolean).join(' · ')}`}
 			backUrl="/item-documents"
 			showBackButton
 			backTitle="Movimientos de stock"
@@ -71,6 +85,15 @@ export default function ItemDocumentDetailView() {
 					<Alert severity="info">
 						Anula al <Link component={RouterLink} to={`/item-documents/${document.reverses.id}`}>movimiento N.º {document.reverses.number}</Link>
 						{document.reason ? `: ${document.reason}` : '.'}
+					</Alert>
+				)}
+				{paired && (
+					<Alert severity="info">
+						{document.type === 'TRANSFER_OUT' ? 'Entra a' : 'Sale de'} {paired.warehouse.code} · {paired.warehouse.name} con la{' '}
+						<Link component={RouterLink} to={`/item-documents/${paired.id}`}>
+							{paired.type === 'TRANSFER_IN' ? 'entrada' : 'salida'} N.º {paired.number}
+						</Link>
+						.
 					</Alert>
 				)}
 				{!document.canReverse && document.fiscalDocument && !document.reversedBy && (
@@ -97,12 +120,9 @@ export default function ItemDocumentDetailView() {
 
 			<ReasonDialog
 				open={reversing}
-				title={`Anular el movimiento N.º ${document.number}`}
-				consequences={[
-					`Se registra un movimiento de anulación que revierte ${document.lines.map((l) => l.item.name).join(', ')} con su mismo costo.`,
-					...(document.batch ? [`Sale de la historia de ${document.batch.name}.`] : [])
-				]}
-				confirmLabel="Anular movimiento"
+				title={route ? `Anular la transferencia ${route}` : `Anular el movimiento N.º ${document.number}`}
+				consequences={consequences}
+				confirmLabel={route ? 'Anular transferencia' : 'Anular movimiento'}
 				busy={isPending}
 				error={reverseError}
 				onClose={() => setReversing(false)}

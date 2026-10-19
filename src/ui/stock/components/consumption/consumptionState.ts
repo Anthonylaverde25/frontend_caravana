@@ -19,6 +19,8 @@ export const withTrailingConsumption = (lines: ConsumptionLine[]): ConsumptionLi
 	lines.length === 0 || !isBlankConsumption(lines[lines.length - 1]) ? [...lines, emptyConsumptionLine()] : lines;
 
 export interface ConsumptionHeader {
+	/** Null: the default warehouse (DD6). */
+	warehouseId: number | null;
 	batchId: number | null;
 	batchName: string | null;
 	heads: string;
@@ -36,6 +38,7 @@ export function buildConsumptionPayload(header: ConsumptionHeader, lines: Consum
 	return {
 		lineKeys: sent.map((l) => l.key),
 		payload: {
+			warehouse_id: header.warehouseId,
 			occurred_at: header.occurredAt,
 			batch_id: header.batchId,
 			heads_treated: header.batchId && header.heads ? Number(header.heads) : null,

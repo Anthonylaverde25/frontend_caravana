@@ -4,6 +4,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { Batch } from '@/core/batches/domain/entities/Batch';
 import OwnBatchPickerDialog from '@/ui/batches/components/external/OwnBatchPickerDialog';
 import { filledInputProps } from '@/ui/weaning-orders/components/form/formStyles';
+import WarehouseSelectField from '../cells/WarehouseSelectField';
 import { ConsumptionHeader } from './consumptionState';
 
 interface ConsumptionHeaderFieldsProps {
@@ -44,6 +45,7 @@ export default function ConsumptionHeaderFields({ header, onChange, batches, fix
 				</Stack>
 				{errors.batch_id && <Typography variant="caption" color="error">{errors.batch_id}</Typography>}
 			</Stack>
+			<WarehouseSelectField value={header.warehouseId} onChange={(warehouseId) => onChange({ warehouseId })} error={errors.warehouse_id} />
 			<Stack direction="row" spacing={1.5}>
 				<TextField label="Cabezas tratadas" variant="filled" fullWidth value={header.heads} disabled={!header.batchId} InputProps={filledInputProps}
 					inputProps={{ inputMode: 'numeric' }} onChange={(e) => onChange({ heads: e.target.value.replace(/\D/g, '') })}

@@ -7,12 +7,15 @@ import { formatMoney, formatQuantity, formatUnitCost } from '@/core/stock/domain
 import { useSetCriticalStock } from '@/features/stock/hooks/useItemStock';
 import { readApiErrors } from '@/ui/items/components/apiErrors';
 import PendingValuationNote from './PendingValuationNote';
+import WarehouseStockCardHeader from './WarehouseStockCardHeader';
 
 interface WarehouseStockCardProps {
 	itemId: number;
 	stock: WarehouseStock;
 	unitSymbol: string | null;
 	onCount: () => void;
+	/** Delivery D: opens the transfer with this warehouse as origin. */
+	onTransfer: () => void;
 	/** Units of this warehouse waiting for their invoice (delivery C). */
 	pendingLots?: PendingLot[];
 }
@@ -38,6 +41,7 @@ export default function WarehouseStockCard({
 	stock,
 	unitSymbol,
 	onCount,
+	onTransfer,
 	pendingLots = []
 }: WarehouseStockCardProps) {
 	const unvalued = isPositiveText(stock.unvaluedQuantity);
@@ -76,22 +80,11 @@ export default function WarehouseStockCard({
 			variant="outlined"
 			sx={{ p: 2, borderRadius: '8px' }}
 		>
-			<Stack
-				direction="row"
-				justifyContent="space-between"
-				alignItems="center"
-				sx={{ mb: 1.5 }}
-			>
-				<Typography sx={{ fontWeight: 700 }}>{stock.warehouse.name}</Typography>
-				<Button
-					size="small"
-					variant="outlined"
-					onClick={onCount}
-					sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}
-				>
-					Contar
-				</Button>
-			</Stack>
+			<WarehouseStockCardHeader
+				warehouse={stock.warehouse}
+				onTransfer={onTransfer}
+				onCount={onCount}
+			/>
 			<Stack
 				direction={{ xs: 'column', sm: 'row' }}
 				spacing={4}

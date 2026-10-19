@@ -20,12 +20,13 @@ const decimal = (value: string, scale: number): string => {
 	return parsed === null ? value.trim() : toApi(parsed, scale);
 };
 
-export function buildInitialPayload(lines: InitialStockLine[], occurredAt: string, notes: string, key: string): { payload: InitialStockPayload; lineKeys: string[] } {
+export function buildInitialPayload(lines: InitialStockLine[], warehouseId: number | null, occurredAt: string, notes: string, key: string): { payload: InitialStockPayload; lineKeys: string[] } {
 	const sent = lines.filter((l) => !isBlankInitial(l));
 
 	return {
 		lineKeys: sent.map((l) => l.key),
 		payload: {
+			warehouse_id: warehouseId,
 			occurred_at: occurredAt,
 			notes: notes.trim() || null,
 			idempotency_key: key,

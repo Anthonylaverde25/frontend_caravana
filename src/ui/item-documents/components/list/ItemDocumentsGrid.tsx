@@ -5,7 +5,7 @@ import { SheetGridEmptyRow } from 'src/components/sheet-grid/SheetGridEmptyRow';
 import { SheetGridStatusCell } from 'src/components/sheet-grid/SheetGridStatusCell';
 import { SheetGridTagCell } from 'src/components/sheet-grid/SheetGridTagCell';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
-import { ItemDocument } from '@/core/stock/domain/entities/ItemDocument';
+import { ItemDocument, transferRoute } from '@/core/stock/domain/entities/ItemDocument';
 import { formatDate, formatMoney } from '@/core/stock/domain/rules/quantityFormat';
 
 interface ItemDocumentsGridProps {
@@ -15,9 +15,11 @@ interface ItemDocumentsGridProps {
 	onOpen: (document: ItemDocument) => void;
 }
 
-/** Where an operation came from: its provider document, its batch, or what it reverses. */
+/** Where an operation came from: its provider document, its batch, what it reverses, or the warehouses of a transfer. */
 const origin = (d: ItemDocument): string => {
 	if (d.fiscalDocument) return d.fiscalDocument.label;
+	const route = transferRoute(d);
+	if (route) return route;
 	if (d.reverses) return `Anula el movimiento N.º ${d.reverses.number}`;
 	if (d.batch) return `${d.batch.name}${d.headsTreated ? ` · ${d.headsTreated} cab.` : ''}`;
 	return d.type === 'CONSUMPTION' ? 'Uso general' : '—';

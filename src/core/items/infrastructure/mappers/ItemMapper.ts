@@ -31,7 +31,13 @@ export const ItemMapper = {
 						unvaluedQuantity: raw.stock.unvalued_quantity ?? '0.0000',
 						value: raw.stock.value,
 						hasNegative: !!raw.stock.has_negative,
-						hasCritical: !!raw.stock.has_critical
+						hasCritical: !!raw.stock.has_critical,
+						byWarehouse: (raw.stock.by_warehouse ?? []).map((w: any) => ({
+							warehouseId: w.warehouse_id,
+							quantity: w.quantity,
+							unvaluedQuantity: w.unvalued_quantity ?? '0.0000',
+							value: w.value
+						}))
 					}
 				: null,
 			lastVatRateId: raw.last_vat_rate_id ?? null
