@@ -15,7 +15,7 @@ export interface FiscalTax {
 export interface FiscalDocumentLine {
 	id: number;
 	position: number;
-	item: { id: number; name: string | null; unitSymbol: string | null; trackStock: boolean };
+	item: { id: number; code: string | null; name: string | null; unitSymbol: string | null; trackStock: boolean };
 	inputQuantity: string;
 	inputLabel: string | null;
 	quantity: string;
@@ -57,7 +57,8 @@ export interface FiscalDocument {
 	id: number;
 	label: string;
 	type: FiscalDocumentType;
-	provider: { id: number; name: string | null };
+	/** CUIT and address: what the paper shows of its issuer. */
+	provider: { id: number; name: string | null; cuit: string | null; location: string | null };
 	formattedNumber: string;
 	issuedAt: string;
 	/** Null only on a delivery note without prices: it has no amounts at all. */
@@ -139,4 +140,19 @@ export interface FiscalDocumentPayload {
 	is_valued?: boolean | null;
 	/** An invoice converted from delivery notes (DC5). */
 	delivery_note_ids?: number[];
+}
+
+/** What the register adds over the page: counts per filter and the period total (signed). */
+export interface FiscalRegisterSummary {
+	byKind: Partial<Record<FiscalDocumentType['kind'], number>>;
+	byStatus: Partial<Record<'REGISTERED' | 'VOIDED', number>>;
+	totals: { count: number; net: string; taxes: string; total: string };
+}
+
+export interface FiscalRegisterPage {
+	data: FiscalDocument[];
+	total: number;
+	page: number;
+	perPage: number;
+	summary: FiscalRegisterSummary | null;
 }

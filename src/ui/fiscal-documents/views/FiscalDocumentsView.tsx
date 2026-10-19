@@ -95,6 +95,7 @@ export default function FiscalDocumentsView() {
 						setDates({ from, to });
 						setPage(1);
 					}}
+					summary={data?.summary ?? null}
 				/>
 				<FiscalDocumentsGrid
 					documents={data?.data ?? []}
@@ -104,6 +105,8 @@ export default function FiscalDocumentsView() {
 							? 'No hay comprobantes anulados.'
 							: 'Todavía no hay comprobantes con estos filtros.'
 					}
+					summary={data?.summary ?? null}
+					listsDeliveryNotes={kind === 'DELIVERY_NOTE'}
 					onOpen={(d) => navigate(`/fiscal-documents/${d.id}`)}
 					onOpenOperation={(id) => navigate(`/item-documents/${id}`)}
 				/>

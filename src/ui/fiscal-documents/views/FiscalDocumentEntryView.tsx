@@ -1,15 +1,16 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { Box, CircularProgress } from '@mui/material';
 import { useSnackbar } from 'notistack';
+import ViewLayout from 'src/components/ViewLayout';
 import { useFiscalCatalog } from '@/features/fiscal/hooks/useFiscalDocuments';
 import { useInvoiceDraft } from '@/features/fiscal/hooks/useDeliveryNotes';
 import { readApiErrors } from '@/ui/items/components/apiErrors';
-import FiscalDocumentsView from './FiscalDocumentsView';
-import FiscalDocumentEntryDialog from '../components/entry/FiscalDocumentEntryDialog';
+import FiscalDocumentEntryForm from '../components/entry/FiscalDocumentEntryForm';
 
 /**
- * `/fiscal-documents/new`: "Cargar comprobante" as a full-screen dialog over the register. With
- * `?type=CREDIT_NOTE_A&provider=14&related=31` it opens a credit note for that invoice, with
+ * `/fiscal-documents/new`: Dedicated page view to register provider documents (invoices, delivery notes, credit notes).
+ * With `?type=CREDIT_NOTE_A&provider=14&related=31` it loads a credit note for that invoice, with
  * `?type=DELIVERY_NOTE` a delivery note, and with `?deliveryNotes=77,80` the invoice converted from
  * those delivery notes (DC5).
  */
@@ -17,7 +18,7 @@ export default function FiscalDocumentEntryView() {
 	const navigate = useNavigate();
 	const { enqueueSnackbar } = useSnackbar();
 	const [params] = useSearchParams();
-	const { data: catalog } = useFiscalCatalog();
+	const { data: catalog, isLoading: isCatalogLoading } = useFiscalCatalog();
 	const noteIds = useMemo(
 		() =>
 			(params.get('deliveryNotes') ?? '')
@@ -26,7 +27,7 @@ export default function FiscalDocumentEntryView() {
 				.filter((n) => Number.isInteger(n) && n > 0),
 		[params]
 	);
-	const { data: draft, error: draftError } = useInvoiceDraft(noteIds);
+	const { data: draft, error: draftError, isLoading: isDraftLoading } = useInvoiceDraft(noteIds);
 	const typeCode = params.get('type') ?? 'INVOICE_A';
 	const typeId = catalog?.types.find((t) => t.code === typeCode)?.id ?? null;
 	const initial = useMemo(
@@ -38,6 +39,9 @@ export default function FiscalDocumentEntryView() {
 		[typeId, params]
 	);
 
+	const backUrl = noteIds.length ? '/fiscal-documents/delivery-notes' : '/fiscal-documents';
+	const backTitle = noteIds.length ? 'Remitos pendientes' : 'Comprobantes';
+
 	useEffect(() => {
 		if (!draftError) return;
 
@@ -48,20 +52,37 @@ export default function FiscalDocumentEntryView() {
 		navigate('/fiscal-documents/delivery-notes');
 	}, [draftError, enqueueSnackbar, navigate]);
 
-	const ready = !!catalog && (noteIds.length === 0 || !!draft);
+	if (isCatalogLoading || (noteIds.length > 0 && isDraftLoading)) {
+		return (
+			<ViewLayout
+				title="Cargar comprobante"
+				backUrl={backUrl}
+				showBackButton
+				backTitle={backTitle}
+			>
+				<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+					<CircularProgress size={28} />
+				</Box>
+			</ViewLayout>
+		);
+	}
+
+	const hasUrlProvider = Boolean(params.get('provider'));
+	const hasUrlRelated = Boolean(params.get('related'));
+	const hasUrlDeliveryNotes = noteIds.length > 0;
+	const canClearProvider = !hasUrlProvider && !hasUrlRelated && !hasUrlDeliveryNotes;
 
 	return (
-		<>
-			<FiscalDocumentsView />
-			{ready && (
-				<FiscalDocumentEntryDialog
-					key={`${typeId}-${initial.providerId}-${initial.relatedId}-${noteIds.join('.')}`}
-					initial={initial}
-					draft={draft ?? null}
-					onClose={() => navigate(noteIds.length ? '/fiscal-documents/delivery-notes' : '/fiscal-documents')}
-					onDone={(document) => navigate(`/fiscal-documents/${document.id}`)}
-				/>
-			)}
-		</>
+		<FiscalDocumentEntryForm
+			key={`${typeId}-${initial.providerId}-${initial.relatedId}-${noteIds.join('.')}`}
+			initial={initial}
+			draft={draft ?? null}
+			canClearProvider={canClearProvider}
+			backUrl={backUrl}
+			backTitle={backTitle}
+			onCancel={() => navigate(backUrl)}
+			onDone={(document) => navigate(`/fiscal-documents/${document.id}`)}
+		/>
 	);
 }
+

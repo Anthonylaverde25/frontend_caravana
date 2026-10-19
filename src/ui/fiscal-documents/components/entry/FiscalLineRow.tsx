@@ -55,7 +55,7 @@ export default function FiscalLineRow(props: FiscalLineRowProps) {
 		mode,
 		unpriced
 	} = props;
-	const { cellSx, inputSx, textCellSx, errorRing } = useGridCellStyles();
+	const { cellSx, indexSx, inputSx, textCellSx, errorRing } = useGridCellStyles();
 	const { options, unitSymbol } = useItemInputOptions(line.itemId);
 	const [taxesOpen, setTaxesOpen] = useState(false);
 	const item = items.find((i) => i.id === line.itemId);
@@ -71,7 +71,15 @@ export default function FiscalLineRow(props: FiscalLineRowProps) {
 
 	return (
 		<TableRow sx={line.removed ? { opacity: 0.45, '& td': { textDecoration: 'line-through' } } : undefined}>
-			<TableCell sx={{ ...cellSx, px: 1, color: 'text.disabled', fontSize: '0.72rem', width: 40 }}>
+			<TableCell
+				align="center"
+				sx={{
+					...indexSx,
+					color: 'text.secondary',
+					fontWeight: 600,
+					fontSize: '0.74rem'
+				}}
+			>
 				{index + 1}
 			</TableCell>
 			{inherited ? (
@@ -160,12 +168,6 @@ export default function FiscalLineRow(props: FiscalLineRowProps) {
 				align="right"
 			>
 				{preview.amount === null ? '' : formatMoney(preview.amount)}
-			</TableCell>
-			<TableCell
-				sx={{ ...textCellSx, width: 120, color: 'text.secondary', whiteSpace: 'nowrap' }}
-				align="right"
-			>
-				{preview.vat === null ? '' : formatMoney(preview.vat)}
 			</TableCell>
 			<TableCell
 				sx={{

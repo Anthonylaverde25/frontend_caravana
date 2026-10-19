@@ -1,12 +1,11 @@
-import { Page } from '@/core/stock/domain/entities/ItemDocument';
 import { FiscalDocumentType, Tax } from '../../domain/entities/FiscalCatalog';
-import { FiscalDocument, FiscalDocumentDetail, FiscalDocumentFilters, FiscalDocumentPayload } from '../../domain/entities/FiscalDocument';
+import { FiscalDocumentDetail, FiscalDocumentFilters, FiscalDocumentPayload, FiscalRegisterPage } from '../../domain/entities/FiscalDocument';
 import { IFiscalCatalogRepository, IFiscalDocumentRepository } from '../../domain/repositories/IFiscalDocumentRepository';
 
 export class SearchFiscalDocumentsUseCase {
 	constructor(private repository: IFiscalDocumentRepository) {}
 
-	execute(filters: FiscalDocumentFilters): Promise<Page<FiscalDocument>> {
+	execute(filters: FiscalDocumentFilters): Promise<FiscalRegisterPage> {
 		return this.repository.search(filters);
 	}
 }

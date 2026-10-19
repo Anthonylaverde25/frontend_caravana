@@ -1,9 +1,8 @@
-import { Page } from '@/core/stock/domain/entities/ItemDocument';
 import { FiscalDocumentType, Tax } from '../entities/FiscalCatalog';
-import { FiscalDocument, FiscalDocumentDetail, FiscalDocumentFilters, FiscalDocumentPayload } from '../entities/FiscalDocument';
+import { FiscalDocumentDetail, FiscalDocumentFilters, FiscalDocumentPayload, FiscalRegisterPage } from '../entities/FiscalDocument';
 
 export interface IFiscalDocumentRepository {
-	search(filters: FiscalDocumentFilters): Promise<Page<FiscalDocument>>;
+	search(filters: FiscalDocumentFilters): Promise<FiscalRegisterPage>;
 	findById(id: number): Promise<FiscalDocumentDetail>;
 	register(payload: FiscalDocumentPayload): Promise<FiscalDocumentDetail>;
 	void(id: number, reason: string): Promise<FiscalDocumentDetail>;

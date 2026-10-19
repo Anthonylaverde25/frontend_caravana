@@ -75,7 +75,7 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 	const vat = taxes.find((t) => t.code === 'VAT');
 	const otherLineTaxes = taxes.filter((t) => t.appliesTo === 'LINE' && t.code !== 'VAT');
 	const converting = mode === 'conversion';
-	const columns = converting ? 14 : 13;
+	const columns = converting ? 13 : 12;
 	const head = (label: string, width?: number, align?: 'right') => (
 		<TableCell
 			sx={{ ...headSx, ...(width ? { width } : {}) }}
@@ -108,12 +108,12 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 
 	return (
 		<SheetGrid
-			minWidth={converting ? 1530 : 1420}
-			maxHeight={{ xs: 520, lg: 'calc(100vh - 420px)' }}
+			minWidth={converting ? 1410 : 1300}
+			borderless
 		>
 			<TableHead>
 				<TableRow>
-					<TableCell sx={indexSx}>#</TableCell>
+					<TableCell sx={indexSx} align="center">#</TableCell>
 					{head(converting ? 'Artículo o servicio (del remito)' : 'Artículo o servicio')}
 					{head('Cant.', 90)}
 					{head('Unidad o presentación', 190)}
@@ -121,7 +121,6 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 					{converting && head('Remito', 110, 'right')}
 					{head('IVA', 110)}
 					{head('Importe', 120, 'right')}
-					{head('IVA $', 120, 'right')}
 					{head('Otros imp.', 110, 'right')}
 					{head('Equivale a', 110)}
 					{head('Lote', 170)}

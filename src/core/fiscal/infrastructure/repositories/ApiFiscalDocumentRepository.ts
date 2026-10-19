@@ -1,13 +1,12 @@
 import axiosInstance from '@/utils/axios';
-import { Page } from '@/core/stock/domain/entities/ItemDocument';
 import { StockMapper } from '@/core/stock/infrastructure/mappers/StockMapper';
 import { FiscalDocumentType, Tax } from '../../domain/entities/FiscalCatalog';
-import { FiscalDocument, FiscalDocumentDetail, FiscalDocumentFilters, FiscalDocumentPayload } from '../../domain/entities/FiscalDocument';
+import { FiscalDocumentDetail, FiscalDocumentFilters, FiscalDocumentPayload, FiscalRegisterPage } from '../../domain/entities/FiscalDocument';
 import { IFiscalCatalogRepository, IFiscalDocumentRepository } from '../../domain/repositories/IFiscalDocumentRepository';
 import { FiscalMapper } from '../mappers/FiscalMapper';
 
 export class ApiFiscalDocumentRepository implements IFiscalDocumentRepository {
-	async search(filters: FiscalDocumentFilters): Promise<Page<FiscalDocument>> {
+	async search(filters: FiscalDocumentFilters): Promise<FiscalRegisterPage> {
 		const response = await axiosInstance.get<any>('/fiscal-documents', {
 			params: {
 				kind: filters.kind,
@@ -19,7 +18,11 @@ export class ApiFiscalDocumentRepository implements IFiscalDocumentRepository {
 				page: filters.page
 			}
 		});
-		return StockMapper.page(response.data, FiscalMapper.document);
+		const s = response.data.summary;
+		return {
+			...StockMapper.page(response.data, FiscalMapper.document),
+			summary: s ? { byKind: s.by_kind ?? {}, byStatus: s.by_status ?? {}, totals: s.totals } : null
+		};
 	}
 
 	async findById(id: number): Promise<FiscalDocumentDetail> {

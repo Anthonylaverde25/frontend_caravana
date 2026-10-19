@@ -2,22 +2,19 @@ import {
 	Button,
 	IconButton,
 	MenuItem,
-	Paper,
-	Stack,
 	TableBody,
 	TableCell,
 	TableHead,
 	TableRow,
 	TextField,
 	Tooltip,
-	Typography
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { SheetGrid } from 'src/components/sheet-grid/SheetGrid';
 import { SheetGridEmptyRow } from 'src/components/sheet-grid/SheetGridEmptyRow';
 import { SheetGridStatusCell } from 'src/components/sheet-grid/SheetGridStatusCell';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
-import { sectionTitleSx } from '@/ui/weaning-orders/components/form/formStyles';
+import SheetSection from '../sheet/SheetSection';
 import { Tax } from '@/core/fiscal/domain/entities/FiscalCatalog';
 import { DocumentTaxState } from './fiscalEntryState';
 
@@ -48,26 +45,19 @@ export default function DocumentTaxesGrid({ rows, taxes, errors, onAdd, onChange
 	);
 
 	return (
-		<Paper
-			variant="outlined"
-			sx={{ p: 2, borderRadius: '8px' }}
-		>
-			<Stack
-				direction="row"
-				justifyContent="space-between"
-				alignItems="center"
-				sx={{ mb: 1.5 }}
-			>
-				<Typography sx={sectionTitleSx}>4. Impuestos del comprobante</Typography>
+		<SheetSection
+			label="Percepciones y otros tributos"
+			aside={
 				<Button
 					size="small"
 					onClick={onAdd}
 					startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}
 					sx={{ textTransform: 'none', fontWeight: 600 }}
 				>
-					Agregar impuesto
+					Agregar
 				</Button>
-			</Stack>
+			}
+		>
 			<SheetGrid
 				minWidth={640}
 				maxHeight={240}
@@ -133,6 +123,6 @@ export default function DocumentTaxesGrid({ rows, taxes, errors, onAdd, onChange
 					))}
 				</TableBody>
 			</SheetGrid>
-		</Paper>
+		</SheetSection>
 	);
 }

@@ -1,20 +1,19 @@
 import React, { forwardRef, useEffect, useMemo, useRef } from 'react';
-import { Box, CircularProgress, Dialog, Paper, Slide, Stack, Typography } from '@mui/material';
+import { Box, CircularProgress, Dialog, Slide } from '@mui/material';
 import type { TransitionProps } from '@mui/material/transitions';
 import FullScreenEntryBar from '@/components/FullScreenEntryBar';
-import { sectionTitleSx } from '@/ui/weaning-orders/components/form/formStyles';
 import { useItems } from '@/features/items/hooks/useItems';
 import { useOwnActiveBatches } from '@/features/batches/hooks/useOwnActiveBatches';
 import { useFiscalCatalog } from '@/features/fiscal/hooks/useFiscalDocuments';
 import { FiscalDocumentDetail } from '@/core/fiscal/domain/entities/FiscalDocument';
 import { InvoiceDraft } from '@/core/fiscal/domain/entities/DeliveryNote';
 import { LinePreview, previewLine, summarize } from '@/core/fiscal/domain/rules/fiscalPreview';
-import { sum, ZERO } from '@/core/stock/domain/rules/decimal';
 import { EntryMode, entryModeOf, FiscalHeaderState, isBlankLine } from './fiscalEntryState';
 import { useFiscalEntry } from './useFiscalEntry';
 import { useFiscalEntrySubmit } from './useFiscalEntrySubmit';
-import FiscalHeaderCard from './FiscalHeaderCard';
-import FiscalSummaryCard from './FiscalSummaryCard';
+import FiscalSheetHeader from './FiscalSheetHeader';
+import FiscalSheetFooter from './FiscalSheetFooter';
+import SheetSection from '../sheet/SheetSection';
 import FiscalLinesGrid from './FiscalLinesGrid';
 import DocumentTaxesGrid from './DocumentTaxesGrid';
 
@@ -64,9 +63,10 @@ const COPY: Record<EntryMode, { title: string; subtitle: string; primary: string
 };
 
 /**
- * "Cargar comprobante": the provider's paper line by line (DS13). Its stock-tracked lines enter the
- * warehouse (or leave it, for a credit note) when it is registered; services and non-stock articles
- * stay on the document, charged to their batch.
+ * "Cargar comprobante": the provider's paper line by line (DS13), laid out as one white sheet like the
+ * paper itself (lienzo: FiscalDocumentEditor). Its stock-tracked lines enter the warehouse (or leave
+ * it, for a credit note) when it is registered; services and non-stock articles stay on the document,
+ * charged to their batch.
  */
 export default function FiscalDocumentEntryDialog({
 	initial,
@@ -104,8 +104,6 @@ export default function FiscalDocumentEntryDialog({
 		return map;
 	}, [entry.lines, taxes, discriminates]);
 	const filled = entry.lines.filter((l) => !isBlankLine(l) && !l.removed);
-	const stocked = (key: string) =>
-		!!items.find((i) => i.id === entry.lines.find((l) => l.key === key)?.itemId)?.trackStock;
 	const summary = summarize(
 		filled.map((l) => ({ preview: previews[l.key], otherTaxes: discriminates ? l.otherTaxes : [] })),
 		discriminates
@@ -115,8 +113,6 @@ export default function FiscalDocumentEntryDialog({
 			: [],
 		taxes
 	);
-	const costOf = (pick: boolean) =>
-		sum(filled.filter((l) => stocked(l.key) === pick).map((l) => previews[l.key].cost ?? ZERO));
 
 	return (
 		<Dialog
@@ -124,7 +120,7 @@ export default function FiscalDocumentEntryDialog({
 			open
 			onClose={onClose}
 			TransitionComponent={SlideUp}
-			PaperProps={{ sx: { borderRadius: 0, bgcolor: 'background.default' } }}
+			PaperProps={{ sx: { borderRadius: 0, bgcolor: 'background.paper' } }}
 		>
 			<FullScreenEntryBar
 				title={copy.title}
@@ -141,77 +137,66 @@ export default function FiscalDocumentEntryDialog({
 				</Box>
 			) : (
 				<Box
+					component="article"
+					aria-label="Comprobante"
 					sx={{
 						flex: 1,
 						minHeight: 0,
 						overflow: 'auto',
-						p: { xs: 2, md: 3 },
-						display: 'grid',
-						gridTemplateColumns: { xs: '1fr', lg: '340px minmax(0, 1fr)' },
-						gap: 2.5,
-						alignItems: 'start'
+						px: { xs: 2, md: 4 },
+						pt: 3,
+						pb: 5,
+						display: 'flex',
+						flexDirection: 'column',
+						gap: 3
 					}}
 				>
-					<Stack spacing={2.5}>
-						<FiscalHeaderCard
-							header={entry.header}
-							types={types}
-							type={entry.type}
-							onChange={entry.setHeader}
-							errors={submit.errors.header}
-							mode={mode}
-							draft={draft}
-						/>
-						<FiscalSummaryCard
-							lineCount={filled.length}
-							stockedCost={costOf(true)}
-							expenseCost={costOf(false)}
-							net={summary.net}
-							rows={summary.rows}
-							total={summary.total}
-							declaredTotal={entry.header.declaredTotal}
-							isCreditNote={entry.type?.kind === 'CREDIT_NOTE'}
+					<FiscalSheetHeader
+						header={entry.header}
+						types={types}
+						type={entry.type}
+						onChange={entry.setHeader}
+						errors={submit.errors.header}
+						mode={mode}
+						draft={draft}
+					/>
+					<SheetSection label="Renglones">
+						<FiscalLinesGrid
+							lines={entry.lines}
+							previews={previews}
+							taxes={taxes}
+							batches={chargeable}
+							discriminates={discriminates}
+							items={items.filter((i) => i.isActive && (mode !== 'delivery-note' || i.trackStock))}
+							errors={submit.errors.cells}
+							onChange={entry.updateLine}
+							onPickItem={entry.pickItem}
+							onRemove={entry.removeLine}
+							onToggleRemoved={entry.toggleRemoved}
 							mode={mode}
 							unpriced={unpriced}
+							notes={draft?.deliveryNotes ?? []}
 						/>
-					</Stack>
-					<Stack
-						spacing={2.5}
-						sx={{ minWidth: 0 }}
-					>
-						<Paper
-							variant="outlined"
-							sx={{ p: 2, borderRadius: '8px', minWidth: 0 }}
-						>
-							<Typography sx={{ ...sectionTitleSx, mb: 1.5 }}>3. Renglones</Typography>
-							<FiscalLinesGrid
-								lines={entry.lines}
-								previews={previews}
-								taxes={taxes}
-								batches={chargeable}
-								discriminates={discriminates}
-								items={items.filter((i) => i.isActive && (mode !== 'delivery-note' || i.trackStock))}
-								errors={submit.errors.cells}
-								onChange={entry.updateLine}
-								onPickItem={entry.pickItem}
-								onRemove={entry.removeLine}
-								onToggleRemoved={entry.toggleRemoved}
-								mode={mode}
-								unpriced={unpriced}
-								notes={draft?.deliveryNotes ?? []}
-							/>
-						</Paper>
-						{discriminates && (
-							<DocumentTaxesGrid
-								rows={entry.documentTaxes}
-								taxes={taxes}
-								errors={submit.errors.documentTaxes}
-								onAdd={entry.addDocumentTax}
-								onChange={entry.updateDocumentTax}
-								onRemove={entry.removeDocumentTax}
-							/>
-						)}
-					</Stack>
+					</SheetSection>
+					{discriminates && (
+						<DocumentTaxesGrid
+							rows={entry.documentTaxes}
+							taxes={taxes}
+							errors={submit.errors.documentTaxes}
+							onAdd={entry.addDocumentTax}
+							onChange={entry.updateDocumentTax}
+							onRemove={entry.removeDocumentTax}
+						/>
+					)}
+					<FiscalSheetFooter
+						header={entry.header}
+						onChange={entry.setHeader}
+						errors={submit.errors.header}
+						mode={mode}
+						isCreditNote={entry.type?.kind === 'CREDIT_NOTE'}
+						unpriced={unpriced}
+						summary={summary}
+					/>
 				</Box>
 			)}
 		</Dialog>

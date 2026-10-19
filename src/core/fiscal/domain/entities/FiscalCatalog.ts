@@ -5,6 +5,8 @@ export interface FiscalDocumentType {
 	name: string;
 	kind: 'INVOICE' | 'CREDIT_NOTE' | 'TICKET' | 'DELIVERY_NOTE';
 	letter: string | null;
+	/** The code printed under the letter ("CÓD. 01"); null for papers without one. */
+	afipCode: string | null;
 	discriminatesVat: boolean;
 	sign: 1 | 0 | -1;
 	requiresNumber: boolean;

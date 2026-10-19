@@ -56,7 +56,7 @@ export default function DocumentNumberField({
 					InputProps={filledInputProps}
 					inputProps={{ inputMode: 'numeric', style: { fontFamily: 'monospace' } }}
 					error={!!errors.point_of_sale}
-					sx={{ width: 120 }}
+					sx={{ width: 105 }}
 				/>
 				<Typography color="text.secondary">-</Typography>
 				<TextField

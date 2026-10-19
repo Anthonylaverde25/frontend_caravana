@@ -41,7 +41,7 @@ export function useGridCellStyles() {
   /** A column title: one row, sentence case, compact. */
   const headSx = { ...cellSx, bgcolor: headerBg, fontWeight: 700, px: 1.25, py: 1, fontSize: '0.74rem', color: theme.palette.text.primary } as const;
   /** The row number (or the row checkbox) on the left, grey like the header. */
-  const indexSx = { ...cellSx, bgcolor: headerBg, color: theme.palette.text.disabled, fontSize: '0.72rem', width: 40 } as const;
+  const indexSx = { ...cellSx, bgcolor: headerBg, color: theme.palette.text.disabled, fontSize: '0.72rem', width: 44, textAlign: 'center', verticalAlign: 'middle', px: 0.5 } as const;
   /** A read-only value, the height of an input cell. */
   const textCellSx = { ...cellSx, px: 1.25, height: 40, fontSize: '0.85rem' } as const;
   /** The ring of a cell the server objected to. */

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router';
-import { Alert, Box, Button, CircularProgress, Link, Stack, Typography } from '@mui/material';
+import { useNavigate, useParams } from 'react-router';
+import { Alert, Box, Button, CircularProgress, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import ViewLayout from 'src/components/ViewLayout';
@@ -8,14 +8,18 @@ import { useFiscalDocument, useVoidFiscalDocument } from '@/features/fiscal/hook
 import { formatDate } from '@/core/stock/domain/rules/quantityFormat';
 import { readApiErrors } from '@/ui/items/components/apiErrors';
 import ReasonDialog from '@/ui/stock/components/dialogs/ReasonDialog';
-import FiscalDocumentLinesGrid from '../components/detail/FiscalDocumentLinesGrid';
-import FiscalDocumentTotals from '../components/detail/FiscalDocumentTotals';
+import FiscalPaperSheet from '../components/detail/paper/FiscalPaperSheet';
+import FiscalDetailDrawer from '../components/detail/drawer/FiscalDetailDrawer';
 import DeliveryNoteStatusBar from '../components/detail/DeliveryNoteStatusBar';
 import DiscrepanciesSection from '../components/discrepancies/DiscrepanciesSection';
 
 const TEXT_BUTTON = { fontWeight: 600, textTransform: 'none' } as const;
 
-/** `/fiscal-documents/:documentId`: the paper as registered, its stock operation, and "Anular" (DS20). */
+/**
+ * `/fiscal-documents/:documentId`: the paper as registered, drawn like the original, with a side panel
+ * (summary, imputation, history) and its actions (lienzo: FiscalDocumentDetail). Payments, sending and
+ * sharing wait for their logic.
+ */
 export default function FiscalDocumentDetailView() {
 	const navigate = useNavigate();
 	const { enqueueSnackbar } = useSnackbar();
@@ -25,6 +29,7 @@ export default function FiscalDocumentDetailView() {
 	const { mutateAsync: voidDocument, isPending } = useVoidFiscalDocument();
 	const [voiding, setVoiding] = useState(false);
 	const [voidError, setVoidError] = useState<string | null>(null);
+	const [panel, setPanel] = useState(true);
 
 	if (isLoading) {
 		return (
@@ -90,12 +95,30 @@ export default function FiscalDocumentDetailView() {
 			backUrl="/fiscal-documents"
 			showBackButton
 			backTitle="Comprobantes"
+			scroll="content"
+			className="p-0 flex flex-col flex-1 h-full min-h-0"
 			actions={
-				registered && (
-					<Stack
-						direction="row"
-						spacing={1}
+				<Stack
+					direction="row"
+					spacing={1}
+					sx={{ displayPrint: 'none' }}
+				>
+					{!panel && (
+						<Button onClick={() => setPanel(true)} startIcon={<FuseSvgIcon size={18}>heroicons-outline:chevron-double-left</FuseSvgIcon>} sx={TEXT_BUTTON}>
+							Ver detalle
+						</Button>
+					)}
+					<Button
+						variant="outlined"
+						color="inherit"
+						onClick={() => window.print()}
+						startIcon={<FuseSvgIcon size={18}>heroicons-outline:printer</FuseSvgIcon>}
+						sx={{ ...TEXT_BUTTON, fontWeight: 700, borderRadius: '6px', borderColor: 'divider' }}
 					>
+						Imprimir
+					</Button>
+					{registered && (
+						<>
 						{convertible && (
 							<Button
 								variant="contained"
@@ -130,47 +153,50 @@ export default function FiscalDocumentDetailView() {
 						>
 							Anular
 						</Button>
-					</Stack>
-				)
-			}
-		>
-			<Stack spacing={2}>
-				{!registered && (
-					<Alert severity="warning">
-						Anulado el {formatDate(document.voidedAt)}: {document.voidReason}
-					</Alert>
-				)}
-				<Typography
-					variant="body2"
-					color="text.secondary"
-				>
-					{document.createdBy
-						? `Cargado por ${document.createdBy} el ${formatDate(document.createdAt)}`
-						: `Cargado el ${formatDate(document.createdAt)}`}
-					{document.stockOperation && (
-						<>
-							{' · '}
-							<Link
-								component={RouterLink}
-								to={`/item-documents/${document.stockOperation.id}`}
-								sx={{ fontWeight: 600 }}
-							>
-								Movimiento de stock N.º {document.stockOperation.number}
-							</Link>
 						</>
 					)}
-					{document.related && ` · Acredita ${document.related.label}`}
-					{document.notes && ` · ${document.notes}`}
-				</Typography>
-				<DeliveryNoteStatusBar document={document} />
-				<FiscalDocumentLinesGrid lines={document.lines} />
-				{document.linesAmount !== null && <FiscalDocumentTotals document={document} />}
-				{(document.deliveryNotes.length > 0 || isNote) && (
-					<DiscrepanciesSection
-						filters={isNote ? { deliveryNoteId: document.id } : { invoiceId: document.id }}
-					/>
-				)}
-			</Stack>
+				</Stack>
+			}
+		>
+			<Box
+				sx={{
+					display: 'flex',
+					flexDirection: { xs: 'column', lg: 'row' },
+					flex: '1 1 auto',
+					minHeight: 0,
+					height: '100%',
+					width: '100%',
+					overflow: 'hidden'
+				}}
+			>
+				<Box
+					sx={{
+						flex: '1 1 auto',
+						minWidth: 0,
+						height: '100%',
+						overflowY: 'auto',
+						p: { xs: 2, sm: 3, md: 4 },
+						bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'background.default' : '#F1F3F5'),
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center'
+					}}
+				>
+					<Stack spacing={2.5} sx={{ maxWidth: '800px', width: '100%', minWidth: 0, pb: 6 }}>
+						{!registered && (
+							<Alert severity="warning">
+								Anulado el {formatDate(document.voidedAt)}: {document.voidReason}
+							</Alert>
+						)}
+						{document.deliveryNoteStatus && <DeliveryNoteStatusBar document={document} />}
+						<FiscalPaperSheet document={document} />
+						{(document.deliveryNotes.length > 0 || isNote) && (
+							<DiscrepanciesSection filters={isNote ? { deliveryNoteId: document.id } : { invoiceId: document.id }} />
+						)}
+					</Stack>
+				</Box>
+				{panel && <FiscalDetailDrawer document={document} onHide={() => setPanel(false)} />}
+			</Box>
 
 			<ReasonDialog
 				open={voiding}

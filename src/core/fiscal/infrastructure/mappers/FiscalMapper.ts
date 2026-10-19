@@ -21,6 +21,7 @@ export const FiscalMapper = {
 			name: raw.name,
 			kind: raw.kind,
 			letter: raw.letter ?? null,
+			afipCode: raw.afip_code ?? null,
 			discriminatesVat: !!raw.discriminates_vat,
 			sign: raw.sign,
 			requiresNumber: !!raw.requires_number
@@ -45,7 +46,7 @@ export const FiscalMapper = {
 			id: raw.id,
 			label: raw.label,
 			type: FiscalMapper.type(raw.type),
-			provider: { id: raw.provider?.id, name: raw.provider?.name ?? null },
+			provider: { id: raw.provider?.id, name: raw.provider?.name ?? null, cuit: raw.provider?.cuit ?? null, location: raw.provider?.location ?? null },
 			formattedNumber: raw.formatted_number,
 			issuedAt: raw.issued_at,
 			linesAmount: raw.lines_amount,
@@ -83,6 +84,7 @@ export const FiscalMapper = {
 				position: l.position,
 				item: {
 					id: l.item.id,
+					code: l.item.code ?? null,
 					name: l.item.name ?? null,
 					unitSymbol: l.item.unit_symbol ?? null,
 					trackStock: !!l.item.track_stock
