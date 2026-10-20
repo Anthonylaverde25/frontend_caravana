@@ -4,6 +4,7 @@ import { formatDate } from '@/core/stock/domain/rules/quantityFormat';
 import { useCompany } from '@/contexts/CompanyContext';
 import { INK, paperBoxSx, paperTextSx } from './paperStyles';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 const KIND_TITLE: Record<FiscalDocumentDetail['type']['kind'], string> = {
 	INVOICE: 'Factura',
 	CREDIT_NOTE: 'Nota de crédito',
@@ -14,7 +15,7 @@ const KIND_TITLE: Record<FiscalDocumentDetail['type']['kind'], string> = {
 /**
  * The top of the paper as the provider printed it: issuer on the left, the letter hanging from the
  * top rule with its code and a rule down the middle, kind, number, date and CUIT on the right; below,
- * who received it. The company has no CUIT in the system yet: the row stays, flagged as pending.
+ * who received it. Without the company's CUIT (Settings) the row stays, flagged as pending.
  */
 export default function FiscalPaperHeader({ document: d }: { document: FiscalDocumentDetail }) {
 	const { activeCompanyId, companies } = useCompany();
@@ -45,7 +46,7 @@ export default function FiscalPaperHeader({ document: d }: { document: FiscalDoc
 						<b>Fecha de emisión:</b> {formatDate(d.issuedAt)}
 					</Typography>
 					<Typography sx={{ ...paperTextSx, mt: 1.75 }}>
-						<b>CUIT:</b> {d.provider.cuit ?? '—'}
+						<b>CUIT:</b> {d.provider.cuit ? formatCuit(d.provider.cuit) : '—'}
 					</Typography>
 				</Box>
 			</Box>
@@ -55,9 +56,13 @@ export default function FiscalPaperHeader({ document: d }: { document: FiscalDoc
 				</div>
 				<div>
 					<b>CUIT:</b>{' '}
-					<Box component="span" sx={{ color: '#B26A00' }}>
-						pendiente de cargar en el sistema
-					</Box>
+					{company?.cuit ? (
+						formatCuit(company.cuit)
+					) : (
+						<Box component="span" sx={{ color: '#B26A00' }}>
+							pendiente de cargar en Configuración
+						</Box>
+					)}
 				</div>
 				<div>
 					<b>RENSPA:</b> {company?.renspa ?? '—'}

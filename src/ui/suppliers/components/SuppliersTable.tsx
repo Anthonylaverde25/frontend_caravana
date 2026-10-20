@@ -11,6 +11,9 @@ import SupplierGroupCard from './SupplierGroupCard';
 import SupplierFlatTable from './SupplierFlatTable';
 import AddFarmDialog from './AddFarmDialog';
 import SupplierRolesDialog, { SupplierRolesTarget } from './SupplierRolesDialog';
+import EditSupplierDialog from './EditSupplierDialog';
+import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
+import { cuitDigits } from '@/core/shared/domain/cuit';
 
 /**
  * SuppliersTable Component
@@ -36,6 +39,7 @@ export function SuppliersTable() {
 	const [isAddFarmDialogOpen, setIsAddFarmDialogOpen] = useState(false);
 	const [activeSupplierId, setActiveSupplierId] = useState<number | undefined>();
 	const [rolesTarget, setRolesTarget] = useState<SupplierRolesTarget | null>(null);
+	const [editTarget, setEditTarget] = useState<Supplier | null>(null);
 
 	// Reset pagination on filter change
 	useEffect(() => {
@@ -53,7 +57,8 @@ export function SuppliersTable() {
 			if (term !== '') {
 				const nameMatch = s.name?.toLowerCase().includes(term);
 				const commMatch = s.commercial_name?.toLowerCase().includes(term);
-				const cuitMatch = s.cuit?.toLowerCase().includes(term);
+				// Stored as digits: "30-7084" and "307084" find the same provider.
+				const cuitMatch = /^[\d\s-]+$/.test(term) && s.cuit?.includes(cuitDigits(term));
 				const farmMatch = (s.farms || []).some(
 					(f: any) => f.name?.toLowerCase().includes(term) || f.renspa?.toLowerCase().includes(term)
 				);
@@ -209,6 +214,7 @@ export function SuppliersTable() {
 								onToggleSelect={handleToggleSupplier}
 								onAddFarm={handleOpenAddFarm}
 								onViewDetails={handleViewDetails}
+								onEdit={setEditTarget}
 							/>
 						))}
 					</Stack>
@@ -226,6 +232,7 @@ export function SuppliersTable() {
 					onAddFarm={handleOpenAddFarm}
 					onViewDetails={handleViewDetails}
 					onEditRoles={setRolesTarget}
+					onEdit={setEditTarget}
 				/>
 			)}
 
@@ -237,6 +244,7 @@ export function SuppliersTable() {
 			/>
 
 			<SupplierRolesDialog supplier={rolesTarget} onClose={() => setRolesTarget(null)} />
+			<EditSupplierDialog supplier={editTarget} onClose={() => setEditTarget(null)} />
 		</Box>
 	);
 }

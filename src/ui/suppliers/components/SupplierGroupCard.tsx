@@ -18,6 +18,7 @@ import {
 	useTheme,
 	alpha
 } from '@mui/material';
+import { formatCuit } from '@/core/shared/domain/cuit';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
 interface SupplierGroupCardProps {
@@ -26,6 +27,7 @@ interface SupplierGroupCardProps {
 	onToggleSelect: (id: number) => void;
 	onAddFarm: (supplierId: number) => void;
 	onViewDetails: (supplierId: number) => void;
+	onEdit: (supplier: any) => void;
 }
 
 /**
@@ -38,7 +40,8 @@ export function SupplierGroupCard({
 	isSelected,
 	onToggleSelect,
 	onAddFarm,
-	onViewDetails
+	onViewDetails,
+	onEdit
 }: SupplierGroupCardProps) {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -136,7 +139,7 @@ export function SupplierGroupCard({
 						</Typography>
 						<Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
 							<Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.main' }}>
-								CUIT: {supplier.cuit}
+								CUIT: {formatCuit(supplier.cuit)}
 							</Box>
 							{supplier.email ? ` • ${supplier.email}` : ''}
 							{supplier.phone ? ` • Tel: ${supplier.phone}` : ''}
@@ -169,6 +172,12 @@ export function SupplierGroupCard({
 					>
 						Añadir Granja
 					</Button>
+
+					<Tooltip title="Editar datos">
+						<IconButton size="small" onClick={() => onEdit(supplier)} sx={{ height: 28, width: 28 }}>
+							<FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>
+						</IconButton>
+					</Tooltip>
 
 					<Tooltip title="Ver Detalles">
 						<IconButton

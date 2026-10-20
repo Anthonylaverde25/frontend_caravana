@@ -19,6 +19,7 @@ import {
 	useTheme,
 	alpha
 } from '@mui/material';
+import { formatCuit } from '@/core/shared/domain/cuit';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import SupplierRoleChips from './SupplierRoleChips';
 
@@ -34,6 +35,7 @@ interface SupplierFlatTableProps {
 	onAddFarm: (supplierId: number) => void;
 	onViewDetails: (supplierId: number) => void;
 	onEditRoles: (supplier: any) => void;
+	onEdit: (supplier: any) => void;
 }
 
 const getInitials = (name: string) => {
@@ -62,7 +64,8 @@ export function SupplierFlatTable({
 	onToggleAllPage,
 	onAddFarm,
 	onViewDetails,
-	onEditRoles
+	onEditRoles,
+	onEdit
 }: SupplierFlatTableProps) {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
@@ -247,7 +250,7 @@ export function SupplierFlatTable({
 														variant="caption"
 														sx={{ color: 'text.secondary', fontFamily: 'monospace', fontWeight: 500 }}
 													>
-														CUIT: {supplier.cuit}
+														CUIT: {formatCuit(supplier.cuit)}
 													</Typography>
 												</Box>
 											</Stack>
@@ -257,7 +260,7 @@ export function SupplierFlatTable({
 										</TableCell>
 										<TableCell sx={bodyCellStyle}>
 											<Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.82rem' }}>
-												{supplier.cuit}
+												{formatCuit(supplier.cuit)}
 											</Typography>
 										</TableCell>
 										<TableCell sx={{ ...bodyCellStyle, fontSize: '0.8rem', color: 'text.secondary' }}>
@@ -292,6 +295,11 @@ export function SupplierFlatTable({
 												<Tooltip title="Añadir Granja">
 													<IconButton size="small" onClick={() => onAddFarm(supplier.id)}>
 														<FuseSvgIcon size={16}>heroicons-outline:plus-circle</FuseSvgIcon>
+													</IconButton>
+												</Tooltip>
+												<Tooltip title="Editar datos">
+													<IconButton size="small" onClick={() => onEdit(supplier)}>
+														<FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>
 													</IconButton>
 												</Tooltip>
 												<Tooltip title="Editar qué vende">

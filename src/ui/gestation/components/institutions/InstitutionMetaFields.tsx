@@ -3,7 +3,7 @@ import { Autocomplete, Box, Chip, Stack, TextField, Typography, useTheme } from 
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { InstitutionMeta } from '@/core/veterinary/domain/VeterinaryTypes';
 import { useInstitutionSuggestions } from '@/features/gestation/hooks/useVeterinaryPortal';
-import { cuitDigits, cuitProblem, expectedCheckDigit } from '@/core/veterinary/domain/cuit';
+import { cuitDigits, cuitProblem, expectedCheckDigit } from '@/core/shared/domain/cuit';
 
 interface Props {
   value: InstitutionMeta;
@@ -52,7 +52,9 @@ export const InstitutionMetaFields: React.FC<Props> = ({
     problem === 'LENGTH'
       ? `Un CUIT tiene 11 dígitos; van ${cuitDigits(value.cuit).length}. Se guarda igual.`
       : problem === 'CHECK_DIGIT'
-        ? `El dígito verificador no cierra: con estos números debería terminar en ${suggestion}. Se guarda igual.`
+        ? suggestion === null
+          ? 'No existe un CUIT con esos 10 primeros dígitos. Se guarda igual.'
+          : `El dígito verificador no cierra: con estos números debería terminar en ${suggestion}. Se guarda igual.`
         : 'Es lo que permite agrupar por institución.';
 
   const theme = useTheme();

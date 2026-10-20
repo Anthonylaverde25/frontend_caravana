@@ -7,6 +7,8 @@ export interface Company {
   id: number;
   name: string;
   renspa?: string;
+  /** Digits only; null until the company loads it in Settings. */
+  cuit?: string | null;
   location?: string;
   is_active: boolean;
   role: string;
@@ -16,6 +18,8 @@ interface CompanyContextType {
   activeCompanyId: number | null;
   setActiveCompanyId: (id: number | null) => void;
   companies: Company[];
+  /** Replaces one company in memory after it was saved (no new login needed). */
+  patchCompany: (company: Company) => void;
   loading: boolean;
   error: string | null;
 }
@@ -80,8 +84,11 @@ export const CompanyProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [activeCompanyId]);
 
+  const patchCompany = (company: Company) =>
+    setCompanies((current) => current.map((c) => (c.id === company.id ? { ...c, ...company } : c)));
+
   return (
-    <CompanyContext.Provider value={{ activeCompanyId, setActiveCompanyId: handleSelectCompany, companies, loading, error }}>
+    <CompanyContext.Provider value={{ activeCompanyId, setActiveCompanyId: handleSelectCompany, companies, patchCompany, loading, error }}>
       {children}
     </CompanyContext.Provider>
   );

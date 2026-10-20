@@ -4,6 +4,7 @@ import { FiscalDocumentDetail } from '@/core/fiscal/domain/entities/FiscalDocume
 import { formatDate, formatMoney } from '@/core/stock/domain/rules/quantityFormat';
 import { DrawerBlock, DrawerTotal, Facts, LinkCard } from './drawerParts';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 /**
  * "Resumen": the total and its taxes, what the paper is, and what it is tied to. The payment status is
  * left out until the debt with providers is tracked.
@@ -26,7 +27,7 @@ export default function SummaryTab({ document: d }: { document: FiscalDocumentDe
 				<Facts
 					rows={[
 						{ term: 'Proveedor', value: <Link component={RouterLink} to={`/providers`}>{d.provider.name}</Link> },
-						{ term: 'CUIT', value: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{d.provider.cuit ?? '—'}</span> },
+						{ term: 'CUIT', value: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{d.provider.cuit ? formatCuit(d.provider.cuit) : '—'}</span> },
 						{ term: 'Tipo', value: d.type.name },
 						...(d.type.afipCode ? [{ term: 'Código', value: d.type.afipCode }] : []),
 						{ term: 'Emisión', value: formatDate(d.issuedAt) },

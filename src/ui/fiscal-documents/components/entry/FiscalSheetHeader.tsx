@@ -12,7 +12,8 @@ import ConversionOriginCard from './ConversionOriginCard';
 import DocumentNumberField from './DocumentNumberField';
 import DeliveryNotePricingToggle from './DeliveryNotePricingToggle';
 import PendingDeliveryNotesNotice from './PendingDeliveryNotesNotice';
-
+import ProviderSelectField from './ProviderSelectField';
+import { formatCuit } from '@/core/shared/domain/cuit';
 interface FiscalSheetHeaderProps {
 	header: FiscalHeaderState;
 	types: FiscalDocumentType[];
@@ -137,7 +138,7 @@ export default function FiscalSheetHeader({
 										{provider.cuit && (
 											<Chip
 												size="small"
-												label={`CUIT: ${provider.cuit}`}
+												label={`CUIT: ${formatCuit(provider.cuit)}`}
 												sx={{
 													fontFamily: 'monospace',
 													fontWeight: 600,
@@ -217,28 +218,11 @@ export default function FiscalSheetHeader({
 							)}
 						</>
 					) : (
-						<TextField
-							select
-							label="Razón social"
-							variant="filled"
-							fullWidth
-							value=""
-							InputProps={filledInputProps}
-							onChange={(e) => {
-								const val = e.target.value;
-								onChange({
-									providerId: val === '' || val === null ? null : Number(val),
-									relatedId: null
-								});
-							}}
-							{...field('provider_id')}
-						>
-							{providers.map((p) => (
-								<MenuItem key={p.id} value={p.id}>
-									{p.name}
-								</MenuItem>
-							))}
-						</TextField>
+						<ProviderSelectField
+							providers={providers}
+							onPick={(providerId) => onChange({ providerId, relatedId: null })}
+							error={errors.provider_id}
+						/>
 					)}
 				</Box>
 

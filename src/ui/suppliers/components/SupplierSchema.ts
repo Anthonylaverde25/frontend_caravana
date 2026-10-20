@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cuitReason } from '@/core/shared/domain/cuit';
 
 /**
  * Farm Schema
@@ -18,7 +19,14 @@ export const farmSchema = z.object({
 export const supplierSchema = z.object({
   name: z.string().min(1, 'La razón social es requerida'),
   commercial_name: z.string().optional().nullable(),
-  cuit: z.string().min(1, 'El CUIT es requerido'),
+  // The backend refuses it too; checked here so the message shows on the same click.
+  cuit: z
+    .string()
+    .min(1, 'El CUIT es requerido')
+    .superRefine((value, ctx) => {
+      const reason = cuitReason(value);
+      if (reason) ctx.addIssue({ code: z.ZodIssueCode.custom, message: reason });
+    }),
   location: z.string().optional().nullable(),
   email: z.string().email('Email inválido').optional().nullable().or(z.literal('')),
   phone: z.string().optional().nullable(),

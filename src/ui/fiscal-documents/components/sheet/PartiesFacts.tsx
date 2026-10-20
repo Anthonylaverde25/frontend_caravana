@@ -2,6 +2,7 @@ import { Box, Chip, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useCompany } from '@/contexts/CompanyContext';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 interface PartiesFactsProps {
 	cuit: string | null;
 	location: string | null;
@@ -26,7 +27,7 @@ export default function PartiesFacts({ cuit, location }: PartiesFactsProps) {
 				{cuit ? (
 					<Chip
 						size="small"
-						label={`CUIT: ${cuit}`}
+						label={`CUIT: ${formatCuit(cuit)}`}
 						sx={{
 							fontFamily: 'monospace',
 							fontWeight: 600,

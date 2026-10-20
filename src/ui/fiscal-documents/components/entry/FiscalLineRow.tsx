@@ -28,6 +28,8 @@ interface FiscalLineRowProps {
 	errors: Record<string, string>;
 	onChange: (patch: Partial<FiscalLineState>) => void;
 	onPickItem: (item: Item | null) => void;
+	/** The item is not in the catalogue: create it with the typed name and bring it back here. */
+	onCreateItem: (name: string) => void;
 	onRemove: () => void;
 	mode: EntryMode;
 	/** A delivery note without prices: the price column stays grey (DC14). */
@@ -51,6 +53,7 @@ export default function FiscalLineRow(props: FiscalLineRowProps) {
 		errors,
 		onChange,
 		onPickItem,
+		onCreateItem,
 		onRemove,
 		mode,
 		unpriced
@@ -91,6 +94,7 @@ export default function FiscalLineRow(props: FiscalLineRowProps) {
 					items={items}
 					value={line.itemId}
 					onChange={onPickItem}
+					onCreate={onCreateItem}
 					error={errors.item_id}
 				/>
 			)}

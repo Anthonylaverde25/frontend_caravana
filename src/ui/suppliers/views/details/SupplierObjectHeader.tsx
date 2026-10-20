@@ -15,6 +15,7 @@ import { useState } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 interface SupplierObjectHeaderProps {
   supplier: Supplier;
   onEdit?: () => void;
@@ -139,7 +140,7 @@ export const SupplierObjectHeader = ({
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 800 }}>CUIT</Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-            {supplier.cuit}
+            {formatCuit(supplier.cuit)}
           </Typography>
         </Box>
         {supplier.location && (

@@ -5,6 +5,7 @@ import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useNavigate } from 'react-router';
 import CompanyActivitiesConfigCard from '@/ui/activities/components/CompanyActivitiesConfigCard';
+import CompanyCuitInfo from '@/ui/settings/CompanyCuitInfo';
 
 /**
  * GeneralConfig Component
@@ -52,6 +53,8 @@ export default function GeneralConfig() {
           {activeCompany?.renspa || 'N/D'}
         </Typography>
       </Stack>
+
+      <CompanyCuitInfo company={activeCompany} />
 
       <Stack direction="row" spacing={1} alignItems="center" sx={{ display: { xs: 'none', xl: 'flex' } }}>
         <FuseSvgIcon size={14} className="text-slate-400">heroicons-outline:location-marker</FuseSvgIcon>

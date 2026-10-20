@@ -5,6 +5,8 @@ import { SupplierFormValues } from '../SupplierSchema';
 interface SupplierGeneralFieldsProps {
   register: UseFormRegister<SupplierFormValues>;
   errors: FieldErrors<SupplierFormValues>;
+  /** The provider already issued fiscal documents: its CUIT is shown but no longer changes. */
+  cuitLocked?: boolean;
 }
 
 /**
@@ -12,7 +14,7 @@ interface SupplierGeneralFieldsProps {
  * Presentational component for legal, tax, and contact information.
  * Adheres strictly to canonical design tokens (variant="filled", bgcolor="action.hover").
  */
-export default function SupplierGeneralFields({ register, errors }: SupplierGeneralFieldsProps) {
+export default function SupplierGeneralFields({ register, errors, cuitLocked = false }: SupplierGeneralFieldsProps) {
   return (
     <Stack spacing={3}>
       {/* Sección Datos Principales */}
@@ -43,8 +45,12 @@ export default function SupplierGeneralFields({ register, errors }: SupplierGene
             fullWidth
             required
             placeholder="XX-XXXXXXXX-X"
+            disabled={cuitLocked}
             error={!!errors.cuit}
-            helperText={errors.cuit?.message}
+            helperText={
+              errors.cuit?.message ??
+              (cuitLocked ? 'No se puede cambiar: ya tiene comprobantes registrados.' : undefined)
+            }
             sx={{ bgcolor: 'action.hover' }}
           />
           <TextField

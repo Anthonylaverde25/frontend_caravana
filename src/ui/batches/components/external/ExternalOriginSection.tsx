@@ -10,6 +10,7 @@ import CreateSupplierDialog from '@/ui/suppliers/components/CreateSupplierDialog
 import AddFarmDialog from '@/ui/suppliers/components/AddFarmDialog';
 import { ExternalBatchForm, ExternalFormSection, filledSx } from './externalFormParts';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 /**
  * Who sells and from where: the provider and one of its establishments (with its RENSPA,
  * read-only). Both can be created here without leaving the form.
@@ -54,7 +55,7 @@ export const ExternalOriginSection: React.FC<{ form: ExternalBatchForm }> = ({ f
           renderOption={(props, option) => (
             <li {...props} key={option.id}>
               {option.name}
-              {option.cuit ? ` · ${option.cuit}` : ''}
+              {option.cuit ? ` · ${formatCuit(option.cuit)}` : ''}
             </li>
           )}
           renderInput={(params) => (

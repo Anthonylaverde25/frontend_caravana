@@ -2,6 +2,7 @@ import { Typography, Chip, Avatar, Stack, Box } from '@mui/material';
 import { MRT_ColumnDef } from 'material-react-table';
 import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 /**
  * Helper to get initials from a name.
  */
@@ -39,7 +40,7 @@ export const getSupplierColumns = (): MRT_ColumnDef<Supplier>[] => [
               {val}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontWeight: 500 }}>
-              CUIT: {row.original.cuit}
+              CUIT: {formatCuit(row.original.cuit)}
             </Typography>
           </Box>
         </Stack>
@@ -58,7 +59,7 @@ export const getSupplierColumns = (): MRT_ColumnDef<Supplier>[] => [
     size: 150,
     Cell: ({ cell }) => (
       <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-        {cell.getValue<string>()}
+        {formatCuit(cell.getValue<string>())}
       </Typography>
     ),
   },

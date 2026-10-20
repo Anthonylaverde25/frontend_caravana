@@ -9,6 +9,7 @@ import { ItemDetail } from '@/core/items/domain/entities/Item';
 import { formatDate, formatMoney } from '@/core/stock/domain/rules/quantityFormat';
 import ItemProvidersDialog from '../dialogs/ItemProvidersDialog';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 /** Who sells the item, and the price and date of its last purchase to each one (derived, DS2). */
 export default function ItemProvidersTab({ item }: { item: ItemDetail }) {
 	const { headSx, indexSx, textCellSx } = useGridCellStyles();
@@ -40,7 +41,7 @@ export default function ItemProvidersTab({ item }: { item: ItemDetail }) {
 						<TableRow key={p.providerId} hover>
 							<TableCell sx={indexSx}>{index + 1}</TableCell>
 							<TableCell sx={{ ...textCellSx, fontWeight: 600 }}>{p.name}</TableCell>
-							<TableCell sx={{ ...textCellSx, fontFamily: 'monospace' }}>{p.cuit}</TableCell>
+							<TableCell sx={{ ...textCellSx, fontFamily: 'monospace' }}>{formatCuit(p.cuit)}</TableCell>
 							<TableCell sx={textCellSx} align="right">{p.leadTimeDays ?? '—'}</TableCell>
 							<TableCell sx={{ ...textCellSx, color: 'warning.main' }} align="center">
 								{p.isPreferred ? <FuseSvgIcon size={18}>heroicons-solid:star</FuseSvgIcon> : ''}

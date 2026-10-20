@@ -14,6 +14,10 @@ import { useFiscalEntrySubmit } from './useFiscalEntrySubmit';
 import FiscalSheetHeader from './FiscalSheetHeader';
 import FiscalSheetFooter from './FiscalSheetFooter';
 import FiscalLinesGrid from './FiscalLinesGrid';
+import { useImageRecognition } from './image/useImageRecognition';
+import ReadFromImageButton from './image/ReadFromImageButton';
+import ImageReadingOverlay from './image/ImageReadingOverlay';
+import ImageReadArea from './image/ImageReadArea';
 
 /** Batches that never receive a cost: the animals are dead or slaughtered (DS10). */
 const EXCLUDED_BATCH_TYPES = ['INTERNAL_DEATH', 'INTERNAL_CONSUMPTION'];
@@ -87,6 +91,11 @@ export default function FiscalDocumentEntryForm({
 		}
 	}, [draft, entry]);
 	const submit = useFiscalEntrySubmit({ ...entry, type: entry.type, taxes, onDone });
+	// A conversion inherits its provider from the delivery notes: there is no paper to read for it.
+	const readsImages = !draft;
+	const image = useImageRecognition(entry.header.providerId, (providerId) =>
+		entry.setHeader({ providerId, relatedId: null })
+	);
 
 	const previews = useMemo(() => {
 		const map: Record<string, LinePreview> = {};
@@ -106,6 +115,12 @@ export default function FiscalDocumentEntryForm({
 
 	const actions = (
 		<Stack direction="row" spacing={1.5} alignItems="center">
+			{readsImages && (
+				<ReadFromImageButton
+					onPick={image.start}
+					disabled={image.reading || submit.isSaving}
+				/>
+			)}
 			<Button
 				variant="outlined"
 				color="inherit"
@@ -153,7 +168,10 @@ export default function FiscalDocumentEntryForm({
 				<Box
 					component="article"
 					aria-label="Cargar comprobante"
+					// The paper can also be dropped on the sheet.
+					{...(readsImages ? image.dropZone : {})}
 					sx={{
+						position: 'relative',
 						width: '100%',
 						flex: '1 1 auto',
 						minHeight: 0,
@@ -169,6 +187,13 @@ export default function FiscalDocumentEntryForm({
 						flexDirection: 'column'
 					}}
 				>
+					{image.reading && image.file && (
+						<ImageReadingOverlay
+							fileName={image.file.name}
+							onCancel={image.cancel}
+						/>
+					)}
+					<ImageReadArea image={image} />
 					<FiscalSheetHeader
 						header={entry.header}
 						types={types}

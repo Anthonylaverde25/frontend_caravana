@@ -9,7 +9,7 @@ import {
   IconButton
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateSupplier } from '@/features/suppliers/hooks/useCreateSupplier';
@@ -26,6 +26,8 @@ interface CreateSupplierDialogProps {
   onSuccess?: (createdSupplier?: any) => void;
   /** What the new provider sells by default, e.g. "items" when opened from an item's providers. */
   defaultRoles?: { supplies_livestock: boolean; supplies_items: boolean };
+  /** Prefilled from a document read from an image: the person confirms or corrects it. */
+  initialValues?: Partial<Pick<SupplierFormValues, 'name' | 'commercial_name' | 'cuit' | 'location'>>;
 }
 
 /**
@@ -33,7 +35,7 @@ interface CreateSupplierDialogProps {
  * Canonical modal for registering new livestock providers and associated establishments.
  * Adheres strictly to CreateBatchDialog design tokens and container/presenter architecture.
  */
-function CreateSupplierDialog({ open, onClose, onSuccess, defaultRoles }: CreateSupplierDialogProps) {
+function CreateSupplierDialog({ open, onClose, onSuccess, defaultRoles, initialValues }: CreateSupplierDialogProps) {
   const [isFarmDialogOpen, setIsFarmDialogOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const { mutate, isPending } = useCreateSupplier();
@@ -57,6 +59,22 @@ function CreateSupplierDialog({ open, onClose, onSuccess, defaultRoles }: Create
       farms: []
     }
   });
+
+  // Opened with what an image read: those values replace the empty form each time it opens.
+  useEffect(() => {
+    if (open && initialValues) {
+      reset({
+        name: initialValues.name ?? '',
+        commercial_name: initialValues.commercial_name ?? '',
+        cuit: initialValues.cuit ?? '',
+        location: initialValues.location ?? '',
+        email: '',
+        phone: '',
+        roles: defaultRoles ?? { supplies_livestock: true, supplies_items: false },
+        farms: []
+      });
+    }
+  }, [open, initialValues, defaultRoles, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,

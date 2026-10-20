@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { SheetGrid } from 'src/components/sheet-grid/SheetGrid';
 import { SheetGridGroupRow } from 'src/components/sheet-grid/SheetGridGroupRow';
@@ -10,6 +10,7 @@ import { InvoiceDraft } from '@/core/fiscal/domain/entities/DeliveryNote';
 import { LinePreview } from '@/core/fiscal/domain/rules/fiscalPreview';
 import { EntryMode, FiscalLineState } from './fiscalEntryState';
 import FiscalLineRow from './FiscalLineRow';
+import ItemFormDialog from '@/ui/items/components/dialogs/ItemFormDialog';
 
 interface FiscalLinesGridProps {
 	lines: FiscalLineState[];
@@ -85,6 +86,11 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 		</TableCell>
 	);
 
+	const [creating, setCreating] = useState<{
+		lineKey: string;
+		name: string;
+	} | null>(null);
+
 	let index = 0;
 	const row = (line: FiscalLineState) => (
 		<FiscalLineRow
@@ -100,6 +106,7 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 			errors={errors[line.key] ?? {}}
 			onChange={(patch) => onChange(line.key, patch)}
 			onPickItem={(item) => onPickItem(line.key, item)}
+			onCreateItem={(name) => setCreating({ lineKey: line.key, name })}
 			onRemove={() => (line.deliveryNoteLineId !== null ? onToggleRemoved(line.key) : onRemove(line.key))}
 			mode={mode}
 			unpriced={unpriced}
@@ -107,41 +114,60 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 	);
 
 	return (
-		<SheetGrid
-			minWidth={converting ? 1410 : 1300}
-			borderless
-		>
-			<TableHead>
-				<TableRow>
-					<TableCell sx={indexSx} align="center">#</TableCell>
-					{head(converting ? 'Artículo o servicio (del remito)' : 'Artículo o servicio')}
-					{head('Cant.', 90)}
-					{head('Unidad o presentación', 190)}
-					{head(discriminates ? 'Precio u. (neto)' : 'Precio u.', 110)}
-					{converting && head('Remito', 110, 'right')}
-					{head('IVA', 110)}
-					{head('Importe', 120, 'right')}
-					{head('Otros imp.', 110, 'right')}
-					{head('Equivale a', 110)}
-					{head('Lote', 170)}
-					{head('Cab.', 70)}
-					<TableCell sx={{ ...headSx, width: 48 }} />
-				</TableRow>
-			</TableHead>
-			<TableBody>
-				{converting
-					? groupsOf(lines, notes).map((group) => (
-							<React.Fragment key={group.key}>
-								<SheetGridGroupRow
-									colSpan={columns}
-									name={group.name}
-									caption={group.caption}
-								/>
-								{group.lines.map(row)}
-							</React.Fragment>
-						))
-					: lines.map(row)}
-			</TableBody>
-		</SheetGrid>
+		<>
+			<SheetGrid
+				minWidth={converting ? 1410 : 1300}
+				borderless
+			>
+				<TableHead>
+					<TableRow>
+						<TableCell
+							sx={indexSx}
+							align="center"
+						>
+							#
+						</TableCell>
+						{head(converting ? 'Artículo o servicio (del remito)' : 'Artículo o servicio')}
+						{head('Cant.', 90)}
+						{head('Unidad o presentación', 190)}
+						{head(discriminates ? 'Precio u. (neto)' : 'Precio u.', 110)}
+						{converting && head('Remito', 110, 'right')}
+						{head('IVA', 110)}
+						{head('Importe', 120, 'right')}
+						{head('Otros imp.', 110, 'right')}
+						{head('Equivale a', 110)}
+						{head('Lote', 170)}
+						{head('Cab.', 70)}
+						<TableCell sx={{ ...headSx, width: 48 }} />
+					</TableRow>
+				</TableHead>
+				<TableBody>
+					{converting
+						? groupsOf(lines, notes).map((group) => (
+								<React.Fragment key={group.key}>
+									<SheetGridGroupRow
+										colSpan={columns}
+										name={group.name}
+										caption={group.caption}
+									/>
+									{group.lines.map(row)}
+								</React.Fragment>
+							))
+						: lines.map(row)}
+				</TableBody>
+			</SheetGrid>
+
+			{/* An item missing from the catalogue must not cost the sheet already typed: it comes back selected. */}
+			<ItemFormDialog
+				open={creating !== null}
+				initialName={creating?.name ?? ''}
+				onClose={() => setCreating(null)}
+				onSaved={(saved) => {
+					if (creating) onPickItem(creating.lineKey, saved);
+
+					setCreating(null);
+				}}
+			/>
+		</>
 	);
 }

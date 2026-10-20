@@ -5,6 +5,7 @@ import { SheetGridStatusCell } from 'src/components/sheet-grid/SheetGridStatusCe
 import { SheetGridEmptyRow } from 'src/components/sheet-grid/SheetGridEmptyRow';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
 
+import { formatCuit } from '@/core/shared/domain/cuit';
 export interface ProviderRow {
 	key: string;
 	providerId: number;
@@ -55,7 +56,7 @@ export default function ItemProvidersGrid({ rows, options, onChange, onRemove, e
 									SelectProps={{ displayEmpty: true, renderValue: (v) => options.find((o) => o.id === v)?.name ?? 'Elegí un proveedor' }}>
 									{options.map((o) => (
 										<MenuItem key={o.id} value={o.id} disabled={taken.has(o.id)}>
-											{o.name} · {o.cuit}
+											{o.name} · {formatCuit(o.cuit)}
 										</MenuItem>
 									))}
 								</TextField>

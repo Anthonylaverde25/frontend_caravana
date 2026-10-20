@@ -1,3 +1,4 @@
+import { cuitDigits } from '@/core/shared/domain/cuit';
 import { Supplier, SupplierDTO } from '../../domain/entities/Supplier';
 
 export class SupplierMapper {
@@ -15,6 +16,7 @@ export class SupplierMapper {
       supplies_items: Boolean(raw.supplies_items),
       farms: raw.farms, // In a real scenario, map these to Farm entities if needed using FarmMapper
       created_at: raw.created_at,
+      cuit_locked: Boolean(raw.cuit_locked),
     };
     return Supplier.create(dto);
   }
@@ -24,7 +26,7 @@ export class SupplierMapper {
       id: entity.id,
       name: entity.name,
       commercial_name: entity.commercial_name,
-      cuit: entity.cuit,
+      cuit: cuitDigits(entity.cuit),
       location: entity.location,
       email: entity.email,
       phone: entity.phone,

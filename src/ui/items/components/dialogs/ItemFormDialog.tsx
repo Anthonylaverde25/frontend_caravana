@@ -24,6 +24,8 @@ interface ItemFormDialogProps {
 	/** Edit mode when given. */
 	item?: ItemDetail;
 	onSaved?: (item: ItemDetail) => void;
+	/** Create mode: the name typed where the item was searched for. */
+	initialName?: string;
 }
 
 const toForm = (item: ItemDetail): ItemFormValues => ({
@@ -39,7 +41,7 @@ const toForm = (item: ItemDetail): ItemFormValues => ({
  * Create or edit an item's general data (DB3). A unit or a category can be created on the spot
  * without losing the form; it comes back selected.
  */
-export default function ItemFormDialog({ open, onClose, item, onSaved }: ItemFormDialogProps) {
+export default function ItemFormDialog({ open, onClose, item, onSaved, initialName = '' }: ItemFormDialogProps) {
 	const { enqueueSnackbar } = useSnackbar();
 	const { mutate, isPending } = useSaveItem();
 	const { data: units = [] } = useUnitsOfMeasure();
@@ -58,11 +60,11 @@ export default function ItemFormDialog({ open, onClose, item, onSaved }: ItemFor
 
 	useEffect(() => {
 		if (open) {
-			reset(item ? toForm(item) : EMPTY_ITEM_FORM);
+			reset(item ? toForm(item) : { ...EMPTY_ITEM_FORM, name: initialName });
 			setServerErrors({});
 			setDomainError(null);
 		}
-	}, [open, item, reset]);
+	}, [open, item, reset, initialName]);
 
 	const submit = handleSubmit((values) => {
 		setServerErrors({});

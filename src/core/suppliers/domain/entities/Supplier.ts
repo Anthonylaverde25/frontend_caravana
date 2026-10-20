@@ -18,6 +18,8 @@ export interface SupplierDTO {
   supplies_items?: boolean;
   farms?: (Farm | any)[];
   created_at?: string;
+  /** It already issued fiscal documents: the CUIT is what they say and no longer changes. */
+  cuit_locked?: boolean;
 }
 
 export class Supplier {
@@ -34,6 +36,7 @@ export class Supplier {
     public readonly created_at?: string,
     public readonly supplies_livestock: boolean = true,
     public readonly supplies_items: boolean = false,
+    public readonly cuit_locked: boolean = false,
   ) {}
 
   public static create(dto: SupplierDTO): Supplier {
@@ -56,7 +59,8 @@ export class Supplier {
       dto.farms,
       dto.created_at,
       dto.supplies_livestock ?? true,
-      dto.supplies_items ?? false
+      dto.supplies_items ?? false,
+      dto.cuit_locked ?? false
     );
   }
 
