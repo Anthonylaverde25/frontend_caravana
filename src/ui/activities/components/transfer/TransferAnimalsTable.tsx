@@ -28,6 +28,7 @@ import { TransferableCaravan, formatAverage } from './transferMath';
 
 import TransferDestinationCell from './TransferDestinationCell';
 import type { Cact01Destination } from '@/ui/work-templates/components/scan/types';
+import { animalLabel, compareByTag, isTagged, searchableTag } from '@/core/caravans/domain/services/animalLabel';
 
 interface TransferAnimalsTableProps {
 	caravans: TransferableCaravan[];
@@ -136,14 +137,14 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 			if (!term) return true;
 
 			return (
-				caravan.identification.toLowerCase().includes(term) ||
+				searchableTag(caravan).includes(term) ||
 				(caravan.category_name ?? caravan.category ?? '').toLowerCase().includes(term)
 			);
 		});
 
 		list = [...list].sort((a, b) => {
 			if (sortField === 'identification') {
-				const res = a.identification.localeCompare(b.identification, undefined, { numeric: true });
+				const res = compareByTag(a, b);
 				return sortOrder === 'asc' ? res : -res;
 			}
 
@@ -165,14 +166,19 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 		return visible.slice(from, from + rowsPerPage);
 	}, [visible, page, rowsPerPage]);
 
-	const currentPageIds = useMemo(() => paginatedAnimals.map((c) => c.id), [paginatedAnimals]);
+	// A calf without its tag is shown but never picked, not even by "select page".
+	const untaggedIds = useMemo(() => new Set(caravans.filter((c) => !isTagged(c)).map((c) => c.id)), [caravans]);
+	const currentPageIds = useMemo(
+		() => paginatedAnimals.filter((c) => isTagged(c)).map((c) => c.id),
+		[paginatedAnimals]
+	);
 	const allCurrentSelected =
 		currentPageIds.length > 0 && currentPageIds.every((id) => selectedSet.has(id));
 	const someCurrentSelected =
 		currentPageIds.some((id) => selectedSet.has(id)) && !allCurrentSelected;
 
 	const toggle = (id: number) => {
-		if (readOnly) return;
+		if (readOnly || untaggedIds.has(id)) return;
 
 		onSelectionChange(selectedSet.has(id) ? selectedIds.filter((v) => v !== id) : [...selectedIds, id]);
 	};
@@ -635,7 +641,7 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 											<Checkbox
 												size="small"
 												checked={isSelected}
-												disabled={readOnly}
+												disabled={readOnly || !isTagged(caravan)}
 												onChange={() => toggle(caravan.id)}
 												sx={{
 													color: isDark ? '#64748b' : '#94a3b8',
@@ -689,8 +695,16 @@ export const TransferAnimalsTable: React.FC<TransferAnimalsTableProps> = ({
 															fontSize: '0.85rem'
 														}}
 													>
-														{caravan.identification}
+														{animalLabel(caravan)}
 													</Typography>
+													{!isTagged(caravan) && (
+														<Typography
+															variant="caption"
+															sx={{ color: 'warning.dark', fontWeight: 600, fontSize: '0.68rem' }}
+														>
+															Sin caravana: caravaneala desde el lote para trasladarla
+														</Typography>
+													)}
 												</Box>
 											</Box>
 										</TableCell>

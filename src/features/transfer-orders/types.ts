@@ -1,3 +1,5 @@
+import type { WeaningType } from '@/features/weaning-orders/types';
+
 /**
  * A transfer order (CACT-01) as the API returns it.
  *
@@ -171,6 +173,8 @@ export interface RegisterAnimalFields {
 /** POST /transfer-orders/register: an order's payload, with the chute data of each animal. */
 export interface RegisterTransferPayload extends Omit<EmitTransferOrderPayload, 'animals' | 'issue'> {
   animals: ({ caravan_id: number; destination_key: string | null } & RegisterAnimalFields)[];
+  /** The kind of weaning of the calves the movement parts from their mothers, chosen by the user. */
+  weaning_type?: WeaningType | null;
 }
 
 export interface TransferWarning {

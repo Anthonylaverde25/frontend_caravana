@@ -96,7 +96,7 @@ function SireAssignRow({ item, maleCaravans }: { item: PendingSireItem; maleCara
         sire_notes: notes || null,
       });
       enqueueSnackbar(
-        `Paternidad confirmada para ${item.calf_identification}`,
+        `Paternidad confirmada para ${item.calf_label ?? item.calf_identification}`,
         { variant: 'success' }
       );
     } catch {
@@ -139,7 +139,7 @@ function SireAssignRow({ item, maleCaravans }: { item: PendingSireItem; maleCara
             Ternero
           </Typography>
           <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.main', fontSize: '0.875rem' }}>
-            {item.calf_identification}
+            {item.calf_label ?? item.calf_identification}
             {item.calf_sex && (
               <Chip
                 label={item.calf_sex === 'M' ? '♂' : '♀'}

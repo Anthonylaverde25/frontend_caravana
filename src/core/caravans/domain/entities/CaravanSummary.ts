@@ -1,5 +1,6 @@
 import type { ReproductiveStatus } from '../rules/isBreedingCandidate';
 import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
+import type { DeathInfo } from './Death';
 
 /**
  * Light caravan row returned by GET /caravans/summary, for paginated inventory tables.
@@ -7,7 +8,14 @@ import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
  */
 export interface CaravanSummary {
 	id: number;
-	identification: string;
+	/** Null while a calf born here waits for its tag. */
+	identification: string | null;
+	/** The tag, or "Cría de 4521 ♀" while it has none: what the table shows. */
+	label: string;
+	is_tagged: boolean;
+	/** Registered dead: it lies in a death batch and is no longer operated on. */
+	is_dead: boolean;
+	death: DeathInfo | null;
 	category: string | null;
 	category_id: number | null;
 	category_name: string | null;

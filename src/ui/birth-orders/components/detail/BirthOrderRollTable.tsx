@@ -17,7 +17,12 @@ const COLLAPSED_ROWS = 12;
 const sexOf = (sex: string | null): string => (sex === 'M' ? 'macho' : sex === 'H' ? 'hembra' : '');
 
 const resultOf = (animal: BirthOrderAnimal): string => {
-  if (animal.status === 'BORN') return `${animal.calf_identification ?? 'Cría'} ${sexOf(animal.calf_sex)}`.trim();
+  if (animal.status === 'BORN') {
+    // A calf born without its tag is named after its mother until "Caravanear crías".
+    return animal.calf_identification
+      ? `${animal.calf_identification} ${sexOf(animal.calf_sex)}`.trim()
+      : `${animal.calf_label ?? 'Cría'} · sin caravana`;
+  }
   if (animal.status === 'OVERDUE') {
     return `Avisado el ${formatDate(animal.overdue_reported_at)} · hace ${animal.overdue_days ?? 0} d${animal.overdue_notes ? ` · ${animal.overdue_notes}` : ''}`;
   }

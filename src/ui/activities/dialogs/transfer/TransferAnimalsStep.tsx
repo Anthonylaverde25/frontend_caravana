@@ -8,6 +8,7 @@ import {
   Typography
 } from '@mui/material';
 import { useMemo, useState } from 'react';
+import { searchableTag } from '@/core/caravans/domain/services/animalLabel';
 
 export interface TransferableCaravan {
   id: number;
@@ -43,7 +44,7 @@ export default function TransferAnimalsStep({
 
     if (!term) return caravans;
 
-    return caravans.filter((c) => c.identification.toLowerCase().includes(term));
+    return caravans.filter((c) => searchableTag(c).includes(term));
   }, [caravans, search]);
 
   const toggle = (id: number) => {

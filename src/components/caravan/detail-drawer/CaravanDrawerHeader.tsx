@@ -10,6 +10,7 @@ export interface CaravanDrawerActions {
 	onWeigh?: () => void;
 	onMove?: () => void;
 	onEdit?: () => void;
+	onRegisterDeath?: () => void;
 }
 
 interface CaravanDrawerHeaderProps extends CaravanDrawerActions {
@@ -66,12 +67,19 @@ export function CaravanDrawerHeader({
 	tab,
 	onTabChange,
 	onClose,
-	onWeigh,
-	onMove,
-	onEdit
+	onMove: onMoveAlive,
+	onEdit: onEditAlive,
+	onWeigh: onWeighAlive,
+	onRegisterDeath
 }: CaravanDrawerHeaderProps) {
 	const chips = caravan ? statusChips(caravan) : [];
-	const hasActions = !!caravan && (onWeigh || onMove || onEdit);
+	// A dead animal is not weighed, moved or edited.
+	const alive = !caravan?.isDead();
+	const onWeigh = alive ? onWeighAlive : undefined;
+	const onMove = alive ? onMoveAlive : undefined;
+	const onEdit = alive ? onEditAlive : undefined;
+	const onDeath = alive ? onRegisterDeath : undefined;
+	const hasActions = !!caravan && (onWeigh || onMove || onEdit || onDeath);
 
 	return (
 		<Box sx={{ px: 2.5, pt: 2.5, borderBottom: 1, borderColor: 'divider' }}>
@@ -197,6 +205,17 @@ export function CaravanDrawerHeader({
 							sx={actionSx}
 						>
 							Editar
+						</Button>
+					)}
+					{onDeath && (
+						<Button
+							variant="outlined"
+							color="inherit"
+							onClick={onDeath}
+							startIcon={<FuseSvgIcon size={16}>heroicons-outline:x-circle</FuseSvgIcon>}
+							sx={actionSx}
+						>
+							Registrar muerte
 						</Button>
 					)}
 				</Stack>

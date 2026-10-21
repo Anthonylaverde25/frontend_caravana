@@ -17,6 +17,10 @@ export interface Dest01WeaningOrderState {
 const targetFrom = (destination: WeaningOrder['destinations'][number]): Dest01BatchTarget => {
   const batchId = destination.resolved_batch_id ?? destination.target_batch_id;
 
+  if (destination.stays_in_place) {
+    return { mode: 'stay', batchId: null, name: destination.label, isConfined: null, touched: false };
+  }
+
   return batchId
     ? { mode: 'existing', batchId, name: destination.resolved_batch_name ?? destination.target_batch_name ?? destination.label, isConfined: null, touched: false }
     : { mode: 'new', batchId: null, name: destination.new_batch_name ?? destination.label, isConfined: destination.is_confined, touched: false };

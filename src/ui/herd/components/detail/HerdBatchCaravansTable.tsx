@@ -69,6 +69,12 @@ export function HerdBatchCaravansTable({
 				onSexChange={setSex}
 				onSortChange={setSort}
 				selectedCount={selectedIds.length}
+				onBulkDeath={() =>
+					dialogs.openDeath(
+						rows.filter((row) => selectedIds.includes(row.id) && !row.is_dead),
+						() => setSelectedIds([])
+					)
+				}
 				onBulkBreeding={() =>
 					dialogs.openBreeding(
 						rows.filter((row) => selectedIds.includes(row.id)),
@@ -108,6 +114,7 @@ export function HerdBatchCaravansTable({
 						onEdit={dialogs.openEdit}
 						onWeigh={dialogs.openWeigh}
 						onBreeding={(caravan) => dialogs.openBreeding([caravan])}
+						onDeath={(caravan) => dialogs.openDeath([caravan])}
 						selectedIds={selectedIds}
 						onSelectionChange={setSelectedIds}
 					/>

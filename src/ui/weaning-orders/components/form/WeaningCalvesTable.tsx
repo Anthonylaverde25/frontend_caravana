@@ -68,7 +68,7 @@ export const WeaningCalvesTable: React.FC<WeaningCalvesTableProps> = ({
         {form.calfIds.map((id) => {
           const record = recordsById.get(id);
           const calf = form.calves[id];
-          const tag = record?.calf_identification ?? `#${id}`;
+          const tag = record?.calf_identification ?? record?.calf_label ?? `#${id}`;
           const errors = errorsByTag[tag.toUpperCase()] ?? [];
           const sex = record?.calf_sex === 'M' || record?.calf_sex === 'H' ? record.calf_sex : null;
           const weight = calf?.weight.trim() ?? '';

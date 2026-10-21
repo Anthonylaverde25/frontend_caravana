@@ -21,6 +21,7 @@ interface HerdBatchRowProps {
 	onConsume: (batch: Batch) => void;
 	onStartService: (batch: Batch) => void;
 	onOpenServiceOrder?: (serviceOrderId: number) => void;
+	onTagCalves: (batch: Batch) => void;
 }
 
 /**
@@ -36,7 +37,8 @@ export function HerdBatchRow({
 	onWeighBatch,
 	onConsume,
 	onStartService,
-	onOpenServiceOrder
+	onOpenServiceOrder,
+	onTagCalves
 }: HerdBatchRowProps) {
 	const [expanded, setExpanded] = useState(defaultExpanded);
 	const rowRef = useRef<HTMLDivElement>(null);
@@ -115,6 +117,7 @@ export function HerdBatchRow({
 					onConsume={() => onConsume(batch)}
 					onStartService={() => onStartService(batch)}
 					onOpenServiceOrder={openServiceOrder}
+					onTagCalves={() => onTagCalves(batch)}
 				/>
 			</Stack>
 

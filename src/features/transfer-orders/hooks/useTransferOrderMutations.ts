@@ -11,6 +11,8 @@ import {
   transferOrderErrorMessage
 } from '../types';
 import { TRANSFER_ORDERS_KEY } from './useTransferOrders';
+import type { WeaningType } from '@/features/weaning-orders/types';
+import { isSeparationError } from '@/ui/weaning-orders/components/separation/separationError';
 
 /** Every change to an order can change the list, the detail and the animals it committed. */
 const useInvalidateOrders = () => {
@@ -63,6 +65,9 @@ export function useRegisterTransfer() {
       warnings.forEach((warning) => toast.warning(warning.message, { duration: 10000 }));
     },
     onError: (error) => {
+      // Parting mothers from their calves is answered with a question, not an error.
+      if (isSeparationError(error)) return;
+
       const rowError = (error as { response?: { data?: { row_errors?: TransferRowError[] } } })?.response?.data
         ?.row_errors?.[0];
 
@@ -147,6 +152,8 @@ export function useCloseIncompleteTransferOrder() {
 /** What "Ejecutar orden" declares: the day it happened and, per animal, the C/S chosen. */
 export interface ExecuteTransferOrderBody {
   movement_date?: string;
+  /** The kind of weaning of the calves the movement parts from their mothers. */
+  weaning_type?: WeaningType | null;
   animals?: { caravan_id: number; category_id: number; subcategory_id: number | null }[];
 }
 
@@ -172,6 +179,8 @@ export function useExecuteTransferOrder() {
       (result.warnings ?? []).slice(0, 4).forEach((warning) => toast.warning(warning.message));
     },
     onError: (error) => {
+      if (isSeparationError(error)) return;
+
       const body = (error as { response?: { data?: { header_errors?: { message: string }[]; row_errors?: { errors: { message: string }[] }[] } } })
         ?.response?.data;
       const detail = body?.header_errors?.[0]?.message ?? body?.row_errors?.[0]?.errors?.[0]?.message;

@@ -1,4 +1,5 @@
 import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
+import type { DeathInfo } from './Death';
 
 export interface SireDTO {
   id: number;
@@ -23,7 +24,8 @@ export interface GestationDTO {
 }
 
 export interface RegisterBirthDTO {
-  calf_identification: string;
+  /** Optional: the calf may be tagged days after the calving. */
+  calf_identification?: string | null;
   calf_sex: 'M' | 'H';
   calf_category?: string | null;
   calf_teeth?: number | null;
@@ -53,7 +55,9 @@ export interface PhysiologicalStateDTO {
   code: string;
   label: string;
   is_pregnant: boolean | null;
+  /** A calf of her own at foot (lactating), not whether she nurses herself. */
   is_nursing: boolean | null;
+  nursing_calves_count?: number;
   gestation_stage?: string | null;
   gestation_months?: number | null;
 }
@@ -64,7 +68,15 @@ export interface PhysiologicalStateDTO {
  */
 export interface CaravanDTO {
   id?: number;
-  identification: string;
+  /** Null while a calf born here waits for its tag. */
+  identification: string | null;
+  /** The tag, or "Cría de 4521 ♀" while it has none: what the screens show. */
+  label?: string;
+  is_tagged?: boolean;
+  tagged_at?: string | null;
+  /** Registered dead: it lies in a death batch and is no longer operated on. */
+  is_dead?: boolean;
+  death?: DeathInfo | null;
   category?: string | null;
   category_id?: number | null;
   category_code?: string | null;
@@ -138,7 +150,8 @@ export interface CreateCaravanRequest {
 export class Caravan {
   private constructor(
     public readonly id: number,
-    public readonly identification: string,
+    /** Null while a calf born here waits for its tag; show `label` instead. */
+    public readonly identification: string | null,
     public readonly teeth: number,
     public readonly sex: 'M' | 'H' | null,
     public readonly category: string | null,
@@ -171,10 +184,15 @@ export class Caravan {
     public readonly breeding_exclusion_reason: BreedingExclusionReasonCode | null = null,
     public readonly breeding_exclusion_reason_label: string | null = null,
     public readonly is_reproductive_category: boolean | null = null,
+    public readonly label: string = '',
+    public readonly tagged_at: string | null = null,
+    public readonly death: DeathInfo | null = null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
-    if (!dto.identification || dto.identification.trim() === '') {
+    // Only a calf born here may come without its tag, always with its label.
+    const identification = dto.identification?.trim() || null;
+    if (identification === null && !dto.label) {
       throw new Error('Caravan identification cannot be empty.');
     }
     if (dto.teeth < 0 || dto.teeth > 99) {
@@ -183,7 +201,7 @@ export class Caravan {
 
     return new Caravan(
       dto.id ?? 0,
-      dto.identification.trim(),
+      identification,
       dto.teeth,
       dto.sex ?? null,
       dto.category ?? null,
@@ -216,12 +234,25 @@ export class Caravan {
       dto.breeding_exclusion_reason ?? null,
       dto.breeding_exclusion_reason_label ?? null,
       dto.is_reproductive_category ?? null,
+      dto.label ?? identification ?? '',
+      dto.tagged_at ?? null,
+      dto.death ?? null,
     );
   }
 
 
 
   // ── Domain Behaviors ──────────────────────────────────────────
+
+  /** Whether the animal is registered dead. */
+  public isDead(): boolean {
+    return this.death !== null;
+  }
+
+  /** Whether the calf already has its tag: only a calf born here may wait for it. */
+  public isTagged(): boolean {
+    return this.identification !== null;
+  }
 
   /** Whether the animal has been weighed at exit. */
   public hasExitWeight(): boolean {
@@ -247,7 +278,7 @@ export class Caravan {
   /** Whether this record has all required data for a complete report. */
   public isComplete(): boolean {
     return (
-      this.identification !== '' &&
+      this.identification !== null &&
       this.sex !== null &&
       this.entry_weight !== null
     );

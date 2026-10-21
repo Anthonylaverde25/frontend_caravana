@@ -5,7 +5,9 @@ import NavbarToggleButton from 'src/components/theme-layouts/components/navbar/N
 import useFuseLayoutSettings from '@fuse/core/FuseLayout/useFuseLayoutSettings';
 import { Layout1ConfigDefaultsType } from '@/components/theme-layouts/layout1/Layout1Config';
 import useThemeMediaQuery from '../../../../@fuse/hooks/useThemeMediaQuery';
-import { AppBar, Divider } from '@mui/material';
+import { AppBar, Divider, IconButton, Tooltip } from '@mui/material';
+import { useLocation, useNavigate } from 'react-router';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ToolbarTheme from 'src/contexts/ToolbarTheme';
 import CompanySelector from '../../components/CompanySelector';
 import { useContrastTheme } from '@/contexts/ContrastThemeContext';
@@ -37,6 +39,9 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
   const { settings: contrastSettings } = useContrastTheme();
 
   const isContrastActive = contrastSettings.enabled;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isSettingsActive = location.pathname.startsWith('/settings');
 
   return (
     <>
@@ -104,6 +109,35 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
             {/* ── Right Zone: Quick Actions, Notifications, Theme Toggle & User Identity ─ */}
             <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 shrink-0">
               <QuickActionsMenu />
+
+              <Tooltip title="Configuración del Sistema" placement="bottom">
+                <IconButton
+                  id="toolbar-settings-btn"
+                  onClick={() => navigate('/settings')}
+                  size="small"
+                  aria-label="Configuración"
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '8px',
+                    border: '1px solid',
+                    borderColor: (theme) =>
+                      isSettingsActive
+                        ? 'primary.main'
+                        : theme.palette.divider,
+                    bgcolor: (theme) =>
+                      isSettingsActive
+                        ? 'action.selected'
+                        : 'transparent',
+                    color: isSettingsActive ? 'primary.main' : 'inherit',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  <FuseSvgIcon size={18}>heroicons-outline:cog-6-tooth</FuseSvgIcon>
+                </IconButton>
+              </Tooltip>
 
               <NotificationsMenu />
 

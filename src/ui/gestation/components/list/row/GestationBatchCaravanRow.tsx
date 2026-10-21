@@ -148,15 +148,6 @@ export function GestationBatchCaravanRow({
 				align="right"
 				sx={{ ...cellSx, borderRight: 0, textAlign: 'right', whiteSpace: 'nowrap' }}
 			>
-				<Tooltip title="Ver detalle">
-					<IconButton
-						size="small"
-						onClick={() => onView(summary)}
-						sx={{ height: 28, width: 28 }}
-					>
-						<FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
-					</IconButton>
-				</Tooltip>
 				<Tooltip title="Editar">
 					<IconButton
 						size="small"

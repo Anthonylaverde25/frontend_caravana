@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { FuseThemeType } from '@fuse/core/FuseSettings/FuseSettings';
 import { createTheme, getContrastRatio, Theme, ThemeOptions } from '@mui/material/styles';
 import _ from 'lodash';
@@ -23,22 +24,34 @@ const generateMuiTheme = (theme: FuseThemeType, direction: Direction, prefix?: s
 // Custom hooks for selecting themes
 export const useMainTheme = (): Theme => {
 	const { data: current } = useFuseSettings();
-	return generateMuiTheme(current.theme.main, current.direction);
+	return useMemo(
+		() => generateMuiTheme(current.theme.main, current.direction),
+		[current.theme.main, current.direction]
+	);
 };
 
 export const useNavbarTheme = (): Theme => {
 	const { data: current } = useFuseSettings();
-	return generateMuiTheme(current.theme.navbar, current.direction, 'navbar');
+	return useMemo(
+		() => generateMuiTheme(current.theme.navbar, current.direction, 'navbar'),
+		[current.theme.navbar, current.direction]
+	);
 };
 
 export const useToolbarTheme = (): Theme => {
 	const { data: current } = useFuseSettings();
-	return generateMuiTheme(current.theme.toolbar, current.direction, 'toolbar');
+	return useMemo(
+		() => generateMuiTheme(current.theme.toolbar, current.direction, 'toolbar'),
+		[current.theme.toolbar, current.direction]
+	);
 };
 
 export const useFooterTheme = (): Theme => {
 	const { data: current } = useFuseSettings();
-	return generateMuiTheme(current.theme.footer, current.direction, 'footer');
+	return useMemo(
+		() => generateMuiTheme(current.theme.footer, current.direction, 'footer'),
+		[current.theme.footer, current.direction]
+	);
 };
 
 // Helper functions for theme mode changes

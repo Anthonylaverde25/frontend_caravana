@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import type { Dest01BatchTarget, Dest01HeaderError } from './types';
+import { STAY_IN_PLACE_LABEL, weaningDestinationOptions } from '@/ui/weaning-orders/components/start/weaningDestinationOptions';
 
 /** CORRAL / PASTURA as marked on the sheet, as the three states of a batch. */
 export const managementOf = (written: string): boolean | null => {
@@ -53,21 +54,21 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
   onChange,
   headerErrors = [],
 }) => {
-  const { data: batches = [], isLoading } = useBatches(undefined, 'WEANING');
-  const { data: allBatches = [] } = useBatches();
+  const { data: allBatches = [], isLoading } = useBatches();
 
-  const weaningBatches = useMemo(
-    () => batches.filter((b) => b.is_active && b.batch_type_code === 'WEANING'),
-    [batches]
-  );
+  // A weaning batch is recommended (listed first), any own working batch is allowed.
+  const weaningBatches = useMemo(() => weaningDestinationOptions(allBatches), [allBatches]);
 
   useEffect(() => {
     if (target.touched || isLoading) return;
     const match = weaningBatches.find((b) => normalize(b.name) === normalize(sheetName));
     if (inheritedFromOrder) return;
-    const proposal: Dest01BatchTarget = match
-      ? { mode: 'existing', batchId: match.id, name: match.name, isConfined: null, touched: false }
-      : { mode: 'new', batchId: null, name: sheetName.trim(), isConfined: managementOf(sheetManagement), touched: false };
+    const stays = normalize(sheetName) === normalize(STAY_IN_PLACE_LABEL);
+    const proposal: Dest01BatchTarget = stays
+      ? { mode: 'stay', batchId: null, name: STAY_IN_PLACE_LABEL, isConfined: null, touched: false }
+      : match
+        ? { mode: 'existing', batchId: match.id, name: match.name, isConfined: null, touched: false }
+        : { mode: 'new', batchId: null, name: sheetName.trim(), isConfined: managementOf(sheetManagement), touched: false };
     if (
       proposal.mode !== target.mode ||
       proposal.batchId !== target.batchId ||
@@ -121,19 +122,25 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
         >
           <FormControlLabel value="existing" control={<Radio size="small" />} label="Lote existente" disabled={weaningBatches.length === 0} />
           <FormControlLabel value="new" control={<Radio size="small" />} label="Crear lote nuevo" />
+          <FormControlLabel value="stay" control={<Radio size="small" />} label={STAY_IN_PLACE_LABEL} />
         </RadioGroup>
 
         <Box sx={{ flexGrow: 1, minWidth: 260 }}>
-          {target.mode === 'existing' ? (
+          {target.mode === 'stay' ? (
+            <Typography variant="body2" color="text.secondary">
+              Se destetan sin moverlas de lote.
+            </Typography>
+          ) : target.mode === 'existing' ? (
             <Autocomplete
               options={weaningBatches}
+              groupBy={(b) => b.group ?? ''}
               loading={isLoading}
               value={selectedBatch}
               getOptionLabel={(b) => `${b.name}${b.caravans_count != null ? ` (${b.caravans_count} animales)` : ''}`}
               isOptionEqualToValue={(a, b) => a.id === b.id}
               onChange={(_, batch) => onChange({ ...target, batchId: batch?.id ?? null, name: batch?.name ?? '', touched: true })}
               renderInput={(params) => (
-                <TextField {...params} size="small" label="Lote de destete activo" required error={Boolean(error)} helperText={error || undefined} />
+                <TextField {...params} size="small" label="Lote activo (recomendado: de destete)" required error={Boolean(error)} helperText={error || undefined} />
               )}
             />
           ) : (
@@ -180,10 +187,9 @@ export const ScanDest01BatchTarget: React.FC<ScanDest01BatchTargetProps> = ({
         <Alert key={other.id} severity="warning" sx={{ mt: 1.5, borderRadius: '6px' }}>
           Ya existe un lote llamado <strong>{other.name}</strong>
           {other.activity_name ? ` (${other.activity_name}${other.batch_type_name ? ` · ${other.batch_type_name}` : ''})` : ''}
-          {other.caravans_count != null ? `, con ${other.caravans_count} animales` : ''}. <strong>No es un lote de destete</strong>{' '}
-          y no puede recibir las crías.
-          Al confirmar se crea <strong>otro lote, de tipo Destete</strong>, con el mismo nombre. Conviene cambiarle el
-          nombre para no confundir los dos lotes.
+          {other.caravans_count != null ? `, con ${other.caravans_count} animales` : ''}. Si las crías van ahí, elegilo como{' '}
+          <strong>Lote existente</strong>. Si no, al confirmar se crea <strong>otro lote, de tipo Destete</strong>, con el mismo
+          nombre: conviene cambiarle el nombre para no confundir los dos lotes.
         </Alert>
       ))}
     </Box>

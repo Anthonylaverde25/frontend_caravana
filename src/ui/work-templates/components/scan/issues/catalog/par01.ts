@@ -102,11 +102,6 @@ export const PAR01_GUIDES: Record<string, IssueGuide> = {
     title: 'Parto antes de la preñez',
     solution: 'La fecha del parto es anterior al inicio de la preñez. Revisá la fecha leída.'
   },
-  CALF_TAG_MISSING: {
-    category: 'calf',
-    title: 'Falta la caravana de la cría',
-    solution: 'Un ternero vivo necesita su caravana. Escribila; si nació muerto, marcá NM.'
-  },
   CALF_TAG_DUPLICATED: {
     category: 'calf',
     title: 'Caravana de cría repetida',
@@ -162,6 +157,11 @@ export const PAR01_GUIDES: Record<string, IssueGuide> = {
     category: 'outcome',
     title: 'Distinto a lo ya registrado',
     solution: 'Se conserva lo registrado. Si lo registrado está mal, corregilo desde la orden.'
+  },
+  CALF_UNTAGGED: {
+    category: 'calf',
+    title: 'Cría sin caravana',
+    solution: 'La cría se da de alta igual, identificada por su madre. Caravanealá después desde el lote ("Caravanear crías").'
   },
   CALF_DATA_IGNORED: {
     category: 'calf',

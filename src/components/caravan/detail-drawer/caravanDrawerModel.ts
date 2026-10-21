@@ -66,6 +66,12 @@ export function reproductiveState(caravan: Caravan): ReproductiveState {
 export function statusChips(caravan: Caravan): StatusChip[] {
 	const chips: StatusChip[] = [];
 
+	// A dead animal has no other state worth showing.
+	if (caravan.death) {
+		const [year, month, day] = caravan.death.date.split('-');
+		return [{ label: `Muerto · ${day}/${month}/${year}${caravan.death.cause ? ` · ${caravan.death.cause}` : ''}`, tone: 'neutral' }];
+	}
+
 	// A calf has no reproductive state yet: neither "Vacía" nor an eligibility to show.
 	if (caravan.sex === 'H' && isBreedingCandidate(caravan)) {
 		const repro = reproductiveState(caravan);

@@ -27,6 +27,8 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useBulkTransferCaravans } from '@/features/caravans/hooks/useBulkTransferCaravans';
+import { animalLabel, isTagged, searchableTag } from '@/core/caravans/domain/services/animalLabel';
+import { useSeparationWeaning } from '@/ui/weaning-orders/components/separation/useSeparationWeaning';
 
 interface BatchQuickTransferDialogProps {
   open: boolean;
@@ -50,6 +52,7 @@ export default function BatchQuickTransferDialog({
   );
   const { data: allBatches = [], isLoading: isLoadingBatches } = useBatches();
   const { mutate: transfer, isPending } = useBulkTransferCaravans();
+  const askWeaning = useSeparationWeaning();
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [targetBatchId, setTargetBatchId] = useState<string>('__RESERVE__');
@@ -71,9 +74,15 @@ export default function BatchQuickTransferDialog({
     return allCaravans.filter((c: any) => c.batch_id === batch.id);
   }, [allCaravans, batch?.id]);
 
-  // Destination batches (exclude current batch)
+  // What can be moved: a calf without its tag or a dead animal stays where it is.
+  const movableCaravans = useMemo(
+    () => batchCaravans.filter((c: any) => isTagged(c) && !c.death),
+    [batchCaravans]
+  );
+
+  // Destination batches (exclude current batch). A death goes through "Registrar muerte".
   const candidateBatches = useMemo(() => {
-    return allBatches.filter((b: any) => b.id !== batch?.id);
+    return allBatches.filter((b: any) => b.id !== batch?.id && b.batch_type_code !== 'INTERNAL_DEATH');
   }, [allBatches, batch?.id]);
 
   // Filtered caravans by search
@@ -81,7 +90,7 @@ export default function BatchQuickTransferDialog({
     if (!searchTerm.trim()) return batchCaravans;
     const term = searchTerm.toLowerCase();
     return batchCaravans.filter((c: any) =>
-      c.identification.toLowerCase().includes(term)
+      searchableTag(c).includes(term)
     );
   }, [batchCaravans, searchTerm]);
 
@@ -104,7 +113,7 @@ export default function BatchQuickTransferDialog({
   };
 
   const handleSelectAll = () => {
-    setSelectedIds(batchCaravans.map((c: any) => c.id));
+    setSelectedIds(movableCaravans.map((c: any) => c.id));
   };
 
   const handleClear = () => {
@@ -112,7 +121,7 @@ export default function BatchQuickTransferDialog({
   };
 
   const handleSelectHeavyHalf = () => {
-    const sorted = [...batchCaravans].sort(
+    const sorted = [...movableCaravans].sort(
       (a: any, b: any) => (b.entry_weight ?? 0) - (a.entry_weight ?? 0)
     );
     const halfCount = Math.ceil(sorted.length / 2);
@@ -120,7 +129,7 @@ export default function BatchQuickTransferDialog({
   };
 
   const handleSelectLightHalf = () => {
-    const sorted = [...batchCaravans].sort(
+    const sorted = [...movableCaravans].sort(
       (a: any, b: any) => (a.entry_weight ?? 0) - (b.entry_weight ?? 0)
     );
     const halfCount = Math.ceil(sorted.length / 2);
@@ -133,22 +142,27 @@ export default function BatchQuickTransferDialog({
     const resolvedTargetId =
       targetBatchId === '__RESERVE__' ? null : Number(targetBatchId);
 
-    transfer(
-      {
-        caravanIds: selectedIds,
-        targetBatchId: resolvedTargetId,
-        movementDate: movementDate || null,
-        reason:
-          reason.trim() ||
-          `Egreso / Traslado de ${selectedIds.length} cabezas desde ${batch.name}`,
+    const payload = {
+      caravanIds: selectedIds,
+      targetBatchId: resolvedTargetId,
+      movementDate: movementDate || null,
+      reason:
+        reason.trim() ||
+        `Egreso / Traslado de ${selectedIds.length} cabezas desde ${batch.name}`,
+    };
+    const callbacks = {
+      onSuccess: () => {
+        setSelectedIds([]);
+        onClose();
       },
-      {
-        onSuccess: () => {
-          setSelectedIds([]);
-          onClose();
-        },
-      }
-    );
+      // Parting mothers from their calves weans the calves: ask how, and move again.
+      onError: async (error: unknown) => {
+        const weaningType = await askWeaning(error);
+        if (weaningType) transfer({ ...payload, weaningType }, { onSuccess: callbacks.onSuccess });
+      },
+    };
+
+    transfer(payload, callbacks);
   };
 
   const filledInputStyle = {
@@ -366,9 +380,11 @@ export default function BatchQuickTransferDialog({
                 <List dense disablePadding>
                   {filteredCaravans.map((caravan: any) => {
                     const isChecked = selectedIds.includes(caravan.id);
+                    const movable = isTagged(caravan) && !caravan.death;
                     return (
                       <ListItem key={caravan.id} disablePadding divider>
                         <ListItemButton
+                          disabled={!movable}
                           onClick={() => handleToggle(caravan.id)}
                           dense
                           sx={{ py: 0.5 }}
@@ -386,7 +402,7 @@ export default function BatchQuickTransferDialog({
                             primary={
                               <Stack direction="row" spacing={1} alignItems="center">
                                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                  {caravan.identification}
+                                  {animalLabel(caravan)}
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                   ({caravan.sex === 'M' ? 'Macho' : 'Hembra'})
@@ -394,7 +410,11 @@ export default function BatchQuickTransferDialog({
                               </Stack>
                             }
                             secondary={
-                              caravan.entry_weight != null
+                              !isTagged(caravan)
+                                ? 'Sin caravana: caravaneala desde el lote para trasladarla'
+                                : caravan.death
+                                  ? 'Registrado como muerto'
+                                  : caravan.entry_weight != null
                                 ? `Peso: ${caravan.entry_weight} kg`
                                 : 'Sin peso registrado'
                             }

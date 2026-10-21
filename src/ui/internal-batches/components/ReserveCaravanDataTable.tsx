@@ -23,6 +23,7 @@ import {
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { calculateWrightInbreeding, classifyInbreedingRisk } from '@/core/caravans/domain/services/pedigreeAnalysis';
+import { searchableTag } from '@/core/caravans/domain/services/animalLabel';
 
 interface ReserveCaravanDataTableProps {
 	caravans: Caravan[];
@@ -71,7 +72,7 @@ export default function ReserveCaravanDataTable({
 			const q = searchTerm.trim().toLowerCase();
 			const matchesSearch =
 				q === '' ||
-				c.identification.toLowerCase().includes(q) ||
+				searchableTag(c).includes(q) ||
 				(c.category || '').toLowerCase().includes(q) ||
 				(c.breed || '').toLowerCase().includes(q);
 

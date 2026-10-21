@@ -9,6 +9,7 @@ import {
 import { useCact01Print } from '../templates/cact01/Cact01PrintContext';
 import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
 import { labelOfPair } from '@/features/categories/categoryLabels';
+import { compareByTag, isTagged } from '@/core/caravans/domain/services/animalLabel';
 
 const DENTITION_LABELS: Record<number, string> = { 0: 'DL', 2: '2D', 4: '4D', 6: '6D', 8: '8D' };
 
@@ -71,8 +72,8 @@ export function useCact01SourceAnimals({ publish = false }: Options = {}) {
   const candidates = useMemo<Cact01SourceCaravan[]>(
     () =>
       (caravans as unknown as Cact01SourceCaravan[])
-        .filter((caravan) => caravan.batch_id === sourceBatchId)
-        .sort((a, b) => a.identification.localeCompare(b.identification)),
+        .filter((caravan) => caravan.batch_id === sourceBatchId && isTagged(caravan))
+        .sort(compareByTag),
     [caravans, sourceBatchId]
   );
 

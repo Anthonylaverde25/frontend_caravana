@@ -11,6 +11,7 @@ import type {
   Cact01ValidationErrors,
 } from '../components/scan/types';
 import type { TransferOrder } from '@/features/transfer-orders/types';
+import { useSeparationWeaning } from '@/ui/weaning-orders/components/separation/useSeparationWeaning';
 
 type Cact01SendOutcome =
   | { kind: 'movement'; result: Cact01SuccessResult }
@@ -46,6 +47,7 @@ const numberOrNull = (value: string): number | null => {
 export function useCact01Submission() {
   const queryClient = useQueryClient();
   const [repair, setRepair] = useState<Cact01RepairState | null>(null);
+  const askWeaning = useSeparationWeaning();
 
   const send = useCallback(
     async (
@@ -121,7 +123,18 @@ export function useCact01Submission() {
           return { kind: 'order', order: response.data.data as TransferOrder };
         }
 
-        const response = await axiosInstance.post('/work-templates/cact-01/process', payload);
+        const process = (body: typeof payload & { weaning_type?: string }) => axiosInstance.post('/work-templates/cact-01/process', body);
+        let response;
+
+        try {
+          response = await process(payload);
+        } catch (firstError) {
+          // Parting mothers from their calves weans the calves: ask how, and confirm again.
+          const weaningType = await askWeaning(firstError);
+          if (!weaningType) throw firstError;
+          response = await process({ ...payload, weaning_type: weaningType });
+        }
+
         setRepair(null);
         queryClient.invalidateQueries({ queryKey: ['caravans'] });
         queryClient.invalidateQueries({ queryKey: ['batches'] });
@@ -173,7 +186,7 @@ export function useCact01Submission() {
         return null;
       }
     },
-    [queryClient]
+    [queryClient, askWeaning]
   );
 
   const markRowEdited = useCallback((rowId: string) => {

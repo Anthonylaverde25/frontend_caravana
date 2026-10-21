@@ -22,6 +22,7 @@ import {
 	type GestationBatchGroup,
 	type GestationListFilters
 } from '../components/list/gestationListUtils';
+import { searchableTag } from '@/core/caravans/domain/services/animalLabel';
 
 const INITIAL_FILTERS: GestationListFilters = {
 	search: '',
@@ -107,7 +108,7 @@ function GestationListView() {
 				const batchNameMatches = query.length > 0 && group.name.toLowerCase().includes(query);
 				const matchingCaravans = group.caravans.filter((caravan) => {
 					if (query.length > 0 && !batchNameMatches) {
-						const idMatch = caravan.identification.toLowerCase().includes(query);
+						const idMatch = searchableTag(caravan).includes(query);
 						const catMatch = (caravan.category_name ?? caravan.category ?? '').toLowerCase().includes(query);
 						if (!idMatch && !catMatch) return false;
 					}

@@ -26,6 +26,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import ManagementSystemSelector from '@/ui/batches/components/create/ManagementSystemSelector';
 import { useTransferPalette } from '@/ui/activities/components/transfer/transferPalette';
+import { STAY_IN_PLACE_LABEL, weaningDestinationOptions } from '@/ui/weaning-orders/components/start/weaningDestinationOptions';
 
 /** What the picker writes on the row: the batch name and its M letter (blank keeps the batch's own). */
 export interface Dest01BatchPick {
@@ -81,14 +82,20 @@ export const Dest01BatchPickerDialog: React.FC<Dest01BatchPickerDialogProps> = (
   onPick,
 }) => {
   const palette = useTransferPalette();
-  const { data: batches = [], isLoading } = useBatches(undefined, 'WEANING');
-  const weaningBatches = useMemo(
-    () => batches.filter((b) => b.is_active && b.batch_type_code === 'WEANING'),
-    [batches]
-  );
+  const { data: batches = [], isLoading } = useBatches();
+  // A weaning batch is recommended (listed first), any own working batch is allowed.
+  const weaningBatches = useMemo(() => weaningDestinationOptions(batches), [batches]);
+  const farmById = useMemo(() => new Map(batches.map((b) => [Number(b.id), b.farm_name])), [batches]);
 
   const options = useMemo<BatchOption[]>(
     () => [
+      {
+        key: 'stay',
+        name: STAY_IN_PLACE_LABEL,
+        manejo: '',
+        isNew: false,
+        detail: 'Se destetan sin moverlas de lote',
+      },
       ...weaningBatches.map((b) => ({
         key: `batch-${b.id}`,
         name: b.name,
@@ -97,7 +104,8 @@ export const Dest01BatchPickerDialog: React.FC<Dest01BatchPickerDialogProps> = (
         detail: [
           b.caravans_count != null ? `${b.caravans_count} animales` : null,
           managementLabel(letterOf(b.is_confined)),
-          b.farm_name,
+          b.group === 'Otros lotes propios' ? 'No es de destete' : null,
+          farmById.get(b.id),
         ]
           .filter(Boolean)
           .join(' · '),
@@ -110,7 +118,7 @@ export const Dest01BatchPickerDialog: React.FC<Dest01BatchPickerDialogProps> = (
         detail: ['Se crea al confirmar la planilla', managementLabel(n.manejo)].filter(Boolean).join(' · '),
       })),
     ],
-    [weaningBatches, sheetNewNames]
+    [weaningBatches, sheetNewNames, farmById]
   );
 
   const [mode, setMode] = useState<'existing' | 'new'>('existing');

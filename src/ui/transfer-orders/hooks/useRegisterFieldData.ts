@@ -6,6 +6,7 @@ import {
   countChanges,
   fieldDraftError
 } from '../components/register/registerFieldData';
+import { isTagged } from '@/core/caravans/domain/services/animalLabel';
 
 /** What the caravans list carries that the chute data is compared against. */
 export interface FieldSourceCaravan {
@@ -75,7 +76,7 @@ export function useRegisterFieldData(caravans: FieldSourceCaravan[], selectedIds
   const applyServerErrors = useCallback(
     (body: ValidationBody | undefined, sentCaravanIds: number[]) => {
       const byId: Record<number, string[]> = {};
-      const idByTag = new Map(caravans.map((caravan) => [caravan.identification.toUpperCase(), caravan.id]));
+      const idByTag = new Map(caravans.filter(isTagged).map((caravan) => [caravan.identification.toUpperCase(), caravan.id]));
       const push = (id: number | undefined, message: string) => {
         if (id == null) return;
 

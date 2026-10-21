@@ -9,6 +9,8 @@ export interface CalfBatchGroup {
   calves: BirthHistoryRecord[];
   /** Calves of this batch already held by an open order, by order code. */
   committed: { code: string; count: number }[];
+  /** Calves still waiting for their tag: weaning needs it, so they are offered to tag first. */
+  untagged: BirthHistoryRecord[];
 }
 
 const groupKey = (record: BirthHistoryRecord): string => (record.calf_batch_id != null ? `b${record.calf_batch_id}` : 'none');
@@ -29,11 +31,13 @@ export function useCalvesByBatch(births: BirthHistoryRecord[], excludeIds: numbe
       const key = groupKey(record);
 
       if (!groups.has(key)) {
-        groups.set(key, { key, batchId: record.calf_batch_id, name: record.calf_batch_name ?? 'Sin lote', calves: [], committed: [] });
+        groups.set(key, { key, batchId: record.calf_batch_id, name: record.calf_batch_name ?? 'Sin lote', calves: [], committed: [], untagged: [] });
         committedByGroup.set(key, new Map());
       }
 
-      if (record.open_order_code) {
+      if (!record.calf_identification) {
+        groups.get(key)!.untagged.push(record);
+      } else if (record.open_order_code) {
         const codes = committedByGroup.get(key)!;
         codes.set(record.open_order_code, (codes.get(record.open_order_code) ?? 0) + 1);
       } else {

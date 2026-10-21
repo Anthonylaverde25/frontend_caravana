@@ -11,7 +11,12 @@ export class CaravanMapper {
   public static toDomain(raw: any): Caravan {
     const dto: CaravanDTO = {
       id: raw.id,
-      identification: raw.identification,
+      identification: raw.identification ?? null,
+      label: raw.label ?? raw.identification ?? '',
+      is_tagged: raw.is_tagged ?? raw.identification != null,
+      tagged_at: raw.tagged_at ?? null,
+      is_dead: Boolean(raw.is_dead),
+      death: raw.death ?? null,
       category: raw.category ?? null,
       category_id: raw.category_id != null ? Number(raw.category_id) : null,
       category_code: raw.category_code ?? null,

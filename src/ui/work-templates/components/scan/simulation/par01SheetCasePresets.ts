@@ -15,6 +15,8 @@ import { SimulationPreset } from "./types";
  * days) on a third:
  *     php artisan tenants:seed --class=BirthOrderTestSeeder
  *
+ * 20 (calves left without their tag) uses PAR-V-28 and 29, which only the failing sheet 09 names.
+ *
  * Sheets 11 and 12 have no preset on purpose: they only degrade the photo, and a simulation skips
  * the reading that is being tested. Sheet 13 is the blank print.
  */
@@ -2188,6 +2190,44 @@ export const PAR01_SHEET_CASES: SimulationPreset[] = [
         "raza": "",
         "pelaje": "",
         "fecha_nacimiento": "03/10/2026",
+        "fuera_de_orden": ""
+      }
+    ],
+  ),
+  sheetCase(
+    "🟡 20 · Crías sin caravana",
+    "Planilla en blanco: PAR-V-28 y PAR-V-29 parieron y la caravana de la cría quedó vacía (se caravanea días después). Se guardan con el aviso CALF_UNTAGGED; cada cría queda como «Cría de PAR-V-28 ♂» y se caravanea desde el lote con «Caravanear crías».",
+    {
+      "orden_paricion": "",
+      "fecha_recorrida": "28/09/2026",
+      "lote": "Lote Testing Parición",
+      "responsable": "Recorredor de prueba",
+      "hoja_numero": 1,
+      "hoja_total": 1
+    },
+    [
+      {
+        "id": "1",
+        "caravana_madre": "PAR-V-28",
+        "resultado": "V",
+        "caravana_cria": "",
+        "sexo": "M",
+        "peso": "34",
+        "raza": "Angus",
+        "pelaje": "Negro",
+        "fecha_nacimiento": "27/09/2026",
+        "fuera_de_orden": ""
+      },
+      {
+        "id": "2",
+        "caravana_madre": "PAR-V-29",
+        "resultado": "V",
+        "caravana_cria": "",
+        "sexo": "H",
+        "peso": "",
+        "raza": "",
+        "pelaje": "",
+        "fecha_nacimiento": "28/09/2026",
         "fuera_de_orden": ""
       }
     ],

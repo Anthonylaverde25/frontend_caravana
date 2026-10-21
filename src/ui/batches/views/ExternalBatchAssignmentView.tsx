@@ -43,6 +43,7 @@ import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useAssignExternalCaravans } from '@/features/batches/hooks/useAssignExternalCaravans';
 import CreateBatchDialog from 'src/ui/batches/components/CreateBatchDialog';
 import OwnBatchPickerDialog from 'src/ui/batches/components/external/OwnBatchPickerDialog';
+import { searchableTag } from '@/core/caravans/domain/services/animalLabel';
 
 export default function ExternalBatchAssignmentView() {
   const theme = useTheme();
@@ -150,7 +151,7 @@ export default function ExternalBatchAssignmentView() {
 
       if (term !== '') {
         bCaravans = bCaravans.filter(c =>
-          c.identification.toLowerCase().includes(term) ||
+          searchableTag(c).includes(term) ||
           (c.category_name && c.category_name.toLowerCase().includes(term)) ||
           (c.subcategory_name && c.subcategory_name.toLowerCase().includes(term)) ||
           (c.category && c.category.toLowerCase().includes(term)) ||
@@ -199,7 +200,7 @@ export default function ExternalBatchAssignmentView() {
 
       if (term !== '') {
         bCaravans = bCaravans.filter(c =>
-          c.identification.toLowerCase().includes(term) ||
+          searchableTag(c).includes(term) ||
           (c.category_name && c.category_name.toLowerCase().includes(term)) ||
           (c.subcategory_name && c.subcategory_name.toLowerCase().includes(term)) ||
           (c.category && c.category.toLowerCase().includes(term)) ||

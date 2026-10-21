@@ -13,6 +13,7 @@ interface HerdBatchRowActionsProps {
 	onConsume: () => void;
 	onStartService: () => void;
 	onOpenServiceOrder?: () => void;
+	onTagCalves: () => void;
 }
 
 const iconButtonSx = { width: 36, height: 36, borderRadius: '8px' } as const;
@@ -27,7 +28,8 @@ export function HerdBatchRowActions({
 	onWeighBatch,
 	onConsume,
 	onStartService,
-	onOpenServiceOrder
+	onOpenServiceOrder,
+	onTagCalves
 }: HerdBatchRowActionsProps) {
 	const navigate = useNavigate();
 	const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -127,6 +129,21 @@ export function HerdBatchRowActions({
 					</ListItemIcon>
 					<ListItemText primaryTypographyProps={{ fontSize: '0.82rem' }}>Abrir lote</ListItemText>
 				</MenuItem>
+				{batch.untagged_calf_count > 0 && (
+					<MenuItem
+						onClick={() => {
+							setMenuAnchor(null);
+							onTagCalves();
+						}}
+					>
+						<ListItemIcon>
+							<FuseSvgIcon size={16}>heroicons-outline:tag</FuseSvgIcon>
+						</ListItemIcon>
+						<ListItemText primaryTypographyProps={{ fontSize: '0.82rem' }}>
+							{`Caravanear crías (${batch.untagged_calf_count})`}
+						</ListItemText>
+					</MenuItem>
+				)}
 				<MenuItem
 					onClick={() => {
 						setMenuAnchor(null);

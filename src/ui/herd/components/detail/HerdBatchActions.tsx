@@ -11,6 +11,7 @@ interface HerdBatchActionsProps {
 	onWeighBatch: () => void;
 	onConsume: () => void;
 	onStartService: () => void;
+	onTagCalves: () => void;
 }
 
 const textButtonSx = { fontWeight: 600, color: 'primary.main', textTransform: 'none' } as const;
@@ -19,7 +20,7 @@ const textButtonSx = { fontWeight: 600, color: 'primary.main', textTransform: 'n
  * Header actions of the batch page: the work on the batch as a whole. Weighing and the control
  * sheet open their own screens under /herd/batches/:id.
  */
-export function HerdBatchActions({ batch, onAddCaravans, onTransfer, onWeighBatch, onConsume, onStartService }: HerdBatchActionsProps) {
+export function HerdBatchActions({ batch, onAddCaravans, onTransfer, onWeighBatch, onConsume, onStartService, onTagCalves }: HerdBatchActionsProps) {
 	const navigate = useNavigate();
 	const service = batch.active_service_order;
 	const serviceLink = service ? orderLink('service_order', service.id) : null;
@@ -72,6 +73,16 @@ export function HerdBatchActions({ batch, onAddCaravans, onTransfer, onWeighBatc
 			>
 				Planilla de control
 			</Button>
+			{batch.untagged_calf_count > 0 && (
+				<Button
+					variant="text"
+					onClick={onTagCalves}
+					startIcon={<FuseSvgIcon size={18}>heroicons-outline:tag</FuseSvgIcon>}
+					sx={{ ...textButtonSx, color: 'warning.dark' }}
+				>
+					{`Caravanear crías (${batch.untagged_calf_count})`}
+				</Button>
+			)}
 			<Button
 				variant="text"
 				onClick={onTransfer}

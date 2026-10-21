@@ -28,7 +28,8 @@ export function CaravanDetailDrawer({
 	caravanIdentification,
 	onWeigh,
 	onMove,
-	onEdit
+	onEdit,
+	onRegisterDeath
 }: CaravanDetailDrawerProps) {
 	const [tab, setTab] = useState<CaravanDrawerTab>('summary');
 	const { data: caravan, isLoading } = useCaravanDetail(open ? caravanId : null);
@@ -39,7 +40,7 @@ export function CaravanDetailDrawer({
 		setTab('summary');
 	}, [caravanId]);
 
-	const displayId = caravan?.identification || caravanIdentification || (caravanId ? `${caravanId}` : '—');
+	const displayId = caravan?.identification || caravan?.label || caravanIdentification || (caravanId ? `${caravanId}` : '—');
 
 	return (
 		<Drawer
@@ -70,6 +71,7 @@ export function CaravanDetailDrawer({
 					onWeigh={onWeigh}
 					onMove={onMove}
 					onEdit={onEdit}
+					onRegisterDeath={onRegisterDeath}
 				/>
 
 				<Box sx={{ p: 2.5, flexGrow: 1, overflowY: 'auto' }}>
@@ -98,7 +100,7 @@ export function CaravanDetailDrawer({
 						/>
 					) : tab === 'weights' ? (
 						<CaravanWeightsTab
-							identification={caravan.identification}
+							identification={caravan.identification ?? caravan.label}
 							weights={weights}
 						/>
 					) : (

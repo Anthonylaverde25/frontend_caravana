@@ -28,9 +28,11 @@ export interface Dest01Destinations {
 }
 
 const destinationOf = (key: string, target: Dest01BatchTarget) =>
-  target.mode === 'existing'
-    ? { key, target_batch_id: target.batchId, new_batch: null }
-    : { key, target_batch_id: null, new_batch: { name: target.name.trim(), is_confined: target.isConfined } };
+  target.mode === 'stay'
+    ? { key, target_batch_id: null, new_batch: null, stays_in_place: true }
+    : target.mode === 'existing'
+      ? { key, target_batch_id: target.batchId, new_batch: null }
+      : { key, target_batch_id: null, new_batch: { name: target.name.trim(), is_confined: target.isConfined } };
 
 /**
  * Errors keyed by row id instead of by position, so deleting or editing a row in the repair

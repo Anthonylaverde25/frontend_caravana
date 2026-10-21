@@ -153,6 +153,8 @@ export interface BirthOrderAnimal {
   overdue_notes: string | null;
   calf_caravan_id: number | null;
   calf_identification: string | null;
+  /** The tag, or "Cría de 4521 ♀" while the calf waits for it. */
+  calf_label: string | null;
   calf_sex: string | null;
   calf_batch_id: number | null;
   calf_batch_name: string | null;
@@ -297,7 +299,9 @@ export interface BirthResult {
   males_count: number;
   females_count: number;
   unplanned_count: number;
-  calves: { mother: string; calf: string; sex: string; batch_id: number | null; batch_name: string | null; father_id: number | null }[];
+  /** Calves born without a tag: they wait in their batch for "Caravanear crías". */
+  untagged_calves_count?: number;
+  calves: { mother: string; calf: string | null; calf_label?: string; sex: string; batch_id: number | null; batch_name: string | null; father_id: number | null }[];
   overdue_new: { mother: string; overdue_reported_at: string; estimated_due_date: string | null }[];
   overdue_resolved: {
     mother: string;

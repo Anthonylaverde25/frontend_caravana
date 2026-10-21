@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/utils/axios';
 import { toast } from 'sonner';
+import type { WeaningType } from '@/features/weaning-orders/types';
+import { isSeparationError } from '@/ui/weaning-orders/components/separation/separationError';
 
 /** Destination batch created in the same transaction as the transfer. */
 export interface NewTransferBatchPayload {
@@ -18,6 +20,8 @@ export interface BulkTransferCaravansPayload {
   newBatch?: NewTransferBatchPayload | null;
   reason?: string | null;
   movementDate?: string | null;
+  /** The kind of weaning of the calves the move parts from their mothers, chosen by the user. */
+  weaningType?: WeaningType | null;
 }
 
 export interface BulkTransferCaravansResponse {
@@ -43,6 +47,7 @@ export function useBulkTransferCaravans() {
         new_batch: payload.newBatch || null,
         reason: payload.reason || null,
         movement_date: payload.movementDate || null,
+        weaning_type: payload.weaningType ?? null,
       });
       return response.data;
     },
@@ -58,6 +63,9 @@ export function useBulkTransferCaravans() {
       toast.success(`Se transfirieron ${data.transferred_count} animales a "${data.target_batch_name}" correctamente`);
     },
     onError: (error: any) => {
+      // Parting mothers from their calves is answered with a question, not an error.
+      if (isSeparationError(error)) return;
+
       console.error('Error in useBulkTransferCaravans:', error);
       const msg = error.response?.data?.message || 'Error al transferir los animales';
       toast.error(msg);

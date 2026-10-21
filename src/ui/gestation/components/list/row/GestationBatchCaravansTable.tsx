@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
 	Box,
@@ -8,6 +9,7 @@ import {
 	TableCell,
 	TableContainer,
 	TableHead,
+	TablePagination,
 	TableRow,
 	Typography,
 	useTheme
@@ -18,6 +20,8 @@ import type { CaravanSummary } from '@/core/caravans/domain/entities/CaravanSumm
 import { registerBirthsPath } from '@/ui/birth-orders/components/register/registerBirths';
 import { herdBatchPath, UNASSIGNED_BATCH } from '@/ui/herd/utils/herdFormat';
 import GestationBatchCaravanRow from './GestationBatchCaravanRow';
+import { isCalvingOverdue } from '../../monitoring/ReproductiveAlertsCell';
+import { getDaysLeft } from '../gestationListUtils';
 
 interface GestationBatchCaravansTableProps {
 	batchId: number | typeof UNASSIGNED_BATCH;
@@ -30,7 +34,7 @@ interface GestationBatchCaravansTableProps {
 
 /**
  * Table of gestating females inside an expanded batch row, styled after HerdCaravanTable
- * and HerdBatchRecentCaravans.
+ * and HerdBatchCaravansTable with server-style pagination and obstetric prioritization.
  */
 export function GestationBatchCaravansTable({
 	batchId,
@@ -47,6 +51,49 @@ export function GestationBatchCaravansTable({
 	const zebraBg = isDark ? 'rgba(255, 255, 255, 0.02)' : '#fafafa';
 	const headerBorder = isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0';
 	const bodyBorder = isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9';
+
+	const [page, setPage] = useState(0);
+	const [rowsPerPage, setPerPage] = useState(10);
+
+	// Sort by urgency: overdue calvings first, then soonest estimated calving, then undeclared.
+	const sortedCaravans = useMemo(() => {
+		return [...caravans].sort((a, b) => {
+			const overdueA = isCalvingOverdue(a);
+			const overdueB = isCalvingOverdue(b);
+			if (overdueA !== overdueB) return overdueA ? -1 : 1;
+
+			const daysA = getDaysLeft(a.active_gestation?.estimated_due_date);
+			const daysB = getDaysLeft(b.active_gestation?.estimated_due_date);
+
+			if (daysA !== null && daysB !== null) return daysA - daysB;
+			if (daysA !== null) return -1;
+			if (daysB !== null) return 1;
+
+			return 0;
+		});
+	}, [caravans]);
+
+	// Jump to the page of the highlighted caravan if requested
+	useEffect(() => {
+		if (!highlightId) return;
+		const index = sortedCaravans.findIndex((c) => c.id === highlightId);
+		if (index >= 0) {
+			setPage(Math.floor(index / rowsPerPage));
+		}
+	}, [highlightId, sortedCaravans, rowsPerPage]);
+
+	// Reset page if filtered count drops below current page threshold
+	useEffect(() => {
+		if (page > 0 && page * rowsPerPage >= sortedCaravans.length) {
+			setPage(0);
+		}
+	}, [sortedCaravans.length, page, rowsPerPage]);
+
+	// Sliced window of caravans rendered in DOM
+	const paginatedCaravans = useMemo(() => {
+		const start = page * rowsPerPage;
+		return sortedCaravans.slice(start, start + rowsPerPage);
+	}, [sortedCaravans, page, rowsPerPage]);
 
 	const headerCellStyle = {
 		py: 1.2,
@@ -113,7 +160,7 @@ export function GestationBatchCaravansTable({
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{caravans.map((caravan, index) => {
+						{paginatedCaravans.map((caravan, index) => {
 							const highlighted = caravan.id === highlightId;
 							const rowBg = highlighted
 								? isDark
@@ -143,20 +190,54 @@ export function GestationBatchCaravansTable({
 				sx={{
 					display: 'flex',
 					flexWrap: 'wrap',
-					gap: 1,
+					gap: 1.5,
 					justifyContent: 'space-between',
 					alignItems: 'center',
 					pl: 2,
 					pr: 1.5,
-					py: 0.75
+					py: 0.75,
+					borderTop: 1,
+					borderColor: bodyBorder,
+					bgcolor: isDark ? 'rgba(255, 255, 255, 0.01)' : '#fcfcfc'
 				}}
 			>
-				<Typography
-					variant="caption"
-					sx={{ color: 'text.secondary' }}
+				<Stack
+					direction={{ xs: 'column', md: 'row' }}
+					spacing={{ xs: 0.5, md: 2 }}
+					alignItems={{ xs: 'flex-start', md: 'center' }}
 				>
-					{`${caravans.length.toLocaleString('es-AR')} ${caravans.length === 1 ? 'vientre gestante' : 'vientres gestantes'} en este lote`}
-				</Typography>
+					<Typography
+						variant="caption"
+						sx={{ color: 'text.secondary', fontWeight: 600 }}
+					>
+						{`${caravans.length.toLocaleString('es-AR')} ${caravans.length === 1 ? 'vientre gestante' : 'vientres gestantes'} en este lote`}
+					</Typography>
+					{caravans.length > 10 && (
+						<TablePagination
+							component="div"
+							count={caravans.length}
+							page={caravans.length > 0 && page * rowsPerPage < caravans.length ? page : 0}
+							rowsPerPage={rowsPerPage}
+							rowsPerPageOptions={[10, 25, 50]}
+							onPageChange={(_, next) => setPage(next)}
+							onRowsPerPageChange={(event) => {
+								setPerPage(Number(event.target.value));
+								setPage(0);
+							}}
+							labelRowsPerPage="Por página"
+							labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+							sx={{
+								borderTop: 0,
+								'.MuiTablePagination-toolbar': { minHeight: 34, px: 0 },
+								'.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+									fontSize: '0.75rem',
+									m: 0
+								},
+								'.MuiTablePagination-actions': { ml: 1 }
+							}}
+						/>
+					)}
+				</Stack>
 				<Stack
 					direction="row"
 					spacing={1}

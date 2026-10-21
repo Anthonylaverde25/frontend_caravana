@@ -38,7 +38,7 @@ export function HerdCaravanSearch() {
 		<Autocomplete<CaravanSummary>
 			options={options}
 			filterOptions={(all) => all}
-			getOptionLabel={(option) => option.identification}
+			getOptionLabel={(option) => option.label || option.identification || ''}
 			isOptionEqualToValue={(a, b) => a.id === b.id}
 			loading={enabled && isFetching}
 			noOptionsText={enabled ? 'Sin coincidencias' : `Escribí al menos ${MIN_CHARS} caracteres`}
@@ -58,7 +58,7 @@ export function HerdCaravanSearch() {
 							variant="body2"
 							sx={{ fontWeight: 700, fontFamily: 'monospace' }}
 						>
-							{option.identification}
+							{option.label || option.identification}
 						</Typography>
 						<Typography
 							variant="caption"

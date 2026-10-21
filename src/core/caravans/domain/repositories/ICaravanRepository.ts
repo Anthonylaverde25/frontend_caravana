@@ -1,6 +1,8 @@
 import { CaravanWeightRecord, RecordCaravanWeightPayload } from '@/core/weighing/domain/entities/Weighing';
 import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../entities/Caravan';
 import { CaravanSummaryPage, CaravanSummaryQuery } from '../entities/CaravanSummary';
+import { TagCalvesPayload, UntaggedCalf } from '../entities/UntaggedCalf';
+import { DeathBatchOption, DeathCause, RegisterDeathPayload } from '../entities/Death';
 
 /**
  * ICaravanRepository
@@ -44,4 +46,19 @@ export interface ICaravanRepository {
 
   /** Retrieves the 3G pedigree tree and inbreeding analysis for a caravan. */
   getPedigree(id: number): Promise<any>;
+
+  /** The calves of a batch still waiting for their tag. */
+  listUntaggedCalves(batchId: number): Promise<UntaggedCalf[]>;
+
+  /** Puts the tags on calves born without one. Rejects with a 422 keyed by row on any error. */
+  tagCalves(payload: TagCalvesPayload): Promise<void>;
+
+  /** The active causes of death of the company. */
+  listDeathCauses(): Promise<DeathCause[]>;
+
+  /** The active death batches of the company. */
+  listDeathBatches(): Promise<DeathBatchOption[]>;
+
+  /** Registers the death of one or several animals. Rejects with a 422 keyed by animal on any error. */
+  registerDeath(payload: RegisterDeathPayload): Promise<void>;
 }

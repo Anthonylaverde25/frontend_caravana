@@ -35,7 +35,8 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
   const [searchParams] = useSearchParams();
   const form = useWeaningOrderForm(mode);
   const { data: births = [], isLoading } = useBirthHistory();
-  const { data: batches = [] } = useBatches(undefined, 'WEANING');
+  // Every own batch: weaned calves may go to any of them, not only to a weaning batch.
+  const { data: batches = [] } = useBatches(undefined, undefined, 'own');
   const draftId = mode === 'order' ? Number(searchParams.get('orderId')) || null : null;
   const { data: draft } = useWeaningOrder(draftId);
   const startPath = mode === 'register' ? '/weaning-orders/register' : '/weaning-orders/new';
@@ -89,7 +90,12 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
 
   const destinationLabels = useMemo(
     () =>
-      new Map(form.activeDestinations.map((d) => [d.key, d.kind === 'new' ? d.name.trim() : (batchesById.get(d.batchId ?? -1)?.name ?? '')])),
+      new Map(
+        form.activeDestinations.map((d) => [
+          d.key,
+          d.kind === 'stay' ? 'Quedan en su lote' : d.kind === 'new' ? d.name.trim() : (batchesById.get(d.batchId ?? -1)?.name ?? '')
+        ])
+      ),
     [form.activeDestinations, batchesById]
   );
 

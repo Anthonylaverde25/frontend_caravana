@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { Autocomplete, Box, Chip, TextField, Typography, createFilterOptions } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import CreateBatchDialog from '@/ui/batches/components/CreateBatchDialog';
+import { STAY_IN_PLACE_ID, STAY_IN_PLACE_LABEL } from './weaningDestinationOptions';
 
 export interface WeaningBatchOption {
   id: number;
   name: string;
   caravans_count?: number;
   is_confined?: boolean | null;
+  /** The list group: weaning batches first (recommended), then the other own batches. */
+  group?: string;
 }
 
 type WeaningBatchSelectFieldProps = {
@@ -19,7 +22,10 @@ type WeaningBatchSelectFieldProps = {
 );
 
 /** The last option of the list: not a batch, it opens the dialog that creates one. */
-const CREATE_OPTION: WeaningBatchOption = { id: -1, name: 'Crear nuevo lote de destete' };
+const CREATE_OPTION: WeaningBatchOption = { id: -1, name: 'Crear nuevo lote de destete', group: 'Nuevo' };
+
+/** The first option: not a batch, the calves are weaned where they are. */
+const STAY_OPTION: WeaningBatchOption = { id: STAY_IN_PLACE_ID, name: STAY_IN_PLACE_LABEL, group: 'Sin mover' };
 
 const filter = createFilterOptions<WeaningBatchOption>();
 
@@ -34,7 +40,7 @@ export const managementLabel = (value: boolean | null | undefined) =>
 export const WeaningBatchSelectField: React.FC<WeaningBatchSelectFieldProps> = (props) => {
   const { batches, isLoading } = props;
   const [isCreating, setIsCreating] = useState(false);
-  const byId = new Map(batches.map((b) => [b.id, b]));
+  const byId = new Map([STAY_OPTION, ...batches].map((b) => [b.id, b]));
 
   const pick = (id: number) => {
     if (props.multiple === true) props.onChange(props.value.includes(id) ? props.value : [...props.value, id]);
@@ -42,8 +48,9 @@ export const WeaningBatchSelectField: React.FC<WeaningBatchSelectFieldProps> = (
   };
 
   const common = {
-    options: batches,
+    options: [STAY_OPTION, ...batches],
     loading: isLoading,
+    groupBy: (b: WeaningBatchOption) => b.group ?? '',
     filterOptions: (options: WeaningBatchOption[], state: Parameters<typeof filter>[1]) => [...filter(options, state), CREATE_OPTION],
     getOptionLabel: (b: WeaningBatchOption) => b.name,
     isOptionEqualToValue: (a: WeaningBatchOption, b: WeaningBatchOption) => a.id === b.id,
@@ -57,6 +64,13 @@ export const WeaningBatchSelectField: React.FC<WeaningBatchSelectFieldProps> = (
         >
           <FuseSvgIcon size={16}>heroicons-outline:plus-circle</FuseSvgIcon>
           {batch.name}
+        </Box>
+      ) : batch.id === STAY_IN_PLACE_ID ? (
+        <Box component="li" key={key} {...optionProps} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start !important' }}>
+          <span>{batch.name}</span>
+          <Typography variant="caption" color="text.secondary">
+            Se destetan sin moverlas de lote
+          </Typography>
         </Box>
       ) : (
         <Box component="li" key={key} {...optionProps} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
@@ -93,11 +107,18 @@ export const WeaningBatchSelectField: React.FC<WeaningBatchSelectFieldProps> = (
             chosen.map((b, index) => {
               const { key, ...tagProps } = getTagProps({ index });
 
-              return <Chip key={key} {...tagProps} size="small" label={`${b.name} · ${managementLabel(b.is_confined)}`} />;
+              return (
+                <Chip
+                  key={key}
+                  {...tagProps}
+                  size="small"
+                  label={b.id === STAY_IN_PLACE_ID ? b.name : `${b.name} · ${managementLabel(b.is_confined)}`}
+                />
+              );
             })
           }
           renderInput={(params) => (
-            <TextField {...params} size="small" label="Lotes de destete" helperText="Los lotes entre los que se reparten las crías." />
+            <TextField {...params} size="small" label="Destinos" helperText="Recomendado: lotes de destete. También otro lote propio, o «Quedan en su lote»." />
           )}
         />
       ) : (
@@ -116,8 +137,14 @@ export const WeaningBatchSelectField: React.FC<WeaningBatchSelectFieldProps> = (
             <TextField
               {...params}
               size="small"
-              label="Lote de destete"
-              helperText={single ? `Manejo: ${managementLabel(single.is_confined)}` : 'Uno activo, o creá uno nuevo desde la lista.'}
+              label="Destino de las crías"
+              helperText={
+                single?.id === STAY_IN_PLACE_ID
+                  ? 'Se destetan sin moverlas de lote.'
+                  : single
+                    ? `Manejo: ${managementLabel(single.is_confined)}`
+                    : 'Recomendado: un lote de destete. También otro lote propio, o «Quedan en su lote».'
+              }
             />
           )}
         />

@@ -56,7 +56,7 @@ export const ExecuteWeaningOrderDialog: React.FC<ExecuteWeaningOrderDialogProps>
     ? null
     : pending.some((a) => a.destination_key === null)
       ? 'Hay crías sin lote de destete: se deciden en la manga. Ejecutá la orden escaneando su planilla DEST-01.'
-      : order.destinations.some((d) => d.target_batch_id === null && d.resolved_batch_id === null && d.is_confined === null)
+      : order.destinations.some((d) => !d.stays_in_place && d.target_batch_id === null && d.resolved_batch_id === null && d.is_confined === null)
         ? 'Un lote de destete nuevo no tiene declarado si es corral o pastura. Completalo escaneando la planilla.'
         : null;
 

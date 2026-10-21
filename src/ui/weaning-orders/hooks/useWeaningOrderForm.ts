@@ -11,10 +11,10 @@ import type {
 
 export type WeaningFormMode = 'order' | 'register';
 
-/** One weaning batch the screen declares: an existing one, or the name of one to create. */
+/** Where the screen sends calves: an existing batch, the name of one to create, or where they are. */
 export interface DestinationDraft {
   key: string;
-  kind: 'existing' | 'new';
+  kind: 'existing' | 'new' | 'stay';
   batchId: number | null;
   name: string;
   /** Only for a new batch: corral, pasture, or left for the scan (orders only). */
@@ -68,7 +68,7 @@ export const newDestination = (): DestinationDraft => {
 const emptyCalf = (): CalfDraft => ({ destinationKey: null, category: null, weight: '', observations: '' });
 
 export const destinationIsDeclared = (d: DestinationDraft): boolean =>
-  d.kind === 'existing' ? d.batchId != null : d.name.trim() !== '';
+  d.kind === 'stay' ? true : d.kind === 'existing' ? d.batchId != null : d.name.trim() !== '';
 
 /**
  * The state of the weaning form, shared by "Nueva orden de destete" and "Registrar destete": which
@@ -165,7 +165,7 @@ export function useWeaningOrderForm(mode: WeaningFormMode) {
     const drafts = order.destinations.map((d) => {
       const draft: DestinationDraft = {
         ...newDestination(),
-        kind: d.target_batch_id ? 'existing' : 'new',
+        kind: d.stays_in_place ? 'stay' : d.target_batch_id ? 'existing' : 'new',
         batchId: d.target_batch_id,
         name: d.new_batch_name ?? d.label,
         isConfined: d.is_confined
@@ -232,7 +232,8 @@ export function useWeaningOrderForm(mode: WeaningFormMode) {
       label: d.kind === 'new' ? d.name.trim() : '',
       target_batch_id: d.kind === 'existing' ? d.batchId : null,
       new_batch_name: d.kind === 'new' ? d.name.trim() : null,
-      is_confined: d.kind === 'new' ? d.isConfined : null
+      is_confined: d.kind === 'new' ? d.isConfined : null,
+      stays_in_place: d.kind === 'stay'
     }));
 
   const animalPayload = (id: number) => {

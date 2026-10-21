@@ -15,6 +15,7 @@ interface HerdCaravansToolbarProps {
 	/** Rows ticked in the table; enables the bulk breeding action. */
 	selectedCount?: number;
 	onBulkBreeding?: () => void;
+	onBulkDeath?: () => void;
 }
 
 const fieldSx = { bgcolor: 'action.hover', minWidth: 160 } as const;
@@ -29,7 +30,8 @@ export function HerdCaravansToolbar({
 	onSexChange,
 	onSortChange,
 	selectedCount = 0,
-	onBulkBreeding
+	onBulkBreeding,
+	onBulkDeath
 }: HerdCaravansToolbarProps) {
 	return (
 		<Stack
@@ -44,6 +46,18 @@ export function HerdCaravansToolbar({
 			>
 				{total === null ? 'Caravanas' : `Caravanas (${total})`}
 			</Typography>
+			{onBulkDeath && selectedCount > 0 && (
+				<Button
+					variant="outlined"
+					color="inherit"
+					size="small"
+					onClick={onBulkDeath}
+					startIcon={<FuseSvgIcon size={16}>heroicons-outline:x-circle</FuseSvgIcon>}
+					sx={{ textTransform: 'none', fontWeight: 700, color: 'text.secondary' }}
+				>
+					Registrar muerte ({selectedCount})
+				</Button>
+			)}
 			{onBulkBreeding && selectedCount > 0 && (
 				<Button
 					variant="outlined"

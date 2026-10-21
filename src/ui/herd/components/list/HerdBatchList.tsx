@@ -18,6 +18,7 @@ import HerdBatchRow from './HerdBatchRow';
 import { BatchWeighingDialog } from '@/ui/weighing/components/batch-weighing/BatchWeighingDialog';
 import ConsumptionDialog from '@/ui/stock/components/consumption/ConsumptionDialog';
 import HerdUnassignedRow from './HerdUnassignedRow';
+import TagCalvesDialog from '../tag-calves/TagCalvesDialog';
 import HerdKpiStrip from './HerdKpiStrip';
 import HerdCaravanDialogs from '../shared/HerdCaravanDialogs';
 import HerdBatchListSkeleton from './HerdBatchListSkeleton';
@@ -41,6 +42,7 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 	const [serviceFor, setServiceFor] = useState<Batch | null>(null);
 	const [weighing, setWeighing] = useState<Batch | null>(null);
 	const [consumingIn, setConsumingIn] = useState<Batch | null>(null);
+	const [taggingIn, setTaggingIn] = useState<Batch | null>(null);
 	const [openServiceOrderId, setOpenServiceOrderId] = useState<number | null>(null);
 
 	const { data: batches, isLoading, isError } = useBatches(undefined, undefined, 'own');
@@ -123,6 +125,7 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 								onAddCaravans={setAddingTo}
 								onWeighBatch={setWeighing}
 								onConsume={setConsumingIn}
+								onTagCalves={setTaggingIn}
 								onStartService={setServiceFor}
 								onOpenServiceOrder={setOpenServiceOrderId}
 							/>
@@ -163,6 +166,13 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 					open
 					onClose={() => setConsumingIn(null)}
 					batch={consumingIn}
+				/>
+			)}
+			{taggingIn && (
+				<TagCalvesDialog
+					open
+					onClose={() => setTaggingIn(null)}
+					batch={taggingIn}
 				/>
 			)}
 			{serviceFor && (

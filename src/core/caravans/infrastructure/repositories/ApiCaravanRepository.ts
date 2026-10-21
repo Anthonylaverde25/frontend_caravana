@@ -2,6 +2,8 @@ import { CaravanWeightRecord, RecordCaravanWeightPayload } from '@/core/weighing
 import axiosInstance from '@/utils/axios';
 import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../../domain/entities/Caravan';
 import { CaravanSummaryPage, CaravanSummaryQuery } from '../../domain/entities/CaravanSummary';
+import { TagCalvesPayload, UntaggedCalf } from '../../domain/entities/UntaggedCalf';
+import { DeathBatchOption, DeathCause, RegisterDeathPayload } from '../../domain/entities/Death';
 import { ICaravanRepository } from '../../domain/repositories/ICaravanRepository';
 import { CaravanMapper } from '../mappers/CaravanMapper';
 
@@ -100,5 +102,28 @@ export class ApiCaravanRepository implements ICaravanRepository {
         total: (response.data.data || []).length,
       },
     };
+  }
+
+  async listUntaggedCalves(batchId: number): Promise<UntaggedCalf[]> {
+    const response = await axiosInstance.get<{ data: UntaggedCalf[] }>(`/batches/${batchId}/untagged-calves`);
+    return response.data.data;
+  }
+
+  async tagCalves(payload: TagCalvesPayload): Promise<void> {
+    await axiosInstance.post('/caravans/tag', payload);
+  }
+
+  async listDeathCauses(): Promise<DeathCause[]> {
+    const response = await axiosInstance.get<{ data: DeathCause[] }>('/death-causes');
+    return response.data.data;
+  }
+
+  async listDeathBatches(): Promise<DeathBatchOption[]> {
+    const response = await axiosInstance.get<{ data: DeathBatchOption[] }>('/death-batches');
+    return response.data.data;
+  }
+
+  async registerDeath(payload: RegisterDeathPayload): Promise<void> {
+    await axiosInstance.post('/caravans/deaths', payload);
   }
 }

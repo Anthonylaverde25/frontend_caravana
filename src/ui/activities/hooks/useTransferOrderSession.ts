@@ -14,6 +14,7 @@ import {
 } from '@/features/transfer-orders/hooks/useTransferOrderMutations';
 import type { EmitTransferOrderPayload, TransferOrder } from '@/features/transfer-orders/types';
 import { signatureOfOrder, signatureOfPayload } from './useTransferOrderDraft';
+import { useSeparationWeaning } from '@/ui/weaning-orders/components/separation/useSeparationWeaning';
 
 /** Runs a mutation, answering null on failure: the mutation already told the user why. */
 const run = async <T,>(action: () => Promise<T>): Promise<T | null> => {
@@ -66,6 +67,7 @@ export function useTransferOrderSession(
   const cancelMutation = useCancelTransferOrder();
   const closeMutation = useCloseIncompleteTransferOrder();
   const executeMutation = useExecuteTransferOrder();
+  const askWeaning = useSeparationWeaning();
 
   /** Seeds the detail cache so the band shows at once, without refilling the screen from it. */
   const adopt = useCallback(
@@ -146,9 +148,22 @@ export function useTransferOrderSession(
   );
 
   const execute = useCallback(
-    async (body?: ExecuteTransferOrderBody): Promise<boolean> =>
-      order ? (await run(() => executeMutation.mutateAsync({ id: order.id, body }))) != null : false,
-    [order, executeMutation]
+    async (body?: ExecuteTransferOrderBody): Promise<boolean> => {
+      if (!order) return false;
+
+      try {
+        await executeMutation.mutateAsync({ id: order.id, body });
+        return true;
+      } catch (error) {
+        // Parting mothers from their calves weans the calves: ask how, and execute again.
+        const weaningType = await askWeaning(error);
+
+        return weaningType
+          ? (await run(() => executeMutation.mutateAsync({ id: order.id, body: { ...body, weaning_type: weaningType } }))) != null
+          : false;
+      }
+    },
+    [order, executeMutation, askWeaning]
   );
 
   const shouldHydrate = useCallback(

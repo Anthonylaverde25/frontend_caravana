@@ -33,11 +33,14 @@ export function HerdBatchKpiGrid({ batch, overview }: HerdBatchKpiGridProps) {
 				label="Cabezas"
 				value={batch.head_count}
 				hint={
-					batch.pending_identification_count > 0
-						? `${batch.pending_identification_count} por identificar`
-						: `${caravans} caravanas`
+					[
+						batch.pending_identification_count > 0 && `${batch.pending_identification_count} por identificar`,
+						batch.untagged_calf_count > 0 && `${batch.untagged_calf_count} sin caravana`
+					]
+						.filter(Boolean)
+						.join(' · ') || `${caravans} caravanas`
 				}
-				tone={batch.pending_identification_count > 0 ? 'warning' : 'default'}
+				tone={batch.pending_identification_count > 0 || batch.untagged_calf_count > 0 ? 'warning' : 'default'}
 			/>
 			<HerdKpiCard
 				label="Machos / Hembras"

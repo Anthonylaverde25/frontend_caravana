@@ -4,6 +4,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { BirthHistoryRecord } from '@/features/gestation/hooks/useBirthHistory';
 import { useCalvesByBatch } from './useCalvesByBatch';
 import WeaningCalvesGrid from './WeaningCalvesGrid';
+import WeaningUntaggedCalvesNotice from './WeaningUntaggedCalvesNotice';
 
 type Height = number | string | Partial<Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', number | string>>;
 
@@ -199,6 +200,8 @@ export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelector
           {shownChosen} de {shownIds.length} visibles en grilla
         </Typography>
       </Stack>
+
+      <WeaningUntaggedCalvesNotice groups={groups} />
 
       <WeaningCalvesGrid
         groups={shown}

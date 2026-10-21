@@ -19,6 +19,7 @@ interface HerdCaravanTableRowProps {
 	onEdit?: (caravan: CaravanSummary) => void;
 	onWeigh?: (caravan: CaravanSummary) => void;
 	onBreeding?: (caravan: CaravanSummary) => void;
+	onDeath?: (caravan: CaravanSummary) => void;
 }
 
 /** One caravan of the herd table: identity, reproductive state, weight and row actions. */
@@ -33,7 +34,8 @@ export function HerdCaravanTableRow({
 	onView,
 	onEdit,
 	onWeigh,
-	onBreeding
+	onBreeding,
+	onDeath
 }: HerdCaravanTableRowProps) {
 	const gestation = gestationLabel(caravan.gestation_status);
 
@@ -67,8 +69,25 @@ export function HerdCaravanTableRow({
 						'&:hover': { textDecoration: 'underline' }
 					}}
 				>
-					#{caravan.identification}
+					{caravan.is_tagged ? `#${caravan.identification}` : caravan.label}
 				</Typography>
+				{caravan.is_dead && caravan.death && (
+					<Chip
+						size="small"
+						label={`Muerto · ${formatDate(caravan.death.date)}${caravan.death.cause ? ` · ${caravan.death.cause}` : ''}`}
+						variant="outlined"
+						sx={{ ...compactChipSx, mt: 0.25, color: 'text.secondary' }}
+					/>
+				)}
+				{!caravan.is_tagged && !caravan.is_dead && (
+					<Chip
+						size="small"
+						label="Sin caravana"
+						color="warning"
+						variant="outlined"
+						sx={{ ...compactChipSx, mt: 0.25 }}
+					/>
+				)}
 			</TableCell>
 			<TableCell sx={cellSx}>
 				<Chip
@@ -138,7 +157,7 @@ export function HerdCaravanTableRow({
 						<FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
 					</IconButton>
 				</Tooltip>
-				{onEdit && (
+				{onEdit && !caravan.is_dead && (
 					<Tooltip title="Editar">
 						<IconButton
 							size="small"
@@ -149,7 +168,7 @@ export function HerdCaravanTableRow({
 						</IconButton>
 					</Tooltip>
 				)}
-				{onWeigh && (
+				{onWeigh && !caravan.is_dead && (
 					<Tooltip title="Pesar">
 						<IconButton
 							size="small"
@@ -161,7 +180,18 @@ export function HerdCaravanTableRow({
 						</IconButton>
 					</Tooltip>
 				)}
-				{onBreeding && caravan.reproductive_status !== 'NOT_APPLICABLE' && (
+				{onDeath && !caravan.is_dead && (
+					<Tooltip title="Registrar muerte">
+						<IconButton
+							size="small"
+							onClick={() => onDeath(caravan)}
+							sx={{ height: 28, width: 28, color: 'text.secondary' }}
+						>
+							<FuseSvgIcon size={18}>heroicons-outline:x-circle</FuseSvgIcon>
+						</IconButton>
+					</Tooltip>
+				)}
+				{onBreeding && !caravan.is_dead && caravan.reproductive_status !== 'NOT_APPLICABLE' && (
 					<Tooltip title="Aptitud reproductiva">
 						<IconButton
 							size="small"

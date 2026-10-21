@@ -87,4 +87,16 @@ export const QUICK_ACTIONS_REGISTRY: HeaderQuickAction[] = [
     color: '#f59e0b',
     shortcut: 'M',
   },
+
+  // ── Sistema & Configuración ───────────────────────────
+  {
+    id: 'qa-settings',
+    category: 'Sistema',
+    title: 'Configuración General',
+    subtitle: 'Parámetros, zootecnia y empresa',
+    icon: 'heroicons-outline:cog-6-tooth',
+    route: '/settings',
+    color: '#64748b',
+    shortcut: 'S',
+  },
 ];

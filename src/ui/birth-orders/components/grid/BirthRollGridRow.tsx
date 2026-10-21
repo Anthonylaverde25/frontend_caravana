@@ -82,7 +82,7 @@ export const BirthRollGridRow: React.FC<BirthRollGridRowProps> = ({ index, femal
         />
       </TableCell>
 
-      <TableCell sx={cellSx}>{text('calfIdentification', { placeholder: live ? 'Caravana cría' : '' })}</TableCell>
+      <TableCell sx={cellSx}>{text('calfIdentification', { placeholder: live ? 'Caravana (opcional)' : '' })}</TableCell>
 
       <TableCell sx={cellSx}>
         <TextField

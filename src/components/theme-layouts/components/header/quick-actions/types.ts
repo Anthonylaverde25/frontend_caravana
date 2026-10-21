@@ -1,4 +1,4 @@
-export type QuickActionCategory = 'Hacienda' | 'Digitalización' | 'Reproducción' | 'Movimientos';
+export type QuickActionCategory = 'Hacienda' | 'Digitalización' | 'Reproducción' | 'Movimientos' | 'Sistema';
 
 export interface HeaderQuickAction {
   id: string;

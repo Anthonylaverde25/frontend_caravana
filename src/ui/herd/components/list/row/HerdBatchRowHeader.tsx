@@ -132,6 +132,15 @@ export function HerdBatchRowHeader({ batch, expanded, onToggle }: HerdBatchRowHe
 							sx={compactChipSx}
 						/>
 					)}
+					{batch.untagged_calf_count > 0 && (
+						<Chip
+							label={`${batch.untagged_calf_count} sin caravana`}
+							size="small"
+							color="warning"
+							variant="outlined"
+							sx={compactChipSx}
+						/>
+					)}
 					{inTransit > 0 && (
 						<Chip
 							label={`+${inTransit} en tránsito`}

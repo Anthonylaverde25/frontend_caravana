@@ -83,7 +83,8 @@ class FuseSettingsProvider extends Component<FuseSettingsProviderProps, FuseSett
 		this.setState((prevState) => {
 			return {
 				...prevState,
-				defaults: newDefaults
+				defaults: newDefaults,
+				data: newDefaults
 			};
 		});
 

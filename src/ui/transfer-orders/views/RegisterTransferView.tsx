@@ -24,6 +24,7 @@ import { describeChanges } from '../components/register/registerFieldData';
 import ConfirmRegisterTransferDialog, {
   RegisterTransferSummary
 } from '../components/register/ConfirmRegisterTransferDialog';
+import { useSeparationWeaning } from '@/ui/weaning-orders/components/separation/useSeparationWeaning';
 
 /**
  * "Registrar transferencia": the animals already moved in the field, and the system learns it
@@ -38,6 +39,7 @@ export const RegisterTransferView: React.FC = () => {
   const { sourceActivities, destinationActivities } = useTransferOrderFormOptions();
   const form = useRegisterTransferForm();
   const register = useRegisterTransfer();
+  const askWeaning = useSeparationWeaning();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const destinationActivityId = form.destinationActivityId === '' ? null : form.destinationActivityId;
   const baseEditor = useRegisterFieldEditor(
@@ -104,14 +106,25 @@ export const RegisterTransferView: React.FC = () => {
 
     const sentIds = form.payload.animals.map((animal) => animal.caravan_id);
 
-    register.mutate(form.payload, {
-      onSuccess: ({ order }) => {
-        setIsConfirmOpen(false);
-        navigate(`/transfer-orders?orderId=${order.id}`);
-      },
+    const payload = form.payload;
+    const onSuccess = ({ order }: { order: { id: number } }) => {
+      setIsConfirmOpen(false);
+      navigate(`/transfer-orders?orderId=${order.id}`);
+    };
+
+    register.mutate(payload, {
+      onSuccess,
       // A row the server refused goes back to its animal, and the screen stays as it was.
-      onError: (error) => {
+      onError: async (error) => {
         setIsConfirmOpen(false);
+
+        // Parting mothers from their calves weans the calves: ask how, and register again.
+        const weaningType = await askWeaning(error);
+        if (weaningType) {
+          register.mutate({ ...payload, weaning_type: weaningType }, { onSuccess });
+          return;
+        }
+
         form.fieldData.applyServerErrors(
           (error as { response?: { data?: Parameters<typeof form.fieldData.applyServerErrors>[0] } })?.response?.data,
           sentIds

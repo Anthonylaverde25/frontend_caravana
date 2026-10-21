@@ -25,6 +25,9 @@ export const Par01SuccessSummary: React.FC<{ result: BirthResult }> = ({ result 
         Se registraron <strong>{result.live_count}</strong> parto(s) con cría viva ({result.males_count} M · {result.females_count} H). Cada
         cría quedó en el lote de su madre.
         {result.already_registered_count > 0 ? ` ${result.already_registered_count} fila(s) ya estaban registradas y se saltearon.` : ''}
+        {(result.untagged_calves_count ?? 0) > 0
+          ? ` ${result.untagged_calves_count} cría(s) quedaron sin caravana: caravanealas desde el lote ("Caravanear crías").`
+          : ''}
       </Typography>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         <Figure label="V · Parió" value={result.live_count} tone="success.main" />

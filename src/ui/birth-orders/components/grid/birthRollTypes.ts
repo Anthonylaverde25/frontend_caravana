@@ -103,7 +103,6 @@ export const rowProblem = (value: BirthRollValue): string | null => {
   if (!isDeclared(value)) return null;
   if (!value.birthDate) return value.outcome === '' ? 'falta la fecha en que se constató que no parió' : 'falta la fecha';
   if (value.outcome !== 'LIVE') return null;
-  if (!value.calfIdentification.trim()) return 'falta la caravana de la cría';
   if (value.calfSex === '') return 'falta el sexo de la cría';
   if (value.calfWeight.trim() !== '' && !(Number(value.calfWeight) > 0)) return 'el peso tiene que ser mayor a cero';
 

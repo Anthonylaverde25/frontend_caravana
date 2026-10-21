@@ -106,7 +106,8 @@ export interface Dest01Metadata {
  * on the sheet (or from the order); `touched` stops re-proposing once the operator has chosen.
  */
 export interface Dest01BatchTarget {
-  mode: 'existing' | 'new';
+  /** stay: the calves are weaned where they are, no batch named or created. */
+  mode: 'existing' | 'new' | 'stay';
   batchId: number | null;
   name: string;
   /** Only for a new batch: corral, pasture, or not answered yet. */

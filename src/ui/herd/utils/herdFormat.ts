@@ -22,7 +22,8 @@ export function herdBatchPath(
 ): string {
 	if (!caravan) return `/herd/batches/${batchId}`;
 
-	const params = new URLSearchParams({ caravan: String(caravan.id), q: caravan.identification });
+	// An untagged calf has no tag to filter by: the highlighted row is enough.
+	const params = new URLSearchParams({ caravan: String(caravan.id), q: caravan.identification ?? '' });
 	return `/herd/batches/${batchId}?${params.toString()}`;
 }
 

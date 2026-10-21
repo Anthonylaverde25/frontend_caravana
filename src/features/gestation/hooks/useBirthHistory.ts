@@ -8,7 +8,13 @@ export interface BirthHistoryRecord {
   birth_date: string;
   notes: string | null;
   calf_id: number;
-  calf_identification: string;
+  /** Null while the calf waits for its tag. */
+  calf_identification: string | null;
+  /** The tag, or "Cría de 4521 ♀" while it has none. */
+  calf_label: string;
+  calf_is_tagged: boolean;
+  /** The day the calf died after being born, when it did. */
+  calf_death_date: string | null;
   is_nursing: boolean;
   calf_sex: string | null;
   calf_batch_name: string | null;

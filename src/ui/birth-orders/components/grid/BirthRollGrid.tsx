@@ -26,7 +26,7 @@ const today = (): string => new Date().toISOString().slice(0, 10);
 
 const COLUMNS: { label: string; minWidth: number }[] = [
   { label: 'Resultado', minWidth: 190 },
-  { label: 'Caravana cría', minWidth: 140 },
+  { label: 'Caravana cría (opcional)', minWidth: 160 },
   { label: 'Sexo', minWidth: 100 },
   { label: 'Peso (kg)', minWidth: 90 },
   { label: 'Raza', minWidth: 140 },
@@ -58,7 +58,7 @@ export const BirthRollGrid: React.FC<BirthRollGridProps> = ({
   const [roundDate, setRoundDate] = useState(today());
 
   const males = useMemo(
-    () => caravans.filter((c) => c.sex === 'M').map((c) => ({ id: c.id, identification: c.identification })),
+    () => caravans.filter((c) => c.sex === 'M' && c.isTagged()).map((c) => ({ id: c.id, identification: c.identification })),
     [caravans]
   );
   const breedOptions = useMemo(() => breeds.map((b) => ({ id: Number(b.id), name: b.name, colors: b.colors ?? [] })), [breeds]);

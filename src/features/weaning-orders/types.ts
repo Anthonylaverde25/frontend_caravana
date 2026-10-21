@@ -60,6 +60,8 @@ export interface WeaningOrderDestination {
   target_batch_name: string | null;
   new_batch_name: string | null;
   is_confined: boolean | null;
+  /** The calves are weaned where they are: no batch is named or created. */
+  stays_in_place?: boolean;
   /** Management of the batch that will receive them: the new batch's, or the existing one's. */
   management_is_confined: boolean | null;
   resolved_batch_id: number | null;
@@ -150,6 +152,8 @@ export interface WeaningDestinationPayload {
   target_batch_id: number | null;
   new_batch_name: string | null;
   is_confined: boolean | null;
+  /** Weaned where they are. */
+  stays_in_place?: boolean;
 }
 
 /** POST /weaning-orders (and PUT on a draft). */
@@ -214,7 +218,8 @@ export interface WeaningResult {
   batch_id: number;
   batch_name: string;
   batch_created: boolean;
-  destinations: { batch_id: number; batch_name: string; created: boolean; count: number; average_weight: number | null }[];
+  /** batch_id null: the calves were weaned where they stood ("Quedan en su lote"). */
+  destinations: { batch_id: number | null; batch_name: string; created: boolean; count: number; average_weight: number | null }[];
   calves_count: number;
   males_count: number;
   females_count: number;

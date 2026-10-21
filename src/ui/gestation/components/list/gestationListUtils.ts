@@ -176,6 +176,10 @@ export function toCaravanSummary(caravan: Caravan): CaravanSummary {
 	return {
 		id: caravan.id,
 		identification: caravan.identification,
+		label: caravan.label,
+		is_tagged: caravan.isTagged(),
+		is_dead: caravan.isDead(),
+		death: caravan.death,
 		category: caravan.category,
 		category_id: caravan.category_id,
 		category_name: caravan.category_name ?? caravan.category,

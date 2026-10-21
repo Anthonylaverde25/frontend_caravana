@@ -20,6 +20,7 @@ interface HerdCaravanTableProps {
 	onEdit?: (caravan: CaravanSummary) => void;
 	onWeigh?: (caravan: CaravanSummary) => void;
 	onBreeding?: (caravan: CaravanSummary) => void;
+	onDeath?: (caravan: CaravanSummary) => void;
 	/** Row selection for bulk actions; the table is read-only without it. */
 	selectedIds?: number[];
 	onSelectionChange?: (ids: number[]) => void;
@@ -37,6 +38,7 @@ export function HerdCaravanTable({
 	onEdit,
 	onWeigh,
 	onBreeding,
+	onDeath,
 	selectedIds,
 	onSelectionChange
 }: HerdCaravanTableProps) {
@@ -139,6 +141,7 @@ export function HerdCaravanTable({
 								onEdit={onEdit}
 								onWeigh={onWeigh}
 								onBreeding={onBreeding}
+								onDeath={onDeath}
 							/>
 						);
 					})}

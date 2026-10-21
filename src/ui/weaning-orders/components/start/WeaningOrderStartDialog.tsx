@@ -38,6 +38,7 @@ import {
 import { filledInputProps, sectionTitleSx } from '../form/formStyles';
 import WeaningCalvesByBatchSelector from './WeaningCalvesByBatchSelector';
 import WeaningBatchSelectField, { WeaningBatchOption } from './WeaningBatchSelectField';
+import { STAY_IN_PLACE_ID, STAY_IN_PLACE_LABEL, weaningDestinationOptions } from './weaningDestinationOptions';
 
 /** The slide-up of the Material UI full-screen dialog. */
 const SlideUp = forwardRef(function SlideUp(props: TransitionProps & { children: React.ReactElement }, ref: React.Ref<unknown>) {
@@ -73,7 +74,8 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
   const barText = (contrast.enabled && contrast.headerBg && contrast.headerText) || 'common.white';
 
   const { data: births = [], isLoading } = useBirthHistory();
-  const { data: batches = [], isLoading: isLoadingBatches } = useBatches(undefined, 'WEANING');
+  // Every own batch: a weaning batch is recommended, not required.
+  const { data: batches = [], isLoading: isLoadingBatches } = useBatches(undefined, undefined, 'own');
   const [calfIds, setCalfIds] = useState<number[]>([]);
   const [destinationMode, setDestinationMode] = useState<WeaningDestinationMode>('single');
   const [batchIds, setBatchIds] = useState<number[]>([]);
@@ -90,20 +92,17 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
     const destinations = initial?.destinations ?? [];
     setCalfIds(initial?.calfIds ?? []);
     setDestinationMode(initial?.destinationMode ?? 'single');
-    setBatchIds(destinations.filter((d) => d.kind === 'existing' && d.batchId != null).map((d) => d.batchId as number));
+    setBatchIds([
+      ...(destinations.some((d) => d.kind === 'stay') ? [STAY_IN_PLACE_ID] : []),
+      ...destinations.filter((d) => d.kind === 'existing' && d.batchId != null).map((d) => d.batchId as number)
+    ]);
     setPendingNew(destinations.filter((d) => d.kind === 'new'));
     setHeader(initial?.header ?? emptyHeader());
     setCategoryMode(initial?.categoryMode ?? 'KEEP');
     setLotsAtChute(mode === 'order' && initial?.destinationMode === 'per_animal' && destinations.length === 0);
   }, [open]);
 
-  const weaningBatches = useMemo<WeaningBatchOption[]>(
-    () =>
-      batches
-        .filter((b) => b.is_active && b.batch_type_code === 'WEANING')
-        .map((b) => ({ id: Number(b.id), name: b.name, caravans_count: b.caravans_count, is_confined: b.is_confined })),
-    [batches]
-  );
+  const weaningBatches = useMemo<WeaningBatchOption[]>(() => weaningDestinationOptions(batches), [batches]);
 
 
   const setField = <K extends keyof WeaningFormHeader>(field: K, value: WeaningFormHeader[K]) =>
@@ -115,7 +114,7 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
 
   const problems: string[] = [];
   if (calfIds.length === 0) problems.push('Elegí al menos una cría.');
-  if (single && batchIds.length === 0 && !singleIsPending) problems.push('Elegí el lote de destete, o creá uno nuevo desde la lista.');
+  if (single && batchIds.length === 0 && !singleIsPending) problems.push('Elegí adónde van las crías: un lote o «Quedan en su lote».');
   if (!single && !atChute && batchIds.length + pendingNew.length === 0) problems.push('Elegí los lotes entre los que se reparten las crías.');
   if (!header.weaningDate) problems.push('Indicá la fecha del destete.');
   if (mode === 'register' && header.weaningDate > today()) problems.push('La fecha de un destete registrado no puede ser futura.');
@@ -123,9 +122,10 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
   /** The declared batches, keeping the key each one already had so calves keep their batch. */
   const destinations = (): DestinationDraft[] => {
     const previous = initial?.destinations ?? [];
-    const existing = batchIds.map(
-      (batchId) =>
-        previous.find((d) => d.kind === 'existing' && d.batchId === batchId) ?? { ...newDestination(), kind: 'existing' as const, batchId }
+    const existing = batchIds.map((batchId) =>
+      batchId === STAY_IN_PLACE_ID
+        ? (previous.find((d) => d.kind === 'stay') ?? { ...newDestination(), kind: 'stay' as const, name: STAY_IN_PLACE_LABEL })
+        : (previous.find((d) => d.kind === 'existing' && d.batchId === batchId) ?? { ...newDestination(), kind: 'existing' as const, batchId })
     );
 
     if (single) return existing.length > 0 ? existing.slice(0, 1) : pendingNew.slice(0, 1);

@@ -9,6 +9,7 @@ import AddCaravansDialog from 'src/ui/batches/components/AddCaravansDialog';
 import StartBatchServiceDialog from 'src/ui/batches/components/dialogs/StartBatchServiceDialog';
 import BatchQuickTransferDialog from 'src/ui/batches/components/details/BatchQuickTransferDialog';
 import HerdBatchActions from '../components/detail/HerdBatchActions';
+import TagCalvesDialog from '../components/tag-calves/TagCalvesDialog';
 import { BatchWeighingDialog } from '@/ui/weighing/components/batch-weighing/BatchWeighingDialog';
 import HerdBatchKpiGrid from '../components/detail/HerdBatchKpiGrid';
 import HerdBatchAlerts from '../components/detail/HerdBatchAlerts';
@@ -22,7 +23,7 @@ import { useHerdCaravanDialogs } from '../hooks/useHerdCaravanDialogs';
 import { UNASSIGNED_BATCH } from '../utils/herdFormat';
 import { useCompany } from '@/contexts/CompanyContext';
 
-type BatchDialog = 'add' | 'transfer' | 'weigh' | 'service' | 'consume' | null;
+type BatchDialog = 'add' | 'transfer' | 'weigh' | 'service' | 'consume' | 'tag' | null;
 
 /**
  * The page of one batch: its figures, what needs attention, and all its caravans paginated.
@@ -123,6 +124,7 @@ function HerdBatchView() {
 					onWeighBatch={() => setOpenDialog('weigh')}
 					onConsume={() => setOpenDialog('consume')}
 					onStartService={() => setOpenDialog('service')}
+					onTagCalves={() => setOpenDialog('tag')}
 				/>
 			}
 		>
@@ -171,6 +173,13 @@ function HerdBatchView() {
 			)}
 			{openDialog === 'consume' && (
 				<ConsumptionDialog
+					open
+					onClose={() => setOpenDialog(null)}
+					batch={batch}
+				/>
+			)}
+			{openDialog === 'tag' && (
+				<TagCalvesDialog
 					open
 					onClose={() => setOpenDialog(null)}
 					batch={batch}

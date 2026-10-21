@@ -1,110 +1,154 @@
-import { useState, useMemo } from 'react';
-import {
-	Box,
-	Typography,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableRow,
-	Paper,
-	Chip,
-	Tooltip,
-	TextField,
-	CircularProgress,
-	useTheme,
-	Button,
-	Checkbox
-} from '@mui/material';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { useState, useMemo, useCallback } from 'react';
+import { Box, Typography, Paper, CircularProgress, Stack } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import { useNavigate } from 'react-router';
 import { useBirthHistory } from '@/features/gestation/hooks/useBirthHistory';
+import { BirthsViewMode, NursingStatusFilter, BirthBatchGroup } from '../components/births/birthsTypes';
+import BirthsFilterBar from '../components/births/BirthsFilterBar';
+import BirthsSelectionBanner from '../components/births/BirthsSelectionBanner';
+import BirthsBatchGroupCard from '../components/births/BirthsBatchGroupCard';
+import BirthsFlatTable from '../components/births/BirthsFlatTable';
 
-function GestationBirthsView() {
-	const theme = useTheme();
-	const isDark = theme.palette.mode === 'dark';
-
-	// Fetch birth history
+export default function GestationBirthsView() {
 	const { data: birthHistory = [], isLoading } = useBirthHistory();
-
-	// Search filter state
-	const [searchQuery, setSearchQuery] = useState('');
-
-	// Calves chosen to wean: they go to a weaning order, issued now or registered after the fact.
-	const [selectedCalfIds, setSelectedCalfIds] = useState<number[]>([]);
-
 	const navigate = useNavigate();
 
-	/** Every weaning has its order: ordered before the chute, or registered after it. The chosen
-	 * calves arrive ticked in the dialog that starts it. */
-	const goWean = (target: 'new' | 'register', calfIds: number[]) =>
-		navigate(`/weaning-orders/${target}`, { state: { calfIds } });
+	const [searchQuery, setSearchQuery] = useState('');
+	const [selectedBatchId, setSelectedBatchId] = useState<number | 'all'>('all');
+	const [nursingFilter, setNursingFilter] = useState<NursingStatusFilter>('all');
+	const [selectedCalfIds, setSelectedCalfIds] = useState<number[]>([]);
+	const [viewMode, setViewMode] = useState<BirthsViewMode>('hierarchy');
 
-	// Filter history records
-	const filteredHistory = useMemo(() => {
-		return birthHistory.filter((record) => {
-			const matchesMother = record.mother_identification.toLowerCase().includes(searchQuery.toLowerCase());
-			const matchesCalf = record.calf_identification.toLowerCase().includes(searchQuery.toLowerCase());
-			return matchesMother || matchesCalf;
+	const goWean = useCallback(
+		(target: 'new' | 'register', calfIds?: number[]) => {
+			const ids = calfIds ?? selectedCalfIds;
+			navigate(`/weaning-orders/${target}`, { state: { calfIds: ids } });
+		},
+		[navigate, selectedCalfIds]
+	);
+
+	// Compute available batch filter options from the full history
+	const batchOptions = useMemo(() => {
+		const map = new Map<number, { id: number; name: string; count: number }>();
+		birthHistory.forEach((r) => {
+			const bId = r.calf_batch_id ?? r.mother_batch_id ?? 0;
+			const bName = r.calf_batch_name ?? r.mother_batch_name ?? 'Sin Lote Asignado';
+			const existing = map.get(bId) || { id: bId, name: bName, count: 0 };
+			existing.count += 1;
+			map.set(bId, existing);
 		});
-	}, [birthHistory, searchQuery]);
+		return Array.from(map.values()).sort((a, b) => {
+			if (a.id === 0) return 1;
 
-	// Calves at foot not already held by an open order: the ones a new order can take.
+			if (b.id === 0) return -1;
+
+			return a.name.localeCompare(b.name);
+		});
+	}, [birthHistory]);
+
+	// Filter history records based on search, batch filter, and nursing status
+	const filteredHistory = useMemo(() => {
+		const term = searchQuery.trim().toLowerCase();
+		return birthHistory.filter((record) => {
+			const batchId = record.calf_batch_id ?? record.mother_batch_id ?? 0;
+
+			if (selectedBatchId !== 'all' && batchId !== selectedBatchId) return false;
+
+			if (nursingFilter === 'nursing' && !record.is_nursing) return false;
+
+			if (nursingFilter === 'weaned' && record.is_nursing) return false;
+
+			if (term !== '') {
+				const matchesMother = record.mother_identification.toLowerCase().includes(term);
+				const calfTag = (record.calf_identification ?? record.calf_label ?? '').toLowerCase();
+				const matchesCalf = calfTag.includes(term);
+				const matchesNotes = (record.notes ?? '').toLowerCase().includes(term);
+				const matchesBatch = (record.calf_batch_name ?? record.mother_batch_name ?? '')
+					.toLowerCase()
+					.includes(term);
+				return matchesMother || matchesCalf || matchesNotes || matchesBatch;
+			}
+
+			return true;
+		});
+	}, [birthHistory, searchQuery, selectedBatchId, nursingFilter]);
+
+	// Calves at foot without an open order that can be selected for weaning
 	const eligibleCalves = useMemo(() => {
-		return filteredHistory.filter((record) => record.is_nursing && !record.open_order_code);
+		return filteredHistory.filter((r) => r.is_nursing && !r.open_order_code);
 	}, [filteredHistory]);
 
-	// Handlers for selection
-	const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
-		if (event.target.checked) {
-			const activeIds = eligibleCalves.map((c) => c.calf_id);
-			setSelectedCalfIds(activeIds);
-		} else {
-			setSelectedCalfIds([]);
-		}
-	};
+	const allEligibleIds = useMemo(() => eligibleCalves.map((c) => c.calf_id), [eligibleCalves]);
 
-	const handleSelectOne = (calfId: number) => {
-		setSelectedCalfIds((prev) => {
-			if (prev.includes(calfId)) {
-				return prev.filter((id) => id !== calfId);
+	// Group filtered records into batches for hierarchy view mode
+	const batchGroups = useMemo<BirthBatchGroup[]>(() => {
+		const map = new Map<number, BirthBatchGroup>();
+		filteredHistory.forEach((r) => {
+			const bId = r.calf_batch_id ?? r.mother_batch_id ?? 0;
+			const bName = r.calf_batch_name ?? r.mother_batch_name ?? 'Sin Lote Asignado';
+
+			if (!map.has(bId)) {
+				map.set(bId, {
+					batchId: bId,
+					batchName: bName,
+					records: [],
+					totalBirths: 0,
+					nursingCount: 0,
+					weanedCount: 0,
+					eligibleCalfIds: []
+				});
+			}
+
+			const group = map.get(bId)!;
+			group.records.push(r);
+			group.totalBirths += 1;
+
+			if (r.is_nursing) {
+				group.nursingCount += 1;
+
+				if (!r.open_order_code) {
+					group.eligibleCalfIds.push(r.calf_id);
+				}
 			} else {
-				return [...prev, calfId];
+				group.weanedCount += 1;
 			}
 		});
-	};
 
-	const headerBg = isDark ? theme.palette.background.default : '#f8f9fa';
-	const zebraBg = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.015)';
+		return Array.from(map.values()).sort((a, b) => {
+			if (a.batchId === 0) return 1;
 
-	const cellStyle = {
-		px: 2,
-		py: 1.5,
-		borderRight: '1px solid',
-		borderBottom: '1px solid',
-		borderColor: theme.palette.divider,
-		fontSize: '0.85rem',
-		borderRadius: 0,
-		'&:last-child': { borderRight: 0 }
-	};
+			if (b.batchId === 0) return -1;
 
-	const tableHeaderStyle = {
-		px: 2,
-		py: 1.75,
-		borderRight: '1px solid',
-		borderBottom: '2px solid',
-		borderColor: theme.palette.divider,
-		fontSize: '0.8rem',
-		fontWeight: 800,
-		color: theme.palette.text.primary,
-		backgroundColor: headerBg,
-		textTransform: 'uppercase',
-		letterSpacing: '0.5px',
-		borderRadius: 0,
-		'&:last-child': { borderRight: 0 }
-	};
+			return a.batchName.localeCompare(b.batchName);
+		});
+	}, [filteredHistory]);
+
+	// Selection handlers
+	const handleToggleSelectOne = useCallback((calfId: number) => {
+		setSelectedCalfIds((prev) => (prev.includes(calfId) ? prev.filter((id) => id !== calfId) : [...prev, calfId]));
+	}, []);
+
+	const handleToggleGroup = useCallback((groupIds: number[]) => {
+		if (groupIds.length === 0) return;
+
+		setSelectedCalfIds((prev) => {
+			const areAllPresent = groupIds.every((id) => prev.includes(id));
+
+			if (areAllPresent) {
+				return prev.filter((id) => !groupIds.includes(id));
+			}
+
+			return Array.from(new Set([...prev, ...groupIds]));
+		});
+	}, []);
+
+	const handleToggleSelectAll = useCallback(() => {
+		if (selectedCalfIds.length === allEligibleIds.length && allEligibleIds.length > 0) {
+			setSelectedCalfIds([]);
+		} else {
+			setSelectedCalfIds(allEligibleIds);
+		}
+	}, [selectedCalfIds, allEligibleIds]);
 
 	if (isLoading) {
 		return (
@@ -145,267 +189,71 @@ function GestationBirthsView() {
 			backUrl="/gestation"
 			backTitle="Volver al Dashboard"
 		>
-			<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-				{/* Top Controls Area */}
-				<Box
-					sx={{
-						display: 'flex',
-						justifyContent: 'space-between',
-						alignItems: 'center',
-						flexWrap: 'wrap',
-						gap: 2
-					}}
-				>
-					{/* Search Bar */}
-					<TextField
-						size="small"
-						variant="outlined"
-						placeholder="Buscar por caravana de madre o cría..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						sx={{
-							width: { xs: '100%', sm: 360 },
-							'& .MuiOutlinedInput-root': {
-								borderRadius: '8px',
-								bgcolor: 'background.paper'
-							}
-						}}
-						InputProps={{
-							startAdornment: (
-								<Box sx={{ color: 'text.disabled', mr: 1, display: 'flex', alignItems: 'center' }}>
-									<FuseSvgIcon size={16}>heroicons-outline:magnifying-glass</FuseSvgIcon>
-								</Box>
-							)
-						}}
+			<Stack spacing={2.5}>
+				<BirthsFilterBar
+					searchQuery={searchQuery}
+					onSearchChange={setSearchQuery}
+					selectedBatchId={selectedBatchId}
+					onBatchChange={setSelectedBatchId}
+					batchOptions={batchOptions}
+					nursingFilter={nursingFilter}
+					onNursingFilterChange={setNursingFilter}
+					viewMode={viewMode}
+					onToggleViewMode={() => setViewMode((prev) => (prev === 'flat' ? 'hierarchy' : 'flat'))}
+					isAllSelected={allEligibleIds.length > 0 && selectedCalfIds.length === allEligibleIds.length}
+					onToggleSelectAll={handleToggleSelectAll}
+					hasEligibleItems={allEligibleIds.length > 0}
+				/>
+
+				<BirthsSelectionBanner
+					selectedCount={selectedCalfIds.length}
+					onWean={goWean}
+					onClearSelection={() => setSelectedCalfIds([])}
+				/>
+
+				{filteredHistory.length === 0 ? (
+					<Paper sx={{ p: 6, textAlign: 'center', border: 1, borderColor: 'divider', borderRadius: '8px' }}>
+						<Typography
+							variant="h6"
+							color="text.secondary"
+							gutterBottom
+						>
+							No se encontraron registros de partos.
+						</Typography>
+						<Typography
+							variant="body2"
+							color="text.secondary"
+						>
+							{searchQuery || selectedBatchId !== 'all' || nursingFilter !== 'all'
+								? 'Pruebe ajustando los criterios de búsqueda o los filtros de lote/estado.'
+								: 'No se han registrado partos exitosos en el establecimiento aún.'}
+						</Typography>
+					</Paper>
+				) : viewMode === 'hierarchy' ? (
+					<Stack spacing={2.5}>
+						{batchGroups.map((group) => (
+							<BirthsBatchGroupCard
+								key={group.batchId}
+								group={group}
+								selectedCalfIds={selectedCalfIds}
+								defaultExpanded={true}
+								onToggleSelect={handleToggleSelectOne}
+								onToggleGroup={handleToggleGroup}
+								onWean={goWean}
+							/>
+						))}
+					</Stack>
+				) : (
+					<BirthsFlatTable
+						records={filteredHistory}
+						eligibleCalves={eligibleCalves}
+						selectedCalfIds={selectedCalfIds}
+						onToggleSelect={handleToggleSelectOne}
+						onToggleSelectAll={handleToggleSelectAll}
+						onWean={goWean}
 					/>
-
-					{/* Weaning of the chosen calves: an order to fulfil at the chute, or one already done */}
-					{selectedCalfIds.length > 0 && (
-						<Box sx={{ display: 'flex', gap: 1 }}>
-							<Button
-								variant="outlined"
-								onClick={() => goWean('register', selectedCalfIds)}
-								startIcon={<FuseSvgIcon size={16}>heroicons-outline:clipboard-document-check</FuseSvgIcon>}
-								sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
-							>
-								Registrar destete ({selectedCalfIds.length})
-							</Button>
-							<Button
-								variant="contained"
-								disableElevation
-								onClick={() => goWean('new', selectedCalfIds)}
-								startIcon={<FuseSvgIcon size={16}>heroicons-outline:document-plus</FuseSvgIcon>}
-								sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
-							>
-								Nueva orden de destete ({selectedCalfIds.length})
-							</Button>
-						</Box>
-					)}
-				</Box>
-
-				{/* Spreadsheet Table Container */}
-				<TableContainer
-					component={Paper}
-					elevation={0}
-					sx={{
-						borderRadius: '4px',
-						border: 1,
-						borderColor: theme.palette.divider,
-						overflow: 'hidden',
-						bgcolor: theme.palette.background.paper
-					}}
-				>
-					<Table
-						sx={{ minWidth: 650 }}
-						aria-label="birth history table"
-					>
-						<TableHead>
-							<TableRow>
-								{/* Selection Header */}
-								<TableCell sx={{ ...tableHeaderStyle, width: '48px', px: 1 }}>
-									<Checkbox
-										size="small"
-										indeterminate={
-											selectedCalfIds.length > 0 &&
-											selectedCalfIds.length < eligibleCalves.length
-										}
-										checked={
-											eligibleCalves.length > 0 &&
-											selectedCalfIds.length === eligibleCalves.length
-										}
-										onChange={handleSelectAll}
-										disabled={eligibleCalves.length === 0}
-									/>
-								</TableCell>
-								<TableCell sx={tableHeaderStyle}>Caravana Madre</TableCell>
-								<TableCell sx={tableHeaderStyle}>Fecha del Parto</TableCell>
-								<TableCell sx={tableHeaderStyle}>Caravana Cría</TableCell>
-								<TableCell sx={tableHeaderStyle}>Sexo</TableCell>
-								<TableCell sx={tableHeaderStyle}>Lote Actual</TableCell>
-								<TableCell sx={tableHeaderStyle}>Estado Lactancia</TableCell>
-								<TableCell sx={tableHeaderStyle}>Observaciones</TableCell>
-								<TableCell sx={{ ...tableHeaderStyle, textAlign: 'right' }}>Acciones</TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{filteredHistory.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={9}
-										align="center"
-										sx={{ py: 8, color: 'text.disabled', fontStyle: 'italic' }}
-									>
-										{searchQuery
-											? 'No se encontraron partos que coincidan con la búsqueda.'
-											: 'No se han registrado partos exitosos en el establecimiento aún.'}
-									</TableCell>
-								</TableRow>
-							) : (
-								filteredHistory.map((record) => {
-									const isSelected = selectedCalfIds.includes(record.calf_id);
-									return (
-										<TableRow
-											key={record.gestation_id}
-											sx={{
-												backgroundColor: isSelected
-													? isDark
-														? 'rgba(237, 108, 2, 0.08)'
-														: 'rgba(255, 152, 0, 0.04)'
-													: 'transparent',
-												'&:nth-of-type(even)': {
-													bgcolor: isSelected
-														? isDark
-															? 'rgba(237, 108, 2, 0.12)'
-															: 'rgba(255, 152, 0, 0.08)'
-														: zebraBg
-												},
-												'&:hover': {
-													backgroundColor: isDark
-														? 'rgba(255, 255, 255, 0.05)'
-														: 'rgba(0, 0, 0, 0.025)'
-												}
-											}}
-										>
-											{/* Row Checkbox */}
-											<TableCell sx={{ ...cellStyle, px: 1 }}>
-												<Checkbox
-													size="small"
-													checked={isSelected}
-													disabled={!record.is_nursing || Boolean(record.open_order_code)}
-													onChange={() => handleSelectOne(record.calf_id)}
-												/>
-											</TableCell>
-											<TableCell sx={{ ...cellStyle, fontWeight: 700, fontFamily: 'monospace' }}>
-												{record.mother_identification}
-											</TableCell>
-											<TableCell sx={cellStyle}>{record.birth_date}</TableCell>
-											<TableCell sx={{ ...cellStyle, fontFamily: 'monospace' }}>
-												{record.calf_identification}
-											</TableCell>
-											<TableCell sx={cellStyle}>
-												{record.calf_sex === 'M' ? 'Macho' : record.calf_sex === 'H' ? 'Hembra' : '-'}
-											</TableCell>
-											<TableCell sx={{ ...cellStyle, color: 'text.secondary' }}>
-												{record.calf_batch_name || 'Sin lote'}
-											</TableCell>
-											<TableCell sx={cellStyle}>
-												<Chip
-													label={record.is_nursing ? 'Al Pie / Lactando' : 'Destetado'}
-													size="small"
-													sx={{
-														fontWeight: 700,
-														fontSize: '0.72rem',
-														borderRadius: '2px',
-														height: 22,
-														bgcolor: record.is_nursing
-															? isDark
-																? 'rgba(16, 185, 129, 0.15)'
-																: '#eefbee'
-															: isDark
-																? 'rgba(255, 255, 255, 0.05)'
-																: '#f3f4f6',
-														color: record.is_nursing
-															? isDark
-																? '#4ade80'
-																: '#107e3e'
-															: isDark
-																? 'text.secondary'
-																: '#4b5563',
-														border: record.is_nursing
-															? isDark
-																? '1px solid rgba(74, 222, 128, 0.3)'
-																: '1px solid #107e3e'
-															: isDark
-																? '1px solid rgba(255, 255, 255, 0.1)'
-																: '1px solid #d1d5db'
-													}}
-												/>
-												{record.open_order_code && (
-													<Tooltip title="Comprometida en una orden abierta: se desteta con esa orden.">
-														<Chip
-															label={`En orden ${record.open_order_code}`}
-															size="small"
-															variant="outlined"
-															color="primary"
-															sx={{ ml: 0.75, fontWeight: 700, fontSize: '0.7rem', height: 22, fontFamily: 'monospace' }}
-														/>
-													</Tooltip>
-												)}
-											</TableCell>
-											<TableCell
-												sx={{
-													...cellStyle,
-													color: 'text.secondary',
-													fontStyle: record.notes ? 'normal' : 'italic'
-												}}
-											>
-												{record.notes || 'Sin observaciones'}
-											</TableCell>
-											<TableCell sx={{ ...cellStyle, textAlign: 'right' }}>
-												{record.is_nursing && !record.open_order_code ? (
-													<Tooltip title="Registrar el destete de esta cría (queda con su orden, ya ejecutada)">
-														<Button
-															size="small"
-															variant="outlined"
-															color="warning"
-															onClick={() => goWean('register', [record.calf_id])}
-															sx={{
-																borderRadius: 0,
-																textTransform: 'none',
-																fontWeight: 700,
-																fontSize: '0.75rem',
-																py: 0.5,
-																px: 2,
-																borderColor: 'warning.main'
-															}}
-														>
-															Registrar destete
-														</Button>
-													</Tooltip>
-												) : record.is_nursing ? (
-													<Typography variant="caption" color="primary" sx={{ fontWeight: 700, pr: 2, fontFamily: 'monospace' }}>
-														{record.open_order_code}
-													</Typography>
-												) : (
-													<Typography
-														variant="caption"
-														color="text.disabled"
-														sx={{ fontWeight: 600, pr: 2 }}
-													>
-														Proceso Finalizado
-													</Typography>
-												)}
-											</TableCell>
-										</TableRow>
-									);
-								})
-							)}
-						</TableBody>
-					</Table>
-				</TableContainer>
-			</Box>
+				)}
+			</Stack>
 		</ViewLayout>
 	);
 }
-
-export default GestationBirthsView;

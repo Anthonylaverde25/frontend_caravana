@@ -71,7 +71,7 @@ export const ScanDest01Table: React.FC<ScanDest01TableProps> = ({
   const currentCategoryByTag = useMemo(
     () =>
       new Map(
-        births.map((b) => [
+        births.filter((b) => b.calf_identification).map((b) => [
           b.calf_identification.trim().toUpperCase(),
           labelOfPair(categories, b.calf_category_id, b.calf_subcategory_id) ?? 'Sin categoría'
         ])

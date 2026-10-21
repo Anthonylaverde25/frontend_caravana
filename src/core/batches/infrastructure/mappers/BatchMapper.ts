@@ -36,6 +36,7 @@ export class BatchMapper {
       nursing_count: raw.nursing_count ?? null,
       nursing_weighed_count: raw.nursing_weighed_count ?? null,
       nursing_total_weight: raw.nursing_total_weight ?? null,
+      untagged_calf_count: raw.untagged_calf_count ?? 0,
       renspa: raw.renspa ?? null,
       age_in_months: raw.age_in_months,
       observaciones: raw.observaciones,

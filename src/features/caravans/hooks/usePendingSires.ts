@@ -4,6 +4,8 @@ import axiosInstance from '@/utils/axios';
 export interface PendingSireItem {
   calf_id: number;
   calf_identification: string;
+  /** The tag, or "Cría de 4521 ♀" while the calf waits for it. */
+  calf_label?: string;
   calf_sex: string | null;
   birth_date: string;
   days_without_sire: number;

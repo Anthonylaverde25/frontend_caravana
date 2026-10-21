@@ -2,7 +2,9 @@ import { ActivityBatch } from '@/core/activities/domain/entities/Activity';
 
 export interface TransferableCaravan {
 	id: number;
-	identification: string;
+	/** Null while a calf born here waits for its tag: it cannot be moved until it gets one. */
+	identification: string | null;
+	label?: string;
 	sex?: 'M' | 'H' | null;
 	current_weight?: number | null;
 	category_name?: string | null;

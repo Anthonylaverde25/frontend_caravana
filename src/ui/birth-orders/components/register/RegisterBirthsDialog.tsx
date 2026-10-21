@@ -46,6 +46,11 @@ export default function RegisterBirthsDialog({ batchId, onClose, onDone }: Regis
   const shown = useMemo(() => females.filter((f) => matchesSheetQuery(f, query, stated(f.caravanId))), [females, query, roll]);
   const counts: Record<BirthSheetFilter, number> = { pending: females.length - roll.resolved.length, stated: roll.resolved.length, all: females.length };
   const missingDates = roll.resolved.filter((f) => !roll.valueOf(f.caravanId).birthDate).length;
+  // A live calf without its tag is born anyway, named after its mother, and tagged later from the batch.
+  const untagged = roll.resolved.filter((f) => {
+    const value = roll.valueOf(f.caravanId);
+    return value.outcome === 'LIVE' && !value.calfIdentification.trim();
+  }).length;
   const { LIVE, STILLBORN, PERINATAL_DEATH } = roll.counts;
   const breakdown = [LIVE && `${LIVE} vivo(s)`, STILLBORN && `${STILLBORN} nació(eron) muerto(s)`, PERINATAL_DEATH && `${PERINATAL_DEATH} murió(eron) al pie`]
     .filter(Boolean)
@@ -93,7 +98,9 @@ export default function RegisterBirthsDialog({ batchId, onClose, onDone }: Regis
             />
             <Alert severity={submit.statedCount > 0 ? 'success' : 'info'} sx={{ borderRadius: '6px' }}>
               {submit.statedCount > 0
-                ? `${submit.statedCount} con resultado: ${breakdown}. ${counts.pending} quedan sin registrar.`
+                ? `${submit.statedCount} con resultado: ${breakdown}. ${counts.pending} quedan sin registrar.${
+                    untagged > 0 ? ` ${untagged} cría(s) quedan sin caravana: se caravanean después desde el lote.` : ''
+                  }`
                 : 'Marcá el resultado de cada vientre que parió.'}
             </Alert>
           </Stack>

@@ -42,16 +42,20 @@ export const WeaningOrderSummaryCard: React.FC<WeaningOrderSummaryCardProps> = (
   const batch = destination?.batchId != null ? batchesById.get(destination.batchId) : undefined;
 
   const destinationValue = single
-    ? destination?.kind === 'new'
-      ? destination.name
-      : (batch?.name ?? '—')
+    ? destination?.kind === 'stay'
+      ? 'Quedan en su lote'
+      : destination?.kind === 'new'
+        ? destination.name
+        : (batch?.name ?? '—')
     : form.activeDestinations.length === 0
       ? 'Un lote por cría · en la manga'
       : `Un lote por cría · ${form.activeDestinations.length} lote(s)`;
   const destinationHint = single
-    ? destination?.kind === 'new'
-      ? 'Se crea al destetar'
-      : `Manejo: ${managementLabel(batch?.is_confined)}`
+    ? destination?.kind === 'stay'
+      ? 'Se destetan sin moverlas de lote'
+      : destination?.kind === 'new'
+        ? 'Se crea al destetar'
+        : `Manejo: ${managementLabel(batch?.is_confined)}`
     : undefined;
 
   return (

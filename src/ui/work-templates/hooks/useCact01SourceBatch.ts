@@ -4,6 +4,7 @@ import axiosInstance from '@/utils/axios';
 import { useCompany } from '@/contexts/CompanyContext';
 import { normalizeDestinationKey } from './useCact01Pages';
 import type { Cact01PagesState } from './useCact01Pages';
+import { isTagged } from '@/core/caravans/domain/services/animalLabel';
 
 interface SourceBatchOption {
   id: number;
@@ -122,7 +123,7 @@ export function useCact01SourceBatch(pages: Cact01PagesState, options: SourceBat
     if (!isCurrentAnswer || !resolution) return;
 
     fillFromSystem(
-      Object.fromEntries(resolution.animals.map((animal) => [animal.identification.trim().toUpperCase(), animal]))
+      Object.fromEntries(resolution.animals.filter(isTagged).map((animal) => [animal.identification.trim().toUpperCase(), animal]))
     );
   }, [isCurrentAnswer, resolution, fillFromSystem]);
 

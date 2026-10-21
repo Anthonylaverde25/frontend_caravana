@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import type { Dest01Row } from '../components/scan/types';
+import { isTagged } from '@/core/caravans/domain/services/animalLabel';
 
 export interface Dest01SourceBatchShare {
   id: number;
@@ -46,7 +47,7 @@ export function useDest01SourceBatch(rows: Dest01Row[], writtenName: string): De
   const { data: caravans = [], isLoading } = useCaravans(activeCompanyId, 'own');
 
   const byTag = useMemo(
-    () => new Map(caravans.map((c) => [c.identification.trim().toUpperCase(), c])),
+    () => new Map(caravans.filter(isTagged).map((c) => [c.identification.trim().toUpperCase(), c])),
     [caravans]
   );
 
