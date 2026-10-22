@@ -4,14 +4,14 @@ import FuseSvgIcon from "@fuse/core/FuseSvgIcon";
 import { ContrastPreset, PRESETS } from "@/contexts/ContrastThemeContext";
 import { PresetCard, PresetItemData } from "./PresetCard";
 
-interface PresetCategory {
+export interface PresetCategory {
   id: string;
   name: string;
   icon: string;
   items: PresetItemData[];
 }
 
-const CATEGORIES: PresetCategory[] = [
+export const PRESET_CATEGORIES: PresetCategory[] = [
   {
     id: "agro",
     name: "Agro & Campo",
@@ -134,7 +134,7 @@ const CATEGORIES: PresetCategory[] = [
   },
 ];
 
-const DEFAULT_PRESET_ITEM: PresetItemData = {
+export const DEFAULT_PRESET_ITEM: PresetItemData = {
   id: "default",
   label: "Predeterminado del Sistema",
   subtitle: "Restablece el tema predeterminado original",
@@ -168,7 +168,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
       </Box>
 
       {/* Preset Categories */}
-      {CATEGORIES.map((cat) => (
+      {PRESET_CATEGORIES.map((cat) => (
         <Box key={cat.id}>
           <Box
             sx={{

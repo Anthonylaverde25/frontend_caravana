@@ -1,5 +1,5 @@
 import { SupplierMapper } from '@/core/suppliers/infrastructure/mappers/SupplierMapper';
-import { ProviderRecognition } from '../../domain/entities/ProviderRecognition';
+import { ProviderRecognition, ResolvedFiscalLine } from '../../domain/entities/ProviderRecognition';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export class ProviderRecognitionMapper {
@@ -21,7 +21,28 @@ export class ProviderRecognitionMapper {
 			receiver: raw.receiver ?? null,
 			receiverMismatch: Boolean(raw.receiver_mismatch),
 			companyCuit: raw.company_cuit ?? null,
-			companyCuitMissing: Boolean(raw.company_cuit_missing)
+			companyCuitMissing: Boolean(raw.company_cuit_missing),
+			lines: (raw.lines ?? []).map(ProviderRecognitionMapper.lineToDomain)
+		};
+	}
+
+	static lineToDomain(raw: any): ResolvedFiscalLine {
+		return {
+			position: raw.position,
+			code: raw.code ?? null,
+			description: raw.description,
+			quantity: raw.quantity ?? null,
+			unitPrice: raw.unit_price ?? null,
+			vatRateCode: raw.vat_rate_code ?? null,
+			vatTaxRateId: raw.vat_tax_rate_id ?? null,
+			resolution: {
+				source: raw.resolution?.source ?? 'NONE',
+				level: raw.resolution?.level ?? 'NONE',
+				itemId: raw.resolution?.item_id ?? null,
+				reason: raw.resolution?.reason ?? null,
+				suggestedItemId: raw.resolution?.suggested_item_id ?? null,
+				note: raw.resolution?.note ?? null
+			}
 		};
 	}
 }

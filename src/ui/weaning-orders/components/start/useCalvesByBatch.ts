@@ -13,13 +13,15 @@ export interface CalfBatchGroup {
   untagged: BirthHistoryRecord[];
 }
 
-const groupKey = (record: BirthHistoryRecord): string => (record.calf_batch_id != null ? `b${record.calf_batch_id}` : 'none');
+/** The batch a calf at foot is grouped under. */
+export const calfGroupKey = (record: BirthHistoryRecord): string => (record.calf_batch_id != null ? `b${record.calf_batch_id}` : 'none');
 
 /**
  * Calves at foot grouped by their current batch, so a whole batch can be chosen at once. Calves in
- * `excludeIds` (already on the order) are left out; calves held by an open order are only counted.
+ * `excludeIds` (already on the order) are left out; calves held by an open order are only counted —
+ * except by `heldBy`, the order being executed, whose calves are the ones offered.
  */
-export function useCalvesByBatch(births: BirthHistoryRecord[], excludeIds: number[] = []): CalfBatchGroup[] {
+export function useCalvesByBatch(births: BirthHistoryRecord[], excludeIds: number[] = [], heldBy: string | null = null): CalfBatchGroup[] {
   return useMemo(() => {
     const excluded = new Set(excludeIds);
     const groups = new Map<string, CalfBatchGroup>();
@@ -28,7 +30,7 @@ export function useCalvesByBatch(births: BirthHistoryRecord[], excludeIds: numbe
     births.forEach((record) => {
       if (!record.is_nursing || excluded.has(record.calf_id)) return;
 
-      const key = groupKey(record);
+      const key = calfGroupKey(record);
 
       if (!groups.has(key)) {
         groups.set(key, { key, batchId: record.calf_batch_id, name: record.calf_batch_name ?? 'Sin lote', calves: [], committed: [], untagged: [] });
@@ -37,7 +39,7 @@ export function useCalvesByBatch(births: BirthHistoryRecord[], excludeIds: numbe
 
       if (!record.calf_identification) {
         groups.get(key)!.untagged.push(record);
-      } else if (record.open_order_code) {
+      } else if (record.open_order_code && record.open_order_code !== heldBy) {
         const codes = committedByGroup.get(key)!;
         codes.set(record.open_order_code, (codes.get(record.open_order_code) ?? 0) + 1);
       } else {
@@ -52,5 +54,5 @@ export function useCalvesByBatch(births: BirthHistoryRecord[], excludeIds: numbe
         committed: [...committedByGroup.get(group.key)!.entries()].map(([code, count]) => ({ code, count }))
       }))
       .sort((a, b) => (a.batchId == null ? 1 : b.batchId == null ? -1 : a.name.localeCompare(b.name)));
-  }, [births, excludeIds]);
+  }, [births, excludeIds, heldBy]);
 }

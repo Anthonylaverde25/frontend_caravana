@@ -102,6 +102,7 @@ export const FiscalMapper = {
 				taxes: (l.taxes ?? []).map(tax),
 				deliveryNoteLineId: l.delivery_note_line_id ?? null,
 				deliveryNoteLabel: l.delivery_note_label ?? null,
+				sourceDescription: l.source_description ?? null,
 				unvaluedLot: l.unvalued_lot
 					? {
 							status: l.unvalued_lot.status,

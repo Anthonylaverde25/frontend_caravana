@@ -1,11 +1,20 @@
 import { Page, StockIncident } from '../entities/ItemDocument';
-import { BatchConsumptionHistory, ItemStockView, KardexFilters, KardexRow, Warehouse } from '../entities/ItemStock';
+import {
+	BatchConsumptionHistory,
+	ItemStockView,
+	KardexFilters,
+	KardexRow,
+	Warehouse,
+	WarehouseStockView
+} from '../entities/ItemStock';
 
 export interface IItemStockRepository {
 	findByItem(itemId: number): Promise<ItemStockView>;
 	kardex(itemId: number, filters: KardexFilters): Promise<Page<KardexRow>>;
 	setCriticalStock(itemId: number, warehouseId: number, level: string | null): Promise<ItemStockView>;
 	warehouses(): Promise<Warehouse[]>;
+	/** What one warehouse holds, item by item. */
+	warehouseStock(warehouseId: number): Promise<WarehouseStockView>;
 	nextWarehouseCode(): Promise<string>;
 	createWarehouse(code: string, name: string): Promise<Warehouse>;
 	updateWarehouse(id: number, code: string, name: string): Promise<Warehouse>;

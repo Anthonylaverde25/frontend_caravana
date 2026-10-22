@@ -93,6 +93,25 @@ export interface BatchConsumptionHistory {
  * A storage place of the company (D8). Provider papers always enter the default one (DD5); the
  * default is always active (DD3). Never deleted, only deactivated (DD4).
  */
+/** One item held by a warehouse (GET /warehouses/{id}/stock). */
+export interface WarehouseItemBalance {
+	itemId: number;
+	code: string;
+	name: string;
+	unitSymbol: string | null;
+	quantity: string;
+	unvaluedQuantity: string;
+	averageUnitCost: string;
+	value: string;
+	isNegative: boolean;
+	isBelowCritical: boolean;
+}
+
+export interface WarehouseStockView {
+	warehouse: Warehouse;
+	items: WarehouseItemBalance[];
+}
+
 export interface Warehouse {
 	id: number;
 	code: string;

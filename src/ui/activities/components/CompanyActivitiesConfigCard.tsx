@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -10,15 +9,11 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
-  Divider,
   alpha,
   Alert,
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useCompany } from '@/contexts/CompanyContext';
-import { useActivities } from '@/features/activities/hooks/useActivities';
-import { useUpdateCompanyActivitiesConfig } from '@/features/activities/hooks/useUpdateCompanyActivitiesConfig';
-import { Activity } from '@/core/activities/domain/entities/Activity';
+import { useCompanyActivitiesDraft } from './useCompanyActivitiesDraft';
 
 const STAGE_COLORS: Record<string, string> = {
   CRIA: '#10b981',
@@ -27,122 +22,23 @@ const STAGE_COLORS: Record<string, string> = {
   INTERNAL: '#64748b',
 };
 
-interface LocalActivityState {
-  id: number;
-  name: string;
-  code: string;
-  isEnabled: boolean;
-  isInitial: boolean;
-  isFinal: boolean;
-  sortOrder: number;
-}
-
 interface CompanyActivitiesConfigCardProps {
   onSuccess?: () => void;
   isModal?: boolean;
 }
 
 export default function CompanyActivitiesConfigCard({ onSuccess, isModal = false }: CompanyActivitiesConfigCardProps) {
-  const { activeCompanyId } = useCompany();
-  const { data: activities = [], isLoading } = useActivities(activeCompanyId);
-  const { mutate: updateConfig, isPending } = useUpdateCompanyActivitiesConfig();
-
-  const [items, setItems] = useState<LocalActivityState[]>([]);
-
-  useEffect(() => {
-    if (activities.length > 0) {
-      const mapped: LocalActivityState[] = [...activities]
-        .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
-        .map((a, index) => ({
-          id: a.id,
-          name: a.name,
-          code: a.code,
-          isEnabled: !!a.isEnabled,
-          isInitial: !!a.isInitial,
-          isFinal: !!a.isFinal,
-          sortOrder: a.sortOrder ?? index + 1,
-        }));
-      setItems(mapped);
-    }
-  }, [activities]);
-
-  const handleToggle = (id: number) => {
-    setItems((prev) => {
-      const updated = prev.map((item) => {
-        if (item.id !== id) return item;
-        const newEnabled = !item.isEnabled;
-        return {
-          ...item,
-          isEnabled: newEnabled,
-          isInitial: newEnabled ? item.isInitial : false,
-          isFinal: newEnabled ? item.isFinal : false,
-        };
-      });
-
-      // Validar que si queda 1 sola habilitada, sea initial y final
-      const enabled = updated.filter((i) => i.isEnabled);
-      if (enabled.length === 1) {
-        return updated.map((i) => (i.id === enabled[0].id ? { ...i, isInitial: true, isFinal: true } : i));
-      }
-      return updated;
-    });
-  };
-
-  const handleSetInitial = (id: number) => {
-    setItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        isInitial: item.id === id,
-      }))
-    );
-  };
-
-  const handleSetFinal = (id: number) => {
-    setItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        isFinal: item.id === id,
-      }))
-    );
-  };
-
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    setItems((prev) => {
-      const targetIndex = direction === 'up' ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
-
-      const copy = [...prev];
-      const temp = copy[index];
-      copy[index] = copy[targetIndex];
-      copy[targetIndex] = temp;
-
-      return copy.map((item, idx) => ({
-        ...item,
-        sortOrder: idx + 1,
-      }));
-    });
-  };
-
-  const handleSave = () => {
-    if (!activeCompanyId) return;
-
-    const payload = items.map((item, idx) => ({
-      activity_id: item.id,
-      is_enabled: item.isEnabled,
-      is_initial: item.isEnabled ? item.isInitial : false,
-      is_final: item.isEnabled ? item.isFinal : false,
-      sort_order: idx + 1,
-    }));
-
-    updateConfig(
-      { companyId: activeCompanyId, config: payload },
-      {
-        onSuccess: () => {
-          if (onSuccess) onSuccess();
-        },
-      }
-    );
-  };
+  const {
+    items,
+    pipeline: enabledPipeline,
+    isLoading,
+    isPending,
+    toggle: handleToggle,
+    setInitial: handleSetInitial,
+    setFinal: handleSetFinal,
+    move: handleMove,
+    save: handleSave,
+  } = useCompanyActivitiesDraft(onSuccess);
 
   if (isLoading) {
     return (
@@ -152,7 +48,6 @@ export default function CompanyActivitiesConfigCard({ onSuccess, isModal = false
     );
   }
 
-  const enabledPipeline = items.filter((i) => i.isEnabled);
   const hasNoEnabled = enabledPipeline.length === 0;
 
   return (

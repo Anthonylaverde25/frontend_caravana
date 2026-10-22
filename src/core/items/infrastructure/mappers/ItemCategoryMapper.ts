@@ -9,7 +9,8 @@ export const ItemCategoryMapper = {
 			parentId: raw.parent_id ?? null,
 			isActive: !!raw.is_active,
 			displayOrder: raw.display_order ?? 0,
-			itemsCount: raw.items_count ?? 0
+			itemsCount: raw.items_count ?? 0,
+			isSystem: !!raw.is_system
 		};
 	}
 };

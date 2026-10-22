@@ -22,6 +22,8 @@ export const stockKeys = {
 		['items', companyId, 'kardex', itemId, filters] as const,
 	incidents: (companyId: number | null) => ['stock-incidents', companyId] as const,
 	warehouses: (companyId: number | null) => ['warehouses', companyId] as const,
+	warehouseStock: (companyId: number | null, warehouseId: number) =>
+		['warehouses', companyId, 'stock', warehouseId] as const,
 	pendingDeliveryNotes: (companyId: number | null, providerId?: number) =>
 		['delivery-notes', companyId, 'pending', providerId ?? null] as const,
 	invoiceDraft: (companyId: number | null, ids: number[]) => ['delivery-notes', companyId, 'draft', ids] as const,

@@ -228,7 +228,7 @@ const navigationConfig: FuseNavItemType[] = [
 					},
 					{
 						id: 'gestation.births',
-						title: 'Partos',
+						title: 'Crías al Pie y Destete',
 						type: 'item',
 						icon: 'heroicons-outline:sparkles',
 						url: '/gestation/births'
@@ -239,13 +239,6 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:clipboard-document-list',
 						url: '/birth-orders'
-					},
-					{
-						id: 'gestation.weaning-orders',
-						title: 'Órdenes de Destete',
-						type: 'item',
-						icon: 'heroicons-outline:clipboard-document-check',
-						url: '/weaning-orders'
 					},
 					{
 						id: 'gestation.weaning-batches',
@@ -318,23 +311,8 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:arrows-up-down',
 				url: '/item-documents'
-			},
-			{
-				// Delivery D: the company's warehouses; provider papers always enter the default one (DD5).
-				id: 'supplies.warehouses',
-				title: 'Almacenes',
-				subtitle: 'Dónde se guarda el stock',
-				type: 'item',
-				icon: 'heroicons-outline:building-storefront',
-				url: '/warehouses'
-			},
-			{
-				id: 'supplies.item-settings',
-				title: 'Unidades y categorías',
-				type: 'item',
-				icon: 'heroicons-outline:adjustments-horizontal',
-				url: '/items/settings'
 			}
+			// Warehouses, units and item categories live in Settings (/settings, "Insumos").
 		]
 	},
 

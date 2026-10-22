@@ -71,4 +71,6 @@ export interface CaravanSummaryQuery {
 	sort?: CaravanSummarySort;
 	page?: number;
 	perPage?: number;
+	/** Only the caravans of one animal category. */
+	categoryId?: number;
 }

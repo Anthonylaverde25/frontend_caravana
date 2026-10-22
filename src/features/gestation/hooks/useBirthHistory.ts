@@ -26,6 +26,9 @@ export interface BirthHistoryRecord {
   mother_batch_name: string | null;
   /** The open order — of weaning or of transfer — that already holds this calf. */
   open_order_code: string | null;
+  /** The last weight taken after birth; null when the calf was only weighed at birth. */
+  calf_weight: number | null;
+  calf_weighing_date: string | null;
 }
 
 /**

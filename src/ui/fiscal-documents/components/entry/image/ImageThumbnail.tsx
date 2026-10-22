@@ -5,12 +5,16 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 interface ImageThumbnailProps {
 	url: string | null;
 	fileName: string;
+	size?: 'compact' | 'default';
 }
 
 /** The uploaded paper in small; a click shows it whole. A PDF shows its name only. */
-export default function ImageThumbnail({ url, fileName }: ImageThumbnailProps) {
+export default function ImageThumbnail({ url, fileName, size = 'default' }: ImageThumbnailProps) {
 	const [open, setOpen] = useState(false);
-	const frame = { width: 64, height: 84, flexShrink: 0, borderRadius: '4px', border: 1, borderColor: 'divider' };
+	const isCompact = size === 'compact';
+	const frame = isCompact
+		? { width: 30, height: 36, flexShrink: 0, borderRadius: '4px', border: 1, borderColor: 'divider' }
+		: { width: 64, height: 84, flexShrink: 0, borderRadius: '4px', border: 1, borderColor: 'divider' };
 
 	if (!url) {
 		return (
@@ -21,11 +25,16 @@ export default function ImageThumbnail({ url, fileName }: ImageThumbnailProps) {
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: 'center',
-						bgcolor: 'background.paper'
+						bgcolor: 'background.paper',
+						transition: 'transform 0.15s ease, border-color 0.15s ease',
+						'&:hover': {
+							borderColor: 'primary.main',
+							transform: isCompact ? 'scale(1.05)' : undefined
+						}
 					}}
 				>
 					<FuseSvgIcon
-						size={26}
+						size={isCompact ? 18 : 26}
 						sx={{ color: 'text.secondary' }}
 					>
 						heroicons-outline:document-text

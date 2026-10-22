@@ -85,6 +85,12 @@ export interface TransferOrderHistoryEntry {
     skipped?: number;
     movement_date?: string;
     weaning_date?: string;
+    /** A weaning order's deviation from its plan, recorded before the weaning. */
+    kind?: 'DEVIATION' | 'DEVIATION_REVIEWED';
+    /** A review: the deviations seen. */
+    items?: { identification: string | null; kind: string; kind_label: string; planned: string | null; actual: string | null }[];
+    destinations?: { caravan_id: number; identification: string | null; planned: string | null; actual: string | null }[];
+    weaning_type?: { planned: string | null; declared: string; head_count: number };
   } | null;
   created_at: string | null;
 }

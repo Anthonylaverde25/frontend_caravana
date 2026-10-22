@@ -8,7 +8,8 @@ const ANALYSIS_PROMPTS = [
 	'Peso promedio por categoría en un gráfico de barras',
 	'¿Cómo viene el peso de un lote? Mostrame la curva',
 	'Cabezas por categoría en una torta',
-	'Ranking de las 10 vaquillonas más pesadas'
+	'Valuación del inventario por depósito',
+	'¿Qué insumos tienen stock crítico o bajo?'
 ];
 
 interface CanvasEmptyStateProps {

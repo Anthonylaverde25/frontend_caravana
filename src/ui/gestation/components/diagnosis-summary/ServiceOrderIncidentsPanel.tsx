@@ -7,13 +7,15 @@ import { apiErrorData } from '@/ui/gestation/utils/apiError';
 interface ServiceOrderIncidentsPanelProps {
   orderId: number;
   incidents: ServiceOrderIncident[];
+  /** Shown outside the service screens (e.g. the assistant): the incidents are listed, not resolved. */
+  readOnly?: boolean;
 }
 
 /**
  * Non-blocking facts of the order (e.g. a female found pregnant after being moved out as empty).
  * They are settled with a note; a resolved one is never reopened.
  */
-export default function ServiceOrderIncidentsPanel({ orderId, incidents }: ServiceOrderIncidentsPanelProps) {
+export default function ServiceOrderIncidentsPanel({ orderId, incidents, readOnly = false }: ServiceOrderIncidentsPanelProps) {
   const { enqueueSnackbar } = useSnackbar();
   const { mutateAsync: resolve, isPending } = useResolveServiceOrderIncident();
   const [resolving, setResolving] = useState<number | null>(null);
@@ -51,7 +53,7 @@ export default function ServiceOrderIncidentsPanel({ orderId, incidents }: Servi
               Resolución: {incident.resolution}
             </Typography>
           )}
-          {incident.status === 'OPEN' && resolving !== incident.id && (
+          {!readOnly && incident.status === 'OPEN' && resolving !== incident.id && (
             <Button size="small" onClick={() => { setResolving(incident.id); setNote(''); }} sx={{ mt: 0.5, textTransform: 'none', fontWeight: 700 }}>
               Resolver
             </Button>

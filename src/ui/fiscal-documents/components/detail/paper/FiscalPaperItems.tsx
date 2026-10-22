@@ -35,7 +35,12 @@ export default function FiscalPaperItems({ document: d }: { document: FiscalDocu
 				{d.lines.map((line) => (
 					<tr key={line.id}>
 						<Box component="td" sx={{ ...tdSx, fontFamily: 'monospace', fontWeight: 600 }}>{line.item.code ?? '—'}</Box>
-						<Box component="td" sx={tdSx}>{line.item.name}</Box>
+						<Box component="td" sx={tdSx}>
+							{line.item.name}
+							{line.sourceDescription && line.sourceDescription !== line.item.name && (
+								<Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>En el papel: {line.sourceDescription}</Typography>
+							)}
+						</Box>
 						<Box component="td" sx={{ ...tdSx, ...right }}>{formatQuantity(line.inputQuantity, line.inputLabel ?? line.item.unitSymbol)}</Box>
 						{priced && <Box component="td" sx={{ ...tdSx, ...right }}>{plain(line.unitPrice)}</Box>}
 						{vat && <Box component="td" sx={{ ...tdSx, ...right }}>{vatOf(line)}</Box>}

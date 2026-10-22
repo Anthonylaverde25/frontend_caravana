@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '@/utils/axios';
 import { useCompany } from '@/contexts/CompanyContext';
-import type { BirthOrderSummary } from '../types';
+import type { BirthOrderSummary, BirthOrderWithRoll } from '../types';
 
 export const BIRTH_ORDERS_KEY = 'birth-orders';
 
@@ -12,6 +12,18 @@ export function useBirthOrders() {
   return useQuery({
     queryKey: [BIRTH_ORDERS_KEY, activeCompanyId, 'list'],
     queryFn: async (): Promise<BirthOrderSummary[]> => (await axiosInstance.get<BirthOrderSummary[]>('/birth-orders')).data,
+    enabled: Boolean(activeCompanyId)
+  });
+}
+
+/** The same list with each order's roll, for the view grouped by order and batch. */
+export function useBirthOrdersWithRoll() {
+  const { activeCompanyId } = useCompany();
+
+  return useQuery({
+    queryKey: [BIRTH_ORDERS_KEY, activeCompanyId, 'list', 'roll'],
+    queryFn: async (): Promise<BirthOrderWithRoll[]> =>
+      (await axiosInstance.get<BirthOrderWithRoll[]>('/birth-orders', { params: { with_roll: 1 } })).data,
     enabled: Boolean(activeCompanyId)
   });
 }

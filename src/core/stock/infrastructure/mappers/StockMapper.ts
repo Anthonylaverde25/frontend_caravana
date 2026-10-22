@@ -1,5 +1,5 @@
 import { ItemDocument, ItemDocumentLine, Page, StockIncident, WarehouseRef } from '../../domain/entities/ItemDocument';
-import { BatchConsumptionHistory, ItemStockView, KardexRow, Warehouse } from '../../domain/entities/ItemStock';
+import { BatchConsumptionHistory, ItemStockView, KardexRow, Warehouse, WarehouseStockView } from '../../domain/entities/ItemStock';
 
 export const StockMapper = {
 	incident(raw: any): StockIncident {
@@ -75,6 +75,24 @@ export const StockMapper = {
 
 	warehouseRef(raw: any): WarehouseRef {
 		return { id: raw?.id, code: raw?.code ?? null, name: raw?.name ?? null };
+	},
+
+	warehouseStock(raw: any): WarehouseStockView {
+		return {
+			warehouse: StockMapper.warehouse(raw.warehouse),
+			items: (raw.items ?? []).map((row: any) => ({
+				itemId: row.item_id,
+				code: row.code,
+				name: row.name,
+				unitSymbol: row.unit_symbol ?? null,
+				quantity: row.quantity,
+				unvaluedQuantity: row.unvalued_quantity,
+				averageUnitCost: row.average_unit_cost,
+				value: row.value,
+				isNegative: !!row.is_negative,
+				isBelowCritical: !!row.is_below_critical
+			}))
+		};
 	},
 
 	warehouse(raw: any): Warehouse {

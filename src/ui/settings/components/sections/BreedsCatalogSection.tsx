@@ -1,68 +1,70 @@
-import { Box, Paper, Typography, Stack, Chip } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { Alert, Box, CircularProgress, InputAdornment, TableBody, TableCell, TableHead, TableRow, TextField } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import SheetGrid from '@/components/sheet-grid/SheetGrid';
+import SheetGridEmptyRow from '@/components/sheet-grid/SheetGridEmptyRow';
+import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
-import { BreedsTable } from '@/ui/breeds/components/BreedsTable';
+import SettingsSection from '../SettingsSection';
 
+/** The breeds the company loads its animals with, alphabetically, with a search. */
 export default function BreedsCatalogSection() {
-  const { data: breeds = [] } = useBreeds();
+  const { data: breeds = [], isLoading, isError } = useBreeds();
+  const { headSx, indexSx, textCellSx, zebraBg } = useGridCellStyles();
+  const [search, setSearch] = useState('');
+
+  const listed = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    return [...breeds].filter((b) => !term || b.name.toLowerCase().includes(term)).sort((a, b) => a.name.localeCompare(b.name));
+  }, [breeds, search]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* Header Info */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2.5,
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0',
-          bgcolor: '#ffffff',
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          justifyContent: 'space-between',
-          gap: 2,
+    <SettingsSection id="breeds">
+      <TextField
+        size="small"
+        placeholder="Buscar raza"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ width: { xs: '100%', sm: 260 } }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <FuseSvgIcon size={18}>heroicons-outline:magnifying-glass</FuseSvgIcon>
+            </InputAdornment>
+          ),
         }}
-      >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <FuseSvgIcon size={24} sx={{ color: 'primary.main' }}>
-            heroicons-outline:tag
-          </FuseSvgIcon>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e293b' }}>
-              Catálogo Genético & Razas
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#64748b' }}>
-              Catálogo de razas y biotipos bovinos para asignación en caravanas, tropas y órdenes de ingreso.
-            </Typography>
-          </Box>
-        </Stack>
-
-        <Chip
-          label={`${breeds.length} Razas Registradas`}
-          size="small"
-          variant="outlined"
-          sx={{
-            fontWeight: 600,
-            fontSize: '0.72rem',
-            height: 24,
-            color: '#334155',
-            borderColor: '#cbd5e1',
-          }}
-        />
-      </Paper>
-
-      {/* Embedded Breeds Table */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden',
-          bgcolor: '#ffffff',
-        }}
-      >
-        <BreedsTable />
-      </Paper>
-    </Box>
+      />
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress size={28} />
+        </Box>
+      ) : isError ? (
+        <Alert severity="error" sx={{ fontSize: '0.8rem', py: 0.5 }}>
+          No se pudieron cargar las razas.
+        </Alert>
+      ) : (
+        <SheetGrid minWidth={360} sx={{ maxWidth: 560 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={indexSx}>#</TableCell>
+              <TableCell sx={headSx}>Raza</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {listed.length === 0 ? (
+              <SheetGridEmptyRow colSpan={2}>Ninguna raza coincide con la búsqueda.</SheetGridEmptyRow>
+            ) : (
+              listed.map((breed, index) => (
+                <TableRow key={breed.id} sx={{ bgcolor: index % 2 === 1 ? zebraBg : 'inherit' }}>
+                  <TableCell sx={indexSx}>{index + 1}</TableCell>
+                  <TableCell sx={{ ...textCellSx, fontWeight: 600 }}>{breed.name}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </SheetGrid>
+      )}
+    </SettingsSection>
   );
 }

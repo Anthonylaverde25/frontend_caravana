@@ -92,8 +92,18 @@ export interface WeaningOrderAnimal {
   target_category_id: number | null;
   target_subcategory_id: number | null;
   target_category_label: string | null;
-  /** Null = decided at the chute, on purpose. */
+  /** Null = decided at the chute, on purpose. Where the calf went, once weaned. */
   destination_key: string | null;
+  /** Where the order planned to send it: kept when it went elsewhere. */
+  planned_destination_key: string | null;
+  planned_destination_label: string | null;
+  /** It went somewhere other than planned. */
+  is_redirected: boolean;
+  /** How it was actually weaned; null while pending. */
+  weaning_type_applied: WeaningType | null;
+  weaning_type_applied_label: string | null;
+  /** Its deviations for the audit: null = none, PENDING = some not reviewed yet. */
+  deviation_review: 'PENDING' | 'REVIEWED' | null;
   status: WeaningOrderAnimalStatus;
   weaned_at: string | null;
   caravan_movement_id: number | null;
@@ -140,7 +150,16 @@ export interface WeaningOrderSummary {
   created_at: string | null;
 }
 
+/** How far the weaning strayed from the plan. */
+export interface WeaningDeviationSummary {
+  /** Calves with deviations nobody reviewed yet. */
+  pending_review_head_count: number;
+  redirected_head_count: number;
+  type_deviated_head_count: number;
+}
+
 export interface WeaningOrder extends WeaningOrderSummary {
+  deviation_summary: WeaningDeviationSummary;
   animals: WeaningOrderAnimal[];
   history: TransferOrderHistoryEntry[];
 }
@@ -188,8 +207,15 @@ export interface RegisterWeaningResult {
 /** POST /weaning-orders/{id}/execute: the day it happened and, per calf, what was measured or decided. */
 export interface ExecuteWeaningOrderBody {
   weaning_date?: string;
+  /** Only these pending calves ("Registrar destetadas"); the rest stay pending. */
+  caravan_ids?: number[];
+  /** How they were weaned, when it differs from the plan. */
+  weaning_type?: WeaningType | null;
+  /** Where they went, when it differs from the plan; each calf points at one by `destination_key`. */
+  destinations?: WeaningDestinationPayload[];
   animals?: {
     caravan_id: number;
+    destination_key?: string | null;
     weight?: number | null;
     observations?: string | null;
     category_id?: number | null;
@@ -250,3 +276,40 @@ export const weaningOrderErrorMessage = (error: unknown, fallback: string): stri
 
   return body?.message ?? fallback;
 };
+
+/** What a weaning did differently from its order. */
+export type WeaningDeviationKind = 'DESTINATION' | 'WEANING_TYPE' | 'CATEGORY' | 'LATE' | 'NOT_WEANED';
+
+export const WEANING_DEVIATION_KINDS: WeaningDeviationKind[] = ['DESTINATION', 'WEANING_TYPE', 'CATEGORY', 'LATE', 'NOT_WEANED'];
+
+export const WEANING_DEVIATION_LABELS: Record<WeaningDeviationKind, string> = {
+  DESTINATION: 'Destino',
+  WEANING_TYPE: 'Tipo de destete',
+  CATEGORY: 'Categoría',
+  LATE: 'Destete tardío',
+  NOT_WEANED: 'No destetadas'
+};
+
+/** GET /weaning-deviations: one calf of an order, weaned (or not) off the plan, and its review. */
+export interface WeaningDeviation {
+  id: number;
+  weaning_order_id: number;
+  order_code: string | null;
+  order_status: WeaningOrderStatus | null;
+  weaning_order_animal_id: number;
+  caravan_id: number;
+  identification: string | null;
+  sex: string | null;
+  source_batch_name: string | null;
+  kind: WeaningDeviationKind;
+  kind_label: string;
+  planned: string | null;
+  actual: string | null;
+  metadata: Record<string, unknown>;
+  occurred_at: string;
+  recorded_by: { id: number; name: string | null } | null;
+  is_reviewed: boolean;
+  reviewed_at: string | null;
+  reviewed_by: { id: number; name: string | null } | null;
+  review_note: string | null;
+}

@@ -1,9 +1,12 @@
 import type { AssistantResponse } from '@/core/assistant/domain/AssistantTypes';
+import { ENTITY_LINK_PRESETS } from './entityLinkPresets';
+import { STOCK_LINK_PRESETS } from './stockLinkPresets';
 
 /**
  * Canned assistant answers to review the drawer without ai-agent or the model (development only).
  * They cover the flows the assistant must handle: a grounded answer with blocks, a warning that
- * separates composition from real change, a missing-data answer, and a refused sensitive topic.
+ * separates composition from real change, a missing-data answer, a refused sensitive topic, and
+ * tables whose cells open a record's drawer.
  */
 export interface AssistantSimulationPreset {
 	key: string;
@@ -263,5 +266,7 @@ export const ASSISTANT_SIMULATION_PRESETS: AssistantSimulationPreset[] = [
 				}
 			]
 		}
-	}
+	},
+	...ENTITY_LINK_PRESETS,
+	...STOCK_LINK_PRESETS
 ];

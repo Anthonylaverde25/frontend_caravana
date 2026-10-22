@@ -1,5 +1,12 @@
 import { ConsumptionPayload, InitialStockPayload, ItemDocument, ItemDocumentFilters, Page, StockCountPayload, StockIncident, StockTransferPayload } from '../../domain/entities/ItemDocument';
-import { BatchConsumptionHistory, ItemStockView, KardexFilters, KardexRow, Warehouse } from '../../domain/entities/ItemStock';
+import {
+	BatchConsumptionHistory,
+	ItemStockView,
+	KardexFilters,
+	KardexRow,
+	Warehouse,
+	WarehouseStockView
+} from '../../domain/entities/ItemStock';
 import { IItemDocumentRepository } from '../../domain/repositories/IItemDocumentRepository';
 import { IItemStockRepository } from '../../domain/repositories/IItemStockRepository';
 
@@ -119,6 +126,14 @@ export class GetItemStockUseCase {
 
 	execute(itemId: number): Promise<ItemStockView> {
 		return this.repository.findByItem(itemId);
+	}
+}
+
+export class GetWarehouseStockUseCase {
+	constructor(private repository: IItemStockRepository) {}
+
+	execute(warehouseId: number): Promise<WarehouseStockView> {
+		return this.repository.warehouseStock(warehouseId);
 	}
 }
 

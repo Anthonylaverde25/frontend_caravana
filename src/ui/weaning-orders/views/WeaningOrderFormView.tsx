@@ -8,6 +8,7 @@ import { useBirthHistory } from '@/features/gestation/hooks/useBirthHistory';
 import { useWeaningOrder } from '@/features/weaning-orders/hooks/useWeaningOrder';
 import {
   useCreateWeaningOrder,
+  useExecuteWeaningOrder,
   useIssueWeaningOrder,
   useRegisterWeaning,
   useUpdateWeaningOrderDraft
@@ -27,7 +28,8 @@ interface RowErrorBody {
  * only the calves are confirmed, plus what the order asks calf by calf.
  *
  * It starts from the dialog (navigation state), or from a draft (`?orderId=`). Without either it
- * goes back to the dialog: there is nothing to confirm.
+ * goes back to the dialog: there is nothing to confirm. A registration that comes from an open order
+ * ("Registrar destetadas") executes that order with these calves instead of creating another one.
  */
 export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode }) => {
   const navigate = useNavigate();
@@ -45,6 +47,7 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
   const update = useUpdateWeaningOrderDraft();
   const issue = useIssueWeaningOrder();
   const register = useRegisterWeaning();
+  const execute = useExecuteWeaningOrder();
 
   const recordsById = useMemo(() => new Map(births.map((b) => [b.calf_id, b])), [births]);
   const sexById = useMemo(() => {
@@ -104,7 +107,7 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
     [form.calfIds, recordsById]
   );
 
-  const failed = register.error ?? create.error ?? update.error;
+  const failed = register.error ?? execute.error ?? create.error ?? update.error;
   const errorsByTag = useMemo(() => {
     const byTag: Record<string, string[]> = {};
     ((failed as { response?: { data?: RowErrorBody } } | null)?.response?.data?.row_errors ?? []).forEach((row) => {
@@ -114,8 +117,19 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
     return byTag;
   }, [failed]);
 
-  const isPending = create.isPending || update.isPending || issue.isPending || register.isPending;
+  const isPending = create.isPending || update.isPending || issue.isPending || register.isPending || execute.isPending;
   const done = (orderId: number) => navigate(`/weaning-orders?orderId=${orderId}`);
+  const source = form.sourceOrder;
+  const leave = () => navigate(form.returnTo ?? '/weaning-orders');
+
+  const confirmRegistration = () => {
+    if (source) {
+      execute.mutate({ id: source.id, body: form.toExecuteBody() }, { onSuccess: () => (form.returnTo ? leave() : done(source.id)) });
+      return;
+    }
+
+    register.mutate(form.toRegisterPayload(), { onSuccess: ({ order }) => done(order.id) });
+  };
 
   const saveOrder = (andIssue: boolean) => {
     if (draftId) {
@@ -131,13 +145,23 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
 
   return (
     <ViewLayout
-      title={mode === 'register' ? 'Confirmar destete registrado' : draftId ? `Borrador ${draft?.code ?? ''}` : 'Confirmar orden de destete'}
+      title={
+        source
+          ? `Confirmar destetadas · ${source.code}`
+          : mode === 'register'
+            ? 'Confirmar destete registrado'
+            : draftId
+              ? `Borrador ${draft?.code ?? ''}`
+              : 'Confirmar orden de destete'
+      }
       subtitle={
-        mode === 'register'
+        source
+          ? `Revisá las crías: se destetan con la orden ${source.code}, en la fecha en que ocurrió. Las demás crías de la orden siguen pendientes.`
+          : mode === 'register'
           ? 'Revisá las crías: el destete queda registrado con su orden, ejecutada en la fecha en que ocurrió.'
           : 'Revisá las crías antes de emitir. La orden se cumple en la manga con la planilla DEST-01, o desde esta bandeja.'
       }
-      backUrl="/weaning-orders"
+      backUrl={form.returnTo ?? '/weaning-orders'}
       backTitle="Órdenes de destete"
     >
       {isLoading || !initialized.current ? (
@@ -167,7 +191,7 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
           )}
 
           <Stack direction="row" spacing={1} justifyContent="flex-end">
-            <Button onClick={() => navigate('/weaning-orders')} color="inherit" sx={{ textTransform: 'none', fontWeight: 600 }}>
+            <Button onClick={leave} color="inherit" sx={{ textTransform: 'none', fontWeight: 600 }}>
               Cancelar
             </Button>
             {mode === 'order' ? (
@@ -196,11 +220,11 @@ export const WeaningOrderFormView: React.FC<{ mode: WeaningFormMode }> = ({ mode
                 variant="contained"
                 disableElevation
                 disabled={isPending || form.problems.length > 0}
-                onClick={() => register.mutate(form.toRegisterPayload(), { onSuccess: ({ order }) => done(order.id) })}
+                onClick={confirmRegistration}
                 startIcon={isPending ? <CircularProgress size={14} color="inherit" /> : <FuseSvgIcon size={16}>heroicons-outline:check</FuseSvgIcon>}
                 sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}
               >
-                Registrar destete de {form.calfIds.length} cría(s)
+                {source ? `Registrar ${form.calfIds.length} destetada(s)` : `Registrar destete de ${form.calfIds.length} cría(s)`}
               </Button>
             )}
           </Stack>

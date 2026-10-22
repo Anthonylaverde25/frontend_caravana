@@ -1,6 +1,13 @@
 import axiosInstance from '@/utils/axios';
 import { Page, StockIncident } from '../../domain/entities/ItemDocument';
-import { BatchConsumptionHistory, ItemStockView, KardexFilters, KardexRow, Warehouse } from '../../domain/entities/ItemStock';
+import {
+	BatchConsumptionHistory,
+	ItemStockView,
+	KardexFilters,
+	KardexRow,
+	Warehouse,
+	WarehouseStockView
+} from '../../domain/entities/ItemStock';
 import { IItemStockRepository } from '../../domain/repositories/IItemStockRepository';
 import { StockMapper } from '../mappers/StockMapper';
 
@@ -33,6 +40,11 @@ export class ApiItemStockRepository implements IItemStockRepository {
 	async warehouses(): Promise<Warehouse[]> {
 		const response = await axiosInstance.get<any[]>('/warehouses');
 		return response.data.map(StockMapper.warehouse);
+	}
+
+	async warehouseStock(warehouseId: number): Promise<WarehouseStockView> {
+		const response = await axiosInstance.get<any>(`/warehouses/${warehouseId}/stock`);
+		return StockMapper.warehouseStock(response.data);
 	}
 
 	async nextWarehouseCode(): Promise<string> {

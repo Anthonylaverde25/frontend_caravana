@@ -13,6 +13,7 @@ export interface UseCaravansSummaryOptions {
 	sort?: CaravanSummarySort;
 	page?: number;
 	perPage?: number;
+	categoryId?: number;
 	/** Lets a collapsed row hold the query until it is opened. */
 	enabled?: boolean;
 }
@@ -27,11 +28,12 @@ export function useCaravansSummary(options: UseCaravansSummaryOptions = {}) {
 		sort = 'identification',
 		page = 1,
 		perPage = 25,
+		categoryId,
 		enabled = true
 	} = options;
 
 	return useQuery({
-		queryKey: ['caravans', 'summary', activeCompanyId, scope, batchId, search, sex, sort, page, perPage],
+		queryKey: ['caravans', 'summary', activeCompanyId, scope, batchId, search, sex, sort, page, perPage, categoryId],
 		queryFn: () =>
 			caravanRepository.findSummary({
 				companyId: activeCompanyId || undefined,
@@ -41,7 +43,8 @@ export function useCaravansSummary(options: UseCaravansSummaryOptions = {}) {
 				sex: sex === 'ALL' ? undefined : sex,
 				sort,
 				page,
-				perPage
+				perPage,
+				categoryId
 			}),
 		enabled: enabled && activeCompanyId != null,
 		staleTime: 1000 * 60 * 2, // 2 minutes

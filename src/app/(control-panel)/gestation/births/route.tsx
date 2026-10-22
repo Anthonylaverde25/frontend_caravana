@@ -1,14 +1,15 @@
 import { lazy } from 'react';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const GestationBirthsView = lazy(() => import('src/ui/gestation/views/GestationBirthsView'));
+const CalvesHubView = lazy(() => import('src/ui/gestation/views/CalvesHubView'));
 
 /**
- * The Gestation Births Page route.
+ * "Crías al pie y destete", first tab: the calves still nursing. The weaning orders are its second
+ * tab, at `/weaning-orders`.
  */
 const route: FuseRouteItemType = {
   path: 'gestation/births',
-  element: <GestationBirthsView />
+  element: <CalvesHubView tab="at-foot" />
 };
 
 export default route;

@@ -33,6 +33,8 @@ export interface FiscalDocumentLine {
 	deliveryNoteLabel: string | null;
 	/** A line of a delivery note without prices: its units waiting for the invoice. */
 	unvaluedLot: UnvaluedLot | null;
+	/** What the provider's paper said, when the line was read from an image (Delivery G). */
+	sourceDescription: string | null;
 }
 
 export interface UnvaluedLot {
@@ -121,6 +123,7 @@ export interface FiscalLinePayload {
 	heads_treated: number | null;
 	taxes: TaxPayload[];
 	delivery_note_line_id?: number | null;
+	source_description?: string | null;
 }
 
 export interface FiscalDocumentPayload {

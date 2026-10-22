@@ -6,12 +6,14 @@ import ServiceOrderIncidentsPanel from '../diagnosis-summary/ServiceOrderInciden
 
 interface ServiceOrderDiagnosisPanelProps {
   order: ServiceOrder | null;
+  /** Lists the incidents without the "Resolver" action. */
+  readOnly?: boolean;
 }
 
 /**
  * Diagnosis of the order in the drawer: progress, rate, rounds and incidents.
  */
-export default function ServiceOrderDiagnosisPanel({ order }: ServiceOrderDiagnosisPanelProps) {
+export default function ServiceOrderDiagnosisPanel({ order, readOnly = false }: ServiceOrderDiagnosisPanelProps) {
   const showsDiagnosis = order !== null && ['APPROVED', 'BULLS_WITHDRAWN', 'SUCCESS'].includes(order.status);
   const { data: diagnosis } = useServiceOrderDiagnosis(showsDiagnosis ? order?.id : null);
 
@@ -42,7 +44,7 @@ export default function ServiceOrderDiagnosisPanel({ order }: ServiceOrderDiagno
               .join('  ·  ')}
           </Typography>
         )}
-        {diagnosis && <ServiceOrderIncidentsPanel orderId={order.id} incidents={diagnosis.incidents} />}
+        {diagnosis && <ServiceOrderIncidentsPanel orderId={order.id} incidents={diagnosis.incidents} readOnly={readOnly} />}
       </Stack>
     </Paper>
   );

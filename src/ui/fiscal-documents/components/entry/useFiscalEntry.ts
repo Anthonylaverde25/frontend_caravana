@@ -8,8 +8,10 @@ import {
 	emptyLine,
 	FiscalHeaderState,
 	FiscalLineState,
-	isBlankLine
+	isBlankLine,
+	LineReadSource
 } from './fiscalEntryState';
+import { readInputSource } from './image/linesFromRead';
 
 const today = (): string => new Date().toISOString().slice(0, 10);
 
@@ -60,8 +62,13 @@ export function useFiscalEntry(initial: Partial<FiscalHeaderState>, types: Fisca
 				setLines((current) => current.map((l) => ({ ...l, vatRateId: null, otherTaxes: [] })));
 				setDocumentTaxes([]);
 			} else {
+				// What the paper said first; then the item's last invoice, or 21 %.
 				setLines((current) =>
-					current.map((l) => (l.itemId && !l.vatRateId ? { ...l, vatRateId: defaultRateId } : l))
+					current.map((l) =>
+						(l.itemId || l.read?.vatRateId) && !l.vatRateId
+							? { ...l, vatRateId: l.read?.vatRateId ?? defaultRateId }
+							: l
+					)
 				);
 			}
 		},
@@ -72,20 +79,51 @@ export function useFiscalEntry(initial: Partial<FiscalHeaderState>, types: Fisca
 		setLines((current) => withTrailingRow(current.map((l) => (l.key === key ? { ...l, ...patch } : l))));
 	}, []);
 
-	/** A new item resets what depended on the previous one, and preloads its VAT (letter A). */
+	/**
+	 * A new item resets what depended on the previous one, and preloads its VAT (letter A). On a row
+	 * read from the paper, the paper's VAT wins, the unit is not assumed when the item has
+	 * presentations (G7), and the row records who chose the item.
+	 */
 	const pickItem = useCallback(
-		(key: string, item: Item | null) => {
-			updateLine(key, {
-				itemId: item?.id ?? null,
-				inputSource: item?.unit ? `u:${item.unit.id}` : '',
-				vatRateId: item && type?.discriminatesVat ? (item.lastVatRateId ?? defaultRateId) : null,
-				batchId: null,
-				batchName: null,
-				heads: ''
-			});
+		(key: string, item: Item | null, origin: Extract<LineReadSource, 'MANUAL' | 'LINKED'> = 'MANUAL') => {
+			setLines((current) =>
+				withTrailingRow(
+					current.map((l) => {
+						if (l.key !== key) return l;
+
+						const read = l.read;
+						const vatRateId =
+							item && type?.discriminatesVat
+								? (read?.vatRateId ?? item.lastVatRateId ?? defaultRateId)
+								: null;
+
+						return {
+							...l,
+							itemId: item?.id ?? null,
+							inputSource: read
+								? readInputSource(item ?? undefined, !!l.inputQuantity.trim())
+								: item?.unit
+									? `u:${item.unit.id}`
+									: '',
+							vatRateId,
+							batchId: null,
+							batchName: null,
+							heads: '',
+							read: read ? { ...read, source: origin } : null
+						};
+					})
+				)
+			);
 		},
-		[updateLine, type, defaultRateId]
+		[type, defaultRateId]
 	);
+
+	/** Rows read from an image (Delivery G): instead of what was typed, or after it (Q1). */
+	const loadReadLines = useCallback((read: FiscalLineState[], how: 'replace' | 'append') => {
+		setLines((current) =>
+			withTrailingRow(how === 'replace' ? read : [...current.filter((l) => !isBlankLine(l)), ...read])
+		);
+	}, []);
 
 	const removeLine = useCallback((key: string) => {
 		setLines((current) => withTrailingRow(current.filter((l) => l.key !== key)));
@@ -157,6 +195,7 @@ export function useFiscalEntry(initial: Partial<FiscalHeaderState>, types: Fisca
 		lines,
 		updateLine,
 		pickItem,
+		loadReadLines,
 		removeLine,
 		loadDraft,
 		toggleRemoved,

@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Box, Stack } from '@mui/material';
-import PageBreadcrumb from './PageBreadcrumb';
+import PageBreadcrumb, { BreadcrumbItem } from './PageBreadcrumb';
 import PageTitle from './PageTitle';
 import clsx from 'clsx';
 
@@ -13,6 +13,9 @@ export type ViewHeaderProps = {
   showBackButton?: boolean;
   backTitle?: string;
   className?: string;
+  /** The trail when the path alone does not tell it (a tab in the query). */
+  breadcrumbs?: BreadcrumbItem[];
+  subHeader?: ReactNode;
 };
 
 /**
@@ -29,6 +32,8 @@ export function ViewHeader(props: ViewHeaderProps) {
     showBackButton,
     backTitle,
     className = '',
+    breadcrumbs,
+    subHeader,
   } = props;
 
   return (
@@ -36,13 +41,14 @@ export function ViewHeader(props: ViewHeaderProps) {
       component="header"
       className={clsx('flex flex-col w-full', className)}
       sx={{
-        py: { xs: 2, sm: 2.5 },
+        pt: { xs: 2, sm: 2.5 },
+        pb: subHeader ? 0 : { xs: 2, sm: 2.5 },
         px: { xs: 2.5, sm: 3.5 },
       }}
     >
       {showBreadcrumb && (
         <Box sx={{ mb: 1.25 }}>
-          <PageBreadcrumb />
+          <PageBreadcrumb items={breadcrumbs} />
         </Box>
       )}
 
@@ -67,6 +73,12 @@ export function ViewHeader(props: ViewHeaderProps) {
           </Box>
         )}
       </Stack>
+
+      {subHeader && (
+        <Box sx={{ mt: 1.5, width: '100%' }}>
+          {subHeader}
+        </Box>
+      )}
     </Box>
   );
 }

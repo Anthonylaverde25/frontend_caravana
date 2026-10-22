@@ -215,6 +215,9 @@ export interface BirthOrder extends BirthOrderSummary {
   history: TransferOrderHistoryEntry[];
 }
 
+/** An order of the list with its roll and without its history (GET /birth-orders?with_roll=1). */
+export type BirthOrderWithRoll = BirthOrderSummary & { animals: BirthOrderAnimal[] };
+
 /** POST /birth-orders (and PUT on a draft). */
 export interface EmitBirthOrderPayload {
   period_start: string | null;

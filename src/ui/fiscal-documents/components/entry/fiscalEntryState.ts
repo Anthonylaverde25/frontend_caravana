@@ -2,10 +2,29 @@ import { dec, toApi } from '@/core/stock/domain/rules/decimal';
 import { inputSourcePayload } from '@/core/stock/domain/rules/lineConversion';
 import { FiscalDocumentType, Tax, VAT_CODE } from '@/core/fiscal/domain/entities/FiscalCatalog';
 import { FiscalDocumentPayload, TaxPayload } from '@/core/fiscal/domain/entities/FiscalDocument';
+import { LineMatchLevel } from '@/core/fiscal/domain/entities/ProviderRecognition';
 
 export interface OtherTax {
 	taxId: number;
 	amount: string;
+}
+
+/** Where the item of a read row came from: the API's answer, the link dialog, or the selector. */
+export type LineReadSource = 'EXACT' | 'AI' | 'NONE' | 'LINKED' | 'MANUAL';
+
+/** What the paper said for a row read from an image (Delivery G). */
+export interface LineRead {
+	description: string;
+	code: string | null;
+	/** The quantity as read, for "El papel dice: 4 · …". */
+	quantity: string | null;
+	source: LineReadSource;
+	level: LineMatchLevel;
+	reason: string | null;
+	suggestedItemId: number | null;
+	note: 'MATCHER_UNAVAILABLE' | null;
+	/** The VAT read, kept apart so a type change does not lose it. */
+	vatRateId: number | null;
 }
 
 /** A row of "3. Renglones", as typed. */
@@ -29,6 +48,8 @@ export interface FiscalLineState {
 	notePrice: string | null;
 	/** A note line left out of the invoice: kept struck through, sent as "renglón sin facturar" (Q4). */
 	removed: boolean;
+	/** Read from an image; null when typed. */
+	read: LineRead | null;
 }
 
 /** A row of "4. Impuestos del comprobante". */
@@ -80,7 +101,8 @@ export const emptyLine = (): FiscalLineState => ({
 	deliveryNoteLineId: null,
 	deliveryNoteId: null,
 	notePrice: null,
-	removed: false
+	removed: false,
+	read: null
 });
 
 export const emptyDocumentTax = (): DocumentTaxState => ({
@@ -91,8 +113,9 @@ export const emptyDocumentTax = (): DocumentTaxState => ({
 	amount: ''
 });
 
+/** A row read from the paper is never blank, even without item: it is marked at confirm (A9). */
 export const isBlankLine = (line: FiscalLineState): boolean =>
-	!line.itemId && !line.inputQuantity.trim() && !line.unitPrice.trim();
+	!line.read && !line.itemId && !line.inputQuantity.trim() && !line.unitPrice.trim();
 
 /** What the operator typed, normalised to the API's decimals; an unreadable value goes as typed so the backend marks its cell. */
 const decimal = (value: string, scale: number): string => {
@@ -128,7 +151,12 @@ export function buildPayload(
 		if (!discriminates) return [];
 
 		const result: TaxPayload[] = vat && line.vatRateId ? [{ tax_id: vat.id, tax_rate_id: line.vatRateId }] : [];
-		return result.concat(line.otherTaxes.map((t) => ({ tax_id: t.taxId, amount: optionalDecimal(t.amount, 4) })));
+		return result.concat(
+			line.otherTaxes.map((t) => ({
+				tax_id: t.taxId,
+				amount: optionalDecimal(t.amount, 4)
+			}))
+		);
 	};
 
 	return {
@@ -155,7 +183,8 @@ export function buildPayload(
 				batch_id: line.batchId,
 				heads_treated: line.batchId && line.heads ? Number(line.heads) : null,
 				taxes: lineTaxes(line),
-				delivery_note_line_id: line.deliveryNoteLineId
+				delivery_note_line_id: line.deliveryNoteLineId,
+				source_description: line.read?.description ?? null
 			})),
 			document_taxes: sentTaxes.map((t) => ({
 				tax_id: t.taxId as number,

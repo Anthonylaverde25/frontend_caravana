@@ -50,8 +50,69 @@ export const notes = (r: ProviderRecognition): { tone: 'warn' | 'hint'; text: st
 	}
 
 	if (r.companyCuitMissing) {
-		list.push({ tone: 'hint', text: 'Cargá el CUIT de tu empresa en Configuración para controlar el receptor.' });
+		list.push({
+			tone: 'hint',
+			text: 'Cargá el CUIT de tu empresa en Configuración para controlar el receptor.'
+		});
 	}
+
+	const lines = linesSummary(r);
+
+	if (lines) list.push(lines);
 
 	return list;
 };
+
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+export interface LinesBreakdown {
+	total: number;
+	exact: number;
+	ai: number;
+	none: number;
+	unavailable: boolean;
+}
+
+/** Structured count of read lines for minimalist pill indicators. */
+export const getLinesBreakdown = (r: ProviderRecognition): LinesBreakdown | null => {
+	if (r.lines.length === 0) return null;
+
+	const unavailable = r.lines.some((l) => l.resolution.note === 'MATCHER_UNAVAILABLE');
+	const exact = r.lines.filter((l) => l.resolution.source === 'EXACT').length;
+	const ai = r.lines.filter((l) => l.resolution.source === 'AI').length;
+	const none = r.lines.filter((l) => l.resolution.source === 'NONE').length;
+
+	return {
+		total: r.lines.length,
+		exact,
+		ai,
+		none,
+		unavailable
+	};
+};
+
+/** What was done with the lines read (Delivery G): how many were found, and how sure. */
+const linesSummary = (r: ProviderRecognition): { tone: 'warn' | 'hint'; text: string } | null => {
+	const bd = getLinesBreakdown(r);
+
+	if (!bd) return null;
+
+	if (bd.unavailable) {
+		return {
+			tone: 'warn',
+			text: `Se leyeron ${count(bd.total, 'renglón', 'renglones')}, pero no se pudieron comparar con tu catálogo: elegí los ítems a mano.`
+		};
+	}
+
+	const parts = [
+		bd.exact && count(bd.exact, 'exacto', 'exactos'),
+		bd.ai && count(bd.ai, 'sugerido', 'sugeridos'),
+		bd.none && count(bd.none, 'sin resolver', 'sin resolver')
+	].filter(Boolean);
+
+	return {
+		tone: 'hint',
+		text: `Se leyeron ${count(bd.total, 'renglón', 'renglones')}: ${parts.join(', ')}. Revisá los ítems, las unidades y los precios.`
+	};
+};
+

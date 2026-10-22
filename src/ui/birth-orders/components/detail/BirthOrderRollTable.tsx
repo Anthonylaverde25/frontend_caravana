@@ -124,4 +124,7 @@ export const BirthOrderRollTable: React.FC<{ order: BirthOrder }> = ({ order }) 
   );
 };
 
+/** The line's state and result, shared with the list grouped by order and batch. */
+export { STATUS as BIRTH_LINE_STATUS, resultOf as birthLineResult, urgency as birthLineUrgency };
+
 export default BirthOrderRollTable;

@@ -21,7 +21,7 @@ interface FiscalLinesGridProps {
 	discriminates: boolean;
 	errors: Record<string, Record<string, string>>;
 	onChange: (key: string, patch: Partial<FiscalLineState>) => void;
-	onPickItem: (key: string, item: Item | null) => void;
+	onPickItem: (key: string, item: Item | null, origin?: 'MANUAL' | 'LINKED') => void;
 	onRemove: (key: string) => void;
 	/** A line inherited from a delivery note is struck through instead of removed (Q4). */
 	onToggleRemoved: (key: string) => void;
@@ -105,7 +105,7 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 			preview={previews[line.key]}
 			errors={errors[line.key] ?? {}}
 			onChange={(patch) => onChange(line.key, patch)}
-			onPickItem={(item) => onPickItem(line.key, item)}
+			onPickItem={(item, origin) => onPickItem(line.key, item, origin)}
 			onCreateItem={(name) => setCreating({ lineKey: line.key, name })}
 			onRemove={() => (line.deliveryNoteLineId !== null ? onToggleRemoved(line.key) : onRemove(line.key))}
 			mode={mode}

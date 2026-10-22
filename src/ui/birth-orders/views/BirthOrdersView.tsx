@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { Alert, Box, Button, Chip, CircularProgress, InputAdornment, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ViewLayout from '@/components/ViewLayout';
-import { useBirthOrders } from '@/features/birth-orders/hooks/useBirthOrders';
+import { useBirthOrdersWithRoll } from '@/features/birth-orders/hooks/useBirthOrders';
 import type { BirthOrderSummary } from '@/features/birth-orders/types';
-import TransferOrdersStatusFilter, { TransferOrderStatusFilterValue } from '@/ui/transfer-orders/components/TransferOrdersStatusFilter';
+import type { TransferOrderStatusFilterValue } from '@/ui/transfer-orders/components/TransferOrdersStatusFilter';
 import BirthOrdersTable from '../components/BirthOrdersTable';
+import BirthOrdersToolbar, { type BirthOrdersViewMode } from '../components/BirthOrdersToolbar';
+import BirthOrderGroupCard from '../components/grouped/BirthOrderGroupCard';
 import BirthOrderDetailDrawer from '../components/BirthOrderDetailDrawer';
 import BirthOrderIssueDialog from '../components/BirthOrderIssueDialog';
 import BirthOrderStartDialog from '../components/start/BirthOrderStartDialog';
@@ -26,7 +28,8 @@ const normalize = (value: string): string =>
 /**
  * Every birth order of the company, in every state, and the two ways a calving season is loaded:
  * ordered before the rounds ("Nueva orden de parición") or registered after the calvings
- * ("Registrar partos").
+ * ("Registrar partos"). The orders read grouped (order → batch → its
+ * females, as "Asignar a lote propio") or as the flat table.
  *
  * `?orderId=` opens an order directly, which is how the scan links here. On `/new` and `/register`
  * (`starting`) the list sits under the full-screen dialog: a new order preselects the pregnant
@@ -36,10 +39,11 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: orders = [], isLoading, isError } = useBirthOrders();
+  const { data: orders = [], isLoading, isError } = useBirthOrdersWithRoll();
   const [status, setStatus] = useState<TransferOrderStatusFilterValue>('ALL');
   const [search, setSearch] = useState('');
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<BirthOrdersViewMode>('grouped');
   const [toIssue, setToIssue] = useState<BirthOrderSummary | null>(null);
   const [isStarting, setIsStarting] = useState(starting === 'order');
 
@@ -121,38 +125,20 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
         </Stack>
       }
     >
-      <Stack spacing={2}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between">
-          <TextField
-            size="small"
-            placeholder="Buscar por código, lote o responsable…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ minWidth: { md: 320 } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FuseSvgIcon size={18} color="action">
-                    heroicons-outline:magnifying-glass
-                  </FuseSvgIcon>
-                </InputAdornment>
-              )
-            }}
-          />
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Chip
-              clickable
-              color="warning"
-              variant={overdueOnly ? 'filled' : 'outlined'}
-              onClick={() => setOverdueOnly((value) => !value)}
-              icon={<FuseSvgIcon size={16}>heroicons-outline:exclamation-triangle</FuseSvgIcon>}
-              label={`Con partos vencidos (${withOverdue})`}
-              sx={{ fontWeight: 700 }}
-            />
-            <TransferOrdersStatusFilter value={status} onChange={setStatus} counts={counts} />
-          </Stack>
-        </Stack>
+      <BirthOrdersToolbar
+        search={search}
+        onSearch={setSearch}
+        status={status}
+        onStatus={setStatus}
+        counts={counts}
+        overdueOnly={overdueOnly}
+        onToggleOverdue={() => setOverdueOnly((value) => !value)}
+        withOverdue={withOverdue}
+        viewMode={viewMode}
+        onToggleView={() => setViewMode((mode) => (mode === 'grouped' ? 'flat' : 'grouped'))}
+      />
 
+      <Box>
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress size={28} />
@@ -175,10 +161,16 @@ export const BirthOrdersView: React.FC<{ starting?: BirthFormMode }> = ({ starti
                 : 'Probá con otro estado o con otra búsqueda.'}
             </Typography>
           </Box>
+        ) : viewMode === 'grouped' ? (
+          <Stack spacing={3}>
+            {visible.map((order) => (
+              <BirthOrderGroupCard key={order.id} order={order} onOpen={(opened) => setOpened(opened.id)} onIssue={setToIssue} />
+            ))}
+          </Stack>
         ) : (
           <BirthOrdersTable orders={visible} onOpen={(order) => setOpened(order.id)} onIssue={setToIssue} />
         )}
-      </Stack>
+      </Box>
 
       <BirthOrderDetailDrawer orderId={openedId} onClose={() => setOpened(null)} />
       <BirthOrderIssueDialog order={toIssue} onClose={() => setToIssue(null)} />

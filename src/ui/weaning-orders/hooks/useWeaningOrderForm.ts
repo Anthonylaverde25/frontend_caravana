@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { CategoryPairValue } from '@/components/caravan/CategoryChangeCell';
 import type {
   EmitWeaningOrderPayload,
+  ExecuteWeaningOrderBody,
   RegisterWeaningPayload,
   WeaningDestinationMode,
   WeaningOrder,
@@ -46,6 +47,18 @@ export interface WeaningOrderStart {
   categoryMode?: WeaningOrderCategoryMode;
   /** What the confirmation already said per calf: kept across "Editar". */
   calves?: Record<number, CalfDraft>;
+  /** "Registrar destetadas": the open order these calves belong to. Weaning them executes it. */
+  sourceOrder?: SourceOrder | null;
+  /** Where to go back to when the dialog closes. */
+  returnTo?: string;
+}
+
+/** The open order a registration comes from, with what it planned, to tell when it differs. */
+export interface SourceOrder {
+  id: number;
+  code: string;
+  plannedDestinations: string;
+  plannedType: WeaningType | '';
 }
 
 export interface WeaningFormHeader {
@@ -70,6 +83,72 @@ const emptyCalf = (): CalfDraft => ({ destinationKey: null, category: null, weig
 export const destinationIsDeclared = (d: DestinationDraft): boolean =>
   d.kind === 'stay' ? true : d.kind === 'existing' ? d.batchId != null : d.name.trim() !== '';
 
+/** Where the calves go, as one comparable line: what changed between the plan and the screen. */
+export const destinationSignature = (mode: WeaningDestinationMode, destinations: DestinationDraft[]): string =>
+  `${mode}|${destinations
+    .map((d) => (d.kind === 'stay' ? 'stay' : d.kind === 'existing' ? `b${d.batchId}` : `n:${d.name.trim().toLowerCase()}`))
+    .sort()
+    .join(',')}`;
+
+/**
+ * An order's destinations as the screen declares them, and the screen key of each order key. A
+ * batch created by an earlier execution is the batch it became.
+ */
+const destinationDraftsOf = (order: WeaningOrder): { drafts: DestinationDraft[]; keyByOrderKey: Map<string, string> } => {
+  const keyByOrderKey = new Map<string, string>();
+  const drafts = order.destinations.map((d) => {
+    const batchId = d.resolved_batch_id ?? d.target_batch_id;
+    const draft: DestinationDraft = {
+      ...newDestination(),
+      kind: d.stays_in_place ? 'stay' : batchId ? 'existing' : 'new',
+      batchId,
+      name: d.new_batch_name ?? d.label,
+      isConfined: d.is_confined
+    };
+    keyByOrderKey.set(d.key, draft.key);
+
+    return draft;
+  });
+
+  return { drafts, keyByOrderKey };
+};
+
+/**
+ * "Registrar destetadas": some pending calves of an open order were weaned. The registration
+ * starts from what the order planned — where they go, how, their category — and may change it.
+ */
+export const startFromOrder = (order: WeaningOrder, calfIds: number[], returnTo?: string): WeaningOrderStart => {
+  const { drafts, keyByOrderKey } = destinationDraftsOf(order);
+  const chosen = new Set(calfIds);
+
+  return {
+    calfIds,
+    destinationMode: order.destination_mode,
+    destinations: drafts,
+    header: { weaningDate: today(), weaningType: order.weaning_type ?? '', responsable: order.responsable ?? '', observations: '' },
+    categoryMode: order.category_mode,
+    calves: Object.fromEntries(
+      order.animals
+        .filter((a) => chosen.has(a.caravan_id))
+        .map((a) => [
+          a.caravan_id,
+          {
+            ...emptyCalf(),
+            destinationKey: a.destination_key ? (keyByOrderKey.get(a.destination_key) ?? null) : null,
+            category: a.target_category_id ? { categoryId: a.target_category_id, subcategoryId: a.target_subcategory_id } : null
+          }
+        ])
+    ),
+    sourceOrder: {
+      id: order.id,
+      code: order.code,
+      plannedDestinations: destinationSignature(order.destination_mode, drafts),
+      plannedType: order.weaning_type ?? ''
+    },
+    returnTo
+  };
+};
+
 /**
  * The state of the weaning form, shared by "Nueva orden de destete" and "Registrar destete": which
  * calves, where they go (one batch for all or one per calf), whether their category changes, and —
@@ -87,6 +166,8 @@ export function useWeaningOrderForm(mode: WeaningFormMode) {
   const [destinations, setDestinations] = useState<DestinationDraft[]>([newDestination()]);
   const [calfIds, setCalfIds] = useState<number[]>([]);
   const [calves, setCalves] = useState<Record<number, CalfDraft>>({});
+  const [sourceOrder, setSourceOrder] = useState<SourceOrder | null>(null);
+  const [returnTo, setReturnTo] = useState<string | undefined>(undefined);
 
   const setHeaderField = useCallback(<K extends keyof WeaningFormHeader>(field: K, value: WeaningFormHeader[K]) => {
     setHeader((prev) => ({ ...prev, [field]: value }));
@@ -134,6 +215,8 @@ export function useWeaningOrderForm(mode: WeaningFormMode) {
     if (start.destinations && (start.destinations.length > 0 || start.destinationMode === 'per_animal')) setDestinations(start.destinations);
     if (start.header) setHeader(start.header);
     if (start.categoryMode) setCategoryMode(start.categoryMode);
+    setSourceOrder(start.sourceOrder ?? null);
+    setReturnTo(start.returnTo);
     setCalfIds(start.calfIds);
     setCalves((prev) =>
       Object.fromEntries(
@@ -156,24 +239,14 @@ export function useWeaningOrderForm(mode: WeaningFormMode) {
     destinations: activeDestinations,
     header,
     categoryMode,
-    calves
+    calves,
+    sourceOrder,
+    returnTo
   });
 
   /** A draft being edited: everything it declared, back on the screen. */
   const hydrate = useCallback((order: WeaningOrder) => {
-    const keyByOrderKey = new Map<string, string>();
-    const drafts = order.destinations.map((d) => {
-      const draft: DestinationDraft = {
-        ...newDestination(),
-        kind: d.stays_in_place ? 'stay' : d.target_batch_id ? 'existing' : 'new',
-        batchId: d.target_batch_id,
-        name: d.new_batch_name ?? d.label,
-        isConfined: d.is_confined
-      };
-      keyByOrderKey.set(d.key, draft.key);
-
-      return draft;
-    });
+    const { drafts, keyByOrderKey } = destinationDraftsOf(order);
 
     setHeader({
       weaningDate: order.weaning_date,
@@ -277,8 +350,36 @@ export function useWeaningOrderForm(mode: WeaningFormMode) {
     };
   };
 
+  /**
+   * "Registrar destetadas": the execution of the source order with these calves. Where they went
+   * and how travel only when they differ from the plan; the rest is what the order already says.
+   */
+  const toExecuteBody = (): ExecuteWeaningOrderBody => {
+    const register = toRegisterPayload();
+    const redeclared = sourceOrder !== null && destinationSignature(destinationMode, activeDestinations) !== sourceOrder.plannedDestinations;
+    const typeChanged = sourceOrder !== null && header.weaningType !== sourceOrder.plannedType;
+
+    return {
+      weaning_date: header.weaningDate,
+      caravan_ids: calfIds,
+      ...(typeChanged ? { weaning_type: header.weaningType || null } : {}),
+      ...(redeclared ? { destinations: register.destinations } : {}),
+      animals: register.animals.map((animal) => ({
+        caravan_id: animal.caravan_id,
+        destination_key: redeclared ? animal.destination_key : null,
+        weight: animal.weight,
+        observations: animal.observations,
+        category_id: animal.target_category_id,
+        subcategory_id: animal.target_subcategory_id
+      }))
+    };
+  };
+
   return {
     mode,
+    sourceOrder,
+    returnTo,
+    toExecuteBody,
     header,
     setHeaderField,
     destinationMode,

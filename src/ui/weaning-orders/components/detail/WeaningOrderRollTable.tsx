@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Button, Table, TableBody, TableCell, TableHead, TableRow, Typography, alpha } from '@mui/material';
+import { Box, Button, Stack, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography, alpha } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { WeaningOrder, WeaningOrderAnimalStatus } from '@/features/weaning-orders/types';
 import { formatDate, formatDateTime, useWeaningOrderTableStyles } from '../weaningOrderFormat';
 
@@ -11,7 +12,10 @@ const STATUS: Record<WeaningOrderAnimalStatus, { label: string; color: string }>
 
 const COLLAPSED_ROWS = 12;
 
-/** The roll: every calf the order committed, its mother and rodeo, where it goes and whether it went. */
+/**
+ * The roll: every calf the order committed, its mother and rodeo, where it goes and whether it went.
+ * A calf weaned off the plan — elsewhere, or with another type — says what was planned.
+ */
 export const WeaningOrderRollTable: React.FC<{ order: WeaningOrder }> = ({ order }) => {
   const { headerCell, bodyCell, headBg, border } = useWeaningOrderTableStyles();
   const [expanded, setExpanded] = useState(false);
@@ -62,7 +66,23 @@ export const WeaningOrderRollTable: React.FC<{ order: WeaningOrder }> = ({ order
                   </TableCell>
                   <TableCell sx={bodyCell}>{animal.source_batch_name ?? 'Sin lote'}</TableCell>
                   <TableCell sx={bodyCell}>
-                    {animal.destination_key ? (
+                    {animal.is_redirected ? (
+                      <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                        <Tooltip title="Se destetó con otro destino que el planificado">
+                          <Box component="span" sx={{ color: 'warning.main', display: 'inline-flex', mt: 0.25 }}>
+                            <FuseSvgIcon size={16}>heroicons-outline:exclamation-triangle</FuseSvgIcon>
+                          </Box>
+                        </Tooltip>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                            {labelByKey.get(animal.destination_key ?? '') ?? animal.destination_key}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            Planificado: {animal.planned_destination_label ?? animal.planned_destination_key}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    ) : animal.destination_key ? (
                       labelByKey.get(animal.destination_key) ?? animal.destination_key
                     ) : (
                       <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
@@ -78,6 +98,26 @@ export const WeaningOrderRollTable: React.FC<{ order: WeaningOrder }> = ({ order
                     )}
                   </TableCell>
                   <TableCell sx={bodyCell}>
+                    {animal.deviation_review && (
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'block',
+                          width: 'fit-content',
+                          mb: 0.5,
+                          px: 0.75,
+                          py: 0.1,
+                          borderRadius: '4px',
+                          fontSize: '0.66rem',
+                          fontWeight: 700,
+                          color: animal.deviation_review === 'PENDING' ? 'warning.dark' : 'success.dark',
+                          bgcolor: (theme) =>
+                            alpha(animal.deviation_review === 'PENDING' ? theme.palette.warning.main : theme.palette.success.main, 0.12)
+                        }}
+                      >
+                        {animal.deviation_review === 'PENDING' ? 'Desvío sin revisar' : 'Desvío revisado'}
+                      </Box>
+                    )}
                     <Box
                       component="span"
                       sx={{
@@ -95,6 +135,11 @@ export const WeaningOrderRollTable: React.FC<{ order: WeaningOrder }> = ({ order
                   </TableCell>
                   <TableCell sx={{ ...bodyCell, borderRight: 0, whiteSpace: 'nowrap' }}>
                     {!animal.weaned_at ? '—' : order.kind === 'REGISTERED' ? formatDate(order.weaning_date) : formatDateTime(animal.weaned_at)}
+                    {animal.weaning_type_applied && animal.weaning_type_applied !== order.weaning_type && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'warning.dark', fontWeight: 700 }}>
+                        {animal.weaning_type_applied_label} · planificado {order.weaning_type_label ?? 'sin tipo'}
+                      </Typography>
+                    )}
                   </TableCell>
                 </TableRow>
               );

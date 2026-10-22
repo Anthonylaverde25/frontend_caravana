@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Box, Button, CircularProgress, Stack, Typography } from '@mui/material';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { Box, CircularProgress } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import { useItems } from '@/features/items/hooks/useItems';
 import { useOwnActiveBatches } from '@/features/batches/hooks/useOwnActiveBatches';
@@ -15,7 +14,9 @@ import FiscalSheetHeader from './FiscalSheetHeader';
 import FiscalSheetFooter from './FiscalSheetFooter';
 import FiscalLinesGrid from './FiscalLinesGrid';
 import { useImageRecognition } from './image/useImageRecognition';
-import ReadFromImageButton from './image/ReadFromImageButton';
+import { useReadLines } from './image/useReadLines';
+import FiscalEntryActions from './FiscalEntryActions';
+import ReplaceLinesDialog from './ReplaceLinesDialog';
 import ImageReadingOverlay from './image/ImageReadingOverlay';
 import ImageReadArea from './image/ImageReadArea';
 
@@ -90,11 +91,29 @@ export default function FiscalDocumentEntryForm({
 			entry.loadDraft(draft);
 		}
 	}, [draft, entry]);
-	const submit = useFiscalEntrySubmit({ ...entry, type: entry.type, taxes, onDone });
+	const submit = useFiscalEntrySubmit({
+		...entry,
+		type: entry.type,
+		taxes,
+		onDone
+	});
 	// A conversion inherits its provider from the delivery notes: there is no paper to read for it.
 	const readsImages = !draft;
-	const image = useImageRecognition(entry.header.providerId, (providerId) =>
-		entry.setHeader({ providerId, relatedId: null })
+	const activeItems = useMemo(
+		() => items.filter((i) => i.isActive && (mode !== 'delivery-note' || i.trackStock)),
+		[items, mode]
+	);
+	const readLines = useReadLines({
+		lines: entry.lines,
+		items: activeItems,
+		discriminates,
+		unpriced,
+		load: entry.loadReadLines
+	});
+	const image = useImageRecognition(
+		entry.header.providerId,
+		(providerId) => entry.setHeader({ providerId, relatedId: null }),
+		readLines.onLinesRead
 	);
 
 	const previews = useMemo(() => {
@@ -104,7 +123,10 @@ export default function FiscalDocumentEntryForm({
 	}, [entry.lines, taxes, discriminates]);
 	const filled = entry.lines.filter((l) => !isBlankLine(l) && !l.removed);
 	const summary = summarize(
-		filled.map((l) => ({ preview: previews[l.key], otherTaxes: discriminates ? l.otherTaxes : [] })),
+		filled.map((l) => ({
+			preview: previews[l.key],
+			otherTaxes: discriminates ? l.otherTaxes : []
+		})),
 		discriminates
 			? entry.documentTaxes
 					.filter((t) => t.taxId !== null)
@@ -114,39 +136,14 @@ export default function FiscalDocumentEntryForm({
 	);
 
 	const actions = (
-		<Stack direction="row" spacing={1.5} alignItems="center">
-			{readsImages && (
-				<ReadFromImageButton
-					onPick={image.start}
-					disabled={image.reading || submit.isSaving}
-				/>
-			)}
-			<Button
-				variant="outlined"
-				color="inherit"
-				onClick={onCancel}
-				disabled={submit.isSaving}
-				sx={{ fontWeight: 600, textTransform: 'none', borderRadius: '6px', borderColor: 'divider' }}
-			>
-				Cancelar
-			</Button>
-			<Button
-				variant="contained"
-				color="primary"
-				onClick={submit.submit}
-				disabled={submit.isSaving}
-				startIcon={
-					submit.isSaving ? (
-						<CircularProgress size={16} color="inherit" />
-					) : (
-						<FuseSvgIcon size={18}>heroicons-outline:check</FuseSvgIcon>
-					)
-				}
-				sx={{ fontWeight: 700, textTransform: 'none', borderRadius: '6px', boxShadow: 'none' }}
-			>
-				{copy.primary}
-			</Button>
-		</Stack>
+		<FiscalEntryActions
+			onReadImage={readsImages ? image.start : null}
+			reading={image.reading}
+			saving={submit.isSaving}
+			primary={copy.primary}
+			onCancel={onCancel}
+			onSubmit={submit.submit}
+		/>
 	);
 
 	return (
@@ -158,7 +155,7 @@ export default function FiscalDocumentEntryForm({
 			backTitle={backTitle}
 			actions={actions}
 			scroll="content"
-			className="p-2 sm:p-3 md:p-4 flex flex-col flex-1 h-full min-h-0"
+			className="flex h-full min-h-0 flex-1 flex-col p-2 sm:p-3 md:p-4"
 		>
 			{isLoading ? (
 				<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -194,6 +191,7 @@ export default function FiscalDocumentEntryForm({
 						/>
 					)}
 					<ImageReadArea image={image} />
+					<ReplaceLinesDialog {...readLines.prompt} />
 					<FiscalSheetHeader
 						header={entry.header}
 						types={types}
@@ -220,7 +218,7 @@ export default function FiscalDocumentEntryForm({
 							taxes={taxes}
 							batches={chargeable}
 							discriminates={discriminates}
-							items={items.filter((i) => i.isActive && (mode !== 'delivery-note' || i.trackStock))}
+							items={activeItems}
 							errors={submit.errors.cells}
 							onChange={entry.updateLine}
 							onPickItem={entry.pickItem}

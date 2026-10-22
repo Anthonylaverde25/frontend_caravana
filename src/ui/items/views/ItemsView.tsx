@@ -6,10 +6,12 @@ import ViewLayout from 'src/components/ViewLayout';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useItems } from '@/features/items/hooks/useItems';
 import { useItemCategories } from '@/features/items/hooks/useItemCategories';
-import { buildTree, flattenTree } from '@/core/items/domain/rules/categoryTree';
+import { buildTree, CategoryNode } from '@/core/items/domain/rules/categoryTree';
 import ItemsToolbar, { BehaviorFilter } from '../components/list/ItemsToolbar';
 import ItemsGrid from '../components/list/ItemsGrid';
 import ItemFormDialog from '../components/dialogs/ItemFormDialog';
+import ItemsCategorySubheader from '../components/header/ItemsCategorySubheader';
+import { settingsSectionPath } from '@/ui/settings/config/settingsNavigation';
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -23,14 +25,27 @@ export default function ItemsView() {
 	const { activeCompanyId, companies } = useCompany();
 	const [search, setSearch] = useState('');
 	const [behavior, setBehavior] = useState<BehaviorFilter>('ALL');
-	const [categoryId, setCategoryId] = useState<number | ''>('');
+	const [rootCategoryId, setRootCategoryId] = useState<number | ''>('');
+	const [subcategoryId, setSubcategoryId] = useState<number | ''>('');
 	const [includeInactive, setIncludeInactive] = useState(false);
 	const [onlyAlerts, setOnlyAlerts] = useState(false);
 	const [creating, setCreating] = useState(false);
 
-	const { data: items = [], isLoading } = useItems({ categoryId: categoryId || undefined, includeInactive });
+	const effectiveCategoryId = subcategoryId !== '' ? subcategoryId : (rootCategoryId !== '' ? rootCategoryId : undefined);
+
+	const { data: items = [], isLoading } = useItems({ categoryId: effectiveCategoryId, includeInactive });
 	const { data: categories = [] } = useItemCategories();
-	const tree = useMemo(() => flattenTree(buildTree(categories)), [categories]);
+	const categoryTree = useMemo(() => buildTree(categories), [categories]);
+
+	// Find active root category node to discover direct subcategories
+	const activeRootNode = useMemo<CategoryNode | null>(() => {
+		if (rootCategoryId === '') return null;
+		return categoryTree.find((node) => node.id === rootCategoryId) ?? null;
+	}, [categoryTree, rootCategoryId]);
+
+	const directSubcategories = useMemo(() => {
+		return activeRootNode ? activeRootNode.children : [];
+	}, [activeRootNode]);
 
 	useEffect(() => {
 		if (searchParams.get('new') === '1') {
@@ -65,12 +80,22 @@ export default function ItemsView() {
 		<ViewLayout
 			title="Artículos y servicios"
 			subtitle={`Catálogo de lo que la empresa compra o usa${companyName ? ` · ${companyName}` : ''}.`}
+			subHeader={
+				<ItemsCategorySubheader
+					categories={categories}
+					activeCategoryId={rootCategoryId}
+					onSelectCategory={(id) => {
+						setRootCategoryId(id);
+						setSubcategoryId('');
+					}}
+				/>
+			}
 			actions={
 				<Stack direction="row" spacing={1.5}>
 					<Button
 						variant="text"
 						startIcon={<FuseSvgIcon size={20}>heroicons-outline:adjustments-horizontal</FuseSvgIcon>}
-						onClick={() => navigate('/items/settings')}
+						onClick={() => navigate(settingsSectionPath('item-units'))}
 						sx={{ fontWeight: 600, color: 'primary.main', textTransform: 'none' }}
 					>
 						Unidades y categorías
@@ -93,14 +118,15 @@ export default function ItemsView() {
 					behavior={behavior}
 					onBehavior={setBehavior}
 					counts={counts}
-					categoryId={categoryId}
-					onCategory={setCategoryId}
-					categories={tree}
 					includeInactive={includeInactive}
 					onIncludeInactive={setIncludeInactive}
 					onlyAlerts={onlyAlerts}
 					onOnlyAlerts={setOnlyAlerts}
 					alertsCount={alertsCount}
+					subcategories={directSubcategories}
+					parentCategoryName={activeRootNode?.name ?? ''}
+					activeSubcategoryId={subcategoryId}
+					onSelectSubcategory={setSubcategoryId}
 				/>
 				<Box>
 					<ItemsGrid

@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { Autocomplete, Box, TableCell, TextField, Typography } from '@mui/material';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
 import { Item } from '@/core/items/domain/entities/Item';
@@ -11,6 +12,10 @@ interface ItemPickerCellProps {
 	placeholder?: string;
 	/** Offers "create" at the end of the list, with what was typed, for an item not in the catalogue. */
 	onCreate?: (name: string) => void;
+	/** One caption line below the field (e.g. what a scanned paper said). */
+	caption?: ReactNode;
+	/** Icons before the dropdown arrow (e.g. where the item came from, a link action). */
+	endAdornment?: ReactNode;
 }
 
 /** The "create" entry appended to the options; never a real item. */
@@ -26,7 +31,9 @@ export default function ItemPickerCell({
 	onChange,
 	error,
 	placeholder = 'Buscar ítem…',
-	onCreate
+	onCreate,
+	caption,
+	endAdornment
 }: ItemPickerCellProps) {
 	const { cellSx, inputSx, errorRing } = useGridCellStyles();
 	const selected = items.find((i) => i.id === value) ?? null;
@@ -72,7 +79,13 @@ export default function ItemPickerCell({
 							key="__create"
 							sx={{ borderTop: 1, borderColor: 'divider' }}
 						>
-							<Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'primary.main' }}>
+							<Typography
+								sx={{
+									fontSize: '0.85rem',
+									fontWeight: 700,
+									color: 'primary.main'
+								}}
+							>
 								{option.name ? `+ Crear «${option.name}»…` : '+ Nuevo artículo o servicio…'}
 							</Typography>
 						</Box>
@@ -96,9 +109,23 @@ export default function ItemPickerCell({
 						{...params}
 						placeholder={placeholder}
 						sx={inputSx}
+						InputProps={
+							endAdornment
+								? {
+										...params.InputProps,
+										endAdornment: (
+											<>
+												{endAdornment}
+												{params.InputProps.endAdornment}
+											</>
+										)
+									}
+								: params.InputProps
+						}
 					/>
 				)}
 			/>
+			{caption}
 		</TableCell>
 	);
 }

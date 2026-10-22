@@ -1,4 +1,4 @@
-import { Box, IconButton, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Tooltip } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { SheetGrid } from 'src/components/sheet-grid/SheetGrid';
 import { SheetGridStatusCell } from 'src/components/sheet-grid/SheetGridStatusCell';
@@ -52,6 +52,13 @@ export default function CategoryTreeGrid({ rows, folded, onToggleFold, onAddChil
 									<Box component="span" sx={{ fontSize: '0.85rem', fontWeight: c.depth === 0 ? 700 : 500, ...muted }}>
 										{c.name}
 									</Box>
+									{c.isSystem && (
+										<Tooltip title="Categoría del sistema: no se edita ni se desactiva">
+											<Box component="span" sx={{ display: 'inline-flex', ml: 0.75, color: 'text.secondary' }}>
+												<FuseSvgIcon size={14}>heroicons-outline:lock-closed</FuseSvgIcon>
+											</Box>
+										</Tooltip>
+									)}
 								</Box>
 							</TableCell>
 							<TableCell sx={{ ...textCellSx, ...muted }} align="right">{c.itemsCount}</TableCell>
@@ -59,8 +66,12 @@ export default function CategoryTreeGrid({ rows, folded, onToggleFold, onAddChil
 								<RowActionsMenu
 									actions={[
 										{ label: 'Agregar subcategoría', onClick: () => onAddChild(c), disabled: !c.isActive },
-										{ label: 'Editar', onClick: () => onEdit(c) },
-										{ label: c.isActive ? 'Desactivar' : 'Reactivar', onClick: () => onToggleActive(c) }
+										...(c.isSystem
+											? []
+											: [
+													{ label: 'Editar', onClick: () => onEdit(c) },
+													{ label: c.isActive ? 'Desactivar' : 'Reactivar', onClick: () => onToggleActive(c) }
+												])
 									]}
 								/>
 							</SheetGridStatusCell>

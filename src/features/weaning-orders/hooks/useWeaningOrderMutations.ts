@@ -20,6 +20,8 @@ const useInvalidateOrders = () => {
     queryClient.invalidateQueries({ queryKey: [WEANING_ORDERS_KEY] });
     // A weaning order commits calves: the births list marks them.
     queryClient.invalidateQueries({ queryKey: ['births-history'] });
+    // Executing or closing one may record deviations from its plan.
+    queryClient.invalidateQueries({ queryKey: ['weaning-deviations'] });
 
     if (alsoLivestock) {
       ['caravans', 'batches', 'batch', 'activities', 'batch-weight-history', 'caravan-movements'].forEach((key) =>

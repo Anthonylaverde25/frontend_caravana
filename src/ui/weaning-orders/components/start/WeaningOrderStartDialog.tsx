@@ -30,6 +30,7 @@ import {
 } from '@/features/weaning-orders/types';
 import {
   DestinationDraft,
+  destinationSignature,
   newDestination,
   WeaningFormHeader,
   WeaningFormMode,
@@ -73,7 +74,10 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
   const barBg = (contrast.enabled && (contrast.headerBg || contrast.primaryButtonBg)) || 'primary.main';
   const barText = (contrast.enabled && contrast.headerBg && contrast.headerText) || 'common.white';
 
-  const { data: births = [], isLoading } = useBirthHistory();
+  const { data: allBirths = [], isLoading } = useBirthHistory();
+  // "Registrar destetadas": only the calves of the order being executed are offered.
+  const source = initial?.sourceOrder ?? null;
+  const births = useMemo(() => (source ? allBirths.filter((r) => r.open_order_code === source.code) : allBirths), [allBirths, source]);
   // Every own batch: a weaning batch is recommended, not required.
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches(undefined, undefined, 'own');
   const [calfIds, setCalfIds] = useState<number[]>([]);
@@ -135,6 +139,11 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
     return [...existing, ...pendingNew];
   };
 
+  // Not blocking: what happened beats the plan, and the order records the difference.
+  const deviations: string[] = [];
+  if (source && destinationSignature(destinationMode, destinations()) !== source.plannedDestinations) deviations.push('el destino');
+  if (source && header.weaningType !== source.plannedType) deviations.push('el tipo de destete');
+
   const proceed = () => {
     const start: WeaningOrderStart = {
       orderId: initial?.orderId ?? null,
@@ -144,7 +153,9 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
       destinations: destinations(),
       header,
       categoryMode,
-      calves: initial?.calves
+      calves: initial?.calves,
+      sourceOrder: initial?.sourceOrder ?? null,
+      returnTo: initial?.returnTo
     };
     const confirm = `${location.pathname}/confirm${start.orderId ? `?orderId=${start.orderId}` : ''}`;
 
@@ -169,10 +180,18 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
           </IconButton>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
-              {mode === 'register' ? 'Registrar destete' : initial?.orderId ? `Editar borrador ${initial.orderCode ?? ''}`.trim() : 'Nueva orden de destete'}
+              {source
+                ? `Registrar destetadas · ${source.code}`
+                : mode === 'register'
+                  ? 'Registrar destete'
+                  : initial?.orderId
+                    ? `Editar borrador ${initial.orderCode ?? ''}`.trim()
+                    : 'Nueva orden de destete'}
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.8, display: { xs: 'none', md: 'block' } }} noWrap>
-              {mode === 'register'
+              {source
+                ? 'Las crías de la orden que se destetaron. Viene lo planificado: cambialo si fue distinto. Después se confirma cría por cría.'
+                : mode === 'register'
                 ? 'Qué crías se destetaron, a dónde fueron, cómo y cuándo. Después se confirma cría por cría.'
                 : 'Qué crías, a dónde van, cómo y cuándo se destetan. Después se confirma cría por cría.'}
             </Typography>
@@ -215,6 +234,12 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
         }}
       >
         <Stack spacing={2.5}>
+          {deviations.length > 0 && (
+            <Alert severity="warning" sx={{ borderRadius: '6px', fontSize: '0.8rem', py: 0.5 }}>
+              Difiere de lo planificado en {source?.code}: {deviations.join(' y ')}. Vale lo que declares acá; queda registrado en la
+              orden.
+            </Alert>
+          )}
           <Paper variant="outlined" sx={{ p: 2, borderRadius: '8px' }}>
             <Typography sx={sectionTitleSx}>1. Destino</Typography>
             <Stack spacing={1.5} sx={{ mt: 1.5 }}>
@@ -406,6 +431,8 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
               births={births}
               selected={calfIds}
               onChange={setCalfIds}
+              focusIds={initial?.calfIds}
+              heldBy={source?.code ?? null}
               maxHeight={{ xs: 440, lg: 'calc(100vh - 230px)' }}
             />
           )}

@@ -7,4 +7,6 @@ export interface ItemCategory {
 	isActive: boolean;
 	displayOrder: number;
 	itemsCount: number;
+	/** Belongs to the software: cannot be renamed, moved or deactivated; still takes subcategories. */
+	isSystem: boolean;
 }

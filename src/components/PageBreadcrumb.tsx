@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Breadcrumbs, { BreadcrumbsProps } from '@mui/material/Breadcrumbs';
 import { FuseNavItemType } from '@fuse/core/FuseNavigation/types/FuseNavItemType';
 import usePathname from '@fuse/hooks/usePathname';
@@ -9,9 +8,16 @@ import Link from '@fuse/core/Link';
 import clsx from 'clsx';
 import useNavigationItems from './theme-layouts/components/navigation/hooks/useNavigationItems';
 
+export interface BreadcrumbItem {
+  title: string;
+  url: string;
+}
+
 type PageBreadcrumbProps = BreadcrumbsProps & {
   className?: string;
   skipHome?: boolean;
+  /** A trail the page declares (e.g. a tab kept in the query), instead of the one read from the path. */
+  items?: BreadcrumbItem[];
 };
 
 // Function to get the navigation item based on URL
@@ -47,13 +53,14 @@ export function PageBreadcrumb(props: PageBreadcrumbProps) {
     className,
     skipHome = false,
     maxItems = 4,
+    items,
     ...rest
   } = props;
 
   const pathname = usePathname();
   const { data: navigation = [] } = useNavigationItems();
 
-  const crumbs = pathname
+  const fromPath = pathname
     .split('/')
     .filter(Boolean)
     .reduce(
@@ -67,6 +74,7 @@ export function PageBreadcrumb(props: PageBreadcrumbProps) {
       },
       skipHome ? [] : [{ title: 'Inicio', url: '/' }]
     );
+  const crumbs = items ? [...(skipHome ? [] : [{ title: 'Inicio', url: '/' }]), ...items] : fromPath;
 
   return (
     <Breadcrumbs

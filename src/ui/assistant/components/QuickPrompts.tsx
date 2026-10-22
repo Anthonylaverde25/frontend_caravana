@@ -5,8 +5,9 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
 const QUICK_PROMPTS = [
 	'¿Cuántas cabezas tengo por categoría?',
+	'¿Qué insumos están en stock crítico?',
+	'Valuación de mis depósitos de stock',
 	'Estado de los servicios por lote',
-	'Mostrame la ficha de una caravana',
 	'¿Qué órdenes tengo pendientes?'
 ];
 

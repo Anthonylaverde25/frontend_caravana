@@ -14,6 +14,7 @@ import { readApiErrors } from '@/ui/items/components/apiErrors';
 import { buildTransferPayload, emptyTransferLine, isBlankTransfer, TransferHeader, TransferLine, withTrailingTransfer } from './transferState';
 import TransferHeaderFields from './TransferHeaderFields';
 import TransferLineRow from './TransferLineRow';
+import { settingsSectionPath } from '@/ui/settings/config/settingsNavigation';
 
 interface TransferDialogProps {
 	onClose: () => void;
@@ -77,7 +78,7 @@ export default function TransferDialog({ onClose, fromWarehouseId, item }: Trans
 			</Box>
 			<DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '20px !important' }}>
 				{!enough ? (
-					<Alert severity="info" action={<Button size="small" onClick={() => navigate('/warehouses?new=1')} sx={{ textTransform: 'none', fontWeight: 700 }}>Nuevo almacén</Button>}>
+					<Alert severity="info" action={<Button size="small" onClick={() => navigate(`${settingsSectionPath('warehouses')}&new=1`)} sx={{ textTransform: 'none', fontWeight: 700 }}>Nuevo almacén</Button>}>
 						Necesitás al menos dos almacenes activos para transferir.
 					</Alert>
 				) : (

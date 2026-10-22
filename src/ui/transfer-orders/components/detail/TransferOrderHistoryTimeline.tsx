@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { TRANSFER_ORDER_STATUS_LABELS, TransferOrderHistoryEntry } from '@/features/transfer-orders/types';
+import { WEANING_TYPE_LABELS, type WeaningType } from '@/features/weaning-orders/types';
 import { useTransferOrderStatusColor } from '../TransferOrderStatusChip';
 import { formatDateTime } from '../transferOrderFormat';
 
@@ -10,6 +11,23 @@ const describe = (entry: TransferOrderHistoryEntry): string => {
   if (entry.from_status === null) return `Emitida (${to})`;
 
   const meta = entry.metadata;
+
+  if (meta?.kind === 'DEVIATION_REVIEWED') {
+    const items = meta.items ?? [];
+
+    return `Desvío revisado · ${items.map((i) => `${i.identification ?? 'cría'}: ${i.kind_label.toLowerCase()} ${i.planned ?? '—'} → ${i.actual ?? '—'}`).join(' · ')}`;
+  }
+
+  // A weaning declared off the plan: which calves went elsewhere and the type, before it happened.
+  if (meta?.kind === 'DEVIATION') {
+    const moved = meta.destinations ?? [];
+    const type = meta.weaning_type;
+    const parts = moved.map((d) => `${d.identification ?? 'cría'}: ${d.planned ?? 'sin destino'} → ${d.actual ?? 'sin destino'}`);
+
+    if (type) parts.push(`tipo ${WEANING_TYPE_LABELS[type.planned as WeaningType] ?? 'sin declarar'} → ${WEANING_TYPE_LABELS[type.declared as WeaningType] ?? type.declared} (${type.head_count} cría(s))`);
+
+    return `Desvío respecto de lo planificado · ${parts.join(' · ')}`;
+  }
 
   const done = meta?.moved_now ?? meta?.weaned_now;
 

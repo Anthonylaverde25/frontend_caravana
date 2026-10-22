@@ -1,19 +1,26 @@
 import { lazy } from 'react';
+import { Navigate, useSearchParams } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
+import { settingsSectionPath } from '@/ui/settings/config/settingsNavigation';
 
 const ItemsView = lazy(() => import('src/ui/items/views/ItemsView'));
 const ItemDetailView = lazy(() => import('src/ui/items/views/ItemDetailView'));
-const ItemSettingsView = lazy(() => import('src/ui/items/views/ItemSettingsView'));
+
+/** Units and categories moved into Settings; the old link (and its `?tab=`) still lands on them. */
+function ItemSettingsRedirect() {
+	const [params] = useSearchParams();
+
+	return <Navigate replace to={settingsSectionPath(params.get('tab') === 'categories' ? 'item-categories' : 'item-units')} />;
+}
 
 /**
- * The company's catalog of articles and services, the item file (presentations and providers)
- * and the units and categories it is built on.
+ * The company's catalog of articles and services and the item file (presentations and providers).
  */
 const route: FuseRouteItemType = {
 	path: 'items',
 	children: [
 		{ index: true, element: <ItemsView /> },
-		{ path: 'settings', element: <ItemSettingsView /> },
+		{ path: 'settings', element: <ItemSettingsRedirect /> },
 		{ path: ':itemId', element: <ItemDetailView /> }
 	]
 };

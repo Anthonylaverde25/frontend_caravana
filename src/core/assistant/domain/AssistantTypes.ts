@@ -30,9 +30,42 @@ export interface KpisBlock {
 	items: KpiItem[];
 }
 
+/** Entities a table cell can open in a detail drawer (mirrors ai-agent `EntityKind`). */
+export type EntityKind =
+	| 'caravan'
+	| 'batch'
+	| 'service_order'
+	| 'entry_order'
+	| 'birth_order'
+	| 'transfer_order'
+	| 'weaning_order'
+	| 'item'
+	| 'item_document'
+	| 'warehouse'
+	| 'fiscal_document'
+	| 'animal_category'
+	| 'item_category';
+
+/** Filter shared by a whole column, set by code: e.g. a category inside one batch's table. */
+export interface EntityScope {
+	batch_id?: number | null;
+}
+
+/** What a linked cell points at: the drawer to open and the record to load in it. */
+export interface EntityRef {
+	kind: EntityKind;
+	id: number;
+	/** The text of the clicked cell, shown while the record loads. */
+	label?: string;
+	scope?: EntityScope | null;
+}
+
 export interface TableColumn {
 	key: string;
 	label: string;
+	/** Set when the cells of this column open an entity. */
+	entity?: EntityKind | null;
+	scope?: EntityScope | null;
 }
 
 export type TableCell = string | number | boolean | null;
@@ -42,6 +75,8 @@ export interface TableBlock {
 	title?: string | null;
 	columns: TableColumn[];
 	rows: Record<string, TableCell>[];
+	/** Aligned with rows: per row, the entity id behind each linked column. Absent in older answers. */
+	refs?: Record<string, number>[] | null;
 	total_rows: number;
 }
 

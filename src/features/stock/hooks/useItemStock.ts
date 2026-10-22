@@ -1,6 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/contexts/CompanyContext';
-import { GetItemKardexUseCase, GetItemStockUseCase, SetCriticalStockUseCase } from '@/core/stock/application/use-cases/StockUseCases';
+import {
+	GetItemKardexUseCase,
+	GetItemStockUseCase,
+	GetWarehouseStockUseCase,
+	SetCriticalStockUseCase
+} from '@/core/stock/application/use-cases/StockUseCases';
 import { KardexFilters } from '@/core/stock/domain/entities/ItemStock';
 import { ApiItemStockRepository } from '@/core/stock/infrastructure/repositories/ApiItemStockRepository';
 import { stockKeys } from './stockKeys';
@@ -14,6 +19,18 @@ export const useItemStock = (itemId: number | null) => {
 		queryKey: stockKeys.itemStock(activeCompanyId, itemId ?? 0),
 		queryFn: () => new GetItemStockUseCase(repository).execute(itemId as number),
 		enabled: !!activeCompanyId && !!itemId
+	});
+};
+
+/** What one warehouse holds, item by item (read-only). */
+export const useWarehouseStock = (warehouseId: number | null) => {
+	const { activeCompanyId } = useCompany();
+
+	return useQuery({
+		queryKey: stockKeys.warehouseStock(activeCompanyId, warehouseId ?? 0),
+		queryFn: () => new GetWarehouseStockUseCase(repository).execute(warehouseId as number),
+		enabled: !!activeCompanyId && !!warehouseId,
+		retry: false
 	});
 };
 

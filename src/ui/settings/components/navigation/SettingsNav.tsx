@@ -1,186 +1,81 @@
-import { Box, Typography, Divider, Stack, Button, Menu, MenuItem } from '@mui/material';
-import { useState } from 'react';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import {
-  SETTINGS_NAVIGATION_GROUPS,
-  SettingsSectionId,
-} from '../../config/settingsNavigation';
-import SettingsNavItem from './SettingsNavItem';
+import { Box, ButtonBase, MenuItem, TextField, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { SETTINGS_NAVIGATION_GROUPS, SettingsSectionId } from '../../config/settingsNavigation';
 
 interface SettingsNavProps {
   activeSection: SettingsSectionId;
   onSelectSection: (id: SettingsSectionId) => void;
-  badges?: Partial<Record<SettingsSectionId, React.ReactNode>>;
+  /** How many records a section holds, shown in grey after its name. */
+  counts?: Partial<Record<SettingsSectionId, number>>;
 }
 
-export default function SettingsNav({
-  activeSection,
-  onSelectSection,
-  badges = {},
-}: SettingsNavProps) {
-  // Mobile dropdown state
-  const [mobileAnchorEl, setMobileAnchorEl] = useState<null | HTMLElement>(null);
-  const isMobileMenuOpen = Boolean(mobileAnchorEl);
-
-  const allItems = SETTINGS_NAVIGATION_GROUPS.flatMap((g) => g.items);
-  const activeItem = allItems.find((item) => item.id === activeSection) || allItems[0];
-
-  const handleMobileSelect = (id: SettingsSectionId) => {
-    onSelectSection(id);
-    setMobileAnchorEl(null);
-  };
-
+/** The inner menu of /settings: plain text grouped by subject, the active section marked by a bar. */
+export default function SettingsNav({ activeSection, onSelectSection, counts = {} }: SettingsNavProps) {
   return (
-    <Box
-      component="nav"
-      aria-label="Navegación de configuración"
-      sx={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* ─── Mobile Selector (< md) ─── */}
-      <Box sx={{ display: { xs: 'block', md: 'none' }, p: 2, borderBottom: '1px solid #e2e8f0' }}>
-        <Button
+    <>
+      <Box sx={{ display: { xs: 'block', md: 'none' }, p: 2 }}>
+        <TextField
+          select
           fullWidth
-          variant="outlined"
-          onClick={(e) => setMobileAnchorEl(e.currentTarget)}
-          startIcon={<FuseSvgIcon size={18} sx={{ color: 'primary.main' }}>{activeItem.icon}</FuseSvgIcon>}
-          endIcon={<FuseSvgIcon size={16} sx={{ color: 'text.secondary' }}>heroicons-outline:chevron-down</FuseSvgIcon>}
-          sx={{
-            justifyContent: 'space-between',
-            textAlign: 'left',
-            py: 1,
-            px: 1.5,
-            borderRadius: '6px',
-            borderColor: '#cbd5e1',
-            color: '#1e293b',
-            fontWeight: 600,
-            textTransform: 'none',
-            bgcolor: '#ffffff',
-          }}
+          variant="filled"
+          label="Sección"
+          value={activeSection}
+          onChange={(e) => onSelectSection(e.target.value as SettingsSectionId)}
+          InputProps={{ disableUnderline: true, sx: { borderRadius: '6px', bgcolor: 'action.hover' } }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-              {activeItem.title}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.7rem' }}>
-              {activeItem.subtitle}
-            </Typography>
-          </Box>
-        </Button>
+          {SETTINGS_NAVIGATION_GROUPS.flatMap((group) =>
+            group.items.map((item) => (
+              <MenuItem key={item.id} value={item.id}>
+                {group.groupTitle} · {item.title}
+              </MenuItem>
+            ))
+          )}
+        </TextField>
+      </Box>
 
-        <Menu
-          anchorEl={mobileAnchorEl}
-          open={isMobileMenuOpen}
-          onClose={() => setMobileAnchorEl(null)}
-          PaperProps={{
-            sx: {
-              width: 'min(90vw, 340px)',
-              maxHeight: '70vh',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-              p: 0.5,
-            },
-          }}
-        >
-          {SETTINGS_NAVIGATION_GROUPS.map((group, groupIdx) => (
-            <Box key={group.groupId}>
-              {groupIdx > 0 && <Divider sx={{ my: 0.75, borderColor: '#f1f5f9' }} />}
-              <Typography
-                variant="overline"
-                sx={{
-                  px: 1.5,
-                  pt: 0.5,
-                  color: '#94a3b8',
-                  fontWeight: 700,
-                  fontSize: '0.65rem',
-                  letterSpacing: '0.05em',
-                  display: 'block',
-                }}
-              >
-                {group.groupTitle}
-              </Typography>
-              {group.items.map((item) => (
-                <MenuItem
+      <Box component="nav" aria-label="Secciones de configuración" sx={{ display: { xs: 'none', md: 'block' }, py: 0.5 }}>
+        {SETTINGS_NAVIGATION_GROUPS.map((group) => (
+          <Box key={group.groupId}>
+            <Typography sx={{ px: 1.75, pt: 2, pb: 0.75, fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary' }}>{group.groupTitle}</Typography>
+            {group.items.map((item) => {
+              const active = item.id === activeSection;
+
+              return (
+                <ButtonBase
                   key={item.id}
-                  selected={item.id === activeSection}
-                  onClick={() => handleMobileSelect(item.id)}
-                  sx={{
-                    borderRadius: '4px',
-                    py: 0.85,
-                    px: 1.5,
-                    gap: 1.25,
-                    '&.Mui-selected': {
-                      bgcolor: '#f1f5f9',
-                      fontWeight: 600,
-                    },
-                  }}
+                  onClick={() => onSelectSection(item.id)}
+                  aria-current={active ? 'page' : undefined}
+                  sx={(theme) => ({
+                    width: '100%',
+                    height: 34,
+                    justifyContent: 'flex-start',
+                    gap: 1,
+                    pl: 1.75,
+                    pr: 1.5,
+                    borderLeft: '2px solid',
+                    borderLeftColor: active ? 'primary.main' : 'transparent',
+                    bgcolor: active ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                    color: active ? 'primary.dark' : 'text.primary',
+                    fontSize: '0.82rem',
+                    fontWeight: active ? 700 : 500,
+                    '&:hover': { bgcolor: active ? alpha(theme.palette.primary.main, 0.08) : 'action.hover' },
+                    '&.Mui-focusVisible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: -2 },
+                  })}
                 >
-                  <FuseSvgIcon
-                    size={16}
-                    sx={{ color: item.id === activeSection ? 'primary.main' : '#64748b' }}
-                  >
-                    {item.icon}
-                  </FuseSvgIcon>
-                  <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: item.id === activeSection ? 600 : 500 }}>
+                  <Box component="span" sx={{ flex: 1, textAlign: 'left' }}>
                     {item.title}
-                  </Typography>
-                </MenuItem>
-              ))}
-            </Box>
-          ))}
-        </Menu>
+                  </Box>
+                  {counts[item.id] != null && (
+                    <Box component="span" sx={{ fontSize: '0.72rem', fontWeight: 500, color: 'text.disabled' }}>
+                      {counts[item.id]}
+                    </Box>
+                  )}
+                </ButtonBase>
+              );
+            })}
+          </Box>
+        ))}
       </Box>
-
-      {/* ─── Desktop Aside Navigation (>= md) ─── */}
-      <Box
-        sx={{
-          display: { xs: 'none', md: 'flex' },
-          flexDirection: 'column',
-          height: '100%',
-          py: 2.5,
-          px: 1.5,
-        }}
-      >
-        <Stack spacing={2.5} sx={{ flex: 1 }}>
-          {SETTINGS_NAVIGATION_GROUPS.map((group, groupIdx) => (
-            <Box key={group.groupId}>
-              {groupIdx > 0 && <Divider sx={{ mb: 2, borderColor: '#f1f5f9' }} />}
-              <Typography
-                variant="overline"
-                sx={{
-                  px: 1,
-                  mb: 0.75,
-                  display: 'block',
-                  color: '#64748b',
-                  fontWeight: 700,
-                  fontSize: '0.68rem',
-                  letterSpacing: '0.06em',
-                  lineHeight: 1.2,
-                }}
-              >
-                {group.groupTitle}
-              </Typography>
-
-              <Stack spacing={0.25}>
-                {group.items.map((item) => (
-                  <SettingsNavItem
-                    key={item.id}
-                    item={item}
-                    isActive={item.id === activeSection}
-                    onSelect={onSelectSection}
-                    badgeContent={badges[item.id]}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          ))}
-        </Stack>
-      </Box>
-    </Box>
+    </>
   );
 }

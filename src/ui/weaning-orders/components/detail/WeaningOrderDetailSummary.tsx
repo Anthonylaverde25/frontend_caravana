@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Chip, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Paper, Stack, Typography } from '@mui/material';
+import { useNavigate } from 'react-router';
 import type { WeaningOrder } from '@/features/weaning-orders/types';
 import { formatDate, formatDateTime, managementLabel } from '../weaningOrderFormat';
 
@@ -23,9 +24,62 @@ const Fact: React.FC<{ label: string; children: React.ReactNode }> = ({ label, c
   </Box>
 );
 
+/** "2 crías a otro destino · 2 con destete anticipado (planificado tradicional)": what strayed from the plan. */
+const deviationText = (order: WeaningOrder): string | null => {
+  const { redirected_head_count: redirected, type_deviated_head_count: retyped } = order.deviation_summary ?? {
+    redirected_head_count: 0,
+    type_deviated_head_count: 0
+  };
+  const parts: string[] = [];
+
+  if (redirected > 0) parts.push(`${redirected} cría(s) a otro destino`);
+
+  if (retyped > 0) {
+    const applied = order.animals.find((a) => a.weaning_type_applied && a.weaning_type_applied !== order.weaning_type);
+    parts.push(
+      `${retyped} con destete ${applied?.weaning_type_applied_label?.toLowerCase() ?? 'distinto'} (planificado ${order.weaning_type_label?.toLowerCase() ?? 'sin tipo'})`
+    );
+  }
+
+  return parts.length > 0 ? `Destetadas fuera de lo planificado: ${parts.join(' · ')}.` : null;
+};
+
+/** The deviations of the order still to review, and the way to them in the audit tab. */
+const DeviationAlert: React.FC<{ order: WeaningOrder }> = ({ order }) => {
+  const navigate = useNavigate();
+  const text = deviationText(order);
+  const pending = order.deviation_summary?.pending_review_head_count ?? 0;
+  const withDeviations = order.animals.some((a) => a.deviation_review !== null);
+
+  if (!text && !withDeviations) return null;
+
+  return (
+    <Alert
+      severity="warning"
+      sx={{ borderRadius: '6px', fontSize: '0.8rem', py: 0.5, '& .MuiAlert-action': { alignItems: 'center', pt: 0 } }}
+      action={
+        withDeviations ? (
+          <Button
+            color="inherit"
+            size="small"
+            onClick={() => navigate(`/gestation/births?tab=deviations&orderCode=${encodeURIComponent(order.code)}`)}
+            sx={{ textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}
+          >
+            Ver desvíos de esta orden →
+          </Button>
+        ) : undefined
+      }
+    >
+      {text ?? 'Esta orden tiene desvíos respecto de lo planificado.'}{' '}
+      {withDeviations && <strong>{pending > 0 ? `${pending} cría(s) con desvíos sin revisar.` : 'Desvíos revisados.'}</strong>}
+    </Alert>
+  );
+};
+
 /** The figures of the weaning order, where its calves come from and go to, and its dates. */
 export const WeaningOrderDetailSummary: React.FC<{ order: WeaningOrder }> = ({ order }) => (
   <Stack spacing={2}>
+    <DeviationAlert order={order} />
     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
       <Kpi label="Ordenadas" value={order.planned_head_count} />
       <Kpi label="Destetadas" value={order.weaned_head_count} tone="success.main" />

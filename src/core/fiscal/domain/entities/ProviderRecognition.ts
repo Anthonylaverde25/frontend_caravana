@@ -25,6 +25,31 @@ export interface IssuerRead {
 	vatCondition: string | null;
 }
 
+/** How the item of a read line was found (Delivery G): EXACT by name, AI (level HIGH) or not at all. */
+export type LineResolutionSource = 'EXACT' | 'AI' | 'NONE';
+
+export type LineMatchLevel = 'EXACT' | 'HIGH' | 'MEDIUM' | 'NONE';
+
+/** A line read from the paper, with the item it was resolved to. Quantity and prices as API decimals. */
+export interface ResolvedFiscalLine {
+	position: number;
+	code: string | null;
+	description: string;
+	quantity: string | null;
+	unitPrice: string | null;
+	vatRateCode: string | null;
+	vatTaxRateId: number | null;
+	resolution: {
+		source: LineResolutionSource;
+		level: LineMatchLevel;
+		itemId: number | null;
+		reason: string | null;
+		/** MEDIUM: the candidate the link dialog offers first; not set on the line. */
+		suggestedItemId: number | null;
+		note: 'MATCHER_UNAVAILABLE' | null;
+	};
+}
+
 export interface ProviderRecognition {
 	status: RecognitionStatus;
 	reason: RecognitionReason | null;
@@ -37,4 +62,5 @@ export interface ProviderRecognition {
 	receiverMismatch: boolean;
 	companyCuit: string | null;
 	companyCuitMissing: boolean;
+	lines: ResolvedFiscalLine[];
 }

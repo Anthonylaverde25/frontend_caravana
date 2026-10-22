@@ -1,19 +1,20 @@
 export type SettingsSectionId =
   | 'company'
   | 'activities'
-  | 'dentition'
-  | 'breeds'
-  | 'weighing-types'
   | 'animal-categories'
+  | 'breeds'
+  | 'dentition'
+  | 'weighing-types'
+  | 'warehouses'
+  | 'item-units'
+  | 'item-categories'
   | 'appearance';
 
 export interface SettingsNavItemConfig {
   id: SettingsSectionId;
   title: string;
-  subtitle: string;
-  icon: string;
-  badge?: string | number;
-  badgeColor?: 'default' | 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  /** One line under the section title. */
+  description: string;
 }
 
 export interface SettingsNavGroupConfig {
@@ -22,65 +23,46 @@ export interface SettingsNavGroupConfig {
   items: SettingsNavItemConfig[];
 }
 
+/** The sections of /settings, as the inner menu groups them. The section lives in `?section=`. */
 export const SETTINGS_NAVIGATION_GROUPS: SettingsNavGroupConfig[] = [
   {
-    groupId: 'general-fiscal',
-    groupTitle: 'Empresa & Fiscal',
+    groupId: 'company',
+    groupTitle: 'Empresa',
+    items: [{ id: 'company', title: 'Datos de la empresa', description: 'Identificación fiscal y sanitaria del establecimiento.' }],
+  },
+  {
+    groupId: 'livestock',
+    groupTitle: 'Hacienda',
     items: [
-      {
-        id: 'company',
-        title: 'Empresa & Perfil Fiscal',
-        subtitle: 'Razón Social, CUIT, RENSPA y sede',
-        icon: 'heroicons-outline:building-office',
-      },
+      { id: 'activities', title: 'Actividades', description: 'Etapas del flujo productivo y en qué orden se recorren.' },
+      { id: 'animal-categories', title: 'Categorías', description: 'Clasificación por sexo, edad y peso de referencia, con sus subcategorías.' },
+      { id: 'breeds', title: 'Razas', description: 'Razas disponibles al cargar caravanas, tropas y órdenes de ingreso.' },
+      { id: 'dentition', title: 'Dentición', description: 'Edad estimada por cronometría dentaria.' },
+      { id: 'weighing-types', title: 'Tipos de pesaje', description: 'Para qué se pesa en manga y báscula, y si entra en la curva de ganancia.' },
     ],
   },
   {
-    groupId: 'livestock-zootechnics',
-    groupTitle: 'Zootecnia & Rodeo',
+    groupId: 'supplies',
+    groupTitle: 'Insumos',
     items: [
-      {
-        id: 'activities',
-        title: 'Flujo Productivo & Actividades',
-        subtitle: 'Ciclo ganadero (Cría, Recría, Invernada)',
-        icon: 'heroicons-outline:arrows-right-left',
-      },
-      {
-        id: 'dentition',
-        title: 'Escala de Dentición',
-        subtitle: 'Cronometría dentaria bovina (0D - 8D)',
-        icon: 'heroicons-outline:identification',
-      },
-      {
-        id: 'breeds',
-        title: 'Catálogo Genético & Razas',
-        subtitle: 'Razas y biotipos de la hacienda',
-        icon: 'heroicons-outline:tag',
-      },
-      {
-        id: 'weighing-types',
-        title: 'Tipos de Pesaje & Eventos',
-        subtitle: 'Báscula, controles y propósitos',
-        icon: 'heroicons-outline:scale',
-      },
-      {
-        id: 'animal-categories',
-        title: 'Categorías Zootécnicas',
-        subtitle: 'Clasificación bovina y pesos objetivos',
-        icon: 'heroicons-outline:user-group',
-      },
+      { id: 'warehouses', title: 'Almacenes', description: 'Dónde se guarda el stock de la empresa.' },
+      { id: 'item-units', title: 'Unidades de medida', description: 'En qué se mide lo que la empresa compra o usa.' },
+      { id: 'item-categories', title: 'Categorías de insumos', description: 'Cómo se agrupan los artículos y servicios.' },
     ],
   },
   {
-    groupId: 'system-preferences',
-    groupTitle: 'Sistema & Operación',
-    items: [
-      {
-        id: 'appearance',
-        title: 'Visibilidad & Manga',
-        subtitle: 'Contraste para luz solar y campo',
-        icon: 'heroicons-outline:sun',
-      },
-    ],
+    groupId: 'system',
+    groupTitle: 'Sistema',
+    items: [{ id: 'appearance', title: 'Apariencia', description: 'Tema de colores y contraste, también para trabajar en la manga a pleno sol.' }],
   },
 ];
+
+export const SETTINGS_SECTIONS: SettingsNavItemConfig[] = SETTINGS_NAVIGATION_GROUPS.flatMap((g) => g.items);
+
+export const isSettingsSection = (value: string | null): value is SettingsSectionId =>
+  SETTINGS_SECTIONS.some((s) => s.id === value);
+
+export const settingsSection = (id: SettingsSectionId): SettingsNavItemConfig =>
+  SETTINGS_SECTIONS.find((s) => s.id === id) ?? SETTINGS_SECTIONS[0];
+
+export const settingsSectionPath = (id: SettingsSectionId): string => `/settings?section=${id}`;

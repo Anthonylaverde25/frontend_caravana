@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Button, Chip, InputAdornment, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { BirthHistoryRecord } from '@/features/gestation/hooks/useBirthHistory';
-import { useCalvesByBatch } from './useCalvesByBatch';
+import { calfGroupKey, useCalvesByBatch } from './useCalvesByBatch';
 import WeaningCalvesGrid from './WeaningCalvesGrid';
 import WeaningUntaggedCalvesNotice from './WeaningUntaggedCalvesNotice';
 
@@ -14,6 +14,10 @@ interface WeaningCalvesByBatchSelectorProps {
   excludeIds?: number[];
   selected: number[];
   onChange: (ids: number[]) => void;
+  /** Calves the screen opened with: their batches are the only ones shown at first. */
+  focusIds?: number[];
+  /** The order being executed: its own calves are offered, not counted as held. */
+  heldBy?: string | null;
   /** Height of the sheet; a CSS value (or one per breakpoint) fills a tall layout. */
   maxHeight?: Height;
 }
@@ -22,24 +26,42 @@ interface WeaningCalvesByBatchSelectorProps {
  * Calves at foot as a sheet grouped by batch: every batch starts open and can be folded. All the
  * batches (header checkbox), a whole batch (its row) or calf by calf. The search and sex filter
  * narrow what is shown, and the batch and header checkboxes act on what is shown.
+ *
+ * Opened with calves already chosen (from "Crías al pie"), only their batches are shown at first;
+ * "Ver todos los lotes" brings the rest back to add calves from another one.
  */
 export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelectorProps> = ({
   births,
   excludeIds,
   selected,
   onChange,
+  focusIds = [],
+  heldBy = null,
   maxHeight = 380
 }) => {
-  const groups = useCalvesByBatch(births, excludeIds);
+  const groups = useCalvesByBatch(births, excludeIds, heldBy);
   const [search, setSearch] = useState('');
   const [sexFilter, setSexFilter] = useState<'ALL' | 'M' | 'H'>('ALL');
   const [folded, setFolded] = useState<Set<string>>(new Set());
   const chosen = useMemo(() => new Set(selected), [selected]);
   const term = search.trim().toLowerCase();
+  const [initialScope] = useState<Set<string> | null>(() => {
+    if (focusIds.length === 0) return null;
+
+    const chosenIds = new Set(focusIds);
+    const keys = new Set(births.filter((b) => chosenIds.has(b.calf_id)).map(calfGroupKey));
+
+    return keys.size > 0 ? keys : null;
+  });
+  const [scoped, setScoped] = useState(initialScope !== null);
+  const inScope = useMemo(
+    () => (scoped && initialScope ? groups.filter((group) => initialScope.has(group.key)) : groups),
+    [groups, scoped, initialScope]
+  );
 
   const shown = useMemo(
     () =>
-      groups
+      inScope
         .map((group) => ({
           ...group,
           calves: group.calves.filter(
@@ -49,7 +71,7 @@ export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelector
           )
         }))
         .filter((group) => group.calves.length > 0 || (term === '' && sexFilter === 'ALL' && group.committed.length > 0)),
-    [groups, term, sexFilter]
+    [inScope, term, sexFilter]
   );
   const shownIds = shown.flatMap((g) => g.calves.map((c) => c.calf_id));
   const shownChosen = shownIds.filter((id) => chosen.has(id)).length;
@@ -132,6 +154,17 @@ export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelector
         </Stack>
 
         <Stack direction="row" spacing={1} alignItems="center">
+          {initialScope && groups.length > initialScope.size && (
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => setScoped((value) => !value)}
+              startIcon={<FuseSvgIcon size={15}>{scoped ? 'heroicons-outline:eye' : 'heroicons-outline:funnel'}</FuseSvgIcon>}
+              sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600, color: 'text.secondary' }}
+            >
+              {scoped ? `Ver todos los lotes (${groups.length})` : 'Sólo lotes de la selección'}
+            </Button>
+          )}
           {selected.length > 0 && (
             <Button
               size="small"
@@ -201,7 +234,7 @@ export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelector
         </Typography>
       </Stack>
 
-      <WeaningUntaggedCalvesNotice groups={groups} />
+      <WeaningUntaggedCalvesNotice groups={inScope} />
 
       <WeaningCalvesGrid
         groups={shown}

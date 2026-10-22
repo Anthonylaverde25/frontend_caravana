@@ -87,6 +87,7 @@ export class ApiCaravanRepository implements ICaravanRepository {
     if (params.page) queryParams.page = params.page;
     if (params.perPage) queryParams.per_page = params.perPage;
     if (params.sort && params.sort !== 'identification') queryParams.sort = params.sort;
+    if (params.categoryId) queryParams.category_id = params.categoryId;
 
     const response = await axiosInstance.get<any>('/caravans/summary', {
       headers,

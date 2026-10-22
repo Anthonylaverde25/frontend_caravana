@@ -1,12 +1,17 @@
-import { lazy } from 'react';
+import { Navigate, useSearchParams } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
+import { settingsSectionPath } from '@/ui/settings/config/settingsNavigation';
 
-const WarehousesView = lazy(() => import('src/ui/warehouses/views/WarehousesView'));
+/** The warehouses moved into Settings; the old link (and `?new=1`) still lands on them. */
+function WarehousesRedirect() {
+	const [params] = useSearchParams();
 
-/** The company's warehouses (delivery D): create, rename, default, deactivate, transfer. */
+	return <Navigate replace to={`${settingsSectionPath('warehouses')}${params.get('new') ? '&new=1' : ''}`} />;
+}
+
 const route: FuseRouteItemType = {
 	path: 'warehouses',
-	element: <WarehousesView />
+	element: <WarehousesRedirect />
 };
 
 export default route;

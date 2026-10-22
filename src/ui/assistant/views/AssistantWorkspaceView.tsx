@@ -11,6 +11,7 @@ import MessageList from '../components/MessageList';
 import AnswerCanvas from '../components/workspace/AnswerCanvas';
 import CanvasEmptyState from '../components/workspace/CanvasEmptyState';
 import ChatSidebarHeader from '../components/workspace/ChatSidebarHeader';
+import { EntityDrawerProvider } from '../components/entity-drawer/EntityDrawerContext';
 import AssistantSimulationMenu from '../simulation/AssistantSimulationMenu';
 
 const SIDEBAR_STORAGE_KEY = 'assistant:workspace:sidebarOpen';
@@ -54,7 +55,10 @@ function AssistantWorkspaceView() {
 			.reverse()
 			.find((turn) => turn.role === 'user');
 
-		return { answer, question: question && question.role === 'user' ? question.text : null };
+		return {
+			answer,
+			question: question && question.role === 'user' ? question.text : null
+		};
 	}, [turns, selectedAnswerId]);
 
 	return (
@@ -164,7 +168,14 @@ function AssistantWorkspaceView() {
 									<FuseSvgIcon size={16}>lucide:panel-left-open</FuseSvgIcon>
 								</IconButton>
 							</Tooltip>
-							<Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary', pr: 0.5 }}>
+							<Typography
+								sx={{
+									fontSize: '0.85rem',
+									fontWeight: 700,
+									color: 'text.primary',
+									pr: 0.5
+								}}
+							>
 								Análisis XIMON
 							</Typography>
 							{import.meta.env.DEV && (
@@ -204,4 +215,13 @@ function AssistantWorkspaceView() {
 	);
 }
 
-export default AssistantWorkspaceView;
+/** Table cells of the answers open their record's detail in a drawer over the workspace. */
+function AssistantWorkspaceRoute() {
+	return (
+		<EntityDrawerProvider>
+			<AssistantWorkspaceView />
+		</EntityDrawerProvider>
+	);
+}
+
+export default AssistantWorkspaceRoute;

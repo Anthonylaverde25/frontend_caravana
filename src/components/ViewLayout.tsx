@@ -4,6 +4,7 @@ import { styled } from '@mui/material/styles';
 import { Box } from '@mui/material';
 import clsx from 'clsx';
 import ViewHeader from './ViewHeader';
+import type { BreadcrumbItem } from './PageBreadcrumb';
 
 const Root = styled(FusePageSimple)(({ theme }) => ({
   '& .FusePageSimple-header': {
@@ -57,6 +58,9 @@ interface ViewLayoutProps {
   backTitle?: string;
   scroll?: 'page' | 'content';
   showHeader?: boolean;
+  /** The trail when the path alone does not tell it (a tab in the query). */
+  breadcrumbs?: BreadcrumbItem[];
+  subHeader?: ReactNode;
 }
 
 /**
@@ -75,6 +79,8 @@ export function ViewLayout({
   backTitle,
   scroll = 'page',
   showHeader = true,
+  breadcrumbs,
+  subHeader,
 }: ViewLayoutProps) {
   return (
     <Root
@@ -89,6 +95,8 @@ export function ViewLayout({
             backUrl={backUrl}
             showBackButton={showBackButton}
             backTitle={backTitle}
+            breadcrumbs={breadcrumbs}
+            subHeader={subHeader}
           />
         ) : undefined
       }

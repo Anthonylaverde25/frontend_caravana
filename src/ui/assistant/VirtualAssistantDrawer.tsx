@@ -6,6 +6,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useNavigate } from 'react-router';
 import { useAssistantConversation } from '@/features/assistant/hooks/useAssistantConversation';
 import AssistantDrawerHeader from './components/AssistantDrawerHeader';
+import { EntityDrawerProvider } from './components/entity-drawer/EntityDrawerContext';
 import Composer from './components/Composer';
 import MessageList from './components/MessageList';
 import AssistantSimulationMenu from './simulation/AssistantSimulationMenu';
@@ -33,56 +34,59 @@ export function VirtualAssistantDrawer({ open, onClose }: VirtualAssistantDrawer
 	};
 
 	return (
-		<Drawer
-			anchor="right"
-			open={open}
-			onClose={onClose}
-			PaperProps={{
-				sx: {
-					width: { xs: '100%', sm: 460 },
-					display: 'flex',
-					flexDirection: 'column',
-					boxShadow: 8,
-					bgcolor: 'background.paper'
-				}
-			}}
-		>
-			<AssistantDrawerHeader
-				canReset={turns.length > 0 && !pending}
-				onReset={reset}
+		// Opening a record's screen from its drawer also closes the assistant.
+		<EntityDrawerProvider onNavigate={onClose}>
+			<Drawer
+				anchor="right"
+				open={open}
 				onClose={onClose}
-				extra={
-					<>
-						{import.meta.env.DEV && (
-							<AssistantSimulationMenu onPick={(p) => simulate(p.question, p.response)} />
-						)}
-						<Tooltip title="Abrir vista completa">
-							<IconButton
-								size="small"
-								onClick={() => openWorkspace()}
-								sx={{ color: 'primary.main' }}
-								aria-label="Abrir vista completa"
-							>
-								<FuseSvgIcon size={20}>heroicons-outline:arrows-pointing-out</FuseSvgIcon>
-							</IconButton>
-						</Tooltip>
-					</>
-				}
-			/>
-			<Box sx={{ flex: 1, minHeight: 0 }}>
-				<MessageList
-					turns={turns}
-					pending={pending}
-					onPick={ask}
-					onNavigate={onClose}
-					onExpandAnswer={openWorkspace}
+				PaperProps={{
+					sx: {
+						width: { xs: '100%', sm: 460 },
+						display: 'flex',
+						flexDirection: 'column',
+						boxShadow: 8,
+						bgcolor: 'background.paper'
+					}
+				}}
+			>
+				<AssistantDrawerHeader
+					canReset={turns.length > 0 && !pending}
+					onReset={reset}
+					onClose={onClose}
+					extra={
+						<>
+							{import.meta.env.DEV && (
+								<AssistantSimulationMenu onPick={(p) => simulate(p.question, p.response)} />
+							)}
+							<Tooltip title="Abrir vista completa">
+								<IconButton
+									size="small"
+									onClick={() => openWorkspace()}
+									sx={{ color: 'primary.main' }}
+									aria-label="Abrir vista completa"
+								>
+									<FuseSvgIcon size={20}>heroicons-outline:arrows-pointing-out</FuseSvgIcon>
+								</IconButton>
+							</Tooltip>
+						</>
+					}
 				/>
-			</Box>
-			<Composer
-				disabled={pending}
-				onSend={ask}
-			/>
-		</Drawer>
+				<Box sx={{ flex: 1, minHeight: 0 }}>
+					<MessageList
+						turns={turns}
+						pending={pending}
+						onPick={ask}
+						onNavigate={onClose}
+						onExpandAnswer={openWorkspace}
+					/>
+				</Box>
+				<Composer
+					disabled={pending}
+					onSend={ask}
+				/>
+			</Drawer>
+		</EntityDrawerProvider>
 	);
 }
 

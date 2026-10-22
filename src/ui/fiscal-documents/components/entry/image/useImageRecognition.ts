@@ -1,7 +1,7 @@
 import { DragEvent, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
-import { ProviderRecognition } from '@/core/fiscal/domain/entities/ProviderRecognition';
+import { ProviderRecognition, ResolvedFiscalLine } from '@/core/fiscal/domain/entities/ProviderRecognition';
 import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
 import { formatCuit } from '@/core/shared/domain/cuit';
 import { useReadFiscalImage } from '@/features/fiscal/hooks/useReadFiscalImage';
@@ -41,10 +41,12 @@ type ApiError = { response?: { data?: { message?: string; errors?: Record<string
 /**
  * Reading a document image and acting on what was recognized (Delivery F, part 05). Nothing is
  * created by itself: a known provider is preselected; a new one, or a missing role, waits for a click.
+ * The lines read go to the sheet through `onLinesRead` (Delivery G).
  */
 export function useImageRecognition(
 	selectedProviderId: number | null,
-	onPickProvider: (providerId: number | null) => void
+	onPickProvider: (providerId: number | null) => void,
+	onLinesRead: (lines: ResolvedFiscalLine[]) => void
 ) {
 	const { enqueueSnackbar } = useSnackbar();
 	const read = useReadFiscalImage();
@@ -95,6 +97,8 @@ export function useImageRecognition(
 				setRecognition(result);
 
 				if (result.status === 'MATCHED' && result.provider) pick(result.provider.id);
+
+				onLinesRead(result.lines);
 			},
 			onError: (error) => {
 				if (axios.isCancel(error)) return;
