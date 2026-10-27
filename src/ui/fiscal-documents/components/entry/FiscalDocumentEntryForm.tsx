@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import { useItems } from '@/features/items/hooks/useItems';
@@ -83,6 +83,13 @@ export default function FiscalDocumentEntryForm({
 	const mode = entryModeOf(entry.header, entry.type);
 	const unpriced = mode === 'delivery-note' && entry.header.isValued === false;
 	const copy = COPY[draft ? 'conversion' : mode];
+
+	const [showOtherTaxes, setShowOtherTaxes] = useState(false);
+	const hasOtherTaxes = useMemo(
+		() => entry.lines.some((l) => l.otherTaxes && l.otherTaxes.length > 0),
+		[entry.lines]
+	);
+	const isOtherTaxesVisible = showOtherTaxes || hasOtherTaxes;
 
 	const loaded = useRef(false);
 	useEffect(() => {
@@ -227,6 +234,8 @@ export default function FiscalDocumentEntryForm({
 							mode={mode}
 							unpriced={unpriced}
 							notes={draft?.deliveryNotes ?? []}
+							showOtherTaxes={isOtherTaxesVisible}
+							onToggleOtherTaxes={setShowOtherTaxes}
 						/>
 					</Box>
 					<FiscalSheetFooter
@@ -237,6 +246,9 @@ export default function FiscalDocumentEntryForm({
 						isCreditNote={entry.type?.kind === 'CREDIT_NOTE'}
 						unpriced={unpriced}
 						summary={summary}
+						discriminates={discriminates}
+						showOtherTaxes={isOtherTaxesVisible}
+						onToggleOtherTaxes={setShowOtherTaxes}
 					/>
 				</Box>
 			)}

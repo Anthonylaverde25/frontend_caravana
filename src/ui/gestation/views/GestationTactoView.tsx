@@ -20,6 +20,7 @@ import CloseServiceOrderDiagnosisDialog from '../components/dialogs/close-diagno
 import { useServiceOrderClosing } from '../components/dialogs/close-diagnosis/useServiceOrderClosing';
 import { defaultReturnTo, tactoStartPath, type TactoEntryState } from '../components/tacto-start/tactoStart';
 import { trayCardId } from '../utils/diagnosisTray';
+import { isOpenStatus } from '../utils/serviceOrderStatus';
 
 /** How long the order the tray was opened on stays outlined. */
 const HIGHLIGHT_MS = 4000;
@@ -65,7 +66,7 @@ function GestationTactoView() {
     // The param goes first: clearing it afterwards would replace the navigation to the closing.
     searchParams.delete('closeOrder');
     setSearchParams(searchParams, { replace: true });
-    if (order && (order.status === 'APPROVED' || order.status === 'BULLS_WITHDRAWN')) closing.requestClose(order);
+    if (order && isOpenStatus(order.status)) closing.requestClose(order);
   }, [searchParams, setSearchParams, orders]);
 
   useEffect(() => {

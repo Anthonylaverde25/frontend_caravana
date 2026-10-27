@@ -242,7 +242,7 @@ export interface BirthFieldPayload {
   /** The coat (pelaje): a colour of the catalog that the breed admits. */
   calf_color_id?: number | null;
   calf_teeth?: number | null;
-  /** Optional: left empty, the gestation's single or confirmed sire is used, or it waits in "Sires pendientes". */
+  /** Optional: left empty, the gestation's confirmed sire is used, or it waits in "Paternidad pendiente". */
   father_id?: number | null;
   birth_date?: string | null;
   observations?: string | null;

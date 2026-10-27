@@ -41,7 +41,8 @@ export const defaultReturnTo = diagnosisTrayPath;
 
 /** Females that can be checked in a round: a female that died or was sold has no verdict to give. */
 export function diagnosableFemales(females: DiagnosisFemale[]): DiagnosisFemale[] {
-  return females.filter((female) => female.reproductive_status !== 'EXITED');
+  // A female of an AI order never inseminated (no repaso) is not scanned (semen S-B, IA12).
+  return females.filter((female) => female.reproductive_status !== 'EXITED' && !female.is_not_inseminated);
 }
 
 /** `stated`: the female already has a result typed in this round. */

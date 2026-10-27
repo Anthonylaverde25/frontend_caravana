@@ -70,6 +70,9 @@ export default function InitialStockEntryDialog({ onClose, onDone }: { onClose: 
 							inputProps={{ max: today() }} onChange={(e) => setOccurredAt(e.target.value)} error={!!errors.header.occurred_at} helperText={errors.header.occurred_at} />
 						<TextField label="Notas" variant="filled" fullWidth multiline value={notes} InputProps={filledInputProps} onChange={(e) => setNotes(e.target.value)} />
 						<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>Sólo artículos con stock. Las compras se cargan con su comprobante.</Alert>
+						<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
+							El semen no va acá: se carga en Artículos y servicios › Semen › Ingresar semen, con su partida.
+						</Alert>
 					</Stack>
 				</Paper>
 				<Paper variant="outlined" sx={{ p: 2, borderRadius: '8px', minWidth: 0 }}>
@@ -89,7 +92,7 @@ export default function InitialStockEntryDialog({ onClose, onDone }: { onClose: 
 						</TableHead>
 						<TableBody>
 							{lines.map((line, index) => (
-								<InitialStockLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive)} errors={errors.cells[line.key] ?? {}}
+								<InitialStockLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive && !i.isSemen)} errors={errors.cells[line.key] ?? {}}
 									onChange={(patch) => setLines((current) => trailing(current.map((l) => (l.key === line.key ? { ...l, ...patch } : l))))}
 									onRemove={() => setLines((current) => trailing(current.filter((l) => l.key !== line.key)))} />
 							))}

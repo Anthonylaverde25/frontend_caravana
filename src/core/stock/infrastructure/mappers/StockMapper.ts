@@ -8,6 +8,7 @@ export const StockMapper = {
 			type: raw.type,
 			typeLabel: raw.type_label,
 			resolvesItself: !!raw.resolves_itself,
+			resolvesByIdentification: !!raw.resolves_by_identification,
 			item: { id: raw.item?.id, name: raw.item?.name ?? null },
 			warehouse: { id: raw.warehouse?.id, name: raw.warehouse?.name ?? null },
 			detail: raw.detail,
@@ -33,6 +34,7 @@ export const StockMapper = {
 			unvaluedQuantity: raw.unvalued_quantity ?? '0.0000',
 			unabsorbedCost: raw.unabsorbed_cost ?? null,
 			countedQuantity: raw.counted_quantity ?? null,
+			semenLot: raw.semen_lot ?? null,
 			movement: raw.movement
 				? {
 						id: raw.movement.id,
@@ -53,6 +55,8 @@ export const StockMapper = {
 			typeLabel: raw.type_label,
 			occurredAt: raw.occurred_at,
 			warehouse: StockMapper.warehouseRef(raw.warehouse),
+			provider: raw.provider ?? null,
+			serviceOrder: raw.service_order ?? null,
 			paired: raw.paired
 				? { id: raw.paired.id, number: raw.paired.number, type: raw.paired.type, warehouse: StockMapper.warehouseRef(raw.paired.warehouse) }
 				: null,
@@ -101,6 +105,7 @@ export const StockMapper = {
 			id: raw.id,
 			code: raw.code,
 			name: raw.name,
+			kind: raw.kind === 'CRYO_TANK' ? 'CRYO_TANK' : 'GENERAL',
 			isDefault: !!raw.is_default,
 			isActive: !!raw.is_active,
 			summary: s
@@ -192,6 +197,7 @@ export const StockMapper = {
 			documentTypeLabel: raw.document_type_label,
 			batch: raw.batch ?? null,
 			transfer: raw.transfer ?? null,
+			semenLot: raw.semen_lot ?? null,
 			fiscalDocument: raw.fiscal_document ?? null,
 			direction: raw.direction,
 			quantity: raw.quantity,

@@ -85,7 +85,8 @@ export const WeaningBatchSelectField: React.FC<WeaningBatchSelectFieldProps> = (
     slotProps: { popper: { sx: { zIndex: 10000 } } }
   };
 
-  const single = props.multiple === true ? null : (byId.get(props.value ?? -2) ?? null);
+  // No choice yet is empty — never "Quedan en su lote", whose id is a sentinel too.
+  const single = props.multiple === true || props.value == null ? null : (byId.get(props.value) ?? null);
 
   return (
     <>

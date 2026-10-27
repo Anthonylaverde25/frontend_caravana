@@ -24,7 +24,12 @@ import TemplateGalleryHeader from '../components/gallery/TemplateGalleryHeader';
 import TemplateGalleryGrid from '../components/gallery/TemplateGalleryGrid';
 import TemplateQuickDetailModal from '../components/gallery/TemplateQuickDetailModal';
 
-export const WorkTemplateGalleryView: React.FC = () => {
+export interface WorkTemplateGalleryViewProps {
+	/** If true, renders without outer ViewLayout (for embedding in /settings). */
+	embedded?: boolean;
+}
+
+export const WorkTemplateGalleryView: React.FC<WorkTemplateGalleryViewProps> = ({ embedded = false }) => {
 	const { templates: rawTemplates, isLoading, error, refresh } = useTemplateData();
 
 	// Deduplicate templates by unique code (handles multi-tenant/multi-company DB seeds)
@@ -92,57 +97,32 @@ export const WorkTemplateGalleryView: React.FC = () => {
 	}, []);
 
 	if (error) {
-		return (
-			<ViewLayout title="Galería de Plantillas de Trabajo">
-				<Box className="p-32 text-center border rounded-8 bg-error-50 border-error">
-					<Typography variant="h6" color="error">
-						Error de sincronización con la base de datos
-					</Typography>
-					<Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-						{error}
-					</Typography>
-					<Button
-						variant="outlined"
-						size="small"
-						onClick={refresh}
-						startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-path</FuseSvgIcon>}
-						sx={{ mt: 2 }}
-					>
-						Reintentar Conexión
-					</Button>
-				</Box>
-			</ViewLayout>
+		const errorContent = (
+			<Box className="p-32 text-center border rounded-8 bg-error-50 border-error">
+				<Typography variant="h6" color="error">
+					Error de sincronización con la base de datos
+				</Typography>
+				<Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+					{error}
+				</Typography>
+				<Button
+					variant="outlined"
+					size="small"
+					onClick={refresh}
+					startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-path</FuseSvgIcon>}
+					sx={{ mt: 2 }}
+				>
+					Reintentar Conexión
+				</Button>
+			</Box>
 		);
+
+		return embedded ? errorContent : <ViewLayout title="Galería de Plantillas de Trabajo">{errorContent}</ViewLayout>;
 	}
 
-	return (
-		<ViewLayout
-			title="Galería de Planillas Imprimibles"
-			subtitle="Vista previa de documentos de manga en formato A4 listos para imprimir y sus fundamentos zootécnicos."
-			actions={
-				<Stack direction="row" spacing={1.5}>
-					<Button
-						variant="contained"
-						component={Link}
-						to="/work-templates/scan"
-						startIcon={<FuseSvgIcon size={18}>heroicons-outline:camera</FuseSvgIcon>}
-						sx={{
-							bgcolor: '#6366f1',
-							borderRadius: '8px',
-							px: 2.5,
-							fontWeight: 700,
-							textTransform: 'none',
-							boxShadow: 'none',
-							'&:hover': { bgcolor: '#4f46e5', boxShadow: 'none' }
-						}}
-					>
-						Escanear con AI
-					</Button>
-				</Stack>
-			}
-		>
-			<Box className="w-full">
-				{/* Gallery Header with search & stage filter chips */}
+	const content = (
+		<Box className="w-full">
+			{/* Gallery Header with search & stage filter chips */}
 				<TemplateGalleryHeader
 					searchQuery={searchQuery}
 					onSearchChange={setSearchQuery}
@@ -303,8 +283,41 @@ export const WorkTemplateGalleryView: React.FC = () => {
 					template={detailTemplate}
 				/>
 			</Box>
-		</ViewLayout>
-	);
-};
+		);
+
+		if (embedded) {
+			return content;
+		}
+
+		return (
+			<ViewLayout
+				title="Galería de Planillas Imprimibles"
+				subtitle="Vista previa de documentos de manga en formato A4 listos para imprimir y sus fundamentos zootécnicos."
+				actions={
+					<Stack direction="row" spacing={1.5}>
+						<Button
+							variant="contained"
+							component={Link}
+							to="/work-templates/scan"
+							startIcon={<FuseSvgIcon size={18}>heroicons-outline:camera</FuseSvgIcon>}
+							sx={{
+								bgcolor: '#6366f1',
+								borderRadius: '8px',
+								px: 2.5,
+								fontWeight: 700,
+								textTransform: 'none',
+								boxShadow: 'none',
+								'&:hover': { bgcolor: '#4f46e5', boxShadow: 'none' }
+							}}
+						>
+							Escanear con AI
+						</Button>
+					</Stack>
+				}
+			>
+				{content}
+			</ViewLayout>
+		);
+	};
 
 export default WorkTemplateGalleryView;

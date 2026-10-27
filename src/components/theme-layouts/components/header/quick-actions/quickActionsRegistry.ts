@@ -50,7 +50,7 @@ export const QUICK_ACTIONS_REGISTRY: HeaderQuickAction[] = [
     title: 'Plantillas de Manga',
     subtitle: 'Imprimir o descargar planillas en blanco',
     icon: 'heroicons-outline:document-text',
-    route: '/work-templates',
+    route: '/settings?section=work-templates',
     color: '#a855f7',
   },
 

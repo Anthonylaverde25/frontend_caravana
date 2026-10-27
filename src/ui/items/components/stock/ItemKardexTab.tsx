@@ -19,6 +19,9 @@ export default function ItemKardexTab({ item }: { item: ItemDetail }) {
 	const { data: warehouses = [] } = useWarehouses();
 	const { data, isLoading } = useItemKardex(item.id, { page, warehouseId: warehouseId === 'ALL' ? undefined : warehouseId });
 	const symbol = item.unit?.symbol ?? null;
+	// Semen (E9): which lot each movement took or brought.
+	const showsLot = item.isSemen;
+	const columns = showsLot ? 10 : 9;
 	const pages = data ? Math.max(1, Math.ceil(data.total / data.perPage)) : 1;
 	const head = (label: string, width?: number, align?: 'right') => (
 		<TableCell
@@ -50,6 +53,7 @@ export default function ItemKardexTab({ item }: { item: ItemDetail }) {
 						{head('Fecha', 100)}
 						{head('Movimiento', 170)}
 						{head('Origen')}
+						{showsLot && head('Partida', 120)}
 						{head('Entrada', 120, 'right')}
 						{head('Salida', 120, 'right')}
 						{head('Saldo', 120, 'right')}
@@ -58,9 +62,9 @@ export default function ItemKardexTab({ item }: { item: ItemDetail }) {
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					{isLoading && <SheetGridEmptyRow colSpan={9}>Cargando kardex…</SheetGridEmptyRow>}
+					{isLoading && <SheetGridEmptyRow colSpan={columns}>Cargando kardex…</SheetGridEmptyRow>}
 					{!isLoading && data?.data.length === 0 && (
-						<SheetGridEmptyRow colSpan={9}>Todavía no tuvo movimientos.</SheetGridEmptyRow>
+						<SheetGridEmptyRow colSpan={columns}>Todavía no tuvo movimientos.</SheetGridEmptyRow>
 					)}
 					{data?.data.map((row, index) => (
 						<TableRow
@@ -79,6 +83,11 @@ export default function ItemKardexTab({ item }: { item: ItemDetail }) {
 									? `${row.fiscalDocument.label} · ${row.fiscalDocument.provider}`
 									: (row.transfer ?? row.batch ?? '—')}
 							</TableCell>
+							{showsLot && (
+								<TableCell sx={{ ...textCellSx, fontStyle: row.semenLot ? 'normal' : 'italic', color: row.semenLot ? 'text.primary' : 'text.secondary' }}>
+									{row.semenLot?.code ?? 'Sin identificar'}
+								</TableCell>
+							)}
 							<TableCell
 								sx={{ ...textCellSx, color: 'success.main' }}
 								align="right"

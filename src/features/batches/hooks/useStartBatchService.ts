@@ -7,6 +7,9 @@ import { useSnackbar } from 'notistack';
  * over the batch, the females stay and the bulls join them.
  */
 export interface StartBatchServicePayload {
+  /** AI (semen S-B): no bulls, females picked one by one, semen planned per female. */
+  service_method?: 'NATURAL' | 'AI';
+  planned_semen?: Array<{ female_caravan_id: number; item_id: number | null }>;
   male_caravan_ids: number[];
   /** Only for controlled service / AI: natural service exposes every empty female of the batch. */
   selected_female_caravan_ids?: number[];
@@ -33,8 +36,8 @@ export function useStartBatchService(batchId?: number) {
       const response = await axiosInstance.post(`/batches/${targetId}/start-service`, payload);
       return response.data;
     },
-    onSuccess: () => {
-      enqueueSnackbar('Servicio iniciado sobre el lote', { variant: 'success' });
+    onSuccess: (order: { service_method?: string }) => {
+      enqueueSnackbar(order?.service_method === 'AI' ? 'Servicio de IA iniciado sobre el lote' : 'Servicio iniciado sobre el lote', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });

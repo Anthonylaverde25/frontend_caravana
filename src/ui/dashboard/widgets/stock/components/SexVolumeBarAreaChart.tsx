@@ -4,7 +4,7 @@ import { Box, useTheme } from '@mui/material';
 import { HerdSexBreakdown } from '../types/herdGraph.types';
 import { formatNumber, formatPercent } from '../../../theme/formatters';
 
-export type ChartDisplayMode = 'combo' | 'bar' | 'area';
+export type ChartDisplayMode = 'bar' | 'combo' | 'area';
 
 interface SexVolumeBarAreaChartProps {
 	data: HerdSexBreakdown;
@@ -14,52 +14,46 @@ interface SexVolumeBarAreaChartProps {
 	height?: number;
 }
 
+/**
+ * Professional, minimalist categorical bar chart for herd demography.
+ * Eliminates artificial AI spline curves and neon gradients in favor of clean proportions,
+ * subtle background tracks, and executive tabular figures.
+ */
 export function SexVolumeBarAreaChart({
 	data,
 	totalHerdHeads,
 	accentColor,
-	mode = 'combo',
-	height = 270
+	height = 280
 }: SexVolumeBarAreaChartProps) {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 
 	const textColor = isDark ? '#E5E7EB' : '#1F2937';
 	const mutedColor = isDark ? '#9CA3AF' : '#6B7280';
-	const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+	const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)';
+	const trackColor = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.025)';
+	const tooltipBg = isDark ? '#1E293B' : '#FFFFFF';
+	const tooltipBorder = isDark ? '#334155' : '#E2E8F0';
 
 	const chartOption = useMemo(() => {
 		const categories = data.categories;
 		const categoryNames = categories.map((c) => c.label);
-		const values = categories.map((c) => c.heads);
 
-		const showBar = mode === 'combo' || mode === 'bar';
-		const showArea = mode === 'combo' || mode === 'area';
-
-		const series: any[] = [];
-
-		if (showBar) {
-			series.push({
+		const series: any[] = [
+			{
 				name: 'Cabezas',
 				type: 'bar',
-				barMaxWidth: 44,
+				barMaxWidth: 38,
+				showBackground: true,
+				backgroundStyle: {
+					color: trackColor,
+					borderRadius: [4, 4, 0, 0]
+				},
 				data: categories.map((cat) => ({
 					value: cat.heads,
 					itemStyle: {
-						color: {
-							type: 'linear',
-							x: 0,
-							y: 0,
-							x2: 0,
-							y2: 1,
-							colorStops: [
-								{ offset: 0, color: cat.color || accentColor },
-								{ offset: 1, color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }
-							]
-						},
-						borderRadius: [6, 6, 0, 0],
-						borderColor: cat.color || accentColor,
-						borderWidth: 1.5
+						color: cat.color || accentColor,
+						borderRadius: [4, 4, 0, 0]
 					}
 				})),
 				label: {
@@ -68,74 +62,26 @@ export function SexVolumeBarAreaChart({
 					formatter: (params: any) => formatNumber(params.value),
 					color: textColor,
 					fontSize: 12,
-					fontWeight: 700,
-					distance: 6
-				},
-				z: 2
-			});
-		}
-
-		if (showArea) {
-			series.push({
-				name: 'Masa y Contorno',
-				type: 'line',
-				smooth: true,
-				data: values,
-				symbol: 'circle',
-				symbolSize: 8,
-				itemStyle: {
-					color: accentColor,
-					borderColor: isDark ? '#1F2937' : '#FFFFFF',
-					borderWidth: 2
-				},
-				lineStyle: {
-					color: accentColor,
-					width: 3,
-					shadowColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.1)',
-					shadowBlur: 4
-				},
-				areaStyle: {
-					color: {
-						type: 'linear',
-						x: 0,
-						y: 0,
-						x2: 0,
-						y2: 1,
-						colorStops: [
-							{
-								offset: 0,
-								color: accentColor === '#059669' ? 'rgba(5, 150, 105, 0.40)' : 'rgba(37, 99, 235, 0.40)'
-							},
-							{
-								offset: 1,
-								color: accentColor === '#059669' ? 'rgba(5, 150, 105, 0.02)' : 'rgba(37, 99, 235, 0.02)'
-							}
-						]
-					}
-				},
-				label: {
-					show: !showBar, // Only show top numbers if bars are hidden
-					position: 'top',
-					formatter: (params: any) => formatNumber(params.value),
-					color: textColor,
-					fontSize: 12,
-					fontWeight: 700
-				},
-				z: 1
-			});
-		}
+					fontWeight: 600,
+					distance: 8
+				}
+			}
+		];
 
 		return {
 			tooltip: {
 				trigger: 'axis',
 				axisPointer: {
-					type: 'cross',
-					crossStyle: { color: mutedColor },
-					lineStyle: { color: mutedColor, type: 'dashed' }
+					type: 'shadow',
+					shadowStyle: {
+						color: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'
+					}
 				},
-				backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-				borderColor: isDark ? '#374151' : '#E5E7EB',
-				textStyle: { color: textColor },
+				backgroundColor: tooltipBg,
+				borderColor: tooltipBorder,
+				borderWidth: 1,
+				padding: [10, 14],
+				extraCssText: 'box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-radius: 8px;',
 				formatter: (params: any) => {
 					if (!params || !params.length) return '';
 					const idx = params[0].dataIndex;
@@ -143,16 +89,16 @@ export function SexVolumeBarAreaChart({
 					if (!cat) return '';
 
 					return `
-						<div style="font-family: inherit; padding: 4px 6px;">
-							<div style="font-size: 13px; font-weight: 700; color: ${textColor}; margin-bottom: 4px;">
+						<div style="font-family: inherit;">
+							<div style="font-size: 13px; font-weight: 600; color: ${textColor}; margin-bottom: 4px;">
 								${cat.label}
 							</div>
-							<div style="font-size: 14px; font-weight: 800; color: ${accentColor};">
-								${formatNumber(cat.heads)} <span style="font-size: 11px; font-weight: 500; color: ${mutedColor};">cabezas</span>
+							<div style="font-size: 18px; font-weight: 700; color: ${cat.color || accentColor}; font-variant-numeric: tabular-nums;">
+								${formatNumber(cat.heads)} <span style="font-size: 12px; font-weight: 500; color: ${mutedColor};">cabezas</span>
 							</div>
-							<div style="margin-top: 6px; font-size: 11px; color: ${mutedColor}; line-height: 1.4;">
-								<div>• Proporción en ${data.sex === 'H' ? 'Hembras' : 'Machos'}: <strong>${formatPercent(cat.pctOfSex, 1)}</strong></div>
-								<div>• Proporción en Rodeo Total: <strong>${formatPercent(cat.pctOfTotal, 1)}</strong></div>
+							<div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9'}; font-size: 11px; color: ${mutedColor}; line-height: 1.6;">
+								<div>• Proporción en ${data.sex === 'H' ? 'Hembras' : 'Machos'}: <strong style="color: ${textColor};">${formatPercent(cat.pctOfSex, 1)}</strong></div>
+								<div>• Proporción en Rodeo General: <strong style="color: ${textColor};">${formatPercent(cat.pctOfTotal, 1)}</strong></div>
 							</div>
 						</div>
 					`;
@@ -160,25 +106,21 @@ export function SexVolumeBarAreaChart({
 			},
 			grid: {
 				top: 36,
-				left: 48,
-				right: 24,
-				bottom: 38,
+				left: 42,
+				right: 20,
+				bottom: 34,
 				containLabel: false
 			},
 			xAxis: {
 				type: 'category',
 				data: categoryNames,
-				axisLine: { lineStyle: { color: mutedColor } },
-				axisTick: { alignWithLabel: true },
+				axisLine: { lineStyle: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } },
+				axisTick: { show: false },
 				axisLabel: {
 					color: textColor,
 					fontSize: 11,
-					fontWeight: 600,
-					interval: 0,
-					formatter: (value: string) => {
-						// Split long words or show clean 2 lines if needed
-						return value.length > 12 ? value.slice(0, 10) + '…' : value;
-					}
+					fontWeight: 500,
+					interval: 0
 				}
 			},
 			yAxis: {
@@ -187,13 +129,13 @@ export function SexVolumeBarAreaChart({
 				axisLabel: {
 					color: mutedColor,
 					fontSize: 10,
-					fontWeight: 600,
+					fontWeight: 500,
 					formatter: (val: number) => val.toLocaleString('es-AR')
 				}
 			},
 			series
 		};
-	}, [data, totalHerdHeads, accentColor, mode, isDark, textColor, mutedColor, gridColor]);
+	}, [data, accentColor, isDark, textColor, mutedColor, gridColor, trackColor, tooltipBg, tooltipBorder]);
 
 	return (
 		<Box sx={{ width: '100%', height, minHeight: height, position: 'relative' }}>
@@ -206,3 +148,5 @@ export function SexVolumeBarAreaChart({
 		</Box>
 	);
 }
+
+export default SexVolumeBarAreaChart;

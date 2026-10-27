@@ -46,6 +46,7 @@ export default function TransferDialog({ onClose, fromWarehouseId, item }: Trans
 	const from = header.fromWarehouseId ?? defaultWarehouse(warehouses)?.id ?? null;
 	const filled = lines.filter((l) => !isBlankTransfer(l)).length;
 	const enough = activeWarehouses(warehouses).length > 1;
+	const showLot = lines.some((l) => items.find((i) => i.id === l.itemId)?.isSemen);
 
 	const submit = async () => {
 		const built = buildTransferPayload({ ...header, fromWarehouseId: from }, lines, key);
@@ -89,6 +90,7 @@ export default function TransferDialog({ onClose, fromWarehouseId, item }: Trans
 								<TableRow>
 									<TableCell sx={indexSx}>#</TableCell>
 									<TableCell sx={headSx}>Artículo</TableCell>
+									{showLot && <TableCell sx={{ ...headSx, width: 170 }}>Partida</TableCell>}
 									<TableCell sx={{ ...headSx, width: 90 }}>Cant.</TableCell>
 									<TableCell sx={{ ...headSx, width: 190 }}>Unidad o presentación</TableCell>
 									<TableCell sx={{ ...headSx, width: 110 }}>Equivale a</TableCell>
@@ -99,7 +101,7 @@ export default function TransferDialog({ onClose, fromWarehouseId, item }: Trans
 							</TableHead>
 							<TableBody>
 								{lines.map((line, index) => (
-									<TransferLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive)} fromWarehouseId={from} errors={errors.cells[line.key] ?? {}}
+									<TransferLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive)} fromWarehouseId={from} showLot={showLot} errors={errors.cells[line.key] ?? {}}
 										onChange={(patch) => setLines((current) => withTrailingTransfer(current.map((l) => (l.key === line.key ? { ...l, ...patch } : l))))}
 										onRemove={() => setLines((current) => withTrailingTransfer(current.filter((l) => l.key !== line.key)))} />
 								))}

@@ -98,6 +98,40 @@ export const ENTITY_LINK_PRESETS: AssistantSimulationPreset[] = [
 		}
 	},
 	{
+		key: 'linked-inseminations',
+		label: 'Animales inseminados (partida, orden y semen)',
+		flow: 'happy',
+		question: '¿Qué vaquillonas se inseminaron con sexado de Rambo?',
+		response: {
+			grounded: true,
+			tools_used: ['animales_inseminados', 'emit_table'],
+			model: 'simulación',
+			blocks: [
+				{
+					type: 'table',
+					title: 'Animales inseminados',
+					columns: [
+						{ key: 'vientre', label: 'Vientre', entity: 'caravan' },
+						{ key: 'orden', label: 'Orden', entity: 'service_order' },
+						{ key: 'fecha', label: 'Fecha' },
+						{ key: 'semen', label: 'Semen', entity: 'item' },
+						{ key: 'partida', label: 'Partida', entity: 'semen_lot' }
+					],
+					rows: [
+						{ vientre: 'IA-VQ-01', orden: 'SO-2026-905', fecha: '2026-10-23', semen: 'Rambo · Sexado hembra', partida: 'SX-77' },
+						{ vientre: 'IA-VQ-02', orden: 'SO-2026-905', fecha: '2026-10-23', semen: 'Rambo · Sexado hembra', partida: 'SX-77' }
+					],
+					// Dev tenant ids (InseminationServiceTestSeeder + the Chrome run of semen S-B).
+					refs: [
+						{ vientre: 616, orden: 7, semen: 12, partida: 2 },
+						{ vientre: 617, orden: 7, semen: 12, partida: 2 }
+					],
+					total_rows: 2
+				}
+			]
+		}
+	},
+	{
 		key: 'linked-missing',
 		label: 'Registro inexistente (clic)',
 		flow: 'error',

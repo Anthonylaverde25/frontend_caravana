@@ -26,36 +26,46 @@ export function KpiCard({ label, status, value, unit, visual, context, footnote 
 			component="article"
 			sx={{
 				height: '100%',
-				p: '20px 22px',
+				p: { xs: 2, sm: 2.5 },
 				display: 'flex',
 				flexDirection: 'column',
 				gap: 1.5,
 				border: 1,
 				borderColor: 'divider',
-				borderRadius: '10px'
+				borderRadius: '10px',
+				bgcolor: 'background.paper',
+				transition: 'all 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+				'&:hover': {
+					borderColor: 'divider',
+					boxShadow: (theme) =>
+						theme.palette.mode === 'dark'
+							? '0 6px 20px rgba(0,0,0,0.35)'
+							: '0 6px 18px rgba(0,0,0,0.04)',
+					transform: 'translateY(-1px)'
+				}
 			}}
 		>
 			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
 				<Typography
 					sx={{
-						fontSize: '0.75rem',
+						fontSize: '0.8125rem',
 						fontWeight: 600,
-						letterSpacing: '0.06em',
-						textTransform: 'uppercase',
-						color: 'text.secondary'
+						letterSpacing: '-0.01em',
+						color: 'text.secondary',
+						lineHeight: 1.2
 					}}
 				>
 					{label}
 				</Typography>
 				{status}
 			</Box>
-			<Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+			<Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
 				<Typography
 					sx={{
-						fontSize: '2.5rem',
-						fontWeight: 600,
-						letterSpacing: '-0.02em',
-						lineHeight: 1,
+						fontSize: { xs: '1.875rem', sm: '2.15rem' },
+						fontWeight: 700,
+						letterSpacing: '-0.03em',
+						lineHeight: 1.1,
 						fontVariantNumeric: 'tabular-nums',
 						color: 'text.primary'
 					}}
@@ -63,14 +73,13 @@ export function KpiCard({ label, status, value, unit, visual, context, footnote 
 					{value}
 				</Typography>
 				{unit && (
-					<Typography sx={{ fontSize: '1.125rem', fontWeight: 500, color: 'text.secondary' }}>
+					<Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.secondary' }}>
 						{unit}
 					</Typography>
 				)}
 			</Box>
 			{visual}
-			<Typography
-				component="div"
+			<Box
 				sx={{
 					fontSize: '0.8125rem',
 					color: 'text.secondary',
@@ -80,23 +89,24 @@ export function KpiCard({ label, status, value, unit, visual, context, footnote 
 				}}
 			>
 				{context}
-			</Typography>
+			</Box>
 			{footnote && (
-				<Typography
-					component="div"
+				<Box
 					sx={{
 						mt: 'auto',
 						pt: 1.25,
-						// Room for the "Datos de ejemplo" tag of static widgets.
-						pr: '104px',
 						borderTop: 1,
 						borderColor: 'divider',
-						fontSize: '0.75rem',
-						color: 'text.secondary'
+						fontSize: '0.71875rem',
+						color: 'text.secondary',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'space-between',
+						gap: 1
 					}}
 				>
 					{footnote}
-				</Typography>
+				</Box>
 			)}
 		</Paper>
 	);

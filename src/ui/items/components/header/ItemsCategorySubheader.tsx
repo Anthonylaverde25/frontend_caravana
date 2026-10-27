@@ -1,140 +1,29 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Box, Tab, Tabs, Menu, MenuItem, ListItemText, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { ItemCategory } from '@/core/items/domain/entities/ItemCategory';
+import { ResolvedTab } from './itemTabs';
 
 interface ItemsCategorySubheaderProps {
-	categories: ItemCategory[];
-	activeCategoryId: number | '';
-	onSelectCategory: (id: number | '') => void;
+	resolved: { featured: ResolvedTab[]; others: ItemCategory[] };
+	/** 'all', a featured key, or 'other'. */
+	activeTabKey: string;
+	activeOtherId: number | null;
+	onSelectTab: (key: string) => void;
+	onSelectOther: (id: number) => void;
 }
 
-interface FeaturedTabDef {
-	key: string;
-	label: string;
-	isMatch: (c: ItemCategory) => boolean;
-}
-
-const FEATURED_DEFS: FeaturedTabDef[] = [
-	{
-		key: 'livestock_treatment',
-		label: 'Tratamientos de ganado',
-		isMatch: (c) => c.code === 'LIVESTOCK_TREATMENT' || c.code === 'HEALTH' || /tratamiento.*ganado|sanidad/i.test(c.name)
-	},
-	{
-		key: 'feed',
-		label: 'Alimentación',
-		isMatch: (c) => c.code === 'FEED' || c.code === 'NUTRITION' || /alimento|nutrici|alimentaci/i.test(c.name)
-	},
-	{
-		key: 'paddock_treatment',
-		label: 'Tratamientos de potreros',
-		isMatch: (c) => c.code === 'PADDOCK_TREATMENT' || /potrero/i.test(c.name)
-	},
-	{
-		key: 'semen',
-		label: 'Semen',
-		isMatch: (c) => c.code === 'SEMEN' || /semen/i.test(c.name)
-	},
-	{
-		key: 'embryo',
-		label: 'Embrión',
-		isMatch: (c) => c.code === 'EMBRYO' || /embri/i.test(c.name)
-	}
-];
-
-export default function ItemsCategorySubheader({
-	categories,
-	activeCategoryId,
-	onSelectCategory
-}: ItemsCategorySubheaderProps) {
+/** The catalog's tabs; the active one comes from the URL (semen S-A, DA1). */
+export default function ItemsCategorySubheader({ resolved, activeTabKey, activeOtherId, onSelectTab, onSelectOther }: ItemsCategorySubheaderProps) {
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-	// Root categories (parent_id === null)
-	const rootCategories = useMemo(() => categories.filter((c) => c.parentId === null), [categories]);
-
-	// Ancestor map: for any category ID, find its root ancestor
-	const rootOfCategory = useMemo(() => {
-		const byId = new Map(categories.map((c) => [c.id, c]));
-		const map = new Map<number, ItemCategory>();
-
-		for (const cat of categories) {
-			let curr: ItemCategory | undefined = cat;
-			while (curr && curr.parentId !== null) {
-				curr = byId.get(curr.parentId);
-			}
-			if (curr) {
-				map.set(cat.id, curr);
-			}
-		}
-		return map;
-	}, [categories]);
-
-	// Resolve the 5 featured categories:
-	// If multiple roots match a tab (e.g. HEALTH and LIVESTOCK_TREATMENT, or FEED and NUTRITION),
-	// pick the one with highest itemsCount, but mark ALL matching IDs as handled so they don't leak into "Others".
-	const { resolvedFeatured, allFeaturedRootIds } = useMemo(() => {
-		const allMatchedIds = new Set<number>();
-
-		const tabs = FEATURED_DEFS.map((def) => {
-			const matching = rootCategories.filter((r) => def.isMatch(r));
-			matching.forEach((m) => allMatchedIds.add(m.id));
-
-			// Sort by items count descending so the populated category is primary
-			const sorted = [...matching].sort((a, b) => (b.itemsCount ?? 0) - (a.itemsCount ?? 0));
-			const primary = sorted[0] ?? null;
-
-			return {
-				key: def.key,
-				label: def.label,
-				category: primary,
-				allMatchedIds: matching.map((m) => m.id)
-			};
-		});
-
-		return { resolvedFeatured: tabs, allFeaturedRootIds: allMatchedIds };
-	}, [rootCategories]);
-
-	// "Other" root categories that were not matched by any featured tab
-	const otherRootCategories = useMemo(() => {
-		return rootCategories.filter((r) => !allFeaturedRootIds.has(r.id));
-	}, [rootCategories, allFeaturedRootIds]);
-
-	// Find active root category from current activeCategoryId
-	const activeRootCat = activeCategoryId === '' ? null : rootOfCategory.get(activeCategoryId);
-
-	// Determine active tab key
-	const activeTabKey = useMemo(() => {
-		if (activeCategoryId === '' || !activeRootCat) {
-			return 'all';
-		}
-		// Check if activeRootCat matches any featured tab's matched IDs
-		const foundFeatured = resolvedFeatured.find((f) => f.allMatchedIds.includes(activeRootCat.id));
-		if (foundFeatured) {
-			return foundFeatured.key;
-		}
-		// Otherwise in "others"
-		return 'other';
-	}, [activeCategoryId, activeRootCat, resolvedFeatured]);
-
+	const resolvedFeatured = resolved.featured;
+	const otherRootCategories = resolved.others;
+	const activeRootCat = otherRootCategories.find((c) => c.id === activeOtherId) ?? null;
 	const isOtherActive = activeTabKey === 'other';
 	const selectedOtherLabel = isOtherActive && activeRootCat ? activeRootCat.name : null;
 
 	const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
-		if (newValue === 'all') {
-			onSelectCategory('');
-			return;
-		}
-		if (newValue === 'other') {
-			return;
-		}
-		const tab = resolvedFeatured.find((f) => f.key === newValue);
-		if (tab?.category) {
-			onSelectCategory(tab.category.id);
-		} else {
-			// Tab exists in UI but not in DB yet (e.g. Embrión)
-			onSelectCategory('');
-		}
+		if (newValue !== 'other') onSelectTab(newValue);
 	};
 
 	return (
@@ -254,7 +143,7 @@ export default function ItemsCategorySubheader({
 						key={cat.id}
 						selected={activeRootCat?.id === cat.id}
 						onClick={() => {
-							onSelectCategory(cat.id);
+							onSelectOther(cat.id);
 							setAnchorEl(null);
 						}}
 						sx={{ py: 1 }}

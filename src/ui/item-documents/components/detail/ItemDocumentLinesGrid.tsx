@@ -50,7 +50,12 @@ export default function ItemDocumentLinesGrid({ lines }: { lines: ItemDocumentLi
 							sx={{ bgcolor: index % 2 === 1 ? zebraBg : undefined }}
 						>
 							<TableCell sx={indexSx}>{line.position}</TableCell>
-							<TableCell sx={{ ...textCellSx, fontWeight: 600 }}>{line.item.name}</TableCell>
+							<TableCell sx={{ ...textCellSx, fontWeight: 600 }}>
+								{line.item.name}
+								{line.semenLot && (
+									<Typography component="div" variant="caption" sx={{ color: 'text.secondary', fontSize: '0.66rem' }}>Partida {line.semenLot.code}</Typography>
+								)}
+							</TableCell>
 							<TableCell sx={textCellSx}>
 								{line.countedQuantity !== null
 									? `Contado: ${formatQuantity(line.countedQuantity, symbol)}`

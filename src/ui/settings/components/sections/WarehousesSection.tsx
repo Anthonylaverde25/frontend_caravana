@@ -63,7 +63,7 @@ export default function WarehousesSection() {
 			}
 		>
 			<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-				Las facturas, remitos y tickets entran al almacén predeterminado. Para reubicar mercadería, usá Transferir.
+				Las facturas, remitos y tickets entran al almacén predeterminado. El semen se guarda sólo en termos (tipo Termo). Para reubicar mercadería, usá Transferir.
 			</Alert>
 			{!isLoading && (
 				<WarehousesGrid
@@ -71,7 +71,7 @@ export default function WarehousesSection() {
 					onEdit={setEditing}
 					onDeactivate={setDeactivating}
 					onTransfer={(w) => setTransferFrom(w.id)}
-					onMakeDefault={(w) => run(() => makeDefault(w.id), `${w.code} es ahora el almacén predeterminado.`)}
+					onMakeDefault={(w) => run(() => makeDefault(w.id), `${w.code} es ahora el ${w.kind === 'CRYO_TANK' ? 'termo' : 'almacén'} predeterminado.`)}
 					onReactivate={(w) => run(() => setActive({ id: w.id, active: true }), `Almacén ${w.code} reactivado.`)}
 				/>
 			)}

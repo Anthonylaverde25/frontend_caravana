@@ -1,8 +1,13 @@
 import { WidgetCategory, WidgetDefinition } from '../types/dashboard.types';
-import { StockByBreedWidget, StockTotalWidget } from '../widgets/stock/StockKpiWidgets';
+import {
+	StockByBreedWidget,
+	StockFemalesKpiWidget,
+	StockMalesKpiWidget,
+	StockTotalWidget
+} from '../widgets/stock/StockKpiWidgets';
 import { StockFemalesMatrixWidget } from '../widgets/stock/StockFemalesMatrixWidget';
 import { StockMalesMatrixWidget } from '../widgets/stock/StockMalesMatrixWidget';
-import { LabWorklistWidget, SiresWorklistWidget } from '../widgets/genetics/LiveWorklistWidgets';
+import { LabWorklistWidget } from '../widgets/genetics/LiveWorklistWidgets';
 import { DteStatusWidget } from '../widgets/dte/DteStatusWidget';
 import { DteKpiWidget } from '../widgets/dte/DteKpiWidget';
 
@@ -17,8 +22,8 @@ export const WIDGET_CATEGORY_LABELS: Record<WidgetCategory, string> = {
 const KPI_SIZES = { sizes: ['S' as const], defaultSize: 'S' as const };
 const WIDE_SIZES = {
 	sizes: ['M' as const, 'L' as const],
-	defaultSize: 'M' as const,
-	sizeHint: 'Necesita al menos 2 columnas.'
+	defaultSize: 'L' as const,
+	sizeHint: 'Ocupa de 2 a 4 columnas.'
 };
 const TABLE_SIZES = {
 	sizes: ['L' as const],
@@ -34,13 +39,33 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
 	// ── Existencias (Live API · /caravans) ────────────────
 	{
 		id: 'stock-total',
-		name: 'Existencias',
-		description: 'Cabezas activas en la hacienda.',
+		name: 'Existencias del rodeo',
+		description: 'Cabezas activas, ratio de sexo y asignación a lotes.',
 		category: 'STOCK',
 		...KPI_SIZES,
 		source: 'API · /caravans',
 		dataStatus: 'LIVE',
 		component: StockTotalWidget
+	},
+	{
+		id: 'stock-females-kpi',
+		name: 'Vientres productivos',
+		description: 'Vacas adultas y vientres de reposición con proporción del rodeo.',
+		category: 'STOCK',
+		...KPI_SIZES,
+		source: 'API · /caravans · caravans.sex = H',
+		dataStatus: 'LIVE',
+		component: StockFemalesKpiWidget
+	},
+	{
+		id: 'stock-males-kpi',
+		name: 'Invernada y toros',
+		description: 'Machos de recría/invernada y torada reproductora.',
+		category: 'STOCK',
+		...KPI_SIZES,
+		source: 'API · /caravans · caravans.sex = M',
+		dataStatus: 'LIVE',
+		component: StockMalesKpiWidget
 	},
 	{
 		id: 'stock-by-breed',
@@ -99,18 +124,6 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
 		source: 'API · /entry-orders',
 		dataStatus: 'LIVE',
 		component: DteStatusWidget
-	},
-
-	// ── Genética & Asignación (Live API · /caravans/pending-sires)
-	{
-		id: 'genetics-sires-worklist',
-		name: 'Asignación de padres',
-		description: 'Terneros nacidos con padre pendiente y selector directo de toro.',
-		category: 'GENETICS_OPERATIONS',
-		...TABLE_SIZES,
-		source: 'API · /caravans/pending-sires',
-		dataStatus: 'LIVE',
-		component: SiresWorklistWidget
 	},
 
 	// ── Sanidad & Laboratorio (Live API · /diagnostic-protocols)

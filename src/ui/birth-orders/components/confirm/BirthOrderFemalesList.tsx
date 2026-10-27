@@ -43,7 +43,7 @@ export const BirthOrderFemalesList: React.FC<{ females: BirthRollFemale[] }> = (
                   <TableCell sx={{ ...bodyCell, whiteSpace: 'nowrap' }}>{dueLabel(female.dueDate)}</TableCell>
                   <TableCell sx={bodyCell}>{stageLabel(female.stage)}</TableCell>
                   <TableCell sx={{ ...bodyCell, borderRight: 0, color: 'text.secondary' }}>
-                    {sire ? sire.identification : female.sires.length > 1 ? `${female.sires.length} candidatos` : '—'}
+                    {sire ? sire.identification : female.sires.length > 0 ? `${female.sires.length} candidato(s)` : '—'}
                   </TableCell>
                 </TableRow>
               );

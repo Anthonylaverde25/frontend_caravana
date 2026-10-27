@@ -1,23 +1,23 @@
 import React, { useMemo } from 'react';
-import {
-  Alert,
-  Box,
-  Typography,
-  Stack,
-  TextField,
-  Chip,
-  Paper,
-  InputAdornment,
-  FormControlLabel,
-  Switch,
-  Button,
-  alpha,
-} from '@mui/material';
+import { Alert, Box, Typography, Stack, TextField, Chip, Paper, InputAdornment, Button, alpha } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import ExcludedFemalesNotice from './ExcludedFemalesNotice';
 import StartBatchFemalesTable from './StartBatchFemalesTable';
 import { useStartServiceTableStyles } from './useStartServiceTableStyles';
+import ServiceMethodHeader from './ServiceMethodHeader';
+import PlannedSemenBar from './PlannedSemenBar';
+import type { ServiceMethod } from './useStartServiceWizard';
+import type { SemenOption } from '@/features/semen/hooks/useSemenOptions';
+
+/** AI only: the semen planned per female (IA4). */
+export interface PlannedSemenProps {
+  options: SemenOption[];
+  byId: Map<number, SemenOption>;
+  planned: Record<number, number | null>;
+  plannedStraws: Record<number, number>;
+  onPlan: (femaleIds: number[], itemId: number | null) => void;
+}
 
 interface StartBatchFemalesStepProps {
   batchName: string;
@@ -30,6 +30,11 @@ interface StartBatchFemalesStepProps {
   femaleSearch: string;
   setFemaleSearch: (val: string) => void;
   onSetApart: (ids: number[]) => void;
+  method: ServiceMethod;
+  onMethodChange: (method: ServiceMethod) => void;
+  /** Picking one by one: a controlled service or AI. */
+  picksIndividually: boolean;
+  semen?: PlannedSemenProps;
 }
 
 /**
@@ -48,6 +53,10 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
   femaleSearch,
   setFemaleSearch,
   onSetApart,
+  method,
+  onMethodChange,
+  picksIndividually,
+  semen,
 }) => {
   const { isDark, active } = useStartServiceTableStyles();
 
@@ -57,8 +66,8 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
   );
 
   const listedFemales = useMemo(
-    () => (isControlledService ? serviceableFemales.filter((c) => c.is_breeding_eligible) : serviceableFemales),
-    [serviceableFemales, isControlledService]
+    () => (picksIndividually ? serviceableFemales.filter((c) => c.is_breeding_eligible) : serviceableFemales),
+    [serviceableFemales, picksIndividually]
   );
 
   const filteredFemales = useMemo(() => {
@@ -77,7 +86,7 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
     [filteredFemales]
   );
 
-  const exposedCount = isControlledService ? selectedFemaleIds.length : serviceableFemales.length;
+  const exposedCount = picksIndividually ? selectedFemaleIds.length : serviceableFemales.length;
   const allSelected = eligibleFilteredIds.length > 0 && eligibleFilteredIds.every((id) => selectedFemaleIds.includes(id));
   const someSelected = eligibleFilteredIds.some((id) => selectedFemaleIds.includes(id)) && !allSelected;
 
@@ -89,56 +98,35 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
   };
 
   const handleToggleFemale = (id: number) => {
-    if (!isControlledService) return;
+    if (!picksIndividually) return;
     setSelectedFemaleIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   return (
     <Stack spacing={2}>
-      {/* Top Header Card */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2,
-          borderRadius: '8px',
-          border: 1,
-          borderColor: 'divider',
-          bgcolor: isDark ? 'background.default' : '#f8fafc',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 1.5,
-        }}
-      >
-        <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-            Vientres de {batchName}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {isControlledService
-              ? 'Servicio controlado / IA: elegí individualmente los vientres que se exponen.'
-              : `Servicio natural: se exponen los ${serviceableFemales.length} vientres vacíos del lote.`}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <FormControlLabel
-            control={<Switch size="small" checked={isControlledService} onChange={(e) => setIsControlledService(e.target.checked)} />}
-            label={<Typography variant="caption" sx={{ fontWeight: 700 }}>Servicio controlado / IA</Typography>}
-          />
-          <Chip
-            size="small"
-            color="primary"
-            variant="outlined"
-            label={`${exposedCount} expuestas`}
-            sx={{ fontWeight: 700 }}
-          />
-        </Stack>
-      </Paper>
+      <ServiceMethodHeader
+        batchName={batchName}
+        method={method}
+        onMethodChange={onMethodChange}
+        isControlledService={isControlledService}
+        setIsControlledService={setIsControlledService}
+        serviceableCount={serviceableFemales.length}
+        exposedCount={exposedCount}
+        isDark={isDark}
+      />
+
+      {semen && (
+        <PlannedSemenBar
+          options={semen.options}
+          byId={semen.byId}
+          plannedStraws={semen.plannedStraws}
+          onApplyToAll={(itemId) => semen.onPlan(selectedFemaleIds, itemId)}
+        />
+      )}
 
       <ExcludedFemalesNotice
         excludedFemales={excludedFemales}
-        isControlledService={isControlledService}
+        isControlledService={picksIndividually}
         onSetApart={onSetApart}
       />
 
@@ -193,7 +181,7 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
             sx={{ height: 28, px: 0.5, fontWeight: 700, fontSize: '0.75rem' }}
           />
 
-          {isControlledService && (
+          {picksIndividually && (
             <Button
               variant={allSelected ? 'contained' : 'outlined'}
               size="small"
@@ -212,7 +200,7 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
       </Paper>
 
       {/* Selection Banner (Pedigree style matching ExternalBatchAssignmentView) */}
-      {isControlledService && selectedFemaleIds.length > 0 && (
+      {picksIndividually && selectedFemaleIds.length > 0 && (
         <Paper
           elevation={0}
           sx={{
@@ -244,7 +232,7 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
               {selectedFemaleIds.length} {selectedFemaleIds.length === 1 ? 'vientre seleccionado' : 'vientres seleccionados'}
             </Box>
             <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-              Vientres expuestos para servicio controlado / inseminación artificial.
+              {method === 'AI' ? 'Vientres a inseminar.' : 'Vientres expuestos para servicio controlado.'}
             </Typography>
           </Stack>
 
@@ -262,8 +250,9 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
       {/* Canonical Data Table Presenter */}
       <StartBatchFemalesTable
         females={filteredFemales}
-        isControlledService={isControlledService}
+        isControlledService={picksIndividually}
         selectedFemaleIds={selectedFemaleIds}
+        semen={semen}
         onToggleFemale={handleToggleFemale}
         onToggleAll={handleToggleSelectAll}
         allSelected={allSelected}

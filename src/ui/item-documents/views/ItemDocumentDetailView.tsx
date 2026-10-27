@@ -96,6 +96,13 @@ export default function ItemDocumentDetailView() {
 						.
 					</Alert>
 				)}
+				{document.serviceOrder && !document.reversedBy && (
+					<Alert severity="info">
+						Consumo generado por la orden{' '}
+						<Link component={RouterLink} to={`/gestation/tacto?orderId=${document.serviceOrder.id}`}>{document.serviceOrder.code}</Link>: para devolver
+						las pajuelas, anulá la inseminación en la orden.
+					</Alert>
+				)}
 				{!document.canReverse && document.fiscalDocument && !document.reversedBy && (
 					<Alert severity="info">
 						Viene de <Link component={RouterLink} to={`/fiscal-documents/${document.fiscalDocument.id}`}>{document.fiscalDocument.label}</Link>: para anularlo, anulá el comprobante.
@@ -110,6 +117,7 @@ export default function ItemDocumentDetailView() {
 							{' · '}
 						</>
 					)}
+					{document.provider ? `Proveedor ${document.provider.name} · ` : ''}
 					{document.batch ? `Lote ${document.batch.name} · ${document.headsTreated} cabezas · ` : ''}
 					{document.createdBy ? `Cargado por ${document.createdBy}` : 'Cargado'} el {formatDate(document.createdAt)}
 					{document.reason && !document.reverses ? ` · Motivo: ${document.reason}` : ''}

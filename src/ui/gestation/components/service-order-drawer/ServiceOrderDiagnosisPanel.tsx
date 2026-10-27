@@ -3,6 +3,7 @@ import { ServiceOrder, useServiceOrderDiagnosis } from '@/features/gestation/hoo
 import { formatDay } from '@/ui/gestation/utils/reproductiveVerdict';
 import DiagnosisProgressBar from '../diagnosis-summary/DiagnosisProgressBar';
 import ServiceOrderIncidentsPanel from '../diagnosis-summary/ServiceOrderIncidentsPanel';
+import { hasServiceEnded, isOpenStatus } from '../../utils/serviceOrderStatus';
 
 interface ServiceOrderDiagnosisPanelProps {
   order: ServiceOrder | null;
@@ -14,7 +15,7 @@ interface ServiceOrderDiagnosisPanelProps {
  * Diagnosis of the order in the drawer: progress, rate, rounds and incidents.
  */
 export default function ServiceOrderDiagnosisPanel({ order, readOnly = false }: ServiceOrderDiagnosisPanelProps) {
-  const showsDiagnosis = order !== null && ['APPROVED', 'BULLS_WITHDRAWN', 'SUCCESS'].includes(order.status);
+  const showsDiagnosis = order !== null && (isOpenStatus(order.status) || order.status === 'SUCCESS');
   const { data: diagnosis } = useServiceOrderDiagnosis(showsDiagnosis ? order?.id : null);
 
   if (!showsDiagnosis || !order?.diagnosis_summary) return null;
@@ -27,7 +28,7 @@ export default function ServiceOrderDiagnosisPanel({ order, readOnly = false }: 
           isClosed={order.status === 'SUCCESS'}
           finalRate={order.final_pregnancy_rate ?? null}
         />
-        {order.status === 'BULLS_WITHDRAWN' && order.suggested_diagnosis_date && (
+        {hasServiceEnded(order.status) && order.suggested_diagnosis_date && (
           <Typography variant="caption" color="text.secondary">
             Toros retirados el {formatDay(order.actual_end_date)} · tacto sugerido desde el {formatDay(order.suggested_diagnosis_date)}
           </Typography>

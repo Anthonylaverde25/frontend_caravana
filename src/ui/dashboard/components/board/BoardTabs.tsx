@@ -1,107 +1,122 @@
-import { Box, Button, Stack } from '@mui/material';
+import React from 'react';
+import { Box, Tab, Tabs } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { DashboardBoard } from '../../types/dashboard.types';
 
 interface BoardTabsProps {
 	boards: DashboardBoard[];
 	activeBoardId: string;
-	disabled: boolean;
+	disabled?: boolean;
 	onSelect: (id: string) => void;
-	onCreate: () => void;
+	onCreate?: () => void;
 }
 
 /**
- * Segmented button bar for switching between boards.
- * Replaces legacy tab underlines with canonical design tokens:
- * active contained primary button, subtle interactive text buttons, and dashed new-board trigger.
+ * Tab bar for switching between boards.
+ * Implements the canonical tab navigation pattern from /items:
+ * full-width subheader integration, vibrant green underline indicator,
+ * and clean typography.
  */
-export function BoardTabs({ boards, activeBoardId, disabled, onSelect, onCreate }: BoardTabsProps) {
+export function BoardTabs({ boards, activeBoardId, disabled = false, onSelect }: BoardTabsProps) {
+	const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
+		onSelect(newValue);
+	};
+
 	return (
 		<Box
 			sx={{
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'space-between',
-				gap: 1.5,
-				flexWrap: 'wrap',
-				py: 0.5
+				width: '100%',
+				borderBottom: 1,
+				borderColor: 'divider',
+				mb: '-1px'
 			}}
 		>
-			{/* Segmented Button Bar */}
-			<Stack
-				direction="row"
-				spacing={0.75}
+			<Tabs
+				value={activeBoardId}
+				onChange={handleTabChange}
+				variant="scrollable"
+				scrollButtons="auto"
+				allowScrollButtonsMobile
 				sx={{
-					p: 0.5,
-					bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC'),
-					border: '1px solid',
-					borderColor: 'divider',
-					borderRadius: '10px',
-					overflowX: 'auto',
-					maxWidth: '100%'
-				}}
-			>
-				{boards.map((board) => {
-					const isActive = board.id === activeBoardId;
-
-					return (
-						<Button
-							key={board.id}
-							disabled={disabled && !isActive}
-							onClick={() => onSelect(board.id)}
-							variant={isActive ? 'contained' : 'text'}
-							color={isActive ? 'primary' : 'inherit'}
-							startIcon={<FuseSvgIcon size={18}>{board.icon}</FuseSvgIcon>}
-							sx={{
-								px: 2,
-								py: 0.75,
-								borderRadius: '8px',
-								textTransform: 'none',
-								fontWeight: isActive ? 700 : 600,
-								fontSize: '0.875rem',
-								whiteSpace: 'nowrap',
-								color: isActive ? 'primary.contrastText' : 'text.secondary',
-								bgcolor: isActive ? 'primary.main' : 'transparent',
-								boxShadow: isActive ? 1 : 'none',
-								transition: 'all 140ms ease',
-								'&:hover': {
-									bgcolor: isActive ? 'primary.dark' : 'action.hover',
-									color: isActive ? 'primary.contrastText' : 'text.primary'
-								}
-							}}
-						>
-							{board.name}
-						</Button>
-					);
-				})}
-			</Stack>
-
-			{/* New Board Action Button */}
-			<Button
-				variant="outlined"
-				disabled={disabled}
-				onClick={onCreate}
-				startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}
-				sx={{
-					px: 2,
-					py: 0.75,
-					borderRadius: '8px',
-					textTransform: 'none',
-					fontWeight: 600,
-					fontSize: '0.875rem',
-					borderStyle: 'dashed',
-					borderColor: 'primary.main',
-					color: 'primary.main',
-					whiteSpace: 'nowrap',
-					'&:hover': {
-						borderStyle: 'dashed',
-						borderColor: 'primary.dark',
-						bgcolor: 'action.hover'
+					minHeight: 44,
+					width: '100% !important',
+					backgroundColor: 'transparent !important',
+					padding: '0 !important',
+					borderRadius: '0 !important',
+					boxShadow: 'none !important',
+					'& .MuiTabs-scroller': {
+						overflow: 'auto !important'
+					},
+					'& .MuiTabs-flexContainer': {
+						gap: { xs: 1, sm: 3 }
+					},
+					// Explicitly override Fuse theme's pill indicator with bottom underline
+					'& .MuiTabs-indicator': {
+						top: 'auto !important',
+						bottom: '0 !important',
+						height: '3px !important',
+						minHeight: '3px !important',
+						maxHeight: '3px !important',
+						backgroundColor: '#16a34a !important', // Vibrant green canonical tab indicator
+						borderRadius: '3px 3px 0 0 !important',
+						boxShadow: 'none !important',
+						border: 'none !important',
+						zIndex: 2
+					},
+					// Explicitly override Fuse theme's button-like Tab styles
+					'& .MuiTab-root': {
+						minHeight: '44px !important',
+						minWidth: 'auto !important',
+						py: '10px !important',
+						px: { xs: '12px !important', sm: '16px !important' },
+						borderRadius: '0 !important',
+						backgroundColor: 'transparent !important',
+						border: 'none !important',
+						boxShadow: 'none !important',
+						textTransform: 'none',
+						fontSize: '0.9rem',
+						fontWeight: '500 !important',
+						color: (theme) => (theme.palette.mode === 'dark' ? '#94a3b8 !important' : '#64748b !important'),
+						letterSpacing: '0.01em',
+						transition: 'color 0.15s ease-in-out',
+						display: 'inline-flex',
+						flexDirection: 'row',
+						alignItems: 'center',
+						gap: 1,
+						'&:hover': {
+							color: (theme) => (theme.palette.mode === 'dark' ? '#f8fafc !important' : '#0f172a !important'),
+							backgroundColor: 'transparent !important'
+						},
+						'&.Mui-selected': {
+							color: (theme) => (theme.palette.mode === 'dark' ? '#ffffff !important' : '#0f172a !important'),
+							fontWeight: '700 !important',
+							backgroundColor: 'transparent !important'
+						},
+						'&.Mui-disabled': {
+							opacity: 0.5
+						}
+					},
+					// Reset icon spacing when icon is used
+					'& .MuiTab-root.MuiTab-labelIcon': {
+						minHeight: '44px !important'
+					},
+					'& .MuiTab-root > .MuiTab-iconWrapper': {
+						marginRight: '8px !important',
+						marginBottom: '0 !important'
 					}
 				}}
 			>
-				Nuevo tablero
-			</Button>
+				{boards.map((board) => (
+					<Tab
+						key={board.id}
+						value={board.id}
+						disabled={disabled && board.id !== activeBoardId}
+						icon={board.icon ? <FuseSvgIcon size={18}>{board.icon}</FuseSvgIcon> : undefined}
+						iconPosition="start"
+						label={board.name}
+					/>
+				))}
+			</Tabs>
 		</Box>
 	);
 }

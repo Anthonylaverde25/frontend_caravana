@@ -8,6 +8,7 @@ import FemalesVerdictDialog from '../../service-order-work-card/FemalesVerdictDi
 import { getTrayDeadline, trayCardId, trayTimeLabel } from '../../../utils/diagnosisTray';
 import { formatDay } from '../../../utils/reproductiveVerdict';
 import type { TrayOrderHandlers } from './DiagnosisTrayTable';
+import { orderHeadline } from '../../../utils/serviceOrderPhase';
 
 interface TrayTableRowProps extends TrayOrderHandlers {
   order: ServiceOrder;
@@ -70,7 +71,7 @@ export default function TrayTableRow({ order, batchName, caravans, zebra, highli
           {batchName}
         </Typography>
         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-          {order.male_caravan_ids.length} toros · {order.female_caravan_ids.length} vientres
+          {orderHeadline(order)}
         </Typography>
       </TableCell>
 

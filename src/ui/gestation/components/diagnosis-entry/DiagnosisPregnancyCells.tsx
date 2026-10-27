@@ -1,4 +1,4 @@
-import { MenuItem, TableCell, TextField } from '@mui/material';
+import { MenuItem, TableCell, TextField, Tooltip, Typography } from '@mui/material';
 import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import { STAGE_LABELS, stageFromMonths } from '@/ui/gestation/utils/reproductiveVerdict';
 import type { DiagnosisEntryValue, GestationStageCode } from './diagnosisEntryModel';
@@ -6,18 +6,31 @@ import type { DiagnosisEntryValue, GestationStageCode } from './diagnosisEntryMo
 interface DiagnosisPregnancyCellsProps {
   value: DiagnosisEntryValue;
   onChange: (patch: Partial<DiagnosisEntryValue>) => void;
-  bulls: { id: number; identification: string }[];
+  /** Bulls that were with her: her candidate sires. */
+  candidates: { id: number; identification: string }[];
+  /** The only bull the order ever had: the sire is confirmed on the pregnant verdict. */
+  soleBull: { id: number; identification: string } | null;
+  /** Sire already confirmed for her current gestation. */
+  confirmedSireId: number | null;
 }
 
 /**
  * Estadio · Meses · Toro, open only for a pregnant female. Stage and months are optional and
- * independent: months (a scan) determine the stage, shown as derived. With one bull the sire is
- * known and shown read-only.
+ * independent: months (a scan) determine the stage, shown as derived. The sire is read-only: known
+ * when the order had a single bull all along; with more than one, her candidates wait for the
+ * paternity to be confirmed on the calf.
  */
-export default function DiagnosisPregnancyCells({ value, onChange, bulls }: DiagnosisPregnancyCellsProps) {
+export default function DiagnosisPregnancyCells({ value, onChange, candidates, soleBull, confirmedSireId }: DiagnosisPregnancyCellsProps) {
   const { cellSx, inputSx } = useGridCellStyles();
   const pregnant = value.result === 'PREGNANT';
   const derivedStage = value.gestation_months !== null ? stageFromMonths(value.gestation_months) : null;
+  const confirmedId = confirmedSireId ?? soleBull?.id ?? null;
+  const confirmed = candidates.find((bull) => bull.id === confirmedId) ?? (confirmedId === soleBull?.id ? soleBull : undefined);
+  const sireText = !pregnant
+    ? '—'
+    : confirmed
+      ? confirmed.identification
+      : `${candidates.length} candidato(s) · se confirma al nacer`;
 
   return (
     <>
@@ -56,24 +69,11 @@ export default function DiagnosisPregnancyCells({ value, onChange, bulls }: Diag
       </TableCell>
 
       <TableCell sx={cellSx}>
-        <TextField
-          select
-          fullWidth
-          SelectProps={{ displayEmpty: true }}
-          disabled={!pregnant || bulls.length < 2}
-          value={pregnant ? (value.confirmed_sire_id ?? '') : ''}
-          onChange={(e) => onChange({ confirmed_sire_id: e.target.value === '' ? null : Number(e.target.value) })}
-          sx={inputSx}
-        >
-          <MenuItem value="">
-            <em>{pregnant ? 'Sin confirmar' : '—'}</em>
-          </MenuItem>
-          {bulls.map((bull) => (
-            <MenuItem key={bull.id} value={bull.id}>
-              {bull.identification}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Tooltip title={!pregnant || confirmed ? '' : candidates.map((bull) => bull.identification).join(', ')}>
+          <Typography variant="body2" sx={{ px: 1.25, color: confirmed && pregnant ? 'text.primary' : 'text.secondary', fontWeight: confirmed && pregnant ? 600 : 400 }}>
+            {sireText}
+          </Typography>
+        </Tooltip>
       </TableCell>
     </>
   );

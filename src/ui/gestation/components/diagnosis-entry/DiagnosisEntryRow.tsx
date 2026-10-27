@@ -21,6 +21,7 @@ interface DiagnosisEntryRowProps {
   selected: boolean;
   problem?: string;
   bulls: { id: number; identification: string }[];
+  soleBull: { id: number; identification: string } | null;
   emptyDestinations: BatchOption[];
   serviceBatchId: number;
   allowNotDiagnosed: boolean;
@@ -43,6 +44,7 @@ export default function DiagnosisEntryRow({
   selected,
   problem,
   bulls,
+  soleBull,
   emptyDestinations,
   serviceBatchId,
   allowNotDiagnosed,
@@ -86,7 +88,13 @@ export default function DiagnosisEntryRow({
         )}
       </TableCell>
 
-      <DiagnosisPregnancyCells value={value} onChange={onChange} bulls={bulls} />
+      <DiagnosisPregnancyCells
+        value={value}
+        onChange={onChange}
+        candidates={female.sire_candidates ?? bulls}
+        soleBull={soleBull}
+        confirmedSireId={female.confirmed_sire_id ?? null}
+      />
       <DiagnosisExitCells value={value} onChange={onChange} emptyDestinations={emptyDestinations} inServiceBatch={inServiceBatch} />
 
       <SheetGridStatusCell error={problem} warning={notices.warning} info={notices.info} />

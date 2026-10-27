@@ -8,6 +8,7 @@ import { convertPreview } from '@/core/stock/domain/rules/lineConversion';
 import { formatMoney, formatQuantity } from '@/core/stock/domain/rules/quantityFormat';
 import { stockIn, transferableQuantity } from '@/core/stock/domain/rules/warehouseRules';
 import ItemPickerCell from '../cells/ItemPickerCell';
+import SemenLotSelectCell from '../cells/SemenLotSelectCell';
 import InputUnitSelectCell from '../cells/InputUnitSelectCell';
 import { useItemInputOptions } from '../cells/useItemInputOptions';
 import { isBlankTransfer, TransferLine } from './transferState';
@@ -17,6 +18,8 @@ interface TransferLineRowProps {
 	line: TransferLine;
 	items: Item[];
 	fromWarehouseId: number | null;
+	/** Some row is semen: the lot column shows (grey on the other rows). */
+	showLot: boolean;
 	errors: Record<string, string>;
 	onChange: (patch: Partial<TransferLine>) => void;
 	onRemove: () => void;
@@ -26,7 +29,7 @@ interface TransferLineRowProps {
  * One article moved: what the origin has valued (the most that can move, DD8), what waits for its
  * invoice and stays (Q2), and an estimate at today's average. The backend fixes the real cost.
  */
-export default function TransferLineRow({ index, line, items, fromWarehouseId, errors, onChange, onRemove }: TransferLineRowProps) {
+export default function TransferLineRow({ index, line, items, fromWarehouseId, showLot, errors, onChange, onRemove }: TransferLineRowProps) {
 	const { cellSx, inputSx, textCellSx, errorRing } = useGridCellStyles();
 	const { options, unitSymbol } = useItemInputOptions(line.itemId);
 	const item = items.find((i) => i.id === line.itemId);
@@ -41,7 +44,11 @@ export default function TransferLineRow({ index, line, items, fromWarehouseId, e
 		<TableRow>
 			<TableCell sx={{ ...cellSx, px: 1, color: 'text.disabled', fontSize: '0.72rem', width: 40 }}>{index + 1}</TableCell>
 			<ItemPickerCell items={items} value={line.itemId} error={errors.item_id} placeholder="Buscar artículo…"
-				onChange={(i) => onChange({ itemId: i?.id ?? null, inputSource: i?.unit ? `u:${i.unit.id}` : '' })} />
+				onChange={(i) => onChange({ itemId: i?.id ?? null, inputSource: i?.unit ? `u:${i.unit.id}` : '', semenLotId: null })} />
+			{showLot && (
+				<SemenLotSelectCell itemId={line.itemId} isSemen={!!item?.isSemen} warehouseId={fromWarehouseId} value={line.semenLotId} error={errors.semen_lot_id}
+					onChange={(semenLotId) => onChange({ semenLotId })} />
+			)}
 			<TableCell sx={{ ...cellSx, width: 90, ...(errors.input_quantity ? errorRing : {}) }}>
 				<TextField fullWidth size="small" value={line.inputQuantity} sx={inputSx} inputProps={{ inputMode: 'decimal' }}
 					onChange={(e) => onChange({ inputQuantity: e.target.value })} />

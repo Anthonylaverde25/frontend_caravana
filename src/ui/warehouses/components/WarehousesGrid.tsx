@@ -6,6 +6,7 @@ import { SheetGridEmptyRow } from 'src/components/sheet-grid/SheetGridEmptyRow';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
 import { Warehouse } from '@/core/stock/domain/entities/ItemStock';
 import { formatMoney } from '@/core/stock/domain/rules/quantityFormat';
+import { WAREHOUSE_KIND_LABEL } from '@/core/stock/domain/rules/warehouseRules';
 import RowActionsMenu from '@/ui/items/components/settings/RowActionsMenu';
 
 interface WarehousesGridProps {
@@ -17,7 +18,7 @@ interface WarehousesGridProps {
 	onReactivate: (w: Warehouse) => void;
 }
 
-const COLUMNS = 8;
+const COLUMNS = 9;
 
 /** One row per warehouse with what it holds; an inactive one shows in grey and only gives stock out. */
 export default function WarehousesGrid({ warehouses, onEdit, onMakeDefault, onTransfer, onDeactivate, onReactivate }: WarehousesGridProps) {
@@ -30,6 +31,7 @@ export default function WarehousesGrid({ warehouses, onEdit, onMakeDefault, onTr
 					<TableCell sx={indexSx}>#</TableCell>
 					<TableCell sx={{ ...headSx, width: 120 }}>Código</TableCell>
 					<TableCell sx={headSx}>Nombre</TableCell>
+					<TableCell sx={{ ...headSx, width: 100 }}>Tipo</TableCell>
 					<TableCell sx={{ ...headSx, width: 150 }} align="right">Artículos con saldo</TableCell>
 					<TableCell sx={{ ...headSx, width: 150 }} align="right">Valor</TableCell>
 					<TableCell sx={{ ...headSx, width: 170 }}>Pendiente de valorizar</TableCell>
@@ -50,6 +52,7 @@ export default function WarehousesGrid({ warehouses, onEdit, onMakeDefault, onTr
 								{w.name}
 								{w.isDefault && <Chip size="small" label="Predeterminado" color="primary" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem', fontWeight: 700 }} />}
 							</TableCell>
+							<TableCell sx={{ ...textCellSx, ...muted }}>{WAREHOUSE_KIND_LABEL[w.kind]}</TableCell>
 							<TableCell sx={{ ...textCellSx, ...muted }} align="right">{s?.itemsWithBalance ?? 0}</TableCell>
 							<TableCell sx={{ ...textCellSx, ...muted }} align="right">{formatMoney(s?.valuedValue ?? '0')}</TableCell>
 							<TableCell sx={{ ...textCellSx, ...muted, color: s?.itemsWithUnvalued ? 'warning.dark' : muted.color }}>

@@ -5,6 +5,7 @@ import {
 	KardexFilters,
 	KardexRow,
 	Warehouse,
+	WarehouseKind,
 	WarehouseStockView
 } from '../../domain/entities/ItemStock';
 import { IItemDocumentRepository } from '../../domain/repositories/IItemDocumentRepository';
@@ -73,8 +74,10 @@ export class ListWarehousesUseCase {
 export class SaveWarehouseUseCase {
 	constructor(private repository: IItemStockRepository) {}
 
-	execute(id: number | null, code: string, name: string): Promise<Warehouse> {
-		return id === null ? this.repository.createWarehouse(code.trim(), name.trim()) : this.repository.updateWarehouse(id, code.trim(), name.trim());
+	execute(id: number | null, code: string, name: string, kind: WarehouseKind): Promise<Warehouse> {
+		return id === null
+			? this.repository.createWarehouse(code.trim(), name.trim(), kind)
+			: this.repository.updateWarehouse(id, code.trim(), name.trim(), kind);
 	}
 }
 

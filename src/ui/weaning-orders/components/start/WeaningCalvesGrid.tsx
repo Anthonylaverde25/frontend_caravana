@@ -4,7 +4,7 @@ import SheetGrid from '@/components/sheet-grid/SheetGrid';
 import SheetGridEmptyRow from '@/components/sheet-grid/SheetGridEmptyRow';
 import SheetGridGroupRow from '@/components/sheet-grid/SheetGridGroupRow';
 import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
-import WeaningCalfSelectRow from './WeaningCalfSelectRow';
+import WeaningCalfSelectRow, { CalfDestinationCell, CalfMeasureCells } from './WeaningCalfSelectRow';
 import type { CalfBatchGroup } from './useCalvesByBatch';
 
 type Height = number | string | Partial<Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', number | string>>;
@@ -18,20 +18,23 @@ interface WeaningCalvesGridProps {
   onToggleFolded: (key: string) => void;
   onSetMany: (ids: number[], on: boolean) => void;
   maxHeight?: Height;
+  /** The "Lote destino" column, when each calf goes to its own batch. */
+  destination?: CalfDestinationCell;
+  /** The "Peso (kg)" and "Observaciones" columns, when the weaning already happened. */
+  measures?: CalfMeasureCells;
 }
-
-const COLUMNS = 5;
 
 const committedCount = (group: CalfBatchGroup) => group.committed.reduce((sum, c) => sum + c.count, 0);
 
 /** The calves at foot shown by the selector, by batch, with the batch and header checkboxes. */
-export const WeaningCalvesGrid: React.FC<WeaningCalvesGridProps> = ({ groups, chosen, searching, isOpen, onToggleFolded, onSetMany, maxHeight }) => {
+export const WeaningCalvesGrid: React.FC<WeaningCalvesGridProps> = ({ groups, chosen, searching, isOpen, onToggleFolded, onSetMany, maxHeight, destination, measures }) => {
   const { headSx } = useGridCellStyles();
+  const columns = 5 + (destination ? 1 : 0) + (measures ? 2 : 0);
   const shownIds = groups.flatMap((g) => g.calves.map((c) => c.calf_id));
   const shownChosen = shownIds.filter((id) => chosen.has(id)).length;
 
   return (
-    <SheetGrid minWidth={560} maxHeight={maxHeight}>
+    <SheetGrid minWidth={560 + (destination ? 220 : 0) + (measures ? 330 : 0)} maxHeight={maxHeight}>
       <TableHead>
         <TableRow>
           <TableCell align="center" sx={{ ...headSx, width: 44, px: 0 }}>
@@ -51,11 +54,14 @@ export const WeaningCalvesGrid: React.FC<WeaningCalvesGridProps> = ({ groups, ch
           <TableCell sx={{ ...headSx, minWidth: 160 }}>Caravana madre</TableCell>
           <TableCell sx={{ ...headSx, width: 110 }}>Sexo</TableCell>
           <TableCell sx={{ ...headSx, width: 130 }}>Nacimiento</TableCell>
+          {destination && <TableCell sx={{ ...headSx, width: 220 }}>Lote destino</TableCell>}
+          {measures && <TableCell sx={{ ...headSx, width: 110 }}>Peso (kg)</TableCell>}
+          {measures && <TableCell sx={{ ...headSx, width: 220 }}>Observaciones</TableCell>}
         </TableRow>
       </TableHead>
       <TableBody>
         {groups.length === 0 ? (
-          <SheetGridEmptyRow colSpan={COLUMNS}>
+          <SheetGridEmptyRow colSpan={columns}>
             {searching ? 'Ninguna cría coincide con la búsqueda.' : 'No hay crías al pie disponibles para una orden nueva.'}
           </SheetGridEmptyRow>
         ) : (
@@ -69,7 +75,7 @@ export const WeaningCalvesGrid: React.FC<WeaningCalvesGridProps> = ({ groups, ch
             return (
               <React.Fragment key={group.key}>
                 <SheetGridGroupRow
-                  colSpan={COLUMNS}
+                  colSpan={columns}
                   name={group.name}
                   caption={`${picked} de ${ids.length} · ${males} M · ${females} H`}
                   check={{
@@ -98,6 +104,8 @@ export const WeaningCalvesGrid: React.FC<WeaningCalvesGridProps> = ({ groups, ch
                       calf={calf}
                       chosen={chosen.has(calf.calf_id)}
                       onToggle={() => onSetMany([calf.calf_id], !chosen.has(calf.calf_id))}
+                      destination={destination}
+                      measures={measures}
                     />
                   ))}
               </React.Fragment>

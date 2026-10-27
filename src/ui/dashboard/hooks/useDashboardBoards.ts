@@ -11,9 +11,9 @@ import {
 import { SYSTEM_BOARDS, buildTemplateWidgets, newInstanceId } from '../registry/boardTemplates';
 import { getWidgetDefinition } from '../registry/widgetRegistry';
 
-/** v4: user boards and system board customizations are persisted in localStorage. */
-const STORAGE_KEY = 'rxna_dashboard_boards_v4';
-const SYSTEM_OVERRIDE_KEY = 'rxna_dashboard_system_overrides_v4';
+/** v6: updated layout with balanced 4-column KPIs, clean charts and removed sires worklist. */
+const STORAGE_KEY = 'rxna_dashboard_boards_v6';
+const SYSTEM_OVERRIDE_KEY = 'rxna_dashboard_system_overrides_v6';
 
 export interface CreateBoardInput {
 	name: string;

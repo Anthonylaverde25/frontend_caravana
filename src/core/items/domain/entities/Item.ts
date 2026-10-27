@@ -1,4 +1,5 @@
 import { ItemBehavior } from '../rules/itemBehavior';
+import { SemenProfile } from '@/core/semen/domain/entities/Semen';
 
 export interface ItemUnitRef {
 	id: number;
@@ -72,6 +73,8 @@ export interface Item {
 	trackStock: boolean;
 	behavior: ItemBehavior;
 	isActive: boolean;
+	/** Semen S-A (DA7): under the SEMEN category; its stock lines carry a lot. */
+	isSemen: boolean;
 	unit: ItemUnitRef | null;
 	category: ItemCategoryRef | null;
 	presentationsCount: number;
@@ -87,6 +90,8 @@ export interface ItemDetail extends Item {
 	providers: ItemProviderLink[];
 	/** With lines in documents or operations, unit and behavior can no longer change. */
 	hasMovements: boolean;
+	/** The straw profile of a semen item; null for any other item. */
+	semenProfile: SemenProfile | null;
 }
 
 export interface ItemFilters {

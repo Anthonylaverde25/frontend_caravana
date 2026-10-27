@@ -7,7 +7,7 @@ interface ServiceOrdersKpiStripProps {
 	onOpenTray: () => void;
 }
 
-const OPEN_STATUSES = new Set(['APPROVED', 'BULLS_WITHDRAWN']);
+const OPEN_STATUSES = new Set(['APPROVED', 'BULLS_WITHDRAWN', 'SERVICE_ENDED']);
 
 const cardSx = {
 	p: 2,

@@ -7,7 +7,7 @@ import type { BatchOption } from './DiagnosisEntryRow';
 
 /**
  * What a diagnosis round of an order needs around the table: the verdicts of every female, the
- * bulls (to confirm a sire) and the own batches an empty female can leave to.
+ * bulls (candidate sires, the sole one confirmed) and the own batches an empty female can leave to.
  */
 export function useDiagnosisRoundContext(order: ServiceOrder | null) {
   const { activeCompanyId } = useCompany();
@@ -29,6 +29,9 @@ export function useDiagnosisRoundContext(order: ServiceOrder | null) {
     return order.active_male_caravan_ids ?? order.male_caravan_ids ?? [];
   }, [order]);
 
+  const soleBullId = diagnosis.data?.sole_bull_id ?? null;
+  const soleBull = useMemo(() => bulls.find((bull) => bull.id === soleBullId) ?? null, [bulls, soleBullId]);
+
   const destinations: BatchOption[] = useMemo(
     () =>
       batches
@@ -42,7 +45,7 @@ export function useDiagnosisRoundContext(order: ServiceOrder | null) {
     isLoading: diagnosis.isLoading,
     bulls,
     activeBullIds,
-    singleBullId: bulls.length === 1 ? bulls[0].id : null,
+    soleBull,
     destinations,
     caravans,
   };

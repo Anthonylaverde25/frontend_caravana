@@ -1627,7 +1627,7 @@ export const WorkTemplateScanView: React.FC = () => {
     <ViewLayout
       title="Escanear y Procesar Planilla de Campo"
       subtitle="Carga una fotografía o escaneo de la planilla para extracción automática con AI y persistencia transaccional."
-      backUrl="/work-templates"
+      backUrl="/settings?section=work-templates"
       backTitle="Lista de Plantillas"
       actions={
         <Stack

@@ -17,6 +17,7 @@ import { ServiceOrderActionToolbar } from './ServiceOrderActionToolbar';
 import ReplaceServiceBullDialog from '../dialogs/replace-bull/ReplaceServiceBullDialog';
 import RetireServiceBullDialog from '../dialogs/RetireServiceBullDialog';
 import ServiceOrderDiagnosisPanel from './ServiceOrderDiagnosisPanel';
+import ServiceOrderInseminationsPanel from './ServiceOrderInseminationsPanel';
 
 function resolveCaravans(ids: number[], caravanMap: Map<number, Caravan>): Caravan[] {
   return ids.reduce<Caravan[]>((acc, id) => {
@@ -36,6 +37,8 @@ interface ServiceOrderDetailDrawerProps {
   onNavigateToServiceOrders?: () => void;
   /** Opened from the diagnosis tray: no link back to it. */
   inTray?: boolean;
+  /** Rendered above the status card: the "Próximo paso" block of /gestation/services. */
+  nextStep?: React.ReactNode;
 }
 
 /**
@@ -55,6 +58,7 @@ export const ServiceOrderDetailDrawer: React.FC<ServiceOrderDetailDrawerProps> =
   onPrintSheet,
   onNavigateToServiceOrders,
   inTray = false,
+  nextStep,
 }) => {
   // Keep the last order while the drawer animates out.
   const lastOrderRef = useRef<ServiceOrder | null>(order);
@@ -120,6 +124,7 @@ export const ServiceOrderDetailDrawer: React.FC<ServiceOrderDetailDrawerProps> =
         <ServiceOrderDrawerHeader order={currentOrder} batch={currentBatch} onClose={onClose} />
 
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5 }}>
+          {nextStep}
           <ServiceOrderStatusCard order={currentOrder} batch={currentBatch} />
           <ServiceOrderDiagnosisPanel order={currentOrder} />
           <ServiceOrderZootechnicalBalance femaleCount={exposedCount} maleCount={activeMaleCaravans.length} ratio={ratio} />
@@ -127,16 +132,22 @@ export const ServiceOrderDetailDrawer: React.FC<ServiceOrderDetailDrawerProps> =
           <ServiceOrderBatchContext order={currentOrder} batch={currentBatch} daysInService={daysInService} />
           <Divider sx={{ my: 2.5 }} />
 
-          <ServiceOrderMaleTable
-            maleCaravans={maleCaravans}
-            maleDetails={currentOrder?.male_details}
-            onOpenReplaceDialog={(bull) => setSelectedBullToReplace(bull)}
-            onOpenRetireDialog={(bull) => setSelectedBullToRetire(bull)}
-          />
-          <ServiceOrderBullReplacementsHistory serviceOrderId={currentOrder?.id} />
+          {/* AI without repaso (semen S-B): no bull ever served the batch. */}
+          {(currentOrder?.service_method !== 'AI' || currentOrder?.insemination_summary?.had_repaso_bulls) && (
+            <>
+              <ServiceOrderMaleTable
+                maleCaravans={maleCaravans}
+                maleDetails={currentOrder?.male_details}
+                onOpenReplaceDialog={(bull) => setSelectedBullToReplace(bull)}
+                onOpenRetireDialog={(bull) => setSelectedBullToRetire(bull)}
+              />
+              <ServiceOrderBullReplacementsHistory serviceOrderId={currentOrder?.id} />
+            </>
+          )}
 
           <Divider sx={{ my: 2.5 }} />
           <ServiceOrderFemaleChips femaleCaravans={femaleCaravans} exposures={currentOrder?.female_exposures ?? []} />
+          <ServiceOrderInseminationsPanel order={currentOrder} />
           <ServiceOrderObservations observations={currentOrder?.observations} />
         </Box>
 

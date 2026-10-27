@@ -17,8 +17,9 @@ function WeaningOrdersRedirect() {
  * Weaning orders in both directions: the list is the second tab of "Crías al pie y destete"
  * (`/weaning-orders` redirects there; an order opens in a drawer, `?orderId=`), a new order issued
  * before the chute and a weaning registered after it. Each one starts in a full-screen dialog over
- * that view (`/new`, `/register`: calves, batch, type) and ends in its confirmation
- * (`/new/confirm`, `/register/confirm`; `?orderId=` reopens a draft).
+ * that view (`/new`, `/register`: calves, batch, type). A new order — or a draft, reopened there —
+ * is confirmed in a modal over the dialog; a registration, or an order that declares the C/S of each
+ * calf, still ends in its confirmation (`/new/confirm`, `/register/confirm`).
  */
 const route: FuseRouteItemType[] = [
   {

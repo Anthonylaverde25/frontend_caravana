@@ -29,6 +29,9 @@ import WarehousesSection from '@/ui/settings/components/sections/WarehousesSecti
 import ItemUnitsSection from '@/ui/settings/components/sections/ItemUnitsSection';
 import ItemCategoriesSection from '@/ui/settings/components/sections/ItemCategoriesSection';
 import AppearanceSection from '@/ui/settings/components/sections/AppearanceSection';
+import AiConnectionsSection from '@/ui/settings/components/sections/AiConnectionsSection';
+import WorkTemplatesSection from '@/ui/settings/components/sections/WorkTemplatesSection';
+import { useTemplateData } from '@/ui/work-templates/hooks/useTemplateData';
 
 const SECTIONS: Record<SettingsSectionId, ComponentType> = {
   company: CompanyGeneralSection,
@@ -41,6 +44,8 @@ const SECTIONS: Record<SettingsSectionId, ComponentType> = {
   'item-units': ItemUnitsSection,
   'item-categories': ItemCategoriesSection,
   appearance: AppearanceSection,
+  'ai-connections': AiConnectionsSection,
+  'work-templates': WorkTemplatesSection,
 };
 
 /**
@@ -63,6 +68,7 @@ export default function GeneralConfig() {
   const { data: warehouses = [] } = useWarehouses();
   const { data: units = [] } = useUnitsOfMeasure();
   const { data: itemCategories = [] } = useItemCategories();
+  const { templates = [] } = useTemplateData();
 
   const counts = useMemo<Partial<Record<SettingsSectionId, number>>>(
     () => ({
@@ -74,8 +80,9 @@ export default function GeneralConfig() {
       warehouses: warehouses.filter((w) => w.isActive).length,
       'item-units': units.length,
       'item-categories': itemCategories.length,
+      'work-templates': new Set(templates.map((t) => t.code)).size,
     }),
-    [activities, categories.length, breeds.length, weighingTypes.length, warehouses, units.length, itemCategories.length]
+    [activities, categories.length, breeds.length, weighingTypes.length, warehouses, units.length, itemCategories.length, templates]
   );
 
   const subtitle = [

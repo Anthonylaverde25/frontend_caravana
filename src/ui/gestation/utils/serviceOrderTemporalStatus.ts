@@ -1,5 +1,6 @@
 import { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { formatDay } from './reproductiveVerdict';
+import { hasServiceEnded } from './serviceOrderStatus';
 
 export type TemporalStatusKind = 'ON_TRACK' | 'CLOSING_SOON' | 'OVERDUE' | 'BULLS_WITHDRAWN' | 'COMPLETED';
 
@@ -47,7 +48,9 @@ export function computeServiceOrderTemporalStatus(
 
   // Closed only by its diagnosis: withdrawing the bulls ends the service, not the order.
   const isCompleted = order.status === 'SUCCESS';
-  const isBullsWithdrawn = order.status === 'BULLS_WITHDRAWN';
+  // The service ended: the torada left, or an AI service was ended (semen S-B).
+  const isBullsWithdrawn = hasServiceEnded(order.status);
+  const endedWord = order.service_method === 'AI' ? 'Servicio terminado' : 'Toros retirados';
 
   // 1. Resolve start date
   const startStr = order.actual_start_date || order.planned_start_date || batchPlannedStartDate;
@@ -102,8 +105,8 @@ export function computeServiceOrderTemporalStatus(
       daysInService,
       daysRemaining: null,
       statusKind: 'BULLS_WITHDRAWN',
-      label: suggested ? `Toros retirados · tactar desde ${formatDay(suggested)}` : 'Toros retirados',
-      shortLabel: 'Torada retirada',
+      label: suggested ? `${endedWord} · tactar desde ${formatDay(suggested)}` : endedWord,
+      shortLabel: order.service_method === 'AI' ? 'Servicio terminado' : 'Torada retirada',
       chipColor: overdue ? 'warning' : 'primary',
       isClosingSoon: false,
       isOverdue: false,
@@ -111,6 +114,24 @@ export function computeServiceOrderTemporalStatus(
       isBullsWithdrawn: true,
       effectiveEndDate: endStr,
       effectivePlannedEndDate: plannedEndStr,
+    };
+  }
+
+  // 5c. AI without a planned end (semen S-B, E10): no 90-day window, no withdrawal alerts.
+  if (order.service_method === 'AI' && !order.planned_end_date) {
+    return {
+      daysInService,
+      daysRemaining: null,
+      statusKind: 'ON_TRACK',
+      label: daysInService !== null ? `Inseminación · día ${daysInService}` : 'Inseminación',
+      shortLabel: daysInService !== null ? `Día ${daysInService}` : 'En servicio',
+      chipColor: 'primary',
+      isClosingSoon: false,
+      isOverdue: false,
+      isCompleted: false,
+      isBullsWithdrawn: false,
+      effectiveEndDate: endStr,
+      effectivePlannedEndDate: null,
     };
   }
 

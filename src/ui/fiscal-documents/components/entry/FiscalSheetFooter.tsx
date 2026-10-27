@@ -14,13 +14,17 @@ interface FiscalSheetFooterProps {
 	isCreditNote: boolean;
 	unpriced: boolean;
 	summary: { net: Dec; rows: SummaryRow[]; total: Dec };
+	discriminates?: boolean;
+	showOtherTaxes?: boolean;
+	onToggleOtherTaxes?: (show: boolean) => void;
 }
 
 /**
  * The spreadsheet footer: right-docked financial summary with integrated internal notes.
  */
 export default function FiscalSheetFooter(props: FiscalSheetFooterProps) {
-	const { header, onChange, errors, mode, unpriced, summary } = props;
+	const { header, onChange, errors, mode, unpriced, summary, discriminates, showOtherTaxes, onToggleOtherTaxes } =
+		props;
 	const [notesOpen, setNotesOpen] = useState(false);
 
 	return (
@@ -51,6 +55,9 @@ export default function FiscalSheetFooter(props: FiscalSheetFooterProps) {
 						notes={header.notes}
 						onOpenNotes={() => setNotesOpen(true)}
 						onClearNotes={() => onChange({ notes: '' })}
+						discriminates={discriminates}
+						showOtherTaxes={showOtherTaxes}
+						onToggleOtherTaxes={onToggleOtherTaxes}
 					/>
 				</Box>
 			)}

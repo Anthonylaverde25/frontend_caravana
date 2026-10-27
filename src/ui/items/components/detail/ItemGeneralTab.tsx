@@ -1,6 +1,7 @@
-import { Box, Paper, Typography } from '@mui/material';
+import { Box, Paper, Stack, Typography } from '@mui/material';
 import { ItemDetail } from '@/core/items/domain/entities/Item';
 import { behaviorInfo } from '@/core/items/domain/rules/itemBehavior';
+import SemenProfileCard from '@/ui/semen/components/profile/SemenProfileCard';
 
 /** The item's general data, read-only; "Editar" opens the form dialog. */
 export default function ItemGeneralTab({ item }: { item: ItemDetail }) {
@@ -13,6 +14,7 @@ export default function ItemGeneralTab({ item }: { item: ItemDetail }) {
 	];
 
 	return (
+		<Stack spacing={2}>
 		<Paper variant="outlined" sx={{ p: 2.5, borderRadius: '8px', maxWidth: 760 }}>
 			<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '160px 1fr' }, rowGap: 1.5, columnGap: 2 }}>
 				{rows.map(([label, value]) => (
@@ -23,5 +25,7 @@ export default function ItemGeneralTab({ item }: { item: ItemDetail }) {
 				))}
 			</Box>
 		</Paper>
+		{item.semenProfile && <SemenProfileCard itemId={item.id} profile={item.semenProfile} />}
+		</Stack>
 	);
 }

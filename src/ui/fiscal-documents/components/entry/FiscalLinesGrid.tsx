@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { SheetGrid } from 'src/components/sheet-grid/SheetGrid';
 import { SheetGridGroupRow } from 'src/components/sheet-grid/SheetGridGroupRow';
 import { useGridCellStyles } from 'src/components/sheet-grid/useGridCellStyles';
@@ -29,6 +31,8 @@ interface FiscalLinesGridProps {
 	unpriced: boolean;
 	/** The notes being converted, to name each group. */
 	notes: InvoiceDraft['deliveryNotes'];
+	showOtherTaxes?: boolean;
+	onToggleOtherTaxes?: (show: boolean) => void;
 }
 
 interface Group {
@@ -70,16 +74,24 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 		onToggleRemoved,
 		mode,
 		unpriced,
-		notes
+		notes,
+		showOtherTaxes = false,
+		onToggleOtherTaxes
 	} = props;
 	const { headSx, indexSx } = useGridCellStyles();
 	const vat = taxes.find((t) => t.code === 'VAT');
 	const otherLineTaxes = taxes.filter((t) => t.appliesTo === 'LINE' && t.code !== 'VAT');
 	const converting = mode === 'conversion';
-	const columns = converting ? 13 : 12;
+	const columns = converting ? (showOtherTaxes ? 13 : 12) : (showOtherTaxes ? 12 : 11);
 	const head = (label: string, width?: number, align?: 'right') => (
 		<TableCell
-			sx={{ ...headSx, ...(width ? { width } : {}) }}
+			sx={{
+				...headSx,
+				...(width ? { width } : {}),
+				whiteSpace: 'nowrap',
+				verticalAlign: 'middle',
+				boxSizing: 'border-box'
+			}}
 			align={align}
 		>
 			{label}
@@ -110,6 +122,7 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 			onRemove={() => (line.deliveryNoteLineId !== null ? onToggleRemoved(line.key) : onRemove(line.key))}
 			mode={mode}
 			unpriced={unpriced}
+			showOtherTaxes={showOtherTaxes}
 		/>
 	);
 
@@ -120,9 +133,9 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 				borderless
 			>
 				<TableHead>
-					<TableRow>
+					<TableRow sx={{ height: 38 }}>
 						<TableCell
-							sx={indexSx}
+							sx={{ ...indexSx, whiteSpace: 'nowrap', verticalAlign: 'middle' }}
 							align="center"
 						>
 							#
@@ -134,7 +147,67 @@ export default function FiscalLinesGrid(props: FiscalLinesGridProps) {
 						{converting && head('Remito', 110, 'right')}
 						{head('IVA', 110)}
 						{head('Importe', 120, 'right')}
-						{head('Otros imp.', 110, 'right')}
+						{showOtherTaxes && (
+							<TableCell
+								sx={{
+									...headSx,
+									width: 110,
+									p: 0,
+									px: 1,
+									whiteSpace: 'nowrap',
+									verticalAlign: 'middle',
+									boxSizing: 'border-box'
+								}}
+								align="right"
+							>
+								<Box
+									sx={{
+										display: 'inline-flex',
+										alignItems: 'center',
+										justifyContent: 'flex-end',
+										gap: 0.5,
+										whiteSpace: 'nowrap',
+										height: '100%'
+									}}
+								>
+									<Typography
+										component="span"
+										sx={{
+											fontSize: '0.74rem',
+											fontWeight: 700,
+											color: 'inherit',
+											whiteSpace: 'nowrap',
+											lineHeight: 1
+										}}
+									>
+										Otros imp.
+									</Typography>
+									{onToggleOtherTaxes && (
+										<Tooltip title="Ocultar columna de otros importes">
+											<IconButton
+												size="small"
+												aria-label="Ocultar columna de otros importes"
+												onClick={() => onToggleOtherTaxes(false)}
+												sx={{
+													width: 18,
+													height: 18,
+													p: 0,
+													color: 'text.secondary',
+													borderRadius: '4px',
+													transition: 'all 0.15s ease',
+													'&:hover': {
+														color: 'error.main',
+														bgcolor: (theme) => alpha(theme.palette.error.main, 0.1)
+													}
+												}}
+											>
+												<FuseSvgIcon size={12}>heroicons-outline:x-mark</FuseSvgIcon>
+											</IconButton>
+										</Tooltip>
+									)}
+								</Box>
+							</TableCell>
+						)}
 						{head('Equivale a', 110)}
 						{head('Lote', 170)}
 						{head('Cab.', 70)}

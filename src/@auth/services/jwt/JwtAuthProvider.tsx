@@ -188,6 +188,13 @@ function JwtAuthProvider(props: FuseAuthProviderComponentProps) {
    * Sign out
    */
   const signOut: JwtAuthContextType["signOut"] = useCallback(() => {
+    // SEC-02: revoke the token server-side so a captured copy stops working. Best-effort: the
+    // local session is always cleared, even if the network call fails or the token is already gone.
+    axiosInstance.post("logout").catch((error) => {
+      if (axios.isAxiosError(error)) {
+        console.error("Logout request failed:", error.response?.status);
+      }
+    });
     removeTokenStorageValue();
     removeGlobalHeaders(["Authorization"]);
     setAuthState({

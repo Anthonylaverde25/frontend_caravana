@@ -76,6 +76,17 @@ const DeviationAlert: React.FC<{ order: WeaningOrder }> = ({ order }) => {
   );
 };
 
+/** "Quedan en su lote", one batch for all, or one per calf: what the order declared. */
+const destinationText = (order: WeaningOrder): string => {
+  if (order.destination_mode !== 'single') return 'Lote de destete por cría';
+
+  return order.destinations[0]?.stays_in_place ? 'Quedan en su lote (sin moverlas)' : 'Un lote de destete para todas';
+};
+
+/** "Sin mover", "Existente" or "A crear": what each declared destination is. */
+const destinationKind = (destination: WeaningOrder['destinations'][number]): string =>
+  destination.stays_in_place ? 'Sin mover' : destination.target_batch_id ? 'Existente' : 'A crear';
+
 /** The figures of the weaning order, where its calves come from and go to, and its dates. */
 export const WeaningOrderDetailSummary: React.FC<{ order: WeaningOrder }> = ({ order }) => (
   <Stack spacing={2}>
@@ -94,9 +105,11 @@ export const WeaningOrderDetailSummary: React.FC<{ order: WeaningOrder }> = ({ o
           : order.source_batches.map((b) => `${b.name ?? `Lote ${b.id}`} (${b.head_count})`).join(', ')}
       </Fact>
       <Fact label="Actividad de destino">{order.destination_activity.name ?? '—'}</Fact>
-      <Fact label="Destino">{order.destination_mode === 'single' ? 'Un lote de destete para todas' : 'Lote de destete por cría'}</Fact>
+      <Fact label="Destino">{destinationText(order)}</Fact>
       <Fact label="Categoría">{order.category_mode_label}</Fact>
-      <Fact label="Tipo de destete">{order.weaning_type_label ?? 'Sin declarar (se marca en la manga)'}</Fact>
+      <Fact label="Tipo de destete">
+        {order.weaning_type_label ?? (order.kind === 'REGISTERED' ? 'Sin declarar' : 'Sin declarar (se marca en la manga)')}
+      </Fact>
       <Fact label={order.kind === 'REGISTERED' ? 'Fecha del destete' : 'Fecha planificada'}>{formatDate(order.weaning_date)}</Fact>
       {order.kind === 'REGISTERED' ? (
         <Fact label="Registrado después del hecho">
@@ -137,18 +150,20 @@ export const WeaningOrderDetailSummary: React.FC<{ order: WeaningOrder }> = ({ o
               <Chip
                 size="small"
                 variant="outlined"
-                label={destination.target_batch_id ? 'Existente' : 'A crear'}
+                label={destinationKind(destination)}
                 sx={{ fontWeight: 700, height: 20 }}
               />
-              <Typography variant="caption" color="text.secondary">
-                {managementLabel(destination.management_is_confined)}
-              </Typography>
+              {!destination.stays_in_place && (
+                <Typography variant="caption" color="text.secondary">
+                  {managementLabel(destination.management_is_confined)}
+                </Typography>
+              )}
               <Box sx={{ flexGrow: 1 }} />
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 {destination.weaned_head_count} / {destination.planned_head_count} crías
               </Typography>
             </Stack>
-            {destination.resolved_batch_name && !destination.target_batch_id && (
+            {destination.resolved_batch_name && !destination.target_batch_id && !destination.stays_in_place && (
               <Typography variant="caption" color="text.secondary">
                 Creado como lote «{destination.resolved_batch_name}»: las tandas siguientes van a ese lote.
               </Typography>

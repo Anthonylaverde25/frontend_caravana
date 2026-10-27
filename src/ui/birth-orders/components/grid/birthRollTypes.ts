@@ -28,7 +28,7 @@ export interface BirthRollValue {
   /** The coat (pelaje): one the breed admits. */
   calfColorId: number | '';
   calfTeeth: string;
-  /** Empty: the gestation's single or confirmed sire, or "Sires pendientes". */
+  /** Empty: the gestation's confirmed sire, or "Paternidad pendiente". */
   fatherId: number | '';
   birthDate: string;
   observations: string;
@@ -71,9 +71,8 @@ export const femaleFromOrderAnimal = (animal: BirthOrderAnimal): BirthRollFemale
 /** Something declared for this row: an outcome, or the N alone. */
 export const isDeclared = (value: BirthRollValue): boolean => value.outcome !== '' || value.overdue;
 
-/** The sire the system uses when none is chosen: the confirmed one, or the only candidate. */
-export const suggestedSire = (sires: SireDTO[]): SireDTO | null =>
-  sires.find((s) => s.is_confirmed) ?? (sires.length === 1 ? sires[0] : null);
+/** The sire the system uses when none is chosen: the confirmed one, never an unconfirmed candidate. */
+export const suggestedSire = (sires: SireDTO[]): SireDTO | null => sires.find((s) => s.is_confirmed) ?? null;
 
 const numberOrNull = (value: string): number | null => (value.trim() === '' ? null : Number(value));
 

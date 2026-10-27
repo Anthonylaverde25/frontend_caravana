@@ -1,3 +1,4 @@
+import { SemenMapper } from '@/core/semen/infrastructure/mappers/SemenMapper';
 import { Item, ItemDetail, ItemPresentation, ItemProviderLink } from '../../domain/entities/Item';
 
 export const ItemMapper = {
@@ -11,6 +12,7 @@ export const ItemMapper = {
 			trackStock: !!raw.track_stock,
 			behavior: raw.behavior,
 			isActive: !!raw.is_active,
+			isSemen: !!raw.is_semen,
 			unit: raw.unit
 				? {
 						id: raw.unit.id,
@@ -48,6 +50,7 @@ export const ItemMapper = {
 		return {
 			...ItemMapper.toDomain(raw),
 			hasMovements: !!raw.has_movements,
+			semenProfile: SemenMapper.profile(raw.semen_profile),
 			presentations: (raw.presentations ?? []).map(ItemMapper.presentationToDomain),
 			providers: (raw.providers ?? []).map(
 				(p: any): ItemProviderLink => ({

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { Box, Button, Chip, CircularProgress, Stack, Tab, Tabs } from '@mui/material';
+import { Box, Button, CircularProgress, Stack } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ViewLayout from 'src/components/ViewLayout';
 import { useBirthHistory } from '@/features/gestation/hooks/useBirthHistory';
@@ -15,6 +15,7 @@ import WeaningOrderStartDialog from '@/ui/weaning-orders/components/start/Weanin
 import { startFromOrder, type WeaningFormMode, type WeaningOrderStart } from '@/ui/weaning-orders/hooks/useWeaningOrderForm';
 import BirthsKpiStrip from '../components/births/BirthsKpiStrip';
 import AtFootPanel from '../components/births/AtFootPanel';
+import CalvesHubSubheader from '../components/births/CalvesHubSubheader';
 import { batchKeyOf } from '../components/births/useAtFootGroups';
 
 export type CalvesHubTab = 'at-foot' | 'orders' | 'deviations';
@@ -104,6 +105,15 @@ export default function CalvesHubView({ tab: tabProp, starting }: CalvesHubViewP
 			]}
 			title="Crías al pie y destete"
 			subtitle="Todo lo que sigue lactando y las órdenes que ya lo tienen tomado. Desde acá se ordena el destete o se registra el que ya pasó."
+			subHeader={
+				<CalvesHubSubheader
+					activeTab={tab}
+					onTabChange={(next) => navigate(TAB_PATHS[next])}
+					atFootCount={atFoot.length}
+					openOrdersCount={openOrders}
+					pendingDeviationsCount={pendingDeviations}
+				/>
+			}
 			actions={
 				<Stack direction="row" spacing={1}>
 					<Button
@@ -127,38 +137,6 @@ export default function CalvesHubView({ tab: tabProp, starting }: CalvesHubViewP
 			}
 		>
 			<Stack spacing={2.5}>
-				<Tabs
-					value={tab}
-					onChange={(_, next: CalvesHubTab) => navigate(TAB_PATHS[next])}
-					sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 44, '& .MuiTab-root': { minHeight: 44, textTransform: 'none', fontWeight: 700 } }}
-				>
-					<Tab
-						value="at-foot"
-						iconPosition="end"
-						icon={<Chip size="small" label={atFoot.length} sx={{ height: 20, fontWeight: 700 }} />}
-						label="Crías al pie"
-					/>
-					<Tab
-						value="orders"
-						iconPosition="end"
-						icon={<Chip size="small" label={`${openOrders} abiertas`} sx={{ height: 20, fontWeight: 700 }} />}
-						label="Órdenes de destete"
-					/>
-					<Tab
-						value="deviations"
-						iconPosition="end"
-						icon={
-							<Chip
-								size="small"
-								color={pendingDeviations > 0 ? 'warning' : 'default'}
-								label={pendingDeviations > 0 ? `${pendingDeviations} sin revisar` : 'al día'}
-								sx={{ height: 20, fontWeight: 700 }}
-							/>
-						}
-						label="Desvíos"
-					/>
-				</Tabs>
-
 				{isLoading ? (
 					<Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
 						<CircularProgress size={32} />

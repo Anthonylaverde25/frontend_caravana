@@ -31,6 +31,26 @@ export interface ServiceOrderFemaleExposure {
   joined_after_start: boolean;
   reproductive_status?: FemaleReproductiveVerdict;
   diagnosed_at?: string | null;
+  /** AI only (semen S-B): latest live insemination; null = not inseminated. */
+  last_insemination_on?: string | null;
+  planned_semen_item_id?: number | null;
+  not_inseminated_reason?: NotInseminatedReason | null;
+}
+
+/** How the females of an order are served (semen S-B). */
+export type ServiceMethod = 'NATURAL' | 'AI';
+
+/** Optional note on why a female of an AI order was never inseminated (IA12). */
+export type NotInseminatedReason = 'NOT_PRESENTED' | 'DEVICE_LOST' | 'DISCARDED' | 'OTHER';
+
+/** Where the inseminations of an AI order stand, derived by the backend. */
+export interface InseminationSummary {
+  females: number;
+  inseminated: number;
+  not_inseminated: number;
+  last_insemination_on: string | null;
+  repaso_bulls_active: number;
+  had_repaso_bulls: boolean;
 }
 
 /**
@@ -51,6 +71,8 @@ export interface ServiceOrderDiagnosisSummary {
   provisional_empty_female_ids: number[];
   /** Pregnant over pregnant + final empty, in percent; null while nobody has a final verdict. */
   partial_rate: number | null;
+  /** AI without repaso: females never inseminated, out of the total and of the rate. */
+  not_inseminated?: number;
 }
 
 /**
@@ -101,6 +123,8 @@ export interface ServiceOrder {
   }[];
   bull_replacements?: any[];
   service_type: 'single' | 'rotation' | 'multi';
+  service_method?: ServiceMethod;
+  insemination_summary?: InseminationSummary | null;
   is_controlled_service: boolean;
   female_sire_assignments: { female_caravan_id: number; assigned_male_caravan_id: number }[];
   history: ServiceOrderHistory[];
@@ -217,7 +241,6 @@ export function useRegisterGestationDiagnosis() {
       isPregnant,
       gestationStage,
       gestationMonths,
-      confirmedSireId,
       diagnosisDate
     }: {
       caravanId: number;
@@ -225,7 +248,6 @@ export function useRegisterGestationDiagnosis() {
       isPregnant: boolean;
       gestationStage?: string | null;
       gestationMonths?: number | null;
-      confirmedSireId?: number | null;
       diagnosisDate: string;
     }) => {
       const response = await axiosInstance.post(`/caravans/${caravanId}/gestation-diagnosis`, {
@@ -233,7 +255,6 @@ export function useRegisterGestationDiagnosis() {
         is_pregnant: isPregnant,
         gestation_stage: gestationStage,
         gestation_months: gestationMonths,
-        confirmed_sire_id: confirmedSireId,
         diagnosis_date: diagnosisDate
       });
       return response.data;
@@ -258,7 +279,6 @@ export function useBulkRegisterGestationDiagnosis() {
       is_pregnant: boolean;
       gestation_stage?: string | null;
       gestation_months?: number | null;
-      confirmed_sire_id?: number | null;
       diagnosis_date: string;
       empty_destination_batch_id?: number | null;
     }>) => {
@@ -331,12 +351,23 @@ export interface DiagnosisFemale {
   not_diagnosed_reason: NotDiagnosedReason | null;
   not_diagnosed_notes: string | null;
   assigned_male_caravan_id: number | null;
+  /** Bulls whose stay in the order overlapped her exposure: her candidate sires. */
+  sire_candidates?: { id: number; identification: string }[];
+  /** Confirmed at the chute only when the order had a single bull all along; else settled on the calf. */
+  confirmed_sire_id?: number | null;
   /** The verdict before the current one (or the last one, when she was reopened as pending). */
   previous_diagnosis: { verdict: FemaleReproductiveVerdict; round_number: number | null; round_date: string | null } | null;
   diagnoses_count: number;
   /** Empty scanned while still exposed to the bulls. */
   is_provisional_empty: boolean;
   is_final_if_closed_today: boolean;
+  /** AI (semen S-B): latest live insemination. */
+  last_insemination_on?: string | null;
+  not_inseminated_reason?: NotInseminatedReason | null;
+  /** AI without repaso: never inseminated, so neither scanned nor counted (IA12). */
+  is_not_inseminated?: boolean;
+  /** AI without repaso: an empty scanned on or after this day is final (IA11). */
+  empty_final_after?: string | null;
 }
 
 export interface ServiceOrderIncident {
@@ -357,6 +388,8 @@ export interface ServiceOrderDiagnosis {
   order_id: number;
   status: string;
   suggested_diagnosis_date: string | null;
+  /** The only bull the order ever had (no AI): the sire is confirmed on the pregnant verdict. */
+  sole_bull_id: number | null;
   summary: ServiceOrderDiagnosisSummary;
   pending_if_closed_today: number;
   rounds: DiagnosisRound[];
@@ -403,7 +436,6 @@ export interface ScreenDiagnosisPayload {
   is_pregnant: boolean;
   gestation_stage?: 'head' | 'body' | 'tail' | null;
   gestation_months?: number | null;
-  confirmed_sire_id?: number | null;
   empty_destination_batch_id?: number | null;
 }
 
@@ -425,6 +457,8 @@ export interface CloseServiceOrderDiagnosisPayload {
   scheduled_movement_date?: string | null;
   remaining_females_action?: ServiceClosureRemainingFemalesAction | null;
   remaining_females_target_batch_id?: number | null;
+  /** AI (semen S-B): optional note per never inseminated female (IA12). */
+  not_inseminated_reasons?: { female_caravan_id: number; reason: NotInseminatedReason | null }[];
 }
 
 export interface CloseServiceOrderDiagnosisResult {

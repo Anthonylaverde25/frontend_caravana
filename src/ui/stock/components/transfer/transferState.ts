@@ -9,6 +9,8 @@ export interface TransferLine {
 	itemId: number | null;
 	inputQuantity: string;
 	inputSource: string;
+	/** Semen S-A: the lot moved (SL1). */
+	semenLotId: number | null;
 }
 
 export interface TransferHeader {
@@ -18,7 +20,7 @@ export interface TransferHeader {
 	notes: string;
 }
 
-export const emptyTransferLine = (itemId: number | null = null, inputSource = ''): TransferLine => ({ key: rowKey(), itemId, inputQuantity: '', inputSource });
+export const emptyTransferLine = (itemId: number | null = null, inputSource = ''): TransferLine => ({ key: rowKey(), itemId, inputQuantity: '', inputSource, semenLotId: null });
 export const isBlankTransfer = (l: TransferLine): boolean => !l.itemId && !l.inputQuantity.trim();
 
 /** There is always one empty row at the end to keep typing. */
@@ -40,7 +42,7 @@ export function buildTransferPayload(header: TransferHeader, lines: TransferLine
 			occurred_at: header.occurredAt,
 			notes: header.notes.trim() || null,
 			idempotency_key: key,
-			lines: sent.map((l) => ({ item_id: l.itemId ?? 0, input_quantity: quantity(l.inputQuantity), ...inputSourcePayload(l.inputSource) }))
+			lines: sent.map((l) => ({ item_id: l.itemId ?? 0, input_quantity: quantity(l.inputQuantity), ...inputSourcePayload(l.inputSource), semen_lot_id: l.semenLotId }))
 		}
 	};
 }

@@ -7,6 +7,7 @@ import { useDiagnosisEntryState } from '../diagnosis-entry/useDiagnosisEntryStat
 import { useDiagnosisRoundContext } from '../diagnosis-entry/useDiagnosisRoundContext';
 import CloseServiceOrderDiagnosisDialog from '../dialogs/close-diagnosis/CloseServiceOrderDiagnosisDialog';
 import { todayIso } from '../../utils/reproductiveVerdict';
+import { hasServiceEnded } from '../../utils/serviceOrderStatus';
 import FullScreenEntryBar from '@/components/FullScreenEntryBar';
 import TactoOrderContextCard from './TactoOrderContextCard';
 import TactoRoundCard from './TactoRoundCard';
@@ -35,7 +36,7 @@ export default function TactoStartDialog({ orderId, mode, returnTo, onClose }: T
   const { data: orders = [], isLoading: isLoadingOrders } = useServiceOrders();
   const order = orders.find((o) => o.id === orderId) ?? null;
   const ctx = useDiagnosisRoundContext(order);
-  const entry = useDiagnosisEntryState(ctx.singleBullId);
+  const entry = useDiagnosisEntryState();
   const females = useMemo(() => diagnosableFemales(ctx.diagnosis?.females ?? []), [ctx.diagnosis]);
   const [roundDate, setRoundDate] = useState(todayIso);
   const submit = useTactoSubmit({ order, mode, roundDate, returnTo, females, entry });
@@ -105,8 +106,9 @@ export default function TactoStartDialog({ orderId, mode, returnTo, onClose }: T
               roundDate={roundDate}
               suggestedDate={ctx.diagnosis.suggested_diagnosis_date}
               bulls={ctx.bulls}
+              soleBull={ctx.soleBull}
               emptyDestinations={ctx.destinations}
-              allowNotDiagnosed={isClosing || order.status === 'BULLS_WITHDRAWN'}
+              allowNotDiagnosed={isClosing || hasServiceEnded(order.status)}
               maxHeight={{ xs: 520, lg: 'calc(100vh - 300px)' }}
             />
           </Paper>

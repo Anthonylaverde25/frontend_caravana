@@ -15,6 +15,8 @@ import {
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { useStartServiceTableStyles } from './useStartServiceTableStyles';
+import PlannedSemenCell from './PlannedSemenCell';
+import type { PlannedSemenProps } from './StartBatchFemalesStep';
 
 interface StartBatchFemalesTableProps {
   females: Caravan[];
@@ -24,6 +26,8 @@ interface StartBatchFemalesTableProps {
   onToggleAll: () => void;
   allSelected: boolean;
   someSelected: boolean;
+  /** AI: one more column with the semen planned per female. */
+  semen?: PlannedSemenProps;
 }
 
 /**
@@ -39,6 +43,7 @@ export const StartBatchFemalesTable: React.FC<StartBatchFemalesTableProps> = ({
   onToggleAll,
   allSelected,
   someSelected,
+  semen,
 }) => {
   const {
     headerCellStyle,
@@ -85,7 +90,7 @@ export const StartBatchFemalesTable: React.FC<StartBatchFemalesTableProps> = ({
                 Datos del Vientre
               </TableCell>
               <TableCell
-                colSpan={1}
+                colSpan={semen ? 2 : 1}
                 align="center"
                 sx={{ ...tintedGroupCellStyle, borderRight: 0 }}
               >
@@ -116,16 +121,17 @@ export const StartBatchFemalesTable: React.FC<StartBatchFemalesTableProps> = ({
               <TableCell sx={{ ...headerCellStyle, minWidth: 120 }}>Raza</TableCell>
               <TableCell sx={{ ...headerCellStyle, minWidth: 90, textAlign: 'center' }}>Dentición</TableCell>
               <TableCell sx={{ ...headerCellStyle, minWidth: 110, textAlign: 'right' }}>Peso Actual</TableCell>
-              <TableCell sx={{ ...headerCellStyle, minWidth: 150, textAlign: 'center', borderRight: 0 }}>
+              <TableCell sx={{ ...headerCellStyle, minWidth: 150, textAlign: 'center', borderRight: semen ? undefined : 0 }}>
                 Estado
               </TableCell>
+              {semen && <TableCell sx={{ ...headerCellStyle, minWidth: 220, borderRight: 0 }}>Semen previsto</TableCell>}
             </TableRow>
           </TableHead>
 
           <TableBody>
             {females.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                <TableCell colSpan={semen ? 9 : 8} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     No se encontraron vientres vacíos con el filtro actual.
                   </Typography>
@@ -224,7 +230,7 @@ export const StartBatchFemalesTable: React.FC<StartBatchFemalesTableProps> = ({
                       {female.current_weight ? `${female.current_weight} kg` : '—'}
                     </TableCell>
 
-                    <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', borderRight: 0 }}>
+                    <TableCell sx={{ ...bodyCellStyle, textAlign: 'center', borderRight: semen ? undefined : 0 }}>
                       {!female.is_breeding_eligible ? (
                         <Chip
                           size="small"
@@ -243,6 +249,16 @@ export const StartBatchFemalesTable: React.FC<StartBatchFemalesTableProps> = ({
                         />
                       )}
                     </TableCell>
+                    {semen && (
+                      <TableCell sx={{ ...bodyCellStyle, borderRight: 0, py: 0 }}>
+                        <PlannedSemenCell
+                          value={semen.planned[female.id!] ?? null}
+                          options={semen.options}
+                          disabled={!isChecked}
+                          onChange={(itemId) => semen.onPlan([female.id!], itemId)}
+                        />
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })

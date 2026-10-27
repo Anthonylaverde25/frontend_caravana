@@ -1,5 +1,6 @@
 import { Alert, Button } from '@mui/material';
 import { useNavigate } from 'react-router';
+import { isOpenStatus } from '@/ui/gestation/utils/serviceOrderStatus';
 
 interface Rep01ImportOutcomeProps {
   serviceOrderId: number | null | undefined;
@@ -14,7 +15,7 @@ export default function Rep01ImportOutcome({ serviceOrderId, result }: Rep01Impo
   const navigate = useNavigate();
   if (!result || !serviceOrderId) return null;
 
-  const open = result.order_status === 'APPROVED' || result.order_status === 'BULLS_WITHDRAWN';
+  const open = isOpenStatus(result.order_status);
   const pending = result.order_pending ?? 0;
   const summary = `${result.processed ?? 0} diagnóstico(s) guardados, ${result.skipped ?? 0} en blanco (siguen pendientes), ${result.errors?.length ?? 0} con error.`;
 

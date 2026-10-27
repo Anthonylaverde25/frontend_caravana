@@ -7,6 +7,7 @@ import type { DiagnosisEntryState } from '../../diagnosis-entry/diagnosisEntryMo
 import { type TactoEntryState, tactoStartPath } from '../../tacto-start/tactoStart';
 import CloseConfirmationStep from './CloseConfirmationStep';
 import BullsDecisionStep from './BullsDecisionStep';
+import NotInseminatedSummary from '../../insemination-entry/NotInseminatedSummary';
 import { useCloseDiagnosisFlow } from './useCloseDiagnosisFlow';
 import type { CloseStep } from './closeDiagnosisModel';
 
@@ -112,6 +113,7 @@ export default function CloseServiceOrderDiagnosisDialog({
             <CircularProgress />
           </Box>
         ) : step === 'confirm' ? (
+          <>
           <CloseConfirmationStep
             diagnosis={ctx.diagnosis}
             projection={flow.projection}
@@ -122,6 +124,8 @@ export default function CloseServiceOrderDiagnosisDialog({
             canChooseDate={flow.canChooseDate}
             onLoadPending={loadPending}
           />
+          <NotInseminatedSummary notInseminated={flow.notInseminated} />
+          </>
         ) : (
           <BullsDecisionStep
             bulls={ctx.bulls.filter((bull) => ctx.activeBullIds.includes(bull.id))}

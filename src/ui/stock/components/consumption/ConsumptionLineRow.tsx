@@ -8,6 +8,7 @@ import { convertPreview } from '@/core/stock/domain/rules/lineConversion';
 import { formatMoney, formatQuantity } from '@/core/stock/domain/rules/quantityFormat';
 import { stockIn } from '@/core/stock/domain/rules/warehouseRules';
 import ItemPickerCell from '../cells/ItemPickerCell';
+import SemenLotSelectCell from '../cells/SemenLotSelectCell';
 import InputUnitSelectCell from '../cells/InputUnitSelectCell';
 import { useItemInputOptions } from '../cells/useItemInputOptions';
 import { ConsumptionLine, isBlankConsumption } from './consumptionState';
@@ -19,6 +20,8 @@ interface ConsumptionLineRowProps {
 	errors: Record<string, string>;
 	/** The warehouse it leaves from; null: the default, whose figures are the item's total while it is the only one. */
 	warehouseId: number | null;
+	/** Some row is semen: the lot column shows (grey on the other rows). */
+	showLot: boolean;
 	onChange: (patch: Partial<ConsumptionLine>) => void;
 	onRemove: () => void;
 }
@@ -59,6 +62,7 @@ export default function ConsumptionLineRow({
 	items,
 	errors,
 	warehouseId,
+	showLot,
 	onChange,
 	onRemove
 }: ConsumptionLineRowProps) {
@@ -85,8 +89,12 @@ export default function ConsumptionLineRow({
 				value={line.itemId}
 				error={errors.item_id}
 				placeholder="Buscar artículo…"
-				onChange={(i) => onChange({ itemId: i?.id ?? null, inputSource: i?.unit ? `u:${i.unit.id}` : '' })}
+				onChange={(i) => onChange({ itemId: i?.id ?? null, inputSource: i?.unit ? `u:${i.unit.id}` : '', semenLotId: null })}
 			/>
+			{showLot && (
+				<SemenLotSelectCell itemId={line.itemId} isSemen={!!item?.isSemen} warehouseId={warehouseId} value={line.semenLotId} error={errors.semen_lot_id}
+					onChange={(semenLotId) => onChange({ semenLotId })} />
+			)}
 			<TableCell sx={{ ...cellSx, width: 90, ...(errors.input_quantity ? errorRing : {}) }}>
 				<TextField
 					fullWidth

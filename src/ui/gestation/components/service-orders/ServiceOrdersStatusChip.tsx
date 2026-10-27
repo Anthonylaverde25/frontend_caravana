@@ -19,6 +19,8 @@ export const getServiceStatusConfig = (status: string) => {
 			return { label: 'En servicio', color: 'info' as const };
 		case 'BULLS_WITHDRAWN':
 			return { label: 'Torada retirada', color: 'warning' as const };
+		case 'SERVICE_ENDED':
+			return { label: 'Servicio terminado', color: 'warning' as const };
 		case 'SUCCESS':
 			return { label: 'Diagnosticada', color: 'success' as const };
 		case 'REJECTED':

@@ -42,6 +42,8 @@ export interface KardexRow {
 	batch: string | null;
 	/** "ALM-01 → ALM-02" on either half of a transfer (delivery D). */
 	transfer: string | null;
+	/** Semen (S-A E9): the lot of the straws that moved; null = without lot. */
+	semenLot: { id: number; code: string | null } | null;
 	fiscalDocument: { id: number; label: string; provider: string | null } | null;
 	/** 0: a valuation, value without units (delivery C). */
 	direction: 1 | 0 | -1;
@@ -112,10 +114,15 @@ export interface WarehouseStockView {
 	items: WarehouseItemBalance[];
 }
 
+/** A general warehouse, or a tank where semen is kept (semen S-0). */
+export type WarehouseKind = 'GENERAL' | 'CRYO_TANK';
+
 export interface Warehouse {
 	id: number;
 	code: string;
 	name: string;
+	kind: WarehouseKind;
+	/** The default of its kind: one general, and at most one tank. */
 	isDefault: boolean;
 	isActive: boolean;
 	/** What it holds, shown before deactivating it (DD4); only in the list. */

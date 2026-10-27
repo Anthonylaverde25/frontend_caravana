@@ -4,6 +4,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { BirthHistoryRecord } from '@/features/gestation/hooks/useBirthHistory';
 import { calfGroupKey, useCalvesByBatch } from './useCalvesByBatch';
 import WeaningCalvesGrid from './WeaningCalvesGrid';
+import type { CalfDestinationCell, CalfMeasureCells } from './WeaningCalfSelectRow';
 import WeaningUntaggedCalvesNotice from './WeaningUntaggedCalvesNotice';
 
 type Height = number | string | Partial<Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', number | string>>;
@@ -20,6 +21,12 @@ interface WeaningCalvesByBatchSelectorProps {
   heldBy?: string | null;
   /** Height of the sheet; a CSS value (or one per breakpoint) fills a tall layout. */
   maxHeight?: Height;
+  /** The "Lote destino" column, when each calf goes to its own batch. */
+  destination?: CalfDestinationCell;
+  /** The "Peso (kg)" and "Observaciones" columns, when the weaning already happened. */
+  measures?: CalfMeasureCells;
+  /** Shown right above the grid, e.g. the bar that gives a batch to several calves at once. */
+  toolbar?: React.ReactNode;
 }
 
 /**
@@ -37,7 +44,10 @@ export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelector
   onChange,
   focusIds = [],
   heldBy = null,
-  maxHeight = 380
+  maxHeight = 380,
+  destination,
+  measures,
+  toolbar
 }) => {
   const groups = useCalvesByBatch(births, excludeIds, heldBy);
   const [search, setSearch] = useState('');
@@ -236,6 +246,8 @@ export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelector
 
       <WeaningUntaggedCalvesNotice groups={inScope} />
 
+      {toolbar}
+
       <WeaningCalvesGrid
         groups={shown}
         chosen={chosen}
@@ -244,6 +256,8 @@ export const WeaningCalvesByBatchSelector: React.FC<WeaningCalvesByBatchSelector
         onToggleFolded={toggleFolded}
         onSetMany={setMany}
         maxHeight={maxHeight}
+        destination={destination}
+        measures={measures}
       />
     </Stack>
   );

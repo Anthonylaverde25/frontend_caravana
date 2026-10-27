@@ -8,7 +8,9 @@ export type SettingsSectionId =
   | 'warehouses'
   | 'item-units'
   | 'item-categories'
-  | 'appearance';
+  | 'appearance'
+  | 'ai-connections'
+  | 'work-templates';
 
 export interface SettingsNavItemConfig {
   id: SettingsSectionId;
@@ -39,6 +41,7 @@ export const SETTINGS_NAVIGATION_GROUPS: SettingsNavGroupConfig[] = [
       { id: 'breeds', title: 'Razas', description: 'Razas disponibles al cargar caravanas, tropas y órdenes de ingreso.' },
       { id: 'dentition', title: 'Dentición', description: 'Edad estimada por cronometría dentaria.' },
       { id: 'weighing-types', title: 'Tipos de pesaje', description: 'Para qué se pesa en manga y báscula, y si entra en la curva de ganancia.' },
+      { id: 'work-templates', title: 'Plantillas de trabajo', description: 'Catálogo de planillas zootécnicas y documentos de manga listos para imprimir.' },
     ],
   },
   {
@@ -53,7 +56,10 @@ export const SETTINGS_NAVIGATION_GROUPS: SettingsNavGroupConfig[] = [
   {
     groupId: 'system',
     groupTitle: 'Sistema',
-    items: [{ id: 'appearance', title: 'Apariencia', description: 'Tema de colores y contraste, también para trabajar en la manga a pleno sol.' }],
+    items: [
+      { id: 'appearance', title: 'Apariencia', description: 'Tema de colores y contraste, también para trabajar en la manga a pleno sol.' },
+      { id: 'ai-connections', title: 'Conexiones de IA', description: 'Consultá tu rodeo desde Claude o Gemini, con acceso de solo lectura.' },
+    ],
   },
 ];
 

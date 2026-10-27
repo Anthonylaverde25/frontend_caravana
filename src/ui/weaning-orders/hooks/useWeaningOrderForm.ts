@@ -78,7 +78,7 @@ export const newDestination = (): DestinationDraft => {
   return { key: `d${Date.now()}-${destinationSequence}`, kind: 'existing', batchId: null, name: '', isConfined: null };
 };
 
-const emptyCalf = (): CalfDraft => ({ destinationKey: null, category: null, weight: '', observations: '' });
+export const emptyCalf = (): CalfDraft => ({ destinationKey: null, category: null, weight: '', observations: '' });
 
 export const destinationIsDeclared = (d: DestinationDraft): boolean =>
   d.kind === 'stay' ? true : d.kind === 'existing' ? d.batchId != null : d.name.trim() !== '';
@@ -111,6 +111,36 @@ const destinationDraftsOf = (order: WeaningOrder): { drafts: DestinationDraft[];
   });
 
   return { drafts, keyByOrderKey };
+};
+
+/** A draft reopened ("Seguir armando"): everything it declared, back in the start dialog. */
+export const startFromDraft = (order: WeaningOrder): WeaningOrderStart => {
+  const { drafts, keyByOrderKey } = destinationDraftsOf(order);
+
+  return {
+    orderId: order.id,
+    orderCode: order.code,
+    calfIds: order.animals.map((a) => a.caravan_id),
+    destinationMode: order.destination_mode,
+    destinations: drafts,
+    header: {
+      weaningDate: order.weaning_date,
+      weaningType: order.weaning_type ?? '',
+      responsable: order.responsable ?? '',
+      observations: order.observations ?? ''
+    },
+    categoryMode: order.category_mode,
+    calves: Object.fromEntries(
+      order.animals.map((a) => [
+        a.caravan_id,
+        {
+          ...emptyCalf(),
+          destinationKey: a.destination_key ? (keyByOrderKey.get(a.destination_key) ?? null) : null,
+          category: a.target_category_id ? { categoryId: a.target_category_id, subcategoryId: a.target_subcategory_id } : null
+        }
+      ])
+    )
+  };
 };
 
 /**

@@ -1,5 +1,5 @@
 import { Item, WarehouseBalance } from '@/core/items/domain/entities/Item';
-import { Warehouse } from '../entities/ItemStock';
+import { Warehouse, WarehouseKind } from '../entities/ItemStock';
 import { type Dec, dec, sub, ZERO } from './decimal';
 
 /** Only active warehouses take new loads or receive transfers (R4). */
@@ -8,7 +8,15 @@ export const activeWarehouses = (warehouses: Warehouse[]): Warehouse[] => wareho
 /** The picker shows only with more than one active warehouse (DD6). */
 export const needsWarehousePicker = (warehouses: Warehouse[]): boolean => activeWarehouses(warehouses).length > 1;
 
-export const defaultWarehouse = (warehouses: Warehouse[]): Warehouse | undefined => warehouses.find((w) => w.isDefault);
+/** The default of a kind; a load without a warehouse goes to the general one (DD6). */
+export const defaultWarehouse = (warehouses: Warehouse[], kind: WarehouseKind = 'GENERAL'): Warehouse | undefined =>
+	warehouses.find((w) => w.isDefault && w.kind === kind);
+
+export const WAREHOUSE_KIND_LABEL: Record<WarehouseKind, string> = { GENERAL: 'Almacén', CRYO_TANK: 'Termo' };
+
+/** "(predeterminado)" or "(termo predeterminado)" after a warehouse's name in a picker. */
+export const defaultSuffix = (w: Pick<Warehouse, 'isDefault' | 'kind'>): string =>
+	!w.isDefault ? '' : w.kind === 'CRYO_TANK' ? ' (termo predeterminado)' : ' (predeterminado)';
 
 export const warehouseLabel = (w: Pick<Warehouse, 'code' | 'name'>): string => `${w.code} · ${w.name}`;
 

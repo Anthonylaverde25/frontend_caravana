@@ -5,6 +5,7 @@ import type { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { getServiceOrderPhase } from '../../utils/serviceOrderPhase';
 import { computeServiceOrderTemporalStatus } from '../../utils/serviceOrderTemporalStatus';
 import { pendingToClose } from '../tacto-start/tactoStart';
+import { INSEMINATE_ICON, useAiWorkCardActions } from './useAiWorkCardActions';
 
 interface WorkCardActionsProps {
   order: ServiceOrder;
@@ -51,6 +52,12 @@ export default function WorkCardActions({
 
   const close = () => onCloseOrder(order);
   const tacto = () => onBulkEntry(order.id);
+  const ai = useAiWorkCardActions(order);
+  const primary = ai.primaryIsInseminate
+    ? { label: 'Cargar inseminaciones', icon: INSEMINATE_ICON, onClick: ai.loadInseminations }
+    : readyToClose
+      ? { label: 'Cerrar orden', icon: CLOSE_ICON, onClick: close }
+      : { label: 'Cargar tacto', icon: TACTO_ICON, onClick: tacto };
   const fromMenu = (action: () => void) => () => {
     setMenuAnchor(null);
     action();
@@ -67,8 +74,8 @@ export default function WorkCardActions({
         // In the table only the closing stays filled, so a column of rows does not turn solid blue.
         variant={isRow && !readyToClose ? 'outlined' : 'contained'}
         disableElevation
-        onClick={readyToClose ? close : tacto}
-        startIcon={<FuseSvgIcon size={isRow ? 15 : 16}>{readyToClose ? CLOSE_ICON : TACTO_ICON}</FuseSvgIcon>}
+        onClick={primary.onClick}
+        startIcon={<FuseSvgIcon size={isRow ? 15 : 16}>{primary.icon}</FuseSvgIcon>}
         sx={{
           height: isRow ? 32 : 36,
           px: isRow ? 1.5 : 2,
@@ -81,12 +88,12 @@ export default function WorkCardActions({
           boxShadow: 'none',
         }}
       >
-        {readyToClose ? 'Cerrar orden' : 'Cargar tacto'}
+        {primary.label}
       </Button>
       {!isRow && <Box sx={{ flexGrow: 1 }} />}
 
-      {isRow && order.status !== 'APPROVED' && <Box sx={{ width: 34, height: 34, flexShrink: 0 }} />}
-      {order.status === 'APPROVED' && (
+      {isRow && !ai.showsWithdrawal && <Box sx={{ width: 34, height: 34, flexShrink: 0 }} />}
+      {ai.showsWithdrawal && (
         <Tooltip title={withdrawAlert ? `Retirar torada · ${temporal.shortLabel}` : 'Retirar torada'}>
           <IconButton
             aria-label="Retirar torada"
@@ -138,6 +145,31 @@ export default function WorkCardActions({
           </ListItemIcon>
           <ListItemText {...menuTextProps}>Ver vientres ({order.female_caravan_ids.length})</ListItemText>
         </MenuItem>
+        {ai.isAi && ai.inService && <Divider />}
+        {ai.isAi && ai.inService && !ai.primaryIsInseminate && (
+          <MenuItem onClick={fromMenu(ai.loadInseminations)}>
+            <ListItemIcon><FuseSvgIcon size={16}>{INSEMINATE_ICON}</FuseSvgIcon></ListItemIcon>
+            <ListItemText {...menuTextProps}>Cargar inseminaciones</ListItemText>
+          </MenuItem>
+        )}
+        {ai.isAi && ai.primaryIsInseminate && (
+          <MenuItem onClick={fromMenu(tacto)}>
+            <ListItemIcon><FuseSvgIcon size={16}>{TACTO_ICON}</FuseSvgIcon></ListItemIcon>
+            <ListItemText {...menuTextProps}>Cargar tacto</ListItemText>
+          </MenuItem>
+        )}
+        {ai.canAddRepaso && (
+          <MenuItem onClick={fromMenu(ai.openRepaso)}>
+            <ListItemIcon><FuseSvgIcon size={16}>lucide:plus</FuseSvgIcon></ListItemIcon>
+            <ListItemText {...menuTextProps}>Agregar toros de repaso</ListItemText>
+          </MenuItem>
+        )}
+        {ai.canEndService && (
+          <MenuItem onClick={fromMenu(ai.openEnd)}>
+            <ListItemIcon><FuseSvgIcon size={16}>lucide:flag</FuseSvgIcon></ListItemIcon>
+            <ListItemText {...menuTextProps}>Terminar servicio</ListItemText>
+          </MenuItem>
+        )}
         <Divider />
         <MenuItem onClick={fromMenu(readyToClose ? tacto : close)}>
           <ListItemIcon>
@@ -151,6 +183,7 @@ export default function WorkCardActions({
           )}
         </MenuItem>
       </Menu>
+      {ai.dialogs}
     </Stack>
   );
 }

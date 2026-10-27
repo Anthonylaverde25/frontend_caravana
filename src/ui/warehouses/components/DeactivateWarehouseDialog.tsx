@@ -21,7 +21,9 @@ export default function DeactivateWarehouseDialog({ warehouse, onClose }: { ware
 	const [nextDefault, setNextDefault] = useState<number | ''>('');
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [domain, setDomain] = useState<string | null>(null);
-	const candidates = activeWarehouses(warehouses).filter((w) => w.id !== warehouse?.id);
+	// The next default is of the same kind; the last active tank leaves the tanks without one (S-0).
+	const candidates = activeWarehouses(warehouses).filter((w) => w.id !== warehouse?.id && w.kind === warehouse?.kind);
+	const isTank = warehouse?.kind === 'CRYO_TANK';
 
 	useEffect(() => {
 		setNextDefault('');
@@ -50,12 +52,19 @@ export default function DeactivateWarehouseDialog({ warehouse, onClose }: { ware
 				<Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
 					No va a aparecer para cargar ni como destino. Su saldo sigue a la vista y podés transferirlo a otro almacén o reactivarlo cuando quieras.
 				</Typography>
-				{warehouse?.isDefault && (
+				{warehouse?.isDefault && isTank && candidates.length === 0 && (
+					<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
+						Es el único termo activo: los termos quedan sin predeterminado hasta que actives o crees otro.
+					</Alert>
+				)}
+				{warehouse?.isDefault && (!isTank || candidates.length > 0) && (
 					<>
 						<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-							Es el almacén predeterminado: las facturas y remitos entran a él. Elegí cuál pasa a serlo.
+							{isTank
+								? 'Es el termo predeterminado. Elegí cuál pasa a serlo.'
+								: 'Es el almacén predeterminado: las facturas y remitos entran a él. Elegí cuál pasa a serlo.'}
 						</Alert>
-						<TextField select label="Nuevo almacén predeterminado" variant="filled" fullWidth value={nextDefault}
+						<TextField select label={isTank ? 'Nuevo termo predeterminado' : 'Nuevo almacén predeterminado'} variant="filled" fullWidth value={nextDefault}
 							InputProps={{ sx: { bgcolor: 'action.hover' } }} error={!!errors.new_default_id} helperText={errors.new_default_id}
 							onChange={(e) => setNextDefault(Number(e.target.value))}>
 							{candidates.map((w) => (

@@ -18,6 +18,10 @@
 .env.production.local
 .eslintcache
 
+# Security audit reports (local inspection only, never committed)
+/security-reports/
+/.security-reports/
+
 /.idea
 /.vscode
 

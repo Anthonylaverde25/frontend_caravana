@@ -49,6 +49,7 @@ export default function ConsumptionDialog({ open, onClose, batch }: ConsumptionD
 	const [lines, setLines] = useState<ConsumptionLine[]>([emptyConsumptionLine()]);
 	const [errors, setErrors] = useState<{ header: Record<string, string>; cells: Record<string, Record<string, string>>; domain: string | null }>({ header: {}, cells: {}, domain: null });
 	const filled = lines.filter((l) => !isBlankConsumption(l)).length;
+	const showLot = lines.some((l) => items.find((i) => i.id === l.itemId)?.isSemen);
 
 	const submit = async () => {
 		const built = buildConsumptionPayload(header, lines, key);
@@ -91,6 +92,7 @@ export default function ConsumptionDialog({ open, onClose, batch }: ConsumptionD
 						<TableRow>
 							<TableCell sx={indexSx}>#</TableCell>
 							<TableCell sx={headSx}>Artículo</TableCell>
+							{showLot && <TableCell sx={{ ...headSx, width: 170 }}>Partida</TableCell>}
 							<TableCell sx={{ ...headSx, width: 90 }}>Cant.</TableCell>
 							<TableCell sx={{ ...headSx, width: 190 }}>Unidad o presentación</TableCell>
 							<TableCell sx={{ ...headSx, width: 110 }}>Equivale a</TableCell>
@@ -100,7 +102,7 @@ export default function ConsumptionDialog({ open, onClose, batch }: ConsumptionD
 					</TableHead>
 					<TableBody>
 						{lines.map((line, index) => (
-							<ConsumptionLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive)} errors={errors.cells[line.key] ?? {}} warehouseId={header.warehouseId}
+							<ConsumptionLineRow key={line.key} index={index} line={line} items={items.filter((i) => i.isActive)} errors={errors.cells[line.key] ?? {}} warehouseId={header.warehouseId} showLot={showLot}
 								onChange={(patch) => setLines((current) => withTrailingConsumption(current.map((l) => (l.key === line.key ? { ...l, ...patch } : l))))}
 								onRemove={() => setLines((current) => withTrailingConsumption(current.filter((l) => l.key !== line.key)))} />
 						))}

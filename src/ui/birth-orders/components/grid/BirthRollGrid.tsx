@@ -129,8 +129,8 @@ export const BirthRollGrid: React.FC<BirthRollGridProps> = ({
 
       <Typography variant="caption" color="text.secondary">
         Nació muerto (NM): el ternero nació sin vida, se imputa a la madre. Murió al pie (M): nació vivo y murió poco después, se
-        imputa al ternero. El aborto se registra en Monitoreo Gestacional. Padre opcional: si lo dejás vacío se usa el toro único o
-        confirmado del servicio; con más de un candidato, la cría queda en Sires pendientes. La cría nace en el lote de su madre.
+        imputa al ternero. El aborto se registra en Monitoreo Gestacional. Padre opcional: si lo dejás vacío se usa el padre confirmado
+        en el tacto; si no hay uno confirmado, la cría queda en Paternidad pendiente. La cría nace en el lote de su madre.
       </Typography>
 
       {state.problems.length > 0 && (

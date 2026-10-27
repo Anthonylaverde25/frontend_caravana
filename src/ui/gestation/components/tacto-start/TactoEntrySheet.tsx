@@ -29,6 +29,7 @@ interface TactoEntrySheetProps {
   roundDate: string;
   suggestedDate: string | null;
   bulls: { id: number; identification: string }[];
+  soleBull: { id: number; identification: string } | null;
   emptyDestinations: BatchOption[];
   allowNotDiagnosed: boolean;
   maxHeight?: Height;
@@ -46,6 +47,7 @@ export default function TactoEntrySheet({
   roundDate,
   suggestedDate,
   bulls,
+  soleBull,
   emptyDestinations,
   allowNotDiagnosed,
   maxHeight = 480,
@@ -147,6 +149,7 @@ export default function TactoEntrySheet({
                       selected={entry.selected.has(id)}
                       problem={entry.flagged[id]}
                       bulls={bulls}
+                      soleBull={soleBull}
                       emptyDestinations={emptyDestinations}
                       serviceBatchId={serviceBatchId}
                       allowNotDiagnosed={allowNotDiagnosed}

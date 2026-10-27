@@ -1,6 +1,6 @@
 import { MenuItem, TextField } from '@mui/material';
 import { useWarehouses } from '@/features/stock/hooks/useWarehouses';
-import { activeWarehouses, defaultWarehouse, needsWarehousePicker, warehouseLabel } from '@/core/stock/domain/rules/warehouseRules';
+import { activeWarehouses, defaultSuffix, defaultWarehouse, needsWarehousePicker, warehouseLabel } from '@/core/stock/domain/rules/warehouseRules';
 import { filledInputProps } from '@/ui/weaning-orders/components/form/formStyles';
 
 interface WarehouseSelectFieldProps {
@@ -32,7 +32,7 @@ export default function WarehouseSelectField({ value, onChange, label = 'Almacé
 			InputProps={filledInputProps} onChange={(e) => onChange(Number(e.target.value))} error={!!error} helperText={error}>
 			{options.map((w) => (
 				<MenuItem key={w.id} value={w.id}>
-					{warehouseLabel(w)}{w.isDefault ? ' (predeterminado)' : ''}
+					{warehouseLabel(w)}{w.kind === 'CRYO_TANK' && !w.isDefault ? ' (termo)' : ''}{defaultSuffix(w)}
 				</MenuItem>
 			))}
 		</TextField>

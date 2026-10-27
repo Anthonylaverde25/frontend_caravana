@@ -6,6 +6,7 @@ import {
 	KardexFilters,
 	KardexRow,
 	Warehouse,
+	WarehouseKind,
 	WarehouseStockView
 } from '../../domain/entities/ItemStock';
 import { IItemStockRepository } from '../../domain/repositories/IItemStockRepository';
@@ -52,13 +53,13 @@ export class ApiItemStockRepository implements IItemStockRepository {
 		return response.data.code;
 	}
 
-	async createWarehouse(code: string, name: string): Promise<Warehouse> {
-		const response = await axiosInstance.post<any>('/warehouses', { code, name });
+	async createWarehouse(code: string, name: string, kind: WarehouseKind): Promise<Warehouse> {
+		const response = await axiosInstance.post<any>('/warehouses', { code, name, kind });
 		return StockMapper.warehouse(response.data);
 	}
 
-	async updateWarehouse(id: number, code: string, name: string): Promise<Warehouse> {
-		const response = await axiosInstance.patch<any>(`/warehouses/${id}`, { code, name });
+	async updateWarehouse(id: number, code: string, name: string, kind: WarehouseKind): Promise<Warehouse> {
+		const response = await axiosInstance.patch<any>(`/warehouses/${id}`, { code, name, kind });
 		return StockMapper.warehouse(response.data);
 	}
 

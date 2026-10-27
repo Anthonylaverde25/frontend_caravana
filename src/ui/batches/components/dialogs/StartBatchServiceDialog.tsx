@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { isBreedingCandidate } from '@/core/caravans/domain/rules/isBreedingCandidate';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Dialog,
   DialogTitle,
@@ -18,12 +18,14 @@ import {
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import { useCompany } from '@/contexts/CompanyContext';
-import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useStartBatchService } from '@/features/batches/hooks/useStartBatchService';
+import { useSemenOptions } from '@/features/semen/hooks/useSemenOptions';
 import { StartBatchFemalesStep } from './start-service/StartBatchFemalesStep';
 import { StartBatchSiresStep } from './start-service/StartBatchSiresStep';
 import { StartBatchParametersStep } from './start-service/StartBatchParametersStep';
+import AiParametersStep from './start-service/AiParametersStep';
+import { useStartServiceWizard } from './start-service/useStartServiceWizard';
 import BatchQuickTransferDialog from '../details/BatchQuickTransferDialog';
 
 interface StartBatchServiceDialogProps {
@@ -33,134 +35,42 @@ interface StartBatchServiceDialogProps {
   onSuccess?: () => void;
 }
 
-const steps = ['Vientres del Lote', 'Selección de Torada', 'Parámetros del Servicio'];
-
-export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = ({
-  open,
-  onClose,
-  batch,
-  onSuccess,
-}) => {
+/**
+ * "Iniciar servicio" (orchestrator): steps by method, validation on click and the mutation. An AI
+ * service starting today or earlier goes straight to loading its inseminations (semen S-B, DB3).
+ */
+export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = ({ open, onClose, batch, onSuccess }) => {
   const { activeCompanyId } = useCompany();
   const { enqueueSnackbar } = useSnackbar();
-  const [activeStep, setActiveStep] = useState(0);
-
-  // Queries
-  const { data: allCaravans = [], isLoading: isLoadingCaravans } = useCaravans(
-    open ? activeCompanyId : null,
-    'all'
-  );
-
-  // Females of the batch: the empty ones are serviceable, the pregnant ones stay out.
-  const batchFemales = useMemo(() => {
-    if (!batch?.id) return [];
-    return allCaravans.filter(
-      (c: Caravan) => c.batch_id === batch.id && (c.sex === 'H' || (c.sex as string) === 'F' || (c.sex as string) === 'HEMBRA')
-    );
-  }, [allCaravans, batch?.id]);
-  const serviceableFemales = useMemo(
-    () => batchFemales.filter((c: Caravan) => !c.active_gestation && isBreedingCandidate(c)),
-    [batchFemales]
-  );
-  const pregnantCount = batchFemales.length - serviceableFemales.length;
-
-  // Toros disponibles en la empresa
-  const availableMales = useMemo(() => {
-    return allCaravans.filter(
-      (c: Caravan) => (c.sex === 'M' || (c.sex as string) === 'MACHO') && isBreedingCandidate(c)
-    );
-  }, [allCaravans]);
-
-  // Natural service exposes the whole batch; controlled service / AI picks a subset.
-  const [isControlledService, setIsControlledService] = useState(false);
-  const [selectedFemaleIds, setSelectedFemaleIds] = useState<number[]>([]);
-  const [selectedMaleIds, setSelectedMaleIds] = useState<number[]>([]);
-  const [femaleSearch, setFemaleSearch] = useState('');
-  const [maleSearch, setMaleSearch] = useState('');
-
-  // Estados de Parámetros
-  const [plannedStartDate, setPlannedStartDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
-  const [plannedEndDate, setPlannedEndDate] = useState(() => {
-    const end = new Date();
-    end.setDate(end.getDate() + 90);
-    return end.toISOString().split('T')[0];
-  });
-  const [serviceType, setServiceType] = useState<'single' | 'multi' | 'rotation'>('multi');
-  const [observations, setObservations] = useState('');
-
-  // Sincronización inicial al abrir
-  useEffect(() => {
-    if (open && batch) {
-      setActiveStep(0);
-      setIsControlledService(false);
-    }
-  }, [open, batch]);
-
-  // Every serviceable female starts selected; a controlled service only picks among the ones
-  // the owner did not exclude from breeding.
-  useEffect(() => {
-    setSelectedFemaleIds(serviceableFemales.filter((c) => c.is_breeding_eligible).map((c) => c.id!));
-  }, [serviceableFemales]);
+  const navigate = useNavigate();
+  const { data: allCaravans = [], isLoading: isLoadingCaravans } = useCaravans(open ? activeCompanyId : null, 'all');
+  const semen = useSemenOptions();
+  const w = useStartServiceWizard(open, batch?.id, allCaravans);
   const [settingApart, setSettingApart] = useState<number[] | null>(null);
-
-  const exposedCount = isControlledService ? selectedFemaleIds.length : serviceableFemales.length;
-
-  // Autoajuste de modalidad según cantidad de toros
-  useEffect(() => {
-    if (selectedMaleIds.length === 1) {
-      setServiceType('single');
-    } else if (selectedMaleIds.length > 1 && serviceType === 'single') {
-      setServiceType('multi');
-    }
-  }, [selectedMaleIds.length, serviceType]);
-
   const startMutation = useStartBatchService(batch?.id);
-
-  // The primary button is never disabled for missing data: it validates on click.
-  const stepError = (): string | null => {
-    if (activeStep === 0 && exposedCount === 0) return 'No hay vientres vacíos para exponer al servicio.';
-    if (activeStep === 1 && selectedMaleIds.length === 0) return 'Seleccioná al menos un toro.';
-    if (activeStep === 2 && !plannedStartDate) return 'Indicá la fecha de inicio del servicio.';
-    return null;
-  };
+  const isLastStep = w.activeStep === w.steps.length - 1;
 
   const handleNext = () => {
-    const error = stepError();
+    const error = w.stepError();
     if (error) {
       enqueueSnackbar(error, { variant: 'warning' });
       return;
     }
-    if (activeStep < steps.length - 1) {
-      setActiveStep((prev) => prev + 1);
-    } else {
-      handleSubmit();
+    if (!isLastStep) {
+      w.setActiveStep((prev) => prev + 1);
+      return;
     }
-  };
-
-  const handleBack = () => {
-    setActiveStep((prev) => Math.max(0, prev - 1));
-  };
-
-  const handleSubmit = () => {
     if (!batch?.id) return;
-
     startMutation.mutate(
+      { id: batch.id, ...w.payload() },
       {
-        id: batch.id,
-        male_caravan_ids: selectedMaleIds,
-        is_controlled_service: isControlledService,
-        selected_female_caravan_ids: isControlledService ? selectedFemaleIds : undefined,
-        planned_start_date: plannedStartDate,
-        planned_end_date: plannedEndDate,
-        service_type: serviceType,
-        observations: observations,
-      },
-      {
-        onSuccess: () => {
+        onSuccess: (order: { id: number; service_method?: string }) => {
           onClose();
           onSuccess?.();
+          const today = new Date().toISOString().split('T')[0];
+          if (order?.service_method === 'AI' && w.plannedStartDate <= today) {
+            navigate(`/gestation/service-orders/${order.id}/inseminations`);
+          }
         },
       }
     );
@@ -169,35 +79,10 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
   if (!batch) return null;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: '8px', boxShadow: 1 },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          p: 2.5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: 1,
-          borderColor: 'divider',
-        }}
-      >
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: '8px', boxShadow: 1 } }}>
+      <DialogTitle sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box
-            sx={{
-              p: 1,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              borderRadius: '6px',
-              display: 'flex',
-            }}
-          >
+          <Box sx={{ p: 1, bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: '6px', display: 'flex' }}>
             <FuseSvgIcon size={20}>heroicons-outline:fire</FuseSvgIcon>
           </Box>
           <Box>
@@ -209,7 +94,6 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
             </Typography>
           </Box>
         </Stack>
-
         <IconButton size="small" onClick={onClose}>
           <FuseSvgIcon size={20}>heroicons-outline:x-mark</FuseSvgIcon>
         </IconButton>
@@ -217,14 +101,11 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
 
       <DialogContent sx={{ p: 3 }}>
         <Stack spacing={3}>
-          {/* Stepper Superior */}
-          <Stepper activeStep={activeStep} alternativeLabel>
-            {steps.map((label) => (
+          <Stepper activeStep={w.activeStep} alternativeLabel>
+            {w.steps.map((label) => (
               <Step key={label}>
                 <StepLabel>
-                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                    {label}
-                  </Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700 }}>{label}</Typography>
                 </StepLabel>
               </Step>
             ))}
@@ -236,45 +117,72 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
             </Box>
           ) : (
             <>
-              {activeStep === 0 && (
+              {w.activeStep === 0 && (
                 <StartBatchFemalesStep
-                  batchName={batch.name}
-                  serviceableFemales={serviceableFemales}
-                  pregnantCount={pregnantCount}
-                  isControlledService={isControlledService}
-                  setIsControlledService={setIsControlledService}
-                  selectedFemaleIds={selectedFemaleIds}
-                  setSelectedFemaleIds={setSelectedFemaleIds}
-                  femaleSearch={femaleSearch}
-                  setFemaleSearch={setFemaleSearch}
+                  batchName={batch.name ?? ''}
+                  serviceableFemales={w.serviceableFemales}
+                  pregnantCount={w.pregnantCount}
+                  isControlledService={w.isControlledService}
+                  setIsControlledService={w.setIsControlledService}
+                  selectedFemaleIds={w.selectedFemaleIds}
+                  setSelectedFemaleIds={w.setSelectedFemaleIds}
+                  femaleSearch={w.femaleSearch}
+                  setFemaleSearch={w.setFemaleSearch}
                   onSetApart={setSettingApart}
+                  method={w.method}
+                  onMethodChange={w.changeMethod}
+                  picksIndividually={w.picksIndividually}
+                  semen={
+                    w.isAi
+                      ? {
+                          options: semen.options,
+                          byId: semen.byId,
+                          planned: w.plannedSemen,
+                          plannedStraws: w.plannedStraws,
+                          onPlan: (ids, itemId) => w.setPlannedSemen((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, itemId])) })),
+                        }
+                      : undefined
+                  }
                 />
               )}
 
-              {activeStep === 1 && (
+              {!w.isAi && w.activeStep === 1 && (
                 <StartBatchSiresStep
-                  availableMales={availableMales}
-                  selectedMaleIds={selectedMaleIds}
-                  setSelectedMaleIds={setSelectedMaleIds}
-                  femaleCount={exposedCount}
-                  maleSearch={maleSearch}
-                  setMaleSearch={setMaleSearch}
+                  availableMales={w.availableMales}
+                  selectedMaleIds={w.selectedMaleIds}
+                  setSelectedMaleIds={w.setSelectedMaleIds}
+                  femaleCount={w.exposedCount}
+                  maleSearch={w.maleSearch}
+                  setMaleSearch={w.setMaleSearch}
                 />
               )}
 
-              {activeStep === 2 && (
+              {!w.isAi && w.activeStep === 2 && (
                 <StartBatchParametersStep
-                  batchName={batch.name}
-                  plannedStartDate={plannedStartDate}
-                  setPlannedStartDate={setPlannedStartDate}
-                  plannedEndDate={plannedEndDate}
-                  setPlannedEndDate={setPlannedEndDate}
-                  serviceType={serviceType}
-                  setServiceType={setServiceType}
-                  observations={observations}
-                  setObservations={setObservations}
-                  femaleCount={exposedCount}
-                  maleCount={selectedMaleIds.length}
+                  batchName={batch.name ?? ''}
+                  plannedStartDate={w.plannedStartDate}
+                  setPlannedStartDate={w.setPlannedStartDate}
+                  plannedEndDate={w.plannedEndDate}
+                  setPlannedEndDate={w.setPlannedEndDate}
+                  serviceType={w.serviceType}
+                  setServiceType={w.setServiceType}
+                  observations={w.observations}
+                  setObservations={w.setObservations}
+                  femaleCount={w.exposedCount}
+                  maleCount={w.selectedMaleIds.length}
+                />
+              )}
+
+              {w.isAi && w.activeStep === 1 && (
+                <AiParametersStep
+                  batchName={batch.name ?? ''}
+                  femaleCount={w.exposedCount}
+                  plannedStraws={w.plannedStraws}
+                  byId={semen.byId}
+                  plannedStartDate={w.plannedStartDate}
+                  setPlannedStartDate={w.setPlannedStartDate}
+                  observations={w.observations}
+                  setObservations={w.setObservations}
                 />
               )}
             </>
@@ -285,23 +193,16 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
       <DialogActions sx={{ p: 2.5, borderTop: 1, borderColor: 'divider', justifyContent: 'space-between' }}>
         <Button
           variant="outlined"
-          onClick={handleBack}
-          disabled={activeStep === 0 || startMutation.isPending}
+          onClick={() => w.setActiveStep((prev) => Math.max(0, prev - 1))}
+          disabled={w.activeStep === 0 || startMutation.isPending}
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}
         >
           Atrás
         </Button>
-
         <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="text"
-            onClick={onClose}
-            disabled={startMutation.isPending}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
+          <Button variant="text" onClick={onClose} disabled={startMutation.isPending} sx={{ textTransform: 'none', fontWeight: 600 }}>
             Cancelar
           </Button>
-
           <Button
             variant="contained"
             onClick={handleNext}
@@ -310,33 +211,22 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
               textTransform: 'none',
               fontWeight: 700,
               borderRadius: '6px',
-              bgcolor: activeStep === steps.length - 1 ? '#16a34a' : 'primary.main',
-              '&:hover': {
-                bgcolor: activeStep === steps.length - 1 ? '#15803d' : 'primary.dark',
-              },
+              bgcolor: isLastStep ? '#16a34a' : 'primary.main',
+              '&:hover': { bgcolor: isLastStep ? '#15803d' : 'primary.dark' },
             }}
             startIcon={
               startMutation.isPending ? (
                 <CircularProgress size={16} color="inherit" />
-              ) : activeStep === steps.length - 1 ? (
+              ) : isLastStep ? (
                 <FuseSvgIcon size={18}>heroicons-outline:check-circle</FuseSvgIcon>
               ) : undefined
             }
           >
-            {activeStep === steps.length - 1
-              ? startMutation.isPending
-                ? 'Iniciando Servicio...'
-                : 'Iniciar Servicio'
-              : 'Siguiente'}
+            {isLastStep ? (startMutation.isPending ? 'Iniciando Servicio...' : w.isAi ? 'Iniciar IA' : 'Iniciar Servicio') : 'Siguiente'}
           </Button>
         </Stack>
       </DialogActions>
-      <BatchQuickTransferDialog
-        open={settingApart !== null}
-        onClose={() => setSettingApart(null)}
-        batch={batch}
-        initialSelectedIds={settingApart ?? undefined}
-      />
+      <BatchQuickTransferDialog open={settingApart !== null} onClose={() => setSettingApart(null)} batch={batch} initialSelectedIds={settingApart ?? undefined} />
     </Dialog>
   );
 };

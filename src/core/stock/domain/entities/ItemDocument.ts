@@ -80,6 +80,8 @@ export interface ItemDocumentLine {
 	unabsorbedCost: string | null;
 	countedQuantity: string | null;
 	movement: StockMovement | null;
+	/** Semen S-A: the lot the line moves; null for other items or straws without lot. */
+	semenLot: { id: number; code: string | null } | null;
 }
 
 export interface Ref {
@@ -94,6 +96,10 @@ export interface ItemDocument {
 	typeLabel: string;
 	occurredAt: string;
 	warehouse: WarehouseRef;
+	/** Semen S-A: where a semen entry came from. */
+	provider: { id: number; name: string | null } | null;
+	/** Semen S-B: the AI order whose inseminations took these straws out (only its voiding gives them back). */
+	serviceOrder: { id: number; code: string | null } | null;
 	paired: PairedDocument | null;
 	fiscalDocument: Ref | null;
 	batch: { id: number; name: string | null } | null;
@@ -113,9 +119,11 @@ export interface ItemDocument {
 
 export interface StockIncident {
 	id: number;
-	type: 'NEGATIVE_BALANCE' | 'CRITICAL_STOCK' | 'COUNT_DISCREPANCY';
+	type: 'NEGATIVE_BALANCE' | 'CRITICAL_STOCK' | 'COUNT_DISCREPANCY' | 'UNIDENTIFIED_SEMEN_LOT';
 	typeLabel: string;
 	resolvesItself: boolean;
+	/** "Identificar partida": closed by identifying the lot, never by hand. */
+	resolvesByIdentification: boolean;
 	item: { id: number; name: string | null };
 	warehouse: { id: number; name: string | null };
 	detail: string;
@@ -149,6 +157,8 @@ export interface StockLinePayload {
 	input_unit_id: number | null;
 	input_presentation_id: number | null;
 	input_unit_price?: string;
+	/** Semen S-A: required on semen lines of transfers and consumptions. */
+	semen_lot_id?: number | null;
 }
 
 /** A consumption: charged to one batch with the heads that received it, or to general use (D22). */
@@ -174,6 +184,8 @@ export interface StockCountPayload {
 	reason: string | null;
 	occurred_at: string;
 	idempotency_key: string;
+	/** Semen S-A: semen is counted per lot (DA5). */
+	semen_lot_id?: number | null;
 }
 
 export interface InitialStockPayload {

@@ -34,6 +34,7 @@ interface FiscalLineRowProps {
 	mode: EntryMode;
 	/** A delivery note without prices: the price column stays grey (DC14). */
 	unpriced: boolean;
+	showOtherTaxes?: boolean;
 }
 
 /**
@@ -56,7 +57,8 @@ export default function FiscalLineRow(props: FiscalLineRowProps) {
 		onCreateItem,
 		onRemove,
 		mode,
-		unpriced
+		unpriced,
+		showOtherTaxes = false
 	} = props;
 	const { cellSx, indexSx, inputSx, textCellSx, errorRing } = useGridCellStyles();
 	const { options, unitSymbol } = useItemInputOptions(line.itemId);
@@ -168,15 +170,17 @@ export default function FiscalLineRow(props: FiscalLineRowProps) {
 			>
 				{preview.amount === null ? '' : formatMoney(preview.amount)}
 			</TableCell>
-			<LineOtherTaxesCell
-				line={line}
-				itemName={item?.name ?? ''}
-				taxes={otherLineTaxes}
-				discriminates={discriminates}
-				amount={preview.otherTaxes}
-				error={errors.otherTaxes}
-				onChange={(otherTaxes) => onChange({ otherTaxes })}
-			/>
+			{showOtherTaxes && (
+				<LineOtherTaxesCell
+					line={line}
+					itemName={item?.name ?? ''}
+					taxes={otherLineTaxes}
+					discriminates={discriminates}
+					amount={preview.otherTaxes}
+					error={errors.otherTaxes}
+					onChange={(otherTaxes) => onChange({ otherTaxes })}
+				/>
+			)}
 			<TableCell sx={{ ...textCellSx, width: 110, color: 'text.secondary' }}>
 				{quantity === null ? '' : formatQuantity(quantity, unitSymbol)}
 			</TableCell>

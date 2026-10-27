@@ -4,7 +4,7 @@ import { computeServiceOrderTemporalStatus } from './serviceOrderTemporalStatus'
 import { formatDay } from './reproductiveVerdict';
 
 /** Phases an open order can be in, in the order the tray shows them: what can be finished first. */
-export const TRAY_PHASES = ['READY_TO_CLOSE', 'DIAGNOSING', 'BULLS_WITHDRAWN', 'IN_SERVICE'] as const satisfies readonly ServiceOrderPhase[];
+export const TRAY_PHASES = ['READY_TO_CLOSE', 'DIAGNOSING', 'BULLS_WITHDRAWN', 'INSEMINATING', 'IN_SERVICE'] as const satisfies readonly ServiceOrderPhase[];
 
 export type TrayPhase = (typeof TRAY_PHASES)[number];
 
@@ -19,6 +19,7 @@ const SUBTITLES: Record<TrayPhase, string> = {
   READY_TO_CLOSE: 'Todos los vientres tienen diagnóstico: se pueden cerrar hoy.',
   DIAGNOSING: 'Tacto empezado: faltan vientres o hay vacías provisorias para volver a tactar.',
   BULLS_WITHDRAWN: 'Toros retirados y sin tactar: esperan su primera ronda.',
+  INSEMINATING: 'Inseminación artificial en curso: cargá las inseminaciones; al cerrar la orden termina el servicio.',
   IN_SERVICE: 'Toros en el lote: se puede tactar ya; las vacías quedan firmes al cerrar o al salir del lote.',
 };
 
@@ -64,6 +65,7 @@ export const TRAY_PHASE_COLOR: Record<TrayPhase, 'success' | 'primary' | 'warnin
   READY_TO_CLOSE: 'success',
   DIAGNOSING: 'primary',
   BULLS_WITHDRAWN: 'warning',
+  INSEMINATING: 'info',
   IN_SERVICE: 'info',
 };
 
@@ -109,7 +111,8 @@ export function trayTimeLabel(order: ServiceOrder): string {
     return 'Ventana cumplida';
   }
   if (temporal.isClosingSoon && daysRemaining !== null) return `Faltan ${daysRemaining} día${daysRemaining === 1 ? '' : 's'}`;
-  if (daysInService !== null) return `Día ${daysInService} de 90`;
+  // An AI order has no window (E10): only the day of service.
+  if (daysInService !== null) return daysRemaining === null ? `Día ${daysInService}` : `Día ${daysInService} de 90`;
   return 'En servicio';
 }
 

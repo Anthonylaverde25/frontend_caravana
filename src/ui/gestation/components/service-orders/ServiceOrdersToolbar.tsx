@@ -15,10 +15,15 @@ interface ServiceOrdersToolbarProps {
 	batchFilterLockedName?: string | null;
 	onClearLockedBatch?: () => void;
 	total: number;
+	/** Heading before the count; defaults to the register's. */
+	title?: string;
+	/** Phases offered by the "Estado" filter; defaults to every phase. */
+	phaseOptions?: ServiceOrderPhase[];
 }
 
 const PHASE_FILTER_ORDER: ServiceOrderPhase[] = [
 	'IN_SERVICE',
+	'INSEMINATING',
 	'DIAGNOSING',
 	'BULLS_WITHDRAWN',
 	'READY_TO_CLOSE',
@@ -40,7 +45,9 @@ export function ServiceOrdersToolbar({
 	batchOptions,
 	batchFilterLockedName,
 	onClearLockedBatch,
-	total
+	total,
+	title = 'Órdenes de Servicio',
+	phaseOptions = PHASE_FILTER_ORDER
 }: ServiceOrdersToolbarProps) {
 	return (
 		<Stack
@@ -59,7 +66,7 @@ export function ServiceOrdersToolbar({
 					variant="subtitle2"
 					sx={{ fontWeight: 800 }}
 				>
-					Órdenes de Servicio ({total})
+					{title} ({total})
 				</Typography>
 				{batchFilterLockedName && (
 					<Chip
@@ -101,7 +108,7 @@ export function ServiceOrdersToolbar({
 				sx={fieldSx}
 			>
 				<MenuItem value="ALL">Todos los estados</MenuItem>
-				{PHASE_FILTER_ORDER.map((phase) => (
+				{phaseOptions.map((phase) => (
 					<MenuItem key={phase} value={phase}>
 						{PHASE_LABELS[phase]}
 					</MenuItem>

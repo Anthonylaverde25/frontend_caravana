@@ -9,9 +9,11 @@ export interface ConsumptionLine {
 	itemId: number | null;
 	inputQuantity: string;
 	inputSource: string;
+	/** Semen S-A: the lot discarded (SL1). */
+	semenLotId: number | null;
 }
 
-export const emptyConsumptionLine = (): ConsumptionLine => ({ key: rowKey(), itemId: null, inputQuantity: '', inputSource: '' });
+export const emptyConsumptionLine = (): ConsumptionLine => ({ key: rowKey(), itemId: null, inputQuantity: '', inputSource: '', semenLotId: null });
 export const isBlankConsumption = (l: ConsumptionLine): boolean => !l.itemId && !l.inputQuantity.trim();
 
 /** There is always one empty row at the end to keep typing. */
@@ -44,7 +46,7 @@ export function buildConsumptionPayload(header: ConsumptionHeader, lines: Consum
 			heads_treated: header.batchId && header.heads ? Number(header.heads) : null,
 			notes: header.notes.trim() || null,
 			idempotency_key: key,
-			lines: sent.map((l) => ({ item_id: l.itemId ?? 0, input_quantity: quantity(l.inputQuantity), ...inputSourcePayload(l.inputSource) }))
+			lines: sent.map((l) => ({ item_id: l.itemId ?? 0, input_quantity: quantity(l.inputQuantity), ...inputSourcePayload(l.inputSource), semen_lot_id: l.semenLotId }))
 		}
 	};
 }

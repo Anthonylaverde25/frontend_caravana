@@ -164,14 +164,6 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:calendar-days',
 				children: [
 					{
-						id: 'gestation.pre-service',
-						title: 'Pre-Servicio & Toros',
-						subtitle: 'Selección y planilla de manga',
-						type: 'item',
-						icon: 'heroicons-outline:shield-check',
-						url: '/gestation/pre-service'
-					},
-					{
 						id: 'gestation.bull-rotation',
 						title: 'Rotación de Toros',
 						type: 'item',
@@ -187,19 +179,12 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/gestation/service-orders'
 					},
 					{
-						id: 'gestation.veterinary-portal',
-						title: 'Portales Veterinarios',
+						id: 'gestation.services',
+						title: 'Servicios y Tacto (Beta)',
+						subtitle: 'Cola de trabajo e historial',
 						type: 'item',
-						icon: 'heroicons-outline:users',
-						url: '/gestation/veterinary-portal'
-					},
-					{
-						id: 'gestation.diagnostic-protocols',
-						title: 'Protocolos Diagnósticos',
-						subtitle: 'Actas e Informes',
-						type: 'item',
-						icon: 'heroicons-outline:document-check',
-						url: '/gestation/diagnostic-protocols'
+						icon: 'heroicons-outline:squares-2x2',
+						url: '/gestation/services/conventional'
 					}
 				]
 			},
@@ -234,6 +219,14 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/gestation/births'
 					},
 					{
+						id: 'gestation.paternity',
+						title: 'Paternidad pendiente',
+						subtitle: 'Confirmar padre de las crías',
+						type: 'item',
+						icon: 'heroicons-outline:finger-print',
+						url: '/gestation/paternity'
+					},
+					{
 						id: 'gestation.birth-orders',
 						title: 'Órdenes de Parición',
 						type: 'item',
@@ -256,6 +249,40 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/gestation/pedigree'
 					}
 				]
+			}
+		]
+	},
+
+	// ─── SANIDAD ─────────────────────────────────────────────────────────────
+	{
+		id: 'health-management',
+		title: 'SANIDAD',
+		subtitle: 'Control Veterinario y Diagnósticos',
+		type: 'group',
+		icon: 'heroicons-outline:shield-check',
+		children: [
+			{
+				id: 'health.pre-service',
+				title: 'Pre-Servicio & Toros',
+				subtitle: 'Selección y planilla de manga',
+				type: 'item',
+				icon: 'heroicons-outline:shield-check',
+				url: '/gestation/pre-service'
+			},
+			{
+				id: 'health.veterinary-portal',
+				title: 'Portales Veterinarios',
+				type: 'item',
+				icon: 'heroicons-outline:users',
+				url: '/gestation/veterinary-portal'
+			},
+			{
+				id: 'health.diagnostic-protocols',
+				title: 'Protocolos Diagnósticos',
+				subtitle: 'Actas e Informes',
+				type: 'item',
+				icon: 'heroicons-outline:document-check',
+				url: '/gestation/diagnostic-protocols'
 			}
 		]
 	},
@@ -325,35 +352,14 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:document-text',
 		children: [
 			{
-				id: 'work-templates',
-				title: 'Galería de Plantillas',
-				subtitle: 'Biblioteca Zootécnica',
-				type: 'item',
-				icon: 'heroicons-outline:squares-2x2',
-				url: 'work-templates'
-			},
-			{
 				id: 'work-templates.scan',
 				title: 'Escanear Planilla (AI)',
 				subtitle: 'Extracción y Carga OCR',
 				type: 'item',
 				icon: 'heroicons-outline:camera',
 				url: 'work-templates/scan'
-			},
-			// {
-			// 	id: 'templates.create',
-			// 	title: 'Crear Plantilla',
-			// 	type: 'item',
-			// 	icon: 'heroicons-outline:plus-circle',
-			// 	url: '/templates/create'
-			// },
-			// {
-			// 	id: 'livestock.generator',
-			// 	title: 'Generador de Plantillas',
-			// 	type: 'item',
-			// 	icon: 'heroicons-outline:document-duplicate',
-			// 	url: 'livestock/generator'
-			// }
+			}
+			// Work templates gallery lives in Settings (/settings?section=work-templates, "Hacienda").
 		]
 	},
 ];

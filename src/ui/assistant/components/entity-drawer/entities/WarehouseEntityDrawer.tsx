@@ -39,6 +39,7 @@ export function WarehouseEntityDrawer({ id, label, open, onClose, onNavigate }: 
 			subtitle={
 				warehouse
 					? [
+							warehouse.kind === 'CRYO_TANK' ? 'Termo' : null,
 							warehouse.isDefault ? 'Predeterminado' : null,
 							warehouse.isActive ? null : 'Inactivo',
 							`${data.items.length} artículo(s) con saldo`

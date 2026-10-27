@@ -1,5 +1,6 @@
 import type { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { formatDay } from './reproductiveVerdict';
+import { hasServiceEnded } from './serviceOrderStatus';
 
 /**
  * What the user sees as the state of an order. The stored status follows the bulls (in the batch,
@@ -10,6 +11,7 @@ import { formatDay } from './reproductiveVerdict';
 export type ServiceOrderPhase =
   | 'DRAFT'
   | 'IN_SERVICE'
+  | 'INSEMINATING'
   | 'BULLS_WITHDRAWN'
   | 'DIAGNOSING'
   | 'READY_TO_CLOSE'
@@ -31,6 +33,7 @@ export interface ServiceOrderPhaseInfo {
 export const PHASE_LABELS: Record<ServiceOrderPhase, string> = {
   DRAFT: 'Borrador',
   IN_SERVICE: 'En servicio',
+  INSEMINATING: 'Inseminando',
   BULLS_WITHDRAWN: 'Tacto pendiente',
   DIAGNOSING: 'Tacto en curso',
   READY_TO_CLOSE: 'Lista para cerrar',
@@ -42,6 +45,7 @@ export const PHASE_LABELS: Record<ServiceOrderPhase, string> = {
 const PHASE_COLORS: Record<ServiceOrderPhase, PhaseColor> = {
   DRAFT: 'default',
   IN_SERVICE: 'info',
+  INSEMINATING: 'info',
   BULLS_WITHDRAWN: 'warning',
   DIAGNOSING: 'primary',
   READY_TO_CLOSE: 'success',
@@ -73,14 +77,15 @@ export function getServiceOrderPhase(order: ServiceOrder): ServiceOrderPhaseInfo
     return info('DIAGNOSED', rate || null, false);
   }
   if (status in CLOSED_PHASES) return info(CLOSED_PHASES[status], null, false);
-  if (status !== 'APPROVED' && status !== 'BULLS_WITHDRAWN') {
+  if (status !== 'APPROVED' && !hasServiceEnded(status)) {
     return { phase: 'DRAFT', label: order.status, color: 'default', detail: null, isOpen: false };
   }
 
-  const bullsWithdrawn = status === 'BULLS_WITHDRAWN';
-  const bulls = bullsWithdrawn ? 'Toros retirados' : 'Toros en lote';
+  const bullsWithdrawn = hasServiceEnded(status);
+  const ai = order.service_method === 'AI' ? order.insemination_summary : null;
+  const bulls = ai ? inseminationDetail(ai, bullsWithdrawn) : bullsWithdrawn ? 'Toros retirados' : 'Toros en lote';
   const summary = order.diagnosis_summary;
-  const baseline: ServiceOrderPhase = bullsWithdrawn ? 'BULLS_WITHDRAWN' : 'IN_SERVICE';
+  const baseline: ServiceOrderPhase = bullsWithdrawn ? 'BULLS_WITHDRAWN' : ai ? 'INSEMINATING' : 'IN_SERVICE';
 
   // A provisional empty was scanned: the tacto happened, even though her verdict is not final yet.
   const provisional = summary?.provisional_empty ?? 0;
@@ -97,4 +102,19 @@ export function getServiceOrderPhase(order: ServiceOrder): ServiceOrderPhaseInfo
   const progress = `${scanned}/${summary.total}${formatRate(summary.partial_rate, 'parcial')}${provisionalNote}`;
   const phase: ServiceOrderPhase = pendingToClose === 0 ? 'READY_TO_CLOSE' : 'DIAGNOSING';
   return info(phase, `${bulls} · tacto ${progress}`, true);
+}
+
+/** AI (semen S-B): how far the inseminations went and whether repaso bulls are in the batch. */
+function inseminationDetail(ai: NonNullable<ServiceOrder['insemination_summary']>, ended: boolean): string {
+  const progress = `${ai.inseminated}/${ai.females} inseminadas`;
+  if (ended) return `Servicio terminado · ${progress}`;
+  return ai.repaso_bulls_active > 0 ? `${progress} · toros de repaso en lote` : progress;
+}
+
+/** One line under the batch name: what serves the females (bulls, or AI with its repaso bulls). */
+export function orderHeadline(order: ServiceOrder): string {
+  const females = `${order.female_caravan_ids.length} vientres`;
+  if (order.service_method !== 'AI') return `${order.male_caravan_ids.length} toros · ${females}`;
+  const repaso = order.insemination_summary?.repaso_bulls_active ?? 0;
+  return `IA · ${females}${repaso > 0 ? ` · ${repaso} toro(s) de repaso` : ''}`;
 }

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCompany } from '@/contexts/CompanyContext';
 import { ListWarehousesUseCase, SaveWarehouseUseCase, SetDefaultWarehouseUseCase, SetWarehouseActiveUseCase } from '@/core/stock/application/use-cases/StockUseCases';
-import { Warehouse } from '@/core/stock/domain/entities/ItemStock';
+import { Warehouse, WarehouseKind } from '@/core/stock/domain/entities/ItemStock';
 import { ApiItemStockRepository } from '@/core/stock/infrastructure/repositories/ApiItemStockRepository';
 import { stockKeys } from './stockKeys';
 
@@ -49,7 +49,9 @@ function useWarehouseMutation<V, R extends Warehouse | Warehouse[]>(run: (v: V) 
 }
 
 export const useSaveWarehouse = () =>
-	useWarehouseMutation((v: { id: number | null; code: string; name: string }) => new SaveWarehouseUseCase(repository).execute(v.id, v.code, v.name));
+	useWarehouseMutation((v: { id: number | null; code: string; name: string; kind: WarehouseKind }) =>
+		new SaveWarehouseUseCase(repository).execute(v.id, v.code, v.name, v.kind)
+	);
 
 export const useSetDefaultWarehouse = () => useWarehouseMutation((id: number) => new SetDefaultWarehouseUseCase(repository).execute(id));
 

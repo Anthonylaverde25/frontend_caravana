@@ -178,8 +178,8 @@ export const ScanPar01Workspace: React.FC<ScanPar01WorkspaceProps> = ({
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography variant="caption" color="text.secondary">
             Sin marcar = el vientre sigue pendiente. NM = el ternero nació sin vida · M = nació vivo y murió al pie · N = pasó su fecha y no
-            parió (alerta). Lo ya registrado se saltea. La cría nace en el lote de su madre. El padre es opcional: vacío usa el toro único o
-            confirmado del servicio, o queda en Sires pendientes.
+            parió (alerta). Lo ya registrado se saltea. La cría nace en el lote de su madre. El padre es opcional: vacío usa el padre
+            confirmado en el tacto, o queda en Paternidad pendiente.
           </Typography>
           <Button size="small" onClick={state.addRow} disabled={isSaving} sx={{ textTransform: 'none', fontWeight: 700 }}>
             + Agregar fila

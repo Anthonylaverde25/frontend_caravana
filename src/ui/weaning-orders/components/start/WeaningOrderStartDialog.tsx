@@ -2,23 +2,20 @@ import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import {
   Alert,
-  AppBar,
   Box,
   Button,
   CircularProgress,
   Dialog,
-  IconButton,
   MenuItem,
   Paper,
   Slide,
   Stack,
   TextField,
-  Toolbar,
   Typography
 } from '@mui/material';
 import type { TransitionProps } from '@mui/material/transitions';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useContrastTheme } from '@/contexts/ContrastThemeContext';
+import { useSnackbar } from 'notistack';
+import FullScreenEntryBar from '@/components/FullScreenEntryBar';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useBirthHistory } from '@/features/gestation/hooks/useBirthHistory';
 import {
@@ -40,6 +37,10 @@ import { filledInputProps, sectionTitleSx } from '../form/formStyles';
 import WeaningCalvesByBatchSelector from './WeaningCalvesByBatchSelector';
 import WeaningBatchSelectField, { WeaningBatchOption } from './WeaningBatchSelectField';
 import { STAY_IN_PLACE_ID, STAY_IN_PLACE_LABEL, weaningDestinationOptions } from './weaningDestinationOptions';
+import { DestinationChoice, refOfBatch, refOfDraft, useCalfDestinations } from './useCalfDestinations';
+import WeaningDestinationAssignBar from './WeaningDestinationAssignBar';
+import { useCalfMeasures } from './useCalfMeasures';
+import WeaningOrderConfirmDialog from '../confirm/WeaningOrderConfirmDialog';
 
 /** The slide-up of the Material UI full-screen dialog. */
 const SlideUp = forwardRef(function SlideUp(props: TransitionProps & { children: React.ReactElement }, ref: React.Ref<unknown>) {
@@ -64,15 +65,14 @@ const emptyHeader = (): WeaningFormHeader => ({ weaningDate: today(), weaningTyp
 /**
  * "Nueva orden de destete" / "Registrar destete" (`/weaning-orders/new`, `/weaning-orders/register`):
  * everything the order says as a whole — the calves (chosen by batch), where they go, how and when
- * they are weaned. The confirmation (`…/confirm`) only shows it and asks what is said calf by calf.
+ * they are weaned — and, on the grid, the batch of each calf when there is one per calf and, when the
+ * weaning already happened, its weight and notes. It is confirmed in a modal over this dialog; only
+ * an order that declares the C/S of each calf still goes to `…/confirm`.
  */
 export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = ({ open, mode, initial, onClose, onExited }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { settings: contrast } = useContrastTheme();
-  // The brand of the app bar (ToolbarLayout1): the header colour, or the primary one of the buttons.
-  const barBg = (contrast.enabled && (contrast.headerBg || contrast.primaryButtonBg)) || 'primary.main';
-  const barText = (contrast.enabled && contrast.headerBg && contrast.headerText) || 'common.white';
+  const { enqueueSnackbar } = useSnackbar();
 
   const { data: allBirths = [], isLoading } = useBirthHistory();
   // "Registrar destetadas": only the calves of the order being executed are offered.
@@ -89,6 +89,22 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
   const [categoryMode, setCategoryMode] = useState<WeaningOrderCategoryMode>('KEEP');
   // One batch per calf, all of them written at the chute: the order declares no batch (orders only).
   const [lotsAtChute, setLotsAtChute] = useState(false);
+  // The order being confirmed in the modal; null while it is closed.
+  const [confirming, setConfirming] = useState<WeaningOrderStart | null>(null);
+
+  const weaningBatches = useMemo<WeaningBatchOption[]>(() => weaningDestinationOptions(batches), [batches]);
+  // The batches declared for a batch per calf, as each row offers them.
+  const choices = useMemo<DestinationChoice[]>(() => {
+    const nameOf = new Map(weaningBatches.map((b) => [b.id, b.name]));
+
+    return [
+      ...batchIds.map((id) => ({ ref: refOfBatch(id), label: id === STAY_IN_PLACE_ID ? STAY_IN_PLACE_LABEL : (nameOf.get(id) ?? `Lote ${id}`) })),
+      ...pendingNew.map((d) => ({ ref: refOfDraft(d), label: d.name }))
+    ];
+  }, [batchIds, pendingNew, weaningBatches]);
+  const calfDestinations = useCalfDestinations(choices);
+  // A weaning that already happened takes what the chute measured of each calf.
+  const calfMeasures = useCalfMeasures();
 
   useEffect(() => {
     if (!open) return;
@@ -104,10 +120,9 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
     setHeader(initial?.header ?? emptyHeader());
     setCategoryMode(initial?.categoryMode ?? 'KEEP');
     setLotsAtChute(mode === 'order' && initial?.destinationMode === 'per_animal' && destinations.length === 0);
+    calfDestinations.reset(initial);
+    calfMeasures.reset(initial);
   }, [open]);
-
-  const weaningBatches = useMemo<WeaningBatchOption[]>(() => weaningDestinationOptions(batches), [batches]);
-
 
   const setField = <K extends keyof WeaningFormHeader>(field: K, value: WeaningFormHeader[K]) =>
     setHeader((prev) => ({ ...prev, [field]: value }));
@@ -115,11 +130,19 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
   const single = destinationMode === 'single';
   const atChute = !single && lotsAtChute && mode === 'order';
   const singleIsPending = single && batchIds.length === 0 && pendingNew.length > 0;
+  const perCalf = !single && !atChute && choices.length > 0;
+  const emptyLabel = mode === 'register' ? 'Elegí el lote' : 'Se decide en la manga';
 
   const problems: string[] = [];
   if (calfIds.length === 0) problems.push('Elegí al menos una cría.');
   if (single && batchIds.length === 0 && !singleIsPending) problems.push('Elegí adónde van las crías: un lote o «Quedan en su lote».');
   if (!single && !atChute && batchIds.length + pendingNew.length === 0) problems.push('Elegí los lotes entre los que se reparten las crías.');
+  if (perCalf && mode === 'register' && calfIds.some((id) => calfDestinations.refOf(id) === null)) {
+    problems.push('Elegí el lote destino de cada cría marcada.');
+  }
+  if (mode === 'register' && calfMeasures.invalidIds(calfIds).length > 0) {
+    problems.push('Revisá los pesos: el que se escribe tiene que ser un número mayor a cero.');
+  }
   if (!header.weaningDate) problems.push('Indicá la fecha del destete.');
   if (mode === 'register' && header.weaningDate > today()) problems.push('La fecha de un destete registrado no puede ser futura.');
 
@@ -142,21 +165,38 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
   // Not blocking: what happened beats the plan, and the order records the difference.
   const deviations: string[] = [];
   if (source && destinationSignature(destinationMode, destinations()) !== source.plannedDestinations) deviations.push('el destino');
-  if (source && header.weaningType !== source.plannedType) deviations.push('el tipo de destete');
+  // A type the order left for the chute is completed here, not changed: only a planned one can differ.
+  if (source && source.plannedType !== '' && header.weaningType !== '' && header.weaningType !== source.plannedType) {
+    deviations.push('el tipo de destete');
+  }
+
+  const withMeasures = (calves: WeaningOrderStart['calves']) => (mode === 'register' ? calfMeasures.apply(calfIds, calves ?? {}) : calves);
 
   const proceed = () => {
+    if (problems.length > 0) {
+      enqueueSnackbar(problems[0], { variant: 'warning' });
+      return;
+    }
+
+    const declared = destinations();
     const start: WeaningOrderStart = {
       orderId: initial?.orderId ?? null,
       orderCode: initial?.orderCode ?? null,
       calfIds,
       destinationMode,
-      destinations: destinations(),
+      destinations: declared,
       header,
       categoryMode,
-      calves: initial?.calves,
+      calves: withMeasures(perCalf ? calfDestinations.toCalves(calfIds, declared, initial?.calves) : initial?.calves),
       sourceOrder: initial?.sourceOrder ?? null,
       returnTo: initial?.returnTo
     };
+
+    if (categoryMode !== 'DECLARED') {
+      setConfirming(start);
+      return;
+    }
+
     const confirm = `${location.pathname}/confirm${start.orderId ? `?orderId=${start.orderId}` : ''}`;
 
     // This step keeps what was declared, so going back from the confirmation finds it again.
@@ -173,53 +213,29 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
       TransitionProps={{ onExited }}
       PaperProps={{ sx: { borderRadius: 0, bgcolor: 'background.default' } }}
     >
-      <AppBar position="relative" elevation={0} sx={{ bgcolor: barBg, color: barText }}>
-        <Toolbar sx={{ gap: 2 }}>
-          <IconButton edge="start" color="inherit" onClick={onClose} aria-label="Cerrar">
-            <FuseSvgIcon size={22}>heroicons-outline:x-mark</FuseSvgIcon>
-          </IconButton>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
-              {source
-                ? `Registrar destetadas · ${source.code}`
-                : mode === 'register'
-                  ? 'Registrar destete'
-                  : initial?.orderId
-                    ? `Editar borrador ${initial.orderCode ?? ''}`.trim()
-                    : 'Nueva orden de destete'}
-            </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8, display: { xs: 'none', md: 'block' } }} noWrap>
-              {source
-                ? 'Las crías de la orden que se destetaron. Viene lo planificado: cambialo si fue distinto. Después se confirma cría por cría.'
-                : mode === 'register'
-                ? 'Qué crías se destetaron, a dónde fueron, cómo y cuándo. Después se confirma cría por cría.'
-                : 'Qué crías, a dónde van, cómo y cuándo se destetan. Después se confirma cría por cría.'}
-            </Typography>
-          </Box>
-          <Button color="inherit" onClick={onClose} sx={{ textTransform: 'none', fontWeight: 600, display: { xs: 'none', sm: 'inline-flex' } }}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            color="inherit"
-            disableElevation
-            disabled={problems.length > 0}
-            onClick={proceed}
-            endIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-right</FuseSvgIcon>}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: '6px',
-              bgcolor: 'common.white',
-              color: barBg,
-              '&:hover': { bgcolor: 'grey.100' },
-              '&.Mui-disabled': { bgcolor: 'rgba(255, 255, 255, 0.24)', color: 'rgba(255, 255, 255, 0.6)' }
-            }}
-          >
-            Continuar con {calfIds.length} cría(s)
-          </Button>
-        </Toolbar>
-      </AppBar>
+      <FullScreenEntryBar
+        title={
+          source
+            ? `Registrar destetadas · ${source.code}`
+            : mode === 'register'
+              ? 'Registrar destete'
+              : initial?.orderId
+                ? `Editar borrador ${initial.orderCode ?? ''}`.trim()
+                : 'Nueva orden de destete'
+        }
+        subtitle={
+          source
+            ? 'Las crías de la orden que se destetaron y su peso. Viene lo planificado: cambialo si fue distinto.'
+            : mode === 'register'
+              ? 'Qué crías se destetaron, a dónde fueron, cómo, cuándo y su peso. La orden queda registrada ya ejecutada.'
+              : 'Qué crías, a dónde van, cómo y cuándo se destetan. Después se confirma la orden.'
+        }
+        primaryLabel={`Continuar con ${calfIds.length} cría(s)`}
+        primaryIcon="heroicons-outline:arrow-right"
+        busy={false}
+        onClose={onClose}
+        onPrimary={proceed}
+      />
 
       <Box
         sx={{
@@ -256,7 +272,7 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
                 }}
                 InputProps={filledInputProps}
                 helperText={
-                  single ? 'Todas las crías se trasladarán juntas al mismo lote receptor.' : 'Cada cría va a su propio lote de destete.'
+                  single ? 'Todas las crías van al mismo destino.' : 'Cada cría va a su propio lote de destete.'
                 }
               >
                 <MenuItem value="single">Todas las crías al mismo lote</MenuItem>
@@ -275,7 +291,7 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
                   helperText={
                     lotsAtChute
                       ? 'La planilla DEST-01 saldrá con la columna de lote en blanco para anotar en la manga.'
-                      : 'Elegí los lotes; el de cada cría se asigna en la confirmación.'
+                      : 'Elegí los lotes; el de cada cría se asigna en la grilla de crías.'
                   }
                 >
                   <MenuItem value="DECLARED">Se declara ahora (elegir lotes)</MenuItem>
@@ -358,7 +374,7 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
                 InputProps={filledInputProps}
                 helperText={
                   categoryMode === 'KEEP'
-                    ? 'Las crías conservan su categoría actual en el nuevo lote.'
+                    ? 'Las crías conservan su categoría actual.'
                     : categoryMode === 'DECLARED'
                     ? 'La nueva C/S se asignará en el paso de confirmación (por sexo o por animal).'
                     : 'La planilla DEST-01 saldrá con la columna C/S en blanco para anotar en la manga.'
@@ -434,10 +450,27 @@ export const WeaningOrderStartDialog: React.FC<WeaningOrderStartDialogProps> = (
               focusIds={initial?.calfIds}
               heldBy={source?.code ?? null}
               maxHeight={{ xs: 440, lg: 'calc(100vh - 230px)' }}
+              destination={
+                perCalf ? { choices, emptyLabel, refOf: calfDestinations.refOf, onChange: (id, ref) => calfDestinations.assign([id], ref) } : undefined
+              }
+              measures={mode === 'register' ? { valueOf: calfMeasures.valueOf, onChange: calfMeasures.set } : undefined}
+              toolbar={
+                perCalf && (
+                  <WeaningDestinationAssignBar
+                    calves={births.filter((b) => calfIds.includes(b.calf_id))}
+                    choices={choices}
+                    emptyLabel={emptyLabel}
+                    required={mode === 'register'}
+                    refOf={calfDestinations.refOf}
+                    onAssign={calfDestinations.assign}
+                  />
+                )
+              }
             />
           )}
         </Paper>
       </Box>
+      <WeaningOrderConfirmDialog mode={mode} start={confirming} deviations={deviations} onClose={() => setConfirming(null)} />
     </Dialog>
   );
 };

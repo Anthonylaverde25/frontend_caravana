@@ -91,7 +91,7 @@ export function usePar01Submission() {
         const response = await axiosInstance.post<{ data: BirthResult }>('/work-templates/par-01/process', payloadOf(metadata, sent, birthOrderId));
 
         setProblems(EMPTY);
-        ['birth-orders', 'caravans', 'batches', 'births-history', 'pending-sires'].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+        ['birth-orders', 'caravans', 'batches', 'births-history', 'paternity'].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
 
         return response.data.data;
       } catch (err) {

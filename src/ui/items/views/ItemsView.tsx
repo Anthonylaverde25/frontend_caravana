@@ -11,6 +11,9 @@ import ItemsToolbar, { BehaviorFilter } from '../components/list/ItemsToolbar';
 import ItemsGrid from '../components/list/ItemsGrid';
 import ItemFormDialog from '../components/dialogs/ItemFormDialog';
 import ItemsCategorySubheader from '../components/header/ItemsCategorySubheader';
+import { useItemsTab } from '../components/header/useItemsTab';
+import { SEMEN_TAB } from '../components/header/itemTabs';
+import SemenInventoryPanel from '@/ui/semen/components/SemenInventoryPanel';
 import { settingsSectionPath } from '@/ui/settings/config/settingsNavigation';
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -25,16 +28,19 @@ export default function ItemsView() {
 	const { activeCompanyId, companies } = useCompany();
 	const [search, setSearch] = useState('');
 	const [behavior, setBehavior] = useState<BehaviorFilter>('ALL');
-	const [rootCategoryId, setRootCategoryId] = useState<number | ''>('');
 	const [subcategoryId, setSubcategoryId] = useState<number | ''>('');
+	const [receivingSemen, setReceivingSemen] = useState(false);
 	const [includeInactive, setIncludeInactive] = useState(false);
 	const [onlyAlerts, setOnlyAlerts] = useState(false);
 	const [creating, setCreating] = useState(false);
 
-	const effectiveCategoryId = subcategoryId !== '' ? subcategoryId : (rootCategoryId !== '' ? rootCategoryId : undefined);
 
-	const { data: items = [], isLoading } = useItems({ categoryId: effectiveCategoryId, includeInactive });
 	const { data: categories = [] } = useItemCategories();
+	const tab = useItemsTab(categories);
+	const rootCategoryId = tab.rootCategoryId;
+	const isSemen = tab.tabKey === SEMEN_TAB;
+	const effectiveCategoryId = subcategoryId !== '' ? subcategoryId : (rootCategoryId !== '' ? rootCategoryId : undefined);
+	const { data: items = [], isLoading } = useItems({ categoryId: effectiveCategoryId, includeInactive });
 	const categoryTree = useMemo(() => buildTree(categories), [categories]);
 
 	// Find active root category node to discover direct subcategories
@@ -82,10 +88,15 @@ export default function ItemsView() {
 			subtitle={`Catálogo de lo que la empresa compra o usa${companyName ? ` · ${companyName}` : ''}.`}
 			subHeader={
 				<ItemsCategorySubheader
-					categories={categories}
-					activeCategoryId={rootCategoryId}
-					onSelectCategory={(id) => {
-						setRootCategoryId(id);
+					resolved={tab.resolved}
+					activeTabKey={tab.tabKey}
+					activeOtherId={tab.otherId}
+					onSelectTab={(key) => {
+						tab.selectTab(key);
+						setSubcategoryId('');
+					}}
+					onSelectOther={(id) => {
+						tab.selectOther(id);
 						setSubcategoryId('');
 					}}
 				/>
@@ -103,40 +114,44 @@ export default function ItemsView() {
 					<Button
 						variant="contained"
 						startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
-						onClick={() => setCreating(true)}
+						onClick={() => (isSemen ? setReceivingSemen(true) : setCreating(true))}
 						sx={{ bgcolor: 'primary.main', borderRadius: '6px', px: 3, fontWeight: 700, textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: 'primary.dark' } }}
 					>
-						Nuevo ítem
+						{isSemen ? 'Ingresar semen' : 'Nuevo ítem'}
 					</Button>
 				</Stack>
 			}
 		>
-			<Stack spacing={2} component="main">
-				<ItemsToolbar
-					search={search}
-					onSearch={setSearch}
-					behavior={behavior}
-					onBehavior={setBehavior}
-					counts={counts}
-					includeInactive={includeInactive}
-					onIncludeInactive={setIncludeInactive}
-					onlyAlerts={onlyAlerts}
-					onOnlyAlerts={setOnlyAlerts}
-					alertsCount={alertsCount}
-					subcategories={directSubcategories}
-					parentCategoryName={activeRootNode?.name ?? ''}
-					activeSubcategoryId={subcategoryId}
-					onSelectSubcategory={setSubcategoryId}
-				/>
-				<Box>
-					<ItemsGrid
-						items={visible}
-						loading={isLoading}
-						emptyMessage={items.length === 0 ? 'Todavía no cargaste artículos ni servicios.' : 'Ningún ítem coincide con los filtros.'}
-						onOpen={(item) => navigate(`/items/${item.id}`)}
+			{isSemen ? (
+				<SemenInventoryPanel receiving={receivingSemen} onCloseReceipt={() => setReceivingSemen(false)} onOpenReceipt={() => setReceivingSemen(true)} />
+			) : (
+				<Stack spacing={2} component="main">
+					<ItemsToolbar
+						search={search}
+						onSearch={setSearch}
+						behavior={behavior}
+						onBehavior={setBehavior}
+						counts={counts}
+						includeInactive={includeInactive}
+						onIncludeInactive={setIncludeInactive}
+						onlyAlerts={onlyAlerts}
+						onOnlyAlerts={setOnlyAlerts}
+						alertsCount={alertsCount}
+						subcategories={directSubcategories}
+						parentCategoryName={activeRootNode?.name ?? ''}
+						activeSubcategoryId={subcategoryId}
+						onSelectSubcategory={setSubcategoryId}
 					/>
-				</Box>
-			</Stack>
+					<Box>
+						<ItemsGrid
+							items={visible}
+							loading={isLoading}
+							emptyMessage={items.length === 0 ? 'Todavía no cargaste artículos ni servicios.' : 'Ningún ítem coincide con los filtros.'}
+							onOpen={(item) => navigate(`/items/${item.id}`)}
+						/>
+					</Box>
+				</Stack>
+			)}
 
 			<ItemFormDialog
 				open={creating}

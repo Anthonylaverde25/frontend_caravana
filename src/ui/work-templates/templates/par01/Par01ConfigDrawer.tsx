@@ -148,7 +148,7 @@ export const Par01ConfigDrawer: React.FC<Par01ConfigDrawerProps> = ({ open, onCl
           <Typography variant="caption" sx={{ color: '#64748b', display: 'block', lineHeight: 1.4, fontSize: '0.7rem' }}>
             • Cada vientre con resultado marcado se registra: la cría nace en el lote de su madre.
             <br />• Sin resultado marcado, el vientre sigue pendiente para la próxima recorrida.
-            <br />• El padre no va en la planilla: se confirma en la revisión, o después en Sires pendientes.
+            <br />• El padre no va en la planilla: se confirma en la revisión, o después en Paternidad pendiente.
             <br />• Si una fila tiene un problema no se guarda nada: se repara en la revisión.
           </Typography>
         </Paper>

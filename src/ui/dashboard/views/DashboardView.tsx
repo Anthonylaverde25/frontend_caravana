@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
-import { Box, Stack } from '@mui/material';
+import { Box, Button, Stack } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import ViewLayout from 'src/components/ViewLayout';
 import { useDashboardBoards } from '../hooks/useDashboardBoards';
@@ -58,6 +59,33 @@ export function DashboardView() {
 			title="Dashboard"
 			subtitle="Indicadores del rodeo por tablero. Cada número dice sobre qué total se calcula y contra qué se compara."
 			className="p-0 sm:p-0"
+			actions={
+				<Button
+					variant="contained"
+					disabled={isEditing}
+					onClick={() => setIsCreateOpen(true)}
+					startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
+					sx={{
+						bgcolor: 'primary.main',
+						borderRadius: '6px',
+						px: 2.5,
+						fontWeight: 700,
+						textTransform: 'none',
+						boxShadow: 'none',
+						'&:hover': { bgcolor: 'primary.dark' }
+					}}
+				>
+					Nuevo tablero
+				</Button>
+			}
+			subHeader={
+				<BoardTabs
+					boards={api.boards}
+					activeBoardId={activeBoard.id}
+					disabled={isEditing}
+					onSelect={handleSelectBoard}
+				/>
+			}
 		>
 			{isEditing && (
 				<BoardEditBar
@@ -72,14 +100,7 @@ export function DashboardView() {
 					}}
 				/>
 			)}
-			<Stack sx={{ px: { xs: 2, sm: 3 }, pt: 1, pb: 5, gap: 2.5, width: '100%', maxWidth: 1900, mx: 'auto' }}>
-				<BoardTabs
-					boards={api.boards}
-					activeBoardId={activeBoard.id}
-					disabled={isEditing}
-					onSelect={handleSelectBoard}
-					onCreate={() => setIsCreateOpen(true)}
-				/>
+			<Stack sx={{ px: { xs: 2, sm: 3 }, pt: 2.5, pb: 5, gap: 2.5, width: '100%', maxWidth: 1900, mx: 'auto' }}>
 				<BoardHeader
 					board={activeBoard}
 					isEditing={isEditing}

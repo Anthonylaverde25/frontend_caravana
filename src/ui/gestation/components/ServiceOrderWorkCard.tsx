@@ -6,6 +6,7 @@ import WorkCardActions from './service-order-work-card/WorkCardActions';
 import WorkCardDiagnosis from './service-order-work-card/WorkCardDiagnosis';
 import FemalesVerdictDialog from './service-order-work-card/FemalesVerdictDialog';
 import { getTrayDeadline, trayCardId, trayTimeLabel } from '../utils/diagnosisTray';
+import { getServiceOrderPhase, orderHeadline } from '../utils/serviceOrderPhase';
 
 interface ServiceOrderWorkCardProps {
   order: ServiceOrder;
@@ -85,11 +86,11 @@ function ServiceOrderWorkCard({ order, caravans, batchName, onPrintSheet, onBulk
             {batchName}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-            {order.male_caravan_ids.length} toros · {order.female_caravan_ids.length} vientres
+            {orderHeadline(order)}
           </Typography>
         </Stack>
 
-        <WorkCardDiagnosis summary={order.diagnosis_summary} totalFemales={order.female_caravan_ids.length} />
+        <WorkCardDiagnosis summary={order.diagnosis_summary} totalFemales={order.female_caravan_ids.length} insemination={getServiceOrderPhase(order).phase === 'INSEMINATING' ? order.insemination_summary : null} />
       </Stack>
 
       <WorkCardActions

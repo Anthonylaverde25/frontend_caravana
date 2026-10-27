@@ -1,9 +1,10 @@
 import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { Alert, AppBar, Box, Button, CircularProgress, Dialog, IconButton, Paper, Slide, Stack, TextField, Toolbar, Typography } from '@mui/material';
+import { Alert, Box, CircularProgress, Dialog, Paper, Slide, Stack, TextField, Typography } from '@mui/material';
 import type { TransitionProps } from '@mui/material/transitions';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useContrastTheme } from '@/contexts/ContrastThemeContext';
+import { useSnackbar } from 'notistack';
+import FullScreenEntryBar from '@/components/FullScreenEntryBar';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useOpenBirthOrderMothers } from '@/features/birth-orders/hooks/useBirthOrders';
@@ -35,9 +36,7 @@ const NO_IDS: number[] = [];
 export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ open, initial, onClose, onExited }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { settings: contrast } = useContrastTheme();
-  const barBg = (contrast.enabled && (contrast.headerBg || contrast.primaryButtonBg)) || 'primary.main';
-  const barText = (contrast.enabled && contrast.headerBg && contrast.headerText) || 'common.white';
+  const { enqueueSnackbar } = useSnackbar();
 
   const { activeCompanyId } = useCompany();
   const { data: caravans = [], isLoading } = useCaravans(activeCompanyId);
@@ -75,6 +74,11 @@ export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ op
   if (header.periodStart && header.periodEnd && header.periodEnd < header.periodStart) problems.push('El período termina antes de empezar.');
 
   const proceed = () => {
+    if (problems.length > 0) {
+      enqueueSnackbar(problems[0], { variant: 'warning' });
+      return;
+    }
+
     const start: BirthOrderStart = { orderId: initial?.orderId ?? null, orderCode: initial?.orderCode ?? null, motherIds: chosen, header };
     const confirm = `${location.pathname}/confirm${start.orderId ? `?orderId=${start.orderId}` : ''}`;
 
@@ -94,43 +98,15 @@ export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ op
       TransitionProps={{ onExited }}
       PaperProps={{ sx: { borderRadius: 0, bgcolor: 'background.default' } }}
     >
-      <AppBar position="relative" elevation={0} sx={{ bgcolor: barBg, color: barText }}>
-        <Toolbar sx={{ gap: 2 }}>
-          <IconButton edge="start" color="inherit" onClick={onClose} aria-label="Cerrar">
-            <FuseSvgIcon size={22}>heroicons-outline:x-mark</FuseSvgIcon>
-          </IconButton>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
-              {title}
-            </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8, display: { xs: 'none', md: 'block' } }} noWrap>
-              Qué vientres se esperan parir y en qué período. La planilla PAR-01 se cumple en las recorridas.
-            </Typography>
-          </Box>
-          <Button color="inherit" onClick={onClose} sx={{ textTransform: 'none', fontWeight: 600, display: { xs: 'none', sm: 'inline-flex' } }}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            color="inherit"
-            disableElevation
-            disabled={problems.length > 0}
-            onClick={proceed}
-            endIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-right</FuseSvgIcon>}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: '6px',
-              bgcolor: 'common.white',
-              color: barBg,
-              '&:hover': { bgcolor: 'grey.100' },
-              '&.Mui-disabled': { bgcolor: 'rgba(255, 255, 255, 0.24)', color: 'rgba(255, 255, 255, 0.6)' }
-            }}
-          >
-            Continuar con {chosen.length} vientre(s)
-          </Button>
-        </Toolbar>
-      </AppBar>
+      <FullScreenEntryBar
+        title={title}
+        subtitle="Qué vientres se esperan parir y en qué período. La planilla PAR-01 se cumple en las recorridas."
+        primaryLabel={`Continuar con ${chosen.length} vientre(s)`}
+        primaryIcon="heroicons-outline:arrow-right"
+        busy={false}
+        onClose={onClose}
+        onPrimary={proceed}
+      />
 
       <Box
         sx={{

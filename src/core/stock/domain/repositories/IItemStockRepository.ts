@@ -5,6 +5,7 @@ import {
 	KardexFilters,
 	KardexRow,
 	Warehouse,
+	WarehouseKind,
 	WarehouseStockView
 } from '../entities/ItemStock';
 
@@ -16,8 +17,8 @@ export interface IItemStockRepository {
 	/** What one warehouse holds, item by item. */
 	warehouseStock(warehouseId: number): Promise<WarehouseStockView>;
 	nextWarehouseCode(): Promise<string>;
-	createWarehouse(code: string, name: string): Promise<Warehouse>;
-	updateWarehouse(id: number, code: string, name: string): Promise<Warehouse>;
+	createWarehouse(code: string, name: string, kind: WarehouseKind): Promise<Warehouse>;
+	updateWarehouse(id: number, code: string, name: string, kind: WarehouseKind): Promise<Warehouse>;
 	/** The whole list: two rows change at once (DD2). */
 	setDefaultWarehouse(id: number): Promise<Warehouse[]>;
 	/** Deactivating the default names the next one (DD3). */

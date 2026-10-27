@@ -20,7 +20,7 @@ const useInvalidateOrders = () => {
     queryClient.invalidateQueries({ queryKey: [BIRTH_ORDERS_KEY] });
 
     if (alsoLivestock) {
-      ['caravans', 'batches', 'batch', 'births-history', 'batch-weight-history', 'pending-sires', 'gestation-dashboard'].forEach((key) =>
+      ['caravans', 'batches', 'batch', 'births-history', 'batch-weight-history', 'paternity', 'gestation-dashboard'].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] })
       );
     }

@@ -9,6 +9,7 @@ import FiscalDocumentEntityDrawer from './entities/FiscalDocumentEntityDrawer';
 import ItemCategoryEntityDrawer from './entities/ItemCategoryEntityDrawer';
 import ItemDocumentEntityDrawer from './entities/ItemDocumentEntityDrawer';
 import ItemEntityDrawer from './entities/ItemEntityDrawer';
+import SemenLotEntityDrawer from './entities/SemenLotEntityDrawer';
 import ServiceOrderEntityDrawer from './entities/ServiceOrderEntityDrawer';
 import TransferOrderEntityDrawer from './entities/TransferOrderEntityDrawer';
 import WarehouseEntityDrawer from './entities/WarehouseEntityDrawer';
@@ -40,7 +41,8 @@ const DRAWERS: Record<EntityKind, ComponentType<EntityDrawerProps>> = {
 	warehouse: WarehouseEntityDrawer,
 	fiscal_document: FiscalDocumentEntityDrawer,
 	animal_category: AnimalCategoryEntityDrawer,
-	item_category: ItemCategoryEntityDrawer
+	item_category: ItemCategoryEntityDrawer,
+	semen_lot: SemenLotEntityDrawer
 };
 
 export interface EntityDrawerEntry {

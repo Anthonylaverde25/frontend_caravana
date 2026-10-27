@@ -12,7 +12,7 @@ import {
  * Local state of a diagnosis round on screen: one value per female, row selection for bulk
  * actions, and the rows flagged when validating on click.
  */
-export function useDiagnosisEntryState(singleBullId: number | null) {
+export function useDiagnosisEntryState() {
   const [values, setValues] = useState<DiagnosisEntryState>({});
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [flagged, setFlagged] = useState<Record<number, string>>({});
@@ -32,7 +32,7 @@ export function useDiagnosisEntryState(singleBullId: number | null) {
       setValues((prev) => {
         const next = { ...prev };
         femaleIds.forEach((id) => {
-          next[id] = { ...withResult(entryOf(prev, id), result, singleBullId), ...extra };
+          next[id] = { ...withResult(entryOf(prev, id), result), ...extra };
         });
         return next;
       });
@@ -42,7 +42,7 @@ export function useDiagnosisEntryState(singleBullId: number | null) {
         return next;
       });
     },
-    [singleBullId]
+    []
   );
 
   const toggleSelected = useCallback((femaleId: number) => {

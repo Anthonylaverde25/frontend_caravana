@@ -20,11 +20,14 @@ interface FiscalTotalsBoxProps {
 	notes?: string;
 	onOpenNotes?: () => void;
 	onClearNotes?: () => void;
+	discriminates?: boolean;
+	showOtherTaxes?: boolean;
+	onToggleOtherTaxes?: (show: boolean) => void;
 }
 
 const subtleBtnSx = {
 	textTransform: 'none',
-	fontSize: '0.78rem',
+	fontSize: '0.74rem',
 	fontWeight: 600,
 	color: 'text.secondary',
 	bgcolor: (theme: any) =>
@@ -32,13 +35,14 @@ const subtleBtnSx = {
 	border: 1,
 	borderColor: 'divider',
 	borderRadius: '6px',
-	px: 1.25,
-	py: 0.6,
+	px: 1,
+	py: 0.4,
 	boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
 	transition: 'all 0.15s ease-in-out',
 	display: 'inline-flex',
 	alignItems: 'center',
-	gap: 0.75,
+	gap: 0.5,
+	whiteSpace: 'nowrap',
 	'&:hover': {
 		color: 'text.primary',
 		bgcolor: (theme: any) =>
@@ -83,7 +87,10 @@ export default function FiscalTotalsBox({
 	controlsTotal,
 	notes,
 	onOpenNotes,
-	onClearNotes
+	onClearNotes,
+	discriminates = false,
+	showOtherTaxes = false,
+	onToggleOtherTaxes
 }: FiscalTotalsBoxProps) {
 	const declared = dec(declaredTotal);
 	const difference = declared === null ? null : sub(declared, total);
@@ -132,8 +139,8 @@ export default function FiscalTotalsBox({
 				</Typography>
 			</Stack>
 
-			{/* Optional features area: Control de total del papel & Nota interna */}
-			{(controlsTotal || onOpenNotes) && (
+			{/* Optional features area: Control de total del papel, Nota interna & Otros importes */}
+			{(controlsTotal || onOpenNotes || (discriminates && onToggleOtherTaxes)) && (
 				<Box
 					sx={{
 						display: 'flex',
@@ -145,14 +152,16 @@ export default function FiscalTotalsBox({
 					}}
 				>
 					{/* Inactive button triggers row */}
-					{((!isDeclaredOpen && controlsTotal) || (!notes && onOpenNotes)) && (
-						<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+					{((!isDeclaredOpen && controlsTotal) ||
+						(!notes && onOpenNotes) ||
+						(discriminates && onToggleOtherTaxes)) && (
+						<Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
 							{!isDeclaredOpen && controlsTotal && (
 								<Button
 									size="small"
 									variant="text"
 									onClick={() => setShowDeclaredInput(true)}
-									startIcon={<FuseSvgIcon size={14}>heroicons-outline:scale</FuseSvgIcon>}
+									startIcon={<FuseSvgIcon size={13}>heroicons-outline:scale</FuseSvgIcon>}
 									sx={subtleBtnSx}
 								>
 									+ Total del papel
@@ -163,10 +172,34 @@ export default function FiscalTotalsBox({
 									size="small"
 									variant="text"
 									onClick={onOpenNotes}
-									startIcon={<FuseSvgIcon size={14}>heroicons-outline:document-text</FuseSvgIcon>}
+									startIcon={<FuseSvgIcon size={13}>heroicons-outline:document-text</FuseSvgIcon>}
 									sx={subtleBtnSx}
 								>
 									+ Nota interna
+								</Button>
+							)}
+							{discriminates && onToggleOtherTaxes && (
+								<Button
+									size="small"
+									variant={showOtherTaxes ? 'outlined' : 'text'}
+									onClick={() => onToggleOtherTaxes(!showOtherTaxes)}
+									startIcon={
+										<FuseSvgIcon size={13}>
+											{showOtherTaxes ? 'heroicons-outline:check' : 'heroicons-outline:plus'}
+										</FuseSvgIcon>
+									}
+									sx={{
+										...subtleBtnSx,
+										...(showOtherTaxes
+											? {
+													color: 'primary.main',
+													borderColor: 'primary.main',
+													bgcolor: (theme: any) => alpha(theme.palette.primary.main, 0.08)
+												}
+											: {})
+									}}
+								>
+									{showOtherTaxes ? 'Otros importes' : '+ Otros importes'}
 								</Button>
 							)}
 						</Stack>

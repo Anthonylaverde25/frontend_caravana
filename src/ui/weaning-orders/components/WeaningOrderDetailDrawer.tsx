@@ -12,6 +12,7 @@ import WeaningOrderRollTable from './detail/WeaningOrderRollTable';
 import WeaningOrderIssueDialog from './WeaningOrderIssueDialog';
 import ExecuteWeaningOrderDialog from './execute/ExecuteWeaningOrderDialog';
 import { sheetUrl } from './weaningOrderFormat';
+import { startFromDraft } from '../hooks/useWeaningOrderForm';
 
 interface WeaningOrderDetailDrawerProps {
   orderId: number | null;
@@ -98,7 +99,7 @@ export const WeaningOrderDetailDrawer: React.FC<WeaningOrderDetailDrawerProps> =
                   variant="outlined"
                   color="inherit"
                   startIcon={<FuseSvgIcon size={16}>heroicons-outline:pencil-square</FuseSvgIcon>}
-                  onClick={() => navigate(`/weaning-orders/new/confirm?orderId=${order.id}`)}
+                  onClick={() => navigate('/weaning-orders/new', { state: startFromDraft(order) })}
                   sx={actionSx}
                 >
                   Seguir armando

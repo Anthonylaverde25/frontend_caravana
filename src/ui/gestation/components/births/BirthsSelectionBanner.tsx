@@ -19,7 +19,8 @@ interface BirthsSelectionBannerProps {
 
 /**
  * The selection bar: free calves start a new order or a registered weaning; calves of one weaning
- * order are registered as weaned with it. A mix of both is not acted on — it says why.
+ * order are registered as weaned with it. A mix of both is not acted on — it says why. It is always
+ * there, at the same height, so marking the first calf does not push the grid under the pointer.
  */
 export const BirthsSelectionBanner: React.FC<BirthsSelectionBannerProps> = ({
 	selectedCount,
@@ -33,8 +34,7 @@ export const BirthsSelectionBanner: React.FC<BirthsSelectionBannerProps> = ({
 	const isDark = theme.palette.mode === 'dark';
 	const active = isDark ? '#60a5fa' : '#0a6ed1';
 
-	if (selectedCount === 0) return null;
-
+	const idle = selectedCount === 0;
 	const buttonSx = { textTransform: 'none', fontWeight: 700, borderRadius: '6px', height: 32, px: 2, whiteSpace: 'nowrap' } as const;
 
 	return (
@@ -45,8 +45,11 @@ export const BirthsSelectionBanner: React.FC<BirthsSelectionBannerProps> = ({
 				px: 2,
 				borderRadius: '8px',
 				border: '1px solid',
-				borderColor: alpha(active, isDark ? 0.28 : 0.22),
-				bgcolor: alpha(active, isDark ? 0.1 : 0.05),
+				borderColor: idle ? 'divider' : alpha(active, isDark ? 0.28 : 0.22),
+				bgcolor: idle ? 'transparent' : alpha(active, isDark ? 0.1 : 0.05),
+				boxSizing: 'border-box',
+				// The height of a bar with its buttons (32px + padding), kept while nothing is selected.
+				minHeight: 54,
 				display: 'flex',
 				alignItems: 'center',
 				justifyContent: 'space-between',
@@ -54,57 +57,65 @@ export const BirthsSelectionBanner: React.FC<BirthsSelectionBannerProps> = ({
 				gap: 1.5
 			}}
 		>
-			<Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-				<Box sx={{ px: 1.25, py: 0.5, borderRadius: '6px', bgcolor: alpha(active, 0.18), color: active, fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
-					{selectedCount} {selectedCount === 1 ? 'cría seleccionada' : 'crías seleccionadas'}
-				</Box>
-				<Typography variant="body2" sx={{ fontWeight: 600 }}>
-					{selection.kind === 'mixed' ? 'Elegí crías sin orden, o de una sola orden de destete.' : summary}
+			{idle ? (
+				<Typography variant="body2" color="text.secondary">
+					Marcá crías para ordenar o registrar su destete.
 				</Typography>
-			</Stack>
+			) : (
+				<>
+					<Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+						<Box sx={{ px: 1.25, py: 0.5, borderRadius: '6px', bgcolor: alpha(active, 0.18), color: active, fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+							{selectedCount} {selectedCount === 1 ? 'cría seleccionada' : 'crías seleccionadas'}
+						</Box>
+						<Typography variant="body2" sx={{ fontWeight: 600 }}>
+							{selection.kind === 'mixed' ? 'Elegí crías sin orden, o de una sola orden de destete.' : summary}
+						</Typography>
+					</Stack>
 
-			<Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-				{selection.kind === 'free' && (
-					<>
-						<Button
-							variant="outlined"
-							size="small"
-							onClick={() => onWean('register')}
-							startIcon={<FuseSvgIcon size={16}>heroicons-outline:clipboard-document-check</FuseSvgIcon>}
-							sx={buttonSx}
-						>
-							Registrar destete ({selectedCount})
-						</Button>
-						<Button
-							variant="contained"
-							size="small"
-							disableElevation
-							onClick={() => onWean('new')}
-							startIcon={<FuseSvgIcon size={16}>heroicons-outline:document-plus</FuseSvgIcon>}
-							sx={buttonSx}
-						>
-							Nueva orden de destete ({selectedCount})
-						</Button>
-					</>
-				)}
-				{selection.kind === 'order' && (
-					<Button
-						variant="contained"
-						size="small"
-						disableElevation
-						onClick={() => onRegisterWeaned(selection.orderId)}
-						startIcon={<FuseSvgIcon size={16}>heroicons-outline:check</FuseSvgIcon>}
-						sx={buttonSx}
-					>
-						Registrar destetadas ({selectedCount})
-					</Button>
-				)}
-				<Tooltip title="Limpiar selección">
-					<IconButton size="small" onClick={onClearSelection} aria-label="Limpiar selección" sx={{ height: 32, width: 32, color: 'text.secondary' }}>
-						<FuseSvgIcon size={18}>heroicons-outline:x-circle</FuseSvgIcon>
-					</IconButton>
-				</Tooltip>
-			</Stack>
+					<Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+						{selection.kind === 'free' && (
+							<>
+								<Button
+									variant="outlined"
+									size="small"
+									onClick={() => onWean('register')}
+									startIcon={<FuseSvgIcon size={16}>heroicons-outline:clipboard-document-check</FuseSvgIcon>}
+									sx={buttonSx}
+								>
+									Registrar destete ({selectedCount})
+								</Button>
+								<Button
+									variant="contained"
+									size="small"
+									disableElevation
+									onClick={() => onWean('new')}
+									startIcon={<FuseSvgIcon size={16}>heroicons-outline:document-plus</FuseSvgIcon>}
+									sx={buttonSx}
+								>
+									Nueva orden de destete ({selectedCount})
+								</Button>
+							</>
+						)}
+						{selection.kind === 'order' && (
+							<Button
+								variant="contained"
+								size="small"
+								disableElevation
+								onClick={() => onRegisterWeaned(selection.orderId)}
+								startIcon={<FuseSvgIcon size={16}>heroicons-outline:check</FuseSvgIcon>}
+								sx={buttonSx}
+							>
+								Registrar destetadas ({selectedCount})
+							</Button>
+						)}
+						<Tooltip title="Limpiar selección">
+							<IconButton size="small" onClick={onClearSelection} aria-label="Limpiar selección" sx={{ height: 32, width: 32, color: 'text.secondary' }}>
+								<FuseSvgIcon size={18}>heroicons-outline:x-circle</FuseSvgIcon>
+							</IconButton>
+						</Tooltip>
+					</Stack>
+				</>
+			)}
 		</Paper>
 	);
 };

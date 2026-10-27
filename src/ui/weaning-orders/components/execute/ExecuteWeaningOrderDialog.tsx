@@ -9,12 +9,15 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  MenuItem,
+  Stack,
   TextField,
   Typography
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import type { WeaningOrder } from '@/features/weaning-orders/types';
-import { weaningOrderErrorMessage } from '@/features/weaning-orders/types';
+import { useSnackbar } from 'notistack';
+import type { WeaningOrder, WeaningType } from '@/features/weaning-orders/types';
+import { WEANING_TYPE_LABELS, WEANING_TYPES, weaningOrderErrorMessage } from '@/features/weaning-orders/types';
 import { useExecuteWeaningOrder } from '@/features/weaning-orders/hooks/useWeaningOrderMutations';
 import ExecuteWeaningRollTable, { ExecuteRowDraft } from './ExecuteWeaningRollTable';
 
@@ -39,11 +42,14 @@ export const ExecuteWeaningOrderDialog: React.FC<ExecuteWeaningOrderDialogProps>
   const execute = useExecuteWeaningOrder();
   const [date, setDate] = useState(today());
   const [drafts, setDrafts] = useState<Record<number, ExecuteRowDraft>>({});
+  const [weaningType, setWeaningType] = useState<WeaningType | ''>('');
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (order) {
       setDate(today());
       setDrafts({});
+      setWeaningType('');
       execute.reset();
     }
   }, [order?.id]);
@@ -51,6 +57,8 @@ export const ExecuteWeaningOrderDialog: React.FC<ExecuteWeaningOrderDialogProps>
   const pending = useMemo(() => order?.animals.filter((a) => a.status === 'PENDING') ?? [], [order]);
   const labelByKey = useMemo(() => new Map(order?.destinations.map((d) => [d.key, d.label]) ?? []), [order]);
   const askCategory = order?.category_mode === 'AT_CHUTE';
+  // An order that left the type for the chute is completed here: somebody saw how they were weaned.
+  const askType = order != null && order.weaning_type === null;
 
   const blocker = !order
     ? null
@@ -80,11 +88,25 @@ export const ExecuteWeaningOrderDialog: React.FC<ExecuteWeaningOrderDialogProps>
   const confirm = () => {
     if (!order) return;
 
+    const problem = !date || date > today()
+      ? 'Indicá la fecha del destete: no puede ser futura.'
+      : askType && weaningType === ''
+        ? 'La orden dejó el tipo de destete para la manga: indicá cómo se destetaron.'
+        : invalidWeight
+          ? 'Revisá los pesos: tienen que ser mayores a cero.'
+          : null;
+
+    if (problem) {
+      enqueueSnackbar(problem, { variant: 'warning' });
+      return;
+    }
+
     execute.mutate(
       {
         id: order.id,
         body: {
           weaning_date: date,
+          ...(askType && weaningType !== '' ? { weaning_type: weaningType } : {}),
           // Every pending calf is sent: in an order decided at the chute, a calf sent without a
           // category is the decision "no change".
           animals: pending.map((animal) => {
@@ -130,18 +152,38 @@ export const ExecuteWeaningOrderDialog: React.FC<ExecuteWeaningOrderDialogProps>
       </DialogTitle>
 
       <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <TextField
-          label="Fecha del destete"
-          type="date"
-          variant="filled"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          inputProps={{ max: today() }}
-          helperText="El día en que se desmadraron las crías. No puede ser futura ni anterior a la emisión."
-          InputLabelProps={{ shrink: true }}
-          InputProps={{ disableUnderline: true, sx: { borderRadius: '6px', bgcolor: 'action.hover' } }}
-          sx={{ maxWidth: 320 }}
-        />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField
+            label="Fecha del destete"
+            type="date"
+            variant="filled"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            inputProps={{ max: today() }}
+            helperText="El día en que se desmadraron las crías. No puede ser futura ni anterior a la emisión."
+            InputLabelProps={{ shrink: true }}
+            InputProps={{ disableUnderline: true, sx: { borderRadius: '6px', bgcolor: 'action.hover' } }}
+            sx={{ flex: 1 }}
+          />
+          {askType && !blocker && (
+            <TextField
+              select
+              label="Tipo de destete"
+              variant="filled"
+              value={weaningType}
+              onChange={(e) => setWeaningType(e.target.value as WeaningType | '')}
+              helperText="La orden lo dejó para la manga: cómo se destetaron."
+              InputProps={{ disableUnderline: true, sx: { borderRadius: '6px', bgcolor: 'action.hover' } }}
+              sx={{ flex: 1 }}
+            >
+              {WEANING_TYPES.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {WEANING_TYPE_LABELS[type]}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+        </Stack>
 
         {blocker ? (
           <Alert severity="warning" sx={{ borderRadius: '6px' }}>
@@ -180,7 +222,7 @@ export const ExecuteWeaningOrderDialog: React.FC<ExecuteWeaningOrderDialogProps>
         <Button
           variant="contained"
           disableElevation
-          disabled={Boolean(blocker) || invalidWeight || execute.isPending || !date || date > today()}
+          disabled={Boolean(blocker) || execute.isPending}
           onClick={confirm}
           startIcon={execute.isPending ? <CircularProgress size={14} color="inherit" /> : <FuseSvgIcon size={16}>heroicons-outline:check</FuseSvgIcon>}
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}

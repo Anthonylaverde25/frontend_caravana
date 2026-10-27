@@ -14,16 +14,16 @@ interface BirthSireCellProps {
 }
 
 /**
- * The sire of a live calf: optional. Empty means "what the gestation says" — the confirmed or the
- * only sire of the service — or, with several candidates, the calf waits in "Sires pendientes". The
+ * The sire of a live calf: optional. Empty means "what the gestation says" — its confirmed sire —
+ * or, without one, the calf waits in "Paternidad pendiente", even with a single candidate. The
  * candidates of the service come first; any other male can be chosen.
  */
 export const BirthSireCell: React.FC<BirthSireCellProps> = ({ sires, males, value, onChange, disabled, error, sx }) => {
   const suggested = suggestedSire(sires);
   const emptyLabel = suggested
-    ? `${suggested.is_confirmed ? 'Confirmado' : 'Único'}: ${suggested.identification}`
-    : sires.length > 1
-      ? 'Sin asignar (Sires pendientes)'
+    ? `Confirmado: ${suggested.identification}`
+    : sires.length > 0
+      ? 'Sin asignar (Paternidad pendiente)'
       : 'Desconocido';
   const others = males.filter((male) => !sires.some((s) => s.id === male.id));
 

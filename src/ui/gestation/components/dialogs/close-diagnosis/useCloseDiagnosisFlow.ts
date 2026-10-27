@@ -5,6 +5,7 @@ import { todayIso } from '@/ui/gestation/utils/reproductiveVerdict';
 import { apiErrorData } from '@/ui/gestation/utils/apiError';
 import type { DiagnosisEntryState } from '../../diagnosis-entry/diagnosisEntryModel';
 import { useDiagnosisRoundContext } from '../../diagnosis-entry/useDiagnosisRoundContext';
+import { useNotInseminated } from '../../insemination-entry/useNotInseminated';
 import { ClosingDecisions, CloseStep, buildClosePayload, decisionsProblem, projectClosing } from './closeDiagnosisModel';
 
 const NO_ENTRIES: DiagnosisEntryState = {};
@@ -41,7 +42,9 @@ export function useCloseDiagnosisFlow(order: ServiceOrder, { entries = NO_ENTRIE
     remainingTargetBatchId: null,
   }));
 
-  const females = useMemo(() => ctx.diagnosis?.females ?? [], [ctx.diagnosis]);
+  // AI (semen S-B): the never inseminated are neither scanned nor counted (IA12); they only get an optional note.
+  const females = useMemo(() => (ctx.diagnosis?.females ?? []).filter((f) => !f.is_not_inseminated), [ctx.diagnosis]);
+  const notInseminated = useNotInseminated(order);
   const needsBullDecision = order.status === 'APPROVED' && ctx.activeBullIds.length > 0;
   const projection = useMemo(
     () => projectClosing(females, entries, decisions.closingDate, order.batch_id),
@@ -60,7 +63,7 @@ export function useCloseDiagnosisFlow(order: ServiceOrder, { entries = NO_ENTRIE
     try {
       const result = await closeMutation.mutateAsync({
         id: order.id,
-        payload: buildClosePayload(entries, decisions, needsBullDecision, projection),
+        payload: { ...buildClosePayload(entries, decisions, needsBullDecision, projection), not_inseminated_reasons: notInseminated.payload() },
       });
       const extras = [
         result.continuation_order && `continúa en la orden ${result.continuation_order.code}`,
@@ -91,6 +94,7 @@ export function useCloseDiagnosisFlow(order: ServiceOrder, { entries = NO_ENTRIE
     /** The closing day can be chosen only when no verdicts came with it. */
     canChooseDate: closingDate === undefined,
     submit,
+    notInseminated,
     isSubmitting: closeMutation.isPending,
   };
 }

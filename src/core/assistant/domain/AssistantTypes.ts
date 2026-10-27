@@ -44,7 +44,9 @@ export type EntityKind =
 	| 'warehouse'
 	| 'fiscal_document'
 	| 'animal_category'
-	| 'item_category';
+	| 'item_category'
+	/** Semen S-A: a lot of straws. */
+	| 'semen_lot';
 
 /** Filter shared by a whole column, set by code: e.g. a category inside one batch's table. */
 export interface EntityScope {

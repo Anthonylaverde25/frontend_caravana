@@ -12,6 +12,8 @@ import { useInvalidateStock } from '@/features/stock/hooks/useInvalidateStock';
 import { useRegisterStockCount } from '@/features/stock/hooks/useStockOperations';
 import { readApiErrors } from '@/ui/items/components/apiErrors';
 import { useItemInputOptions } from '@/ui/stock/components/cells/useItemInputOptions';
+import { useSemenLots } from '@/features/semen/hooks/useSemen';
+import { straws } from '@/core/semen/domain/rules/semenLabels';
 
 interface CountStockDialogProps {
 	item: ItemDetail;
@@ -41,6 +43,14 @@ export default function CountStockDialog({ item, stock, onClose }: CountStockDia
 	const [date, setDate] = useState(today);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const symbol = item.unit?.symbol ?? '';
+	// Semen S-A (DA5): counted per lot, in straws; what the system has is the lot's balance.
+	const { data: lots = [] } = useSemenLots(item.isSemen ? item.id : null, stock.warehouse.id);
+	const [lotId, setLotId] = useState<number | null>(null);
+	const pickLot = (id: number) => {
+		setLotId(id);
+		setSeen(lots.find((l) => l.id === id)?.quantity ?? '0');
+		setStale(false);
+	};
 
 	const countedInUnit = counted.trim() === '' ? null : convertPreview(counted, options.find((o) => o.value === source));
 	const difference = countedInUnit === null ? null : sub(countedInUnit, dec(seen) ?? ZERO);
@@ -52,6 +62,7 @@ export default function CountStockDialog({ item, stock, onClose }: CountStockDia
 				item_id: item.id,
 				warehouse_id: stock.warehouse.id,
 				system_quantity_seen: seen,
+				semen_lot_id: item.isSemen ? lotId : null,
 				counted_quantity: toApi(dec(counted) ?? ZERO, 4),
 				...inputSourcePayload(source),
 				reason: reason.trim() || null,
@@ -87,9 +98,19 @@ export default function CountStockDialog({ item, stock, onClose }: CountStockDia
 			</Box>
 			<DialogContent>
 				<Stack spacing={2} sx={{ pt: 1 }}>
-					<Typography variant="body2">
-						{stock.warehouse.name} · el sistema tiene <strong>{formatQuantity(seen, symbol)}</strong>
-					</Typography>
+					{item.isSemen && (
+						<TextField select label="Partida" variant="filled" fullWidth value={lotId ?? ''} InputProps={filled} onChange={(e) => pickLot(Number(e.target.value))}
+							error={!!errors.semen_lot_id} helperText={errors.semen_lot_id ?? 'El semen se cuenta por partida: las pajuelas de esa partida en este termo.'}>
+							{lots.map((l) => (
+								<MenuItem key={l.id} value={l.id}>{l.code} · {straws(l.quantity)}</MenuItem>
+							))}
+						</TextField>
+					)}
+					{(!item.isSemen || lotId !== null) && (
+						<Typography variant="body2">
+							{stock.warehouse.name}{item.isSemen ? ` · partida ${lots.find((l) => l.id === lotId)?.code ?? ''}` : ''} · el sistema tiene <strong>{formatQuantity(seen, symbol)}</strong>
+						</Typography>
+					)}
 					{stale && (
 						<Alert severity="warning" sx={{ fontSize: '0.85rem' }}>
 							El saldo cambió mientras contabas (se registró otro movimiento). Revisá lo contado y confirmá de nuevo.

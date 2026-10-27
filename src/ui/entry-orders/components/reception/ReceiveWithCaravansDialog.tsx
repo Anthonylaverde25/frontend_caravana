@@ -1,8 +1,7 @@
 import React, { forwardRef, useEffect, useState } from 'react';
-import { AppBar, Box, Button, Dialog, IconButton, Paper, Slide, Toolbar, Typography } from '@mui/material';
+import { Box, Dialog, Paper, Slide, Typography } from '@mui/material';
 import type { TransitionProps } from '@mui/material/transitions';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useContrastTheme } from '@/contexts/ContrastThemeContext';
+import FullScreenEntryBar from '@/components/FullScreenEntryBar';
 import type { EntryOrder, EntryOrderDte } from '@/features/entry-orders/types';
 import { sectionTitleSx } from '@/ui/weaning-orders/components/form/formStyles';
 import DiscardChangesDialog from '../DiscardChangesDialog';
@@ -41,9 +40,6 @@ export const ReceiveWithCaravansDialog: React.FC<ReceiveWithCaravansDialogProps>
     if (dte) ensureRows(reception.caravansExpected);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dte?.id, reception.caravansExpected]);
-  const { settings: contrast } = useContrastTheme();
-  const barBg = (contrast.enabled && (contrast.headerBg || contrast.primaryButtonBg)) || 'primary.main';
-  const barText = (contrast.enabled && contrast.headerBg && contrast.headerText) || 'common.white';
 
   const requestClose = () => {
     if (reception.isPending) return;
@@ -53,40 +49,15 @@ export const ReceiveWithCaravansDialog: React.FC<ReceiveWithCaravansDialogProps>
 
   return (
     <Dialog fullScreen open={dte != null} onClose={requestClose} TransitionComponent={SlideUp} PaperProps={{ sx: { borderRadius: 0, bgcolor: 'background.default' } }}>
-      <AppBar position="relative" elevation={0} sx={{ bgcolor: barBg, color: barText }}>
-        <Toolbar sx={{ gap: 2 }}>
-          <IconButton edge="start" color="inherit" onClick={requestClose} aria-label="Cerrar" disabled={reception.isPending}>
-            <FuseSvgIcon size={22}>heroicons-outline:x-mark</FuseSvgIcon>
-          </IconButton>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }} noWrap>
-              Recibir y registrar caravanas · DTE {dte?.dte_number}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ opacity: 0.8, display: { xs: 'none', md: 'block' } }}
-              noWrap
-            >
-              {order.code} · {destinationOf(order)} · confirmá las cabezas que llegaron y cargá la
-              caravana de cada animal.
-            </Typography>
-          </Box>
-          <Button color="inherit" onClick={requestClose} disabled={reception.isPending} sx={{ textTransform: 'none', fontWeight: 600, display: { xs: 'none', sm: 'inline-flex' } }}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            color="inherit"
-            disableElevation
-            disabled={reception.isPending}
-            onClick={reception.submit}
-            endIcon={<FuseSvgIcon size={16}>heroicons-outline:check</FuseSvgIcon>}
-            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '6px', bgcolor: 'common.white', color: barBg, '&:hover': { bgcolor: 'grey.100' } }}
-          >
-            {reception.isPending ? 'Registrando…' : `Registrar recepción · ${reception.caravans} caravana(s)`}
-          </Button>
-        </Toolbar>
-      </AppBar>
+      <FullScreenEntryBar
+        title={`Recibir y registrar caravanas · DTE ${dte?.dte_number ?? ''}`}
+        subtitle={`${order.code} · ${destinationOf(order)} · confirmá las cabezas que llegaron y cargá la caravana de cada animal.`}
+        primaryLabel={reception.isPending ? 'Registrando…' : `Registrar recepción · ${reception.caravans} caravana(s)`}
+        primaryIcon="heroicons-outline:check"
+        busy={reception.isPending}
+        onClose={requestClose}
+        onPrimary={reception.submit}
+      />
 
       {dte && (
         <Box

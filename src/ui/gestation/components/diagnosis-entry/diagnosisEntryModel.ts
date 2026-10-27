@@ -16,7 +16,6 @@ export interface DiagnosisEntryValue {
   gestation_stage: GestationStageCode | null;
   /** Optional; when given, the stage is derived from it. */
   gestation_months: number | null;
-  confirmed_sire_id: number | null;
   /** Empty female leaving the service batch at the chute. */
   empty_destination_batch_id: number | null;
   not_diagnosed_reason: NotDiagnosedReason | null;
@@ -29,7 +28,6 @@ export const EMPTY_ENTRY: DiagnosisEntryValue = {
   result: 'UNCHECKED',
   gestation_stage: null,
   gestation_months: null,
-  confirmed_sire_id: null,
   empty_destination_batch_id: null,
   not_diagnosed_reason: null,
   not_diagnosed_notes: '',
@@ -39,15 +37,11 @@ export function entryOf(state: DiagnosisEntryState, femaleId: number): Diagnosis
   return state[femaleId] ?? EMPTY_ENTRY;
 }
 
-/**
- * Changing the result clears what only made sense for the previous one. With a single bull the
- * sire is known.
- */
-export function withResult(value: DiagnosisEntryValue, result: EntryResult, singleBullId: number | null): DiagnosisEntryValue {
+/** Changing the result clears what only made sense for the previous one. */
+export function withResult(value: DiagnosisEntryValue, result: EntryResult): DiagnosisEntryValue {
   return {
     ...EMPTY_ENTRY,
     result,
-    confirmed_sire_id: result === 'PREGNANT' ? (value.confirmed_sire_id ?? singleBullId) : null,
     not_diagnosed_reason: result === 'NOT_DIAGNOSED' ? value.not_diagnosed_reason : null,
     not_diagnosed_notes: result === 'NOT_DIAGNOSED' ? value.not_diagnosed_notes : '',
   };
@@ -72,6 +66,8 @@ export function entryProblem(value: DiagnosisEntryValue): string | null {
 export function isPendingOn(female: DiagnosisFemale, closingDate: string): boolean {
   if (female.reproductive_status === 'UNCHECKED') return true;
   if (female.reproductive_status !== 'EMPTY') return false;
+  // AI without repaso (semen S-B, IA11): only the straws exposed her.
+  if (female.empty_final_after) return (female.diagnosed_at ?? '') < female.empty_final_after;
   const end = female.exposed_until ?? closingDate;
   return (female.diagnosed_at ?? '') < end;
 }
@@ -90,7 +86,6 @@ export function toPayload(state: DiagnosisEntryState): { diagnoses: ScreenDiagno
         is_pregnant: pregnant,
         gestation_stage: pregnant && value.gestation_months === null ? value.gestation_stage : null,
         gestation_months: pregnant ? value.gestation_months : null,
-        confirmed_sire_id: pregnant ? value.confirmed_sire_id : null,
         empty_destination_batch_id: pregnant ? null : value.empty_destination_batch_id,
       });
     } else if (value.result === 'NOT_DIAGNOSED' && value.not_diagnosed_reason) {

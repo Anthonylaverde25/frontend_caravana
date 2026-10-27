@@ -9,6 +9,7 @@ import { WarehouseStock } from '@/core/stock/domain/entities/ItemStock';
 import { readApiErrors } from '@/ui/items/components/apiErrors';
 import ReasonDialog from '@/ui/stock/components/dialogs/ReasonDialog';
 import WarehouseStockCard from './WarehouseStockCard';
+import IdentifySemenLotDialog, { IdentifyTarget } from '@/ui/semen/components/identify/IdentifySemenLotDialog';
 import CountStockDialog from './CountStockDialog';
 import TransferDialog from '@/ui/stock/components/transfer/TransferDialog';
 
@@ -18,6 +19,7 @@ export default function ItemStockTab({ item }: { item: ItemDetail }) {
 	const { data, isLoading } = useItemStock(item.id);
 	const { mutateAsync: resolve, isPending } = useResolveStockIncident();
 	const [counting, setCounting] = useState<WarehouseStock | null>(null);
+	const [identifying, setIdentifying] = useState<IdentifyTarget | null>(null);
 	const [transferFrom, setTransferFrom] = useState<number | null>(null);
 	const [resolving, setResolving] = useState<StockIncident | null>(null);
 	const [resolveError, setResolveError] = useState<string | null>(null);
@@ -55,7 +57,12 @@ export default function ItemStockTab({ item }: { item: ItemDetail }) {
 						{data.openIncidents.map((incident) => (
 							<Alert key={incident.id} severity={incident.type === 'NEGATIVE_BALANCE' ? 'error' : 'warning'} sx={{ fontSize: '0.85rem', alignItems: 'center' }}
 								action={
-									incident.resolvesItself ? undefined : (
+									incident.resolvesByIdentification ? (
+										<Button size="small" color="inherit" onClick={() => setIdentifying({ itemId: item.id, itemName: item.name, warehouseId: incident.warehouse.id, warehouseCode: incident.warehouse.name })}
+											sx={{ textTransform: 'none', fontWeight: 700 }}>
+											Identificar
+										</Button>
+									) : incident.resolvesItself ? undefined : (
 										<Button size="small" color="inherit" onClick={() => { setResolveError(null); setResolving(incident); }} sx={{ textTransform: 'none', fontWeight: 700 }}>
 											Resolver
 										</Button>
@@ -70,6 +77,7 @@ export default function ItemStockTab({ item }: { item: ItemDetail }) {
 			)}
 
 			{counting && <CountStockDialog item={item} stock={counting} onClose={() => setCounting(null)} />}
+			{identifying && <IdentifySemenLotDialog target={identifying} onClose={() => setIdentifying(null)} />}
 			{transferFrom !== null && (
 				<TransferDialog fromWarehouseId={transferFrom} item={{ id: item.id, unitId: item.unit?.id ?? null }} onClose={() => setTransferFrom(null)} />
 			)}
