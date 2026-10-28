@@ -38,12 +38,13 @@ import ViewLayout from 'src/components/ViewLayout';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useBatches } from '@/features/batches/hooks/useBatches';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
+import { usePartners } from '@/features/partners/hooks/usePartners';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useAssignExternalCaravans } from '@/features/batches/hooks/useAssignExternalCaravans';
 import CreateBatchDialog from 'src/ui/batches/components/CreateBatchDialog';
 import OwnBatchPickerDialog from 'src/ui/batches/components/external/OwnBatchPickerDialog';
 import { searchableTag } from '@/core/caravans/domain/services/animalLabel';
+import { ANY_SUPPLIER } from '@/core/partners/domain/entities/PartnerRole';
 
 export default function ExternalBatchAssignmentView() {
   const theme = useTheme();
@@ -78,7 +79,7 @@ export default function ExternalBatchAssignmentView() {
   };
 
   const { activeCompanyId } = useCompany();
-  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers();
+  const { data: suppliers = [], isLoading: isLoadingSuppliers } = usePartners(ANY_SUPPLIER);
   const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(activeCompanyId, 'external');
   const assignMutation = useAssignExternalCaravans();

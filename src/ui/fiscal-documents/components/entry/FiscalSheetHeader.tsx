@@ -2,7 +2,7 @@ import { Box, Chip, IconButton, MenuItem, Stack, TextField, Tooltip, Typography 
 import { alpha } from '@mui/material/styles';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { filledInputProps } from '@/ui/weaning-orders/components/form/formStyles';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
+import { usePartners } from '@/features/partners/hooks/usePartners';
 import { useFiscalDocuments } from '@/features/fiscal/hooks/useFiscalDocuments';
 import { FiscalDocumentType } from '@/core/fiscal/domain/entities/FiscalCatalog';
 import { InvoiceDraft } from '@/core/fiscal/domain/entities/DeliveryNote';
@@ -14,6 +14,7 @@ import DeliveryNotePricingToggle from './DeliveryNotePricingToggle';
 import PendingDeliveryNotesNotice from './PendingDeliveryNotesNotice';
 import ProviderSelectField from './ProviderSelectField';
 import { formatCuit } from '@/core/shared/domain/cuit';
+import { ITEM_SELLERS } from '@/core/partners/domain/entities/PartnerRole';
 interface FiscalSheetHeaderProps {
 	header: FiscalHeaderState;
 	types: FiscalDocumentType[];
@@ -51,7 +52,7 @@ export default function FiscalSheetHeader({
 	draft,
 	canClearProvider = true
 }: FiscalSheetHeaderProps) {
-	const { data: providers = [] } = useSuppliers('items');
+	const { data: providers = [] } = usePartners(ITEM_SELLERS);
 	const provider = providers.find((p) => p.id === (draft?.provider.id ?? header.providerId));
 	const isCreditNote = type?.kind === 'CREDIT_NOTE';
 	const { data: invoices } = useFiscalDocuments({ providerId: header.providerId ?? undefined, kind: 'INVOICE' });

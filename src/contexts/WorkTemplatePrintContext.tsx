@@ -8,10 +8,11 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 import { useBatch } from '@/features/batches/hooks/useBatch';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
+import { useFarms } from '@/features/partners/hooks/useFarms';
+import { usePartners } from '@/features/partners/hooks/usePartners';
 import { useActivities } from '@/features/activities/hooks/useActivities';
 import { WorkTemplate } from '@/ui/work-templates/types/TemplateModels';
+import { ANY_SUPPLIER } from '@/core/partners/domain/entities/PartnerRole';
 
 interface WorkTemplatePrintContextType {
   code?: string;
@@ -102,7 +103,7 @@ export const WorkTemplatePrintProvider: React.FC<{ children: React.ReactNode }> 
   const { data: fetchedCaravans = [], isLoading: isLoadingCaravans } = useCaravans(code === 'REP-01' ? activeCompanyId : null);
   const { data: batch, isLoading: isLoadingBatch } = useBatch(batchId || order?.batch_id);
   const { data: allFarms = [], isLoading: isLoadingFarms } = useFarms();
-  const { data: providers = [], isLoading: isLoadingProviders } = useSuppliers();
+  const { data: providers = [], isLoading: isLoadingProviders } = usePartners(ANY_SUPPLIER);
   const { data: activities = [], isLoading: isLoadingActivities } = useActivities(activeCompanyId);
 
   // Effective caravans: priority given to custom pre-loaded CSV caravans if present

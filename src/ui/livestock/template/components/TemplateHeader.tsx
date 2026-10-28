@@ -9,9 +9,10 @@ import {
   Stack,
   Divider
 } from '@mui/material';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import { useFarms } from '@/features/partners/hooks/useFarms';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { ANY_SUPPLIER } from '@/core/partners/domain/entities/PartnerRole';
 
 interface TemplateHeaderProps {
   selectedProviderId: number | undefined;
@@ -26,7 +27,7 @@ const TemplateHeader: React.FC<TemplateHeaderProps> = ({
   onProviderChange,
   onFarmChange
 }) => {
-  const { data: providers = [], isLoading: isLoadingProviders } = useSuppliers();
+  const { data: providers = [], isLoading: isLoadingProviders } = usePartners(ANY_SUPPLIER);
   const { data: allFarms = [], isLoading: isLoadingFarms } = useFarms();
 
   // Filter farms by selected provider

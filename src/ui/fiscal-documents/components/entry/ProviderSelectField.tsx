@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { Divider, MenuItem, TextField } from '@mui/material';
-import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
+import { Partner } from '@/core/partners/domain/entities/Partner';
 import { filledInputProps } from '@/ui/weaning-orders/components/form/formStyles';
-import CreateSupplierDialog from '@/ui/suppliers/components/CreateSupplierDialog';
+import CreatePartnerDialog from '@/ui/partners/components/CreatePartnerDialog';
+import { PartnerRole } from '@/core/partners/domain/entities/PartnerRole';
 
 interface ProviderSelectFieldProps {
-	providers: Supplier[];
+	providers: Partner[];
 	onPick: (providerId: number) => void;
 	error?: string;
 }
 
 const NEW_PROVIDER = '__new';
-const ITEMS_ROLE = { supplies_livestock: false, supplies_items: true };
+const ITEMS_ROLE: PartnerRole[] = ['SUPPLIER_ITEMS'];
 
 /**
  * "Razón social" of a provider document. One missing from the portfolio is created right here and
@@ -57,11 +58,11 @@ export default function ProviderSelectField({ providers, onPick, error }: Provid
 				</MenuItem>
 			</TextField>
 
-			<CreateSupplierDialog
+			<CreatePartnerDialog
 				open={creating}
 				onClose={() => setCreating(false)}
 				defaultRoles={ITEMS_ROLE}
-				onSuccess={(created?: Supplier) => {
+				onSuccess={(created?: Partner) => {
 					if (created?.id) onPick(created.id);
 				}}
 			/>

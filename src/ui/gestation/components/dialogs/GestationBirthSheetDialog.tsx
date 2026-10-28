@@ -24,9 +24,10 @@ import { useReactToPrint } from 'react-to-print';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { useBatch } from '@/features/batches/hooks/useBatch';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
+import { useFarms } from '@/features/partners/hooks/useFarms';
+import { usePartners } from '@/features/partners/hooks/usePartners';
 import PrintHeader from '@/ui/livestock/template/components/PrintHeader';
+import { ANY_SUPPLIER } from '@/core/partners/domain/entities/PartnerRole';
 
 interface GestationBirthSheetDialogProps {
   open: boolean;
@@ -50,7 +51,7 @@ const GestationBirthSheetDialog: React.FC<GestationBirthSheetDialogProps> = ({
   // Fetch batch details
   const { data: batch, isLoading: isLoadingBatch } = useBatch(batchId);
   const { data: allFarms = [], isLoading: isLoadingFarms } = useFarms();
-  const { data: providers = [], isLoading: isLoadingProviders } = useSuppliers();
+  const { data: providers = [], isLoading: isLoadingProviders } = usePartners(ANY_SUPPLIER);
 
   // Find farm and supplier related to batch
   const farm = useMemo(() => {

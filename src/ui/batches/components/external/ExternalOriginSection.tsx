@@ -3,14 +3,15 @@ import { Autocomplete, IconButton, MenuItem, Stack, TextField, Tooltip } from '@
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
-import { useCreateFarm } from '@/features/suppliers/hooks/useCreateFarm';
-import CreateSupplierDialog from '@/ui/suppliers/components/CreateSupplierDialog';
-import AddFarmDialog from '@/ui/suppliers/components/AddFarmDialog';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import { useFarms } from '@/features/partners/hooks/useFarms';
+import { useCreateFarm } from '@/features/partners/hooks/useCreateFarm';
+import CreatePartnerDialog from '@/ui/partners/components/CreatePartnerDialog';
+import AddFarmDialog from '@/ui/partners/components/AddFarmDialog';
 import { ExternalBatchForm, ExternalFormSection, filledSx } from './externalFormParts';
 
 import { formatCuit } from '@/core/shared/domain/cuit';
+import { LIVESTOCK_SELLERS } from '@/core/partners/domain/entities/PartnerRole';
 /**
  * Who sells and from where: the provider and one of its establishments (with its RENSPA,
  * read-only). Both can be created here without leaving the form.
@@ -22,7 +23,7 @@ export const ExternalOriginSection: React.FC<{ form: ExternalBatchForm }> = ({ f
   const { errors } = formState;
   const providerId = watch('provider_id') as number | undefined;
   const farmId = watch('farm_id') as number | undefined;
-  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSuppliers('livestock');
+  const { data: suppliers = [], isLoading: isLoadingSuppliers } = usePartners(LIVESTOCK_SELLERS);
   const { data: farms = [], isLoading: isLoadingFarms } = useFarms(providerId);
   const createFarm = useCreateFarm();
   const [isSupplierOpen, setIsSupplierOpen] = useState(false);
@@ -124,13 +125,11 @@ export const ExternalOriginSection: React.FC<{ form: ExternalBatchForm }> = ({ f
         </Tooltip>
       </Stack>
 
-      <CreateSupplierDialog
+      <CreatePartnerDialog
         open={isSupplierOpen}
         onClose={() => setIsSupplierOpen(false)}
         onSuccess={(created) => {
-          const id = created?.id ?? created?.data?.id;
-
-          if (id) chooseProvider(Number(id));
+          if (created?.id) chooseProvider(created.id);
         }}
       />
       <AddFarmDialog

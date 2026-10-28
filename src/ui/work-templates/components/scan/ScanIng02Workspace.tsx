@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, Box, Button, Chip, Paper, Stack, Table, TableBody, TableCell, TableRow, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import axiosInstance from '@/utils/axios';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import { useFarms } from '@/features/partners/hooks/useFarms';
 import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import type { EntryOrderResult, EntryOrderSummary } from '@/features/entry-orders/types';
@@ -13,6 +13,7 @@ import CreateExternalBatchDialog from '@/ui/batches/components/external/CreateEx
 import { fromFieldNotes, type ScanIssue } from './issues';
 import type { ExternalBatchFormInput } from '@/ui/batches/components/external/externalBatchSchema';
 import { ING02_CATEGORY_LINES, Ing02ScanReading, ing02ScanToForm } from './ing02/ing02ScanToForm';
+import { LIVESTOCK_SELLERS } from '@/core/partners/domain/entities/PartnerRole';
 
 const READ_FIELDS: { key: string; label: string }[] = [
   { key: 'orden_ingreso', label: 'Orden de ingreso' },
@@ -49,7 +50,7 @@ const text = (value: unknown): string => {
  */
 export const ScanIng02Workspace: React.FC<{ reading: Ing02ScanReading; onIssuesChange?: (issues: ScanIssue[]) => void }> = ({ reading, onIssuesChange }) => {
   const navigate = useNavigate();
-  const { data: suppliers = [] } = useSuppliers('livestock');
+  const { data: suppliers = [] } = usePartners(LIVESTOCK_SELLERS);
   // The farms of the provider the sheet names: the unfiltered list also holds the company's own
   // farms, which the farm mapper refuses, so it is not usable here.
   const providerId = useMemo(

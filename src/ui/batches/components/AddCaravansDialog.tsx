@@ -21,8 +21,8 @@ import { caravanSchema, CaravanFormValues } from './CaravanSchema';
 import { Batch } from '@/core/batches/domain/entities/Batch';
 import { CreateCaravanRequest } from '@/core/caravans/domain/entities/Caravan';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
-import { useFarm } from '@/features/suppliers/hooks/useFarms';
-import { useSupplier } from '@/features/suppliers/hooks/useSuppliers';
+import { useFarm } from '@/features/partners/hooks/useFarms';
+import { usePartner } from '@/features/partners/hooks/usePartners';
 import { useUpsertCaravan } from '@/features/caravans/hooks/useUpsertCaravan';
 
 interface AddCaravansDialogProps {
@@ -65,7 +65,7 @@ function AddCaravansDialog({ open, onClose, batch }: AddCaravansDialogProps) {
   console.log('batch', batch)
 
   const { data: farmData } = useFarm(batch?.farm_id);
-  const { data: providerData } = useSupplier(batch?.provider_id);
+  const { data: providerData } = usePartner(batch?.provider_id);
 
   const {
     register,

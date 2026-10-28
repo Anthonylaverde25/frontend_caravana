@@ -5,11 +5,12 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import { ItemDetail } from '@/core/items/domain/entities/Item';
 import { useSyncItemProviders } from '@/features/items/hooks/useItemMutations';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import CreateSupplierDialog from '@/ui/suppliers/components/CreateSupplierDialog';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import CreatePartnerDialog from '@/ui/partners/components/CreatePartnerDialog';
 import CatalogDialogFrame from '../CatalogDialogFrame';
 import { readApiErrors } from '../apiErrors';
 import ItemProvidersGrid, { ProviderRow } from './item-providers/ItemProvidersGrid';
+import { ITEM_SELLERS, PartnerRole } from '@/core/partners/domain/entities/PartnerRole';
 
 interface ItemProvidersDialogProps {
 	open: boolean;
@@ -17,7 +18,7 @@ interface ItemProvidersDialogProps {
 	item: ItemDetail;
 }
 
-const ITEMS_ROLE = { supplies_livestock: false, supplies_items: true };
+const ITEMS_ROLE: PartnerRole[] = ['SUPPLIER_ITEMS'];
 let rowSeq = 0;
 const newKey = () => `row-${++rowSeq}`;
 
@@ -27,7 +28,7 @@ const newKey = () => `row-${++rowSeq}`;
  */
 export default function ItemProvidersDialog({ open, onClose, item }: ItemProvidersDialogProps) {
 	const { enqueueSnackbar } = useSnackbar();
-	const { data: suppliers = [] } = useSuppliers('items');
+	const { data: suppliers = [] } = usePartners(ITEM_SELLERS);
 	const { mutate, isPending } = useSyncItemProviders();
 	const [rows, setRows] = useState<ProviderRow[]>([]);
 	const [errors, setErrors] = useState<Record<string, string>>({});
@@ -96,7 +97,7 @@ export default function ItemProvidersDialog({ open, onClose, item }: ItemProvide
 					{options.length === 0 && (
 						<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
 							Ningún proveedor de la empresa está marcado como vendedor de artículos o servicios. Creá uno abajo, o marcá el rol en uno existente desde{' '}
-							<Link component={RouterLink} to="/providers">Proveedores</Link>.
+							<Link component={RouterLink} to="/partners">Clientes y proveedores</Link>.
 						</Alert>
 					)}
 					<ItemProvidersGrid rows={rows} options={options} onChange={change} onRemove={(key) => setRows((prev) => prev.filter((r) => r.key !== key))} errors={errors} />
@@ -111,7 +112,7 @@ export default function ItemProvidersDialog({ open, onClose, item }: ItemProvide
 				</Stack>
 			</CatalogDialogFrame>
 
-			<CreateSupplierDialog
+			<CreatePartnerDialog
 				open={creatingSupplier}
 				onClose={() => setCreatingSupplier(false)}
 				defaultRoles={ITEMS_ROLE}

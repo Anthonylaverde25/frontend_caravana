@@ -1,4 +1,4 @@
-import { SupplierMapper } from '@/core/suppliers/infrastructure/mappers/SupplierMapper';
+import { PartnerMapper } from '@/core/partners/infrastructure/mappers/PartnerMapper';
 import { ProviderRecognition, ResolvedFiscalLine } from '../../domain/entities/ProviderRecognition';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -7,7 +7,7 @@ export class ProviderRecognitionMapper {
 		return {
 			status: raw.status,
 			reason: raw.reason ?? null,
-			provider: raw.provider ? SupplierMapper.toDomain(raw.provider) : null,
+			provider: raw.provider ? PartnerMapper.toDomain(raw.provider) : null,
 			issuer: {
 				cuit: raw.issuer?.cuit ?? null,
 				source: raw.issuer?.source ?? null,

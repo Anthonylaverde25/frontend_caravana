@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Batch } from '@/core/batches/domain/entities/Batch';
 import { Activity } from '@/core/activities/domain/entities/Activity';
 import { BatchType } from '@/core/batch-types/domain/entities/BatchType';
-import { Farm } from '@/core/suppliers/domain/entities/Farm';
+import { Farm } from '@/core/partners/domain/entities/Farm';
 import {
   BatchFiltersState,
   BatchFilterSummaryKPIs,

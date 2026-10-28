@@ -291,18 +291,18 @@ const navigationConfig: FuseNavItemType[] = [
 	{
 		id: 'supplies-management',
 		title: 'COMPRAS E INSUMOS',
-		subtitle: 'Proveedores y Catálogo',
+		subtitle: 'Clientes, proveedores y catálogo',
 		type: 'group',
 		icon: 'heroicons-outline:shopping-bag',
 		children: [
 			{
-				// Moved from GESTIÓN GANADERA: a provider sells livestock, items or both (D1).
-				id: 'supplies.providers',
-				title: 'Proveedores',
-				subtitle: 'Hacienda, artículos y servicios',
+				// A partner sells to us, buys from us or both (egreso plan v5, fase A).
+				id: 'supplies.partners',
+				title: 'Clientes y proveedores',
+				subtitle: 'Quién nos vende y quién nos compra',
 				type: 'item',
 				icon: 'heroicons-outline:user-group',
-				url: '/providers'
+				url: '/partners'
 			},
 			{
 				// Provider papers (DS14): their stocked lines enter the warehouse when registered.

@@ -1,0 +1,52 @@
+import { Box, Typography, Paper, IconButton } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { FarmFormValues } from './PartnerSchema';
+
+interface FarmCardProps {
+  farm: FarmFormValues;
+  onRemove: () => void;
+}
+
+/**
+ * FarmCard Component
+ * Displays a summary of a farm in a Fiori-styled card.
+ */
+function FarmCard({ farm, onRemove }: FarmCardProps) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 1.5,
+        px: 2,
+        bgcolor: 'background.default',
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}
+    >
+      <Box>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          {farm.name}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+          {farm.city}{farm.province ? `, ${farm.province}` : ''}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
+          RENSPA: {farm.renspa || 'Sin RENSPA'}
+        </Typography>
+      </Box>
+      <IconButton 
+        size="small" 
+        onClick={onRemove}
+        sx={{ color: 'error.main' }}
+      >
+        <FuseSvgIcon size={18}>heroicons-outline:trash</FuseSvgIcon>
+      </IconButton>
+    </Paper>
+  );
+}
+
+export default FarmCard;

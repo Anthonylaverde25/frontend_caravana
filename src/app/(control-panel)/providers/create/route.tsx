@@ -1,13 +1,14 @@
-import { Navigate } from 'react-router';
+import { lazy } from 'react';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
+const LegacyProvidersRedirect = lazy(() => import('src/ui/partners/views/LegacyProvidersRedirect'));
+
 /**
- * The Create Supplier page route.
- * Redirects to /providers with action=create parameter to open the canonical creation modal.
+ * The older /suppliers paths (list and creation) moved to /partners as well.
  */
 const route: FuseRouteItemType = {
-	path: 'suppliers/create',
-	element: <Navigate to="/providers?action=create" replace />
+	path: 'suppliers/*',
+	element: <LegacyProvidersRedirect />
 };
 
 export default route;

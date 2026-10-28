@@ -1,14 +1,14 @@
 import { lazy } from 'react';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const SuppliersView = lazy(() => import('src/ui/suppliers/views/SuppliersView'));
+const LegacyProvidersRedirect = lazy(() => import('src/ui/partners/views/LegacyProvidersRedirect'));
 
 /**
- * The Suppliers page route.
+ * /providers and its subroutes moved to /partners.
  */
 const route: FuseRouteItemType = {
-    path: 'providers',
-    element: <SuppliersView />
+	path: 'providers/*',
+	element: <LegacyProvidersRedirect />
 };
 
 export default route;

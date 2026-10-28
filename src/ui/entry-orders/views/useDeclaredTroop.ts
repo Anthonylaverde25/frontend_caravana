@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import { useFarms } from '@/features/partners/hooks/useFarms';
 import { useAnimalCategories } from '@/features/categories/hooks/useAnimalCategories';
 import { useBreeds } from '@/features/breeds/hooks/useBreeds';
 import { useOwnActiveBatches } from '@/features/batches/hooks/useOwnActiveBatches';
@@ -10,13 +10,14 @@ import { headCountOf, type ExternalBatchFormValues } from '@/ui/batches/componen
 import type { TroopSummaryItem } from '../components/EntryTroopSummaryCard';
 import type { ReceptionTroopContext } from '../components/reception/useReceptionRows';
 import { formatDate, yesNo } from '../components/entryOrderFormat';
+import { LIVESTOCK_SELLERS } from '@/core/partners/domain/entities/PartnerRole';
 
 /**
  * A troop declared in the form but not saved yet, as the confirmation shows it: the ids resolved
  * to names, and what the reception grid needs. Names still loading show as "…"; nothing is guessed.
  */
 export function useDeclaredTroop(values: ExternalBatchFormValues | null) {
-  const { data: suppliers = [] } = useSuppliers('livestock');
+  const { data: suppliers = [] } = usePartners(LIVESTOCK_SELLERS);
   const { data: farms = [] } = useFarms(values?.provider_id);
   const { data: categories = [] } = useAnimalCategories();
   const { data: breeds = [] } = useBreeds();

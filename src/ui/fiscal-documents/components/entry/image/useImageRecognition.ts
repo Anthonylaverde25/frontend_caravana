@@ -2,11 +2,11 @@ import { DragEvent, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import { ProviderRecognition, ResolvedFiscalLine } from '@/core/fiscal/domain/entities/ProviderRecognition';
-import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
+import { Partner } from '@/core/partners/domain/entities/Partner';
 import { formatCuit } from '@/core/shared/domain/cuit';
 import { useReadFiscalImage } from '@/features/fiscal/hooks/useReadFiscalImage';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { useUpdateSupplierRoles } from '@/features/suppliers/hooks/useUpdateSupplierRoles';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import { useUpdatePartnerRoles } from '@/features/partners/hooks/useUpdatePartnerRoles';
 
 const ACCEPTED = ['image/png', 'image/jpeg', 'image/webp', 'image/avif', 'application/pdf'];
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -50,8 +50,8 @@ export function useImageRecognition(
 ) {
 	const { enqueueSnackbar } = useSnackbar();
 	const read = useReadFiscalImage();
-	const { mutate: updateRoles, isPending: enablingRole } = useUpdateSupplierRoles();
-	const { data: allProviders = [] } = useSuppliers();
+	const { mutate: updateRoles, isPending: enablingRole } = useUpdatePartnerRoles();
+	const { data: allProviders = [] } = usePartners();
 	const [file, setFile] = useState<File | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [recognition, setRecognition] = useState<ProviderRecognition | null>(null);
@@ -66,7 +66,7 @@ export function useImageRecognition(
 
 	useEffect(() => () => (previewUrl ? URL.revokeObjectURL(previewUrl) : undefined), [previewUrl]);
 
-	const matched = (provider: Supplier) => {
+	const matched = (provider: Partner) => {
 		pick(provider.id);
 		setRecognition((r) => (r ? { ...r, status: 'MATCHED', reason: null, provider } : r));
 	};
@@ -117,7 +117,7 @@ export function useImageRecognition(
 		if (!provider) return;
 
 		updateRoles(
-			{ id: provider.id, roles: { supplies_livestock: provider.supplies_livestock, supplies_items: true } },
+			{ id: provider.id, roles: [...provider.roles, 'SUPPLIER_ITEMS'] },
 			{ onSuccess: () => matched(provider) }
 		);
 	};
@@ -144,7 +144,7 @@ export function useImageRecognition(
 
 		if (!known) return createProvider(cuit);
 
-		if (known.supplies_items) return matched(known);
+		if (known.hasRole('SUPPLIER_ITEMS')) return matched(known);
 
 		setRecognition((r) => (r ? { ...r, status: 'ROLE_MISSING', reason: null, provider: known } : r));
 	};
@@ -180,7 +180,7 @@ export function useImageRecognition(
 		createProvider: () => createProvider(),
 		useSuggested,
 		closeDraft: () => setDraft(null),
-		providerCreated: (created: Supplier) => {
+		providerCreated: (created: Partner) => {
 			setDraft(null);
 			matched(created);
 		}

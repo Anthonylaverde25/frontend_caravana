@@ -1,5 +1,5 @@
-import type { Supplier } from '@/core/suppliers/domain/entities/Supplier';
-import type { Farm } from '@/core/suppliers/domain/entities/Farm';
+import type { Partner } from '@/core/partners/domain/entities/Partner';
+import type { Farm } from '@/core/partners/domain/entities/Farm';
 import type { AnimalCategory } from '@/core/categories/domain/entities/AnimalCategory';
 import type { Breed } from '@/core/breeds/domain/entities/Breed';
 import { emptyExternalBatchForm, ExternalBatchFormInput } from '@/ui/batches/components/external/externalBatchSchema';
@@ -21,7 +21,7 @@ export interface Ing02ScanNote {
 }
 
 export interface Ing02Catalogs {
-  suppliers: Supplier[];
+  suppliers: Partner[];
   farms: Farm[];
   categories: AnimalCategory[];
   breeds: Breed[];

@@ -26,7 +26,7 @@ export default function SummaryTab({ document: d }: { document: FiscalDocumentDe
 			<DrawerBlock title="Comprobante">
 				<Facts
 					rows={[
-						{ term: 'Proveedor', value: <Link component={RouterLink} to={`/providers`}>{d.provider.name}</Link> },
+						{ term: 'Proveedor', value: <Link component={RouterLink} to={`/partners`}>{d.provider.name}</Link> },
 						{ term: 'CUIT', value: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{d.provider.cuit ? formatCuit(d.provider.cuit) : '—'}</span> },
 						{ term: 'Tipo', value: d.type.name },
 						...(d.type.afipCode ? [{ term: 'Código', value: d.type.afipCode }] : []),

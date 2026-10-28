@@ -20,8 +20,8 @@ import {
 import DataTable from '@/components/data-table/DataTable';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useBatches } from '@/features/batches/hooks/useBatches';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { getSupplierColumns } from '../../suppliers/components/SupplierColumns';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import { getPartnerColumns } from '../../partners/components/PartnerColumns';
 import AddCaravansDialog from './AddCaravansDialog';
 import { useNavigate } from 'react-router';
 import { BatchDetailsDialog } from './BatchDetailsDialog';
@@ -30,6 +30,7 @@ import LoadDteDialog from '@/ui/entry-orders/components/dte/LoadDteDialog';
 import StartBatchServiceDialog from './dialogs/StartBatchServiceDialog';
 import { OwnBatchesContainer } from './own/OwnBatchesContainer';
 import BatchHeadCount from './BatchHeadCount';
+import { ANY_SUPPLIER } from '@/core/partners/domain/entities/PartnerRole';
 
 interface BatchesTableProps {
 	filter?: 'own' | 'external' | 'all';
@@ -48,7 +49,7 @@ export function BatchesTable({ filter = 'all', onCreateBatch }: BatchesTableProp
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 
-	const { data: suppliers = [], isLoading: isLoadingSuppliers, isError: isErrorSuppliers } = useSuppliers();
+	const { data: suppliers = [], isLoading: isLoadingSuppliers, isError: isErrorSuppliers } = usePartners(ANY_SUPPLIER);
 	const { data: batches = [], isLoading: isLoadingBatches } = useBatches();
 
 	// Spreadsheet/industrial palette (mismo patrón que ExternalBatchAssignmentView)
@@ -106,7 +107,7 @@ export function BatchesTable({ filter = 'all', onCreateBatch }: BatchesTableProp
 		setDetailsDialogOpen(true);
 	};
 
-	const columns = useMemo(() => getSupplierColumns(), []);
+	const columns = useMemo(() => getPartnerColumns(), []);
 
 	const isLoading = isLoadingSuppliers || isLoadingBatches;
 

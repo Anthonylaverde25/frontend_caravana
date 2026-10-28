@@ -25,12 +25,13 @@ import { useReactToPrint } from 'react-to-print';
 import html2pdf from 'html2pdf.js';
 import { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { useBatch } from '@/features/batches/hooks/useBatch';
-import { useFarms } from '@/features/suppliers/hooks/useFarms';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
+import { useFarms } from '@/features/partners/hooks/useFarms';
+import { usePartners } from '@/features/partners/hooks/usePartners';
 import axiosInstance from '@/utils/axios';
 import { toast } from 'sonner';
 import { useCompany } from '@/contexts/CompanyContext';
 import { TemplateMON01 } from '@/ui/work-templates/templates/mon01';
+import { ANY_SUPPLIER } from '@/core/partners/domain/entities/PartnerRole';
 
 interface ServiceOrderPrintSheetDialogProps {
   open: boolean;
@@ -63,7 +64,7 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
   // Fetch batch details from the order's batch_id
   const { data: batch, isLoading: isLoadingBatch } = useBatch(order?.batch_id);
   const { data: allFarms = [], isLoading: isLoadingFarms } = useFarms();
-  const { data: providers = [], isLoading: isLoadingProviders } = useSuppliers();
+  const { data: providers = [], isLoading: isLoadingProviders } = usePartners(ANY_SUPPLIER);
 
   // Find farm and provider related to batch
   const farm = useMemo(() => {

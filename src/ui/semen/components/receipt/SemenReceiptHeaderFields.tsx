@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Divider, MenuItem, Stack, TextField } from '@mui/material';
 import { Warehouse } from '@/core/stock/domain/entities/ItemStock';
 import { defaultSuffix, warehouseLabel } from '@/core/stock/domain/rules/warehouseRules';
-import { useSuppliers } from '@/features/suppliers/hooks/useSuppliers';
-import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
+import { usePartners } from '@/features/partners/hooks/usePartners';
+import { Partner } from '@/core/partners/domain/entities/Partner';
 import { filledInputProps } from '@/ui/weaning-orders/components/form/formStyles';
-import CreateSupplierDialog from '@/ui/suppliers/components/CreateSupplierDialog';
+import CreatePartnerDialog from '@/ui/partners/components/CreatePartnerDialog';
 import WarehouseFormDialog from '@/ui/warehouses/components/WarehouseFormDialog';
 import { SemenReceiptHeader } from './receiptState';
+import { ITEM_SELLERS } from '@/core/partners/domain/entities/PartnerRole';
 
 interface SemenReceiptHeaderFieldsProps {
 	header: SemenReceiptHeader;
@@ -24,7 +25,7 @@ const today = (): string => new Date().toISOString().slice(0, 10);
  * provider the semen came from: existing or created right here, only as origin (no document).
  */
 export default function SemenReceiptHeaderFields({ header, tanks, errors, onChange }: SemenReceiptHeaderFieldsProps) {
-	const { data: providers = [] } = useSuppliers('items');
+	const { data: providers = [] } = usePartners(ITEM_SELLERS);
 	const [creatingTank, setCreatingTank] = useState(false);
 	const [creatingProvider, setCreatingProvider] = useState(false);
 
@@ -46,7 +47,7 @@ export default function SemenReceiptHeaderFields({ header, tanks, errors, onChan
 				onChange={(e) => (e.target.value === NEW ? setCreatingProvider(true) : onChange({ providerId: e.target.value === '' ? null : Number(e.target.value) }))}
 				error={!!errors.provider_id} helperText={errors.provider_id ?? 'El centro de IA o la cabaña. Vacío: semen propio o que ya estaba.'}>
 				<MenuItem value="">Sin proveedor</MenuItem>
-				{providers.map((p: Supplier) => (
+				{providers.map((p: Partner) => (
 					<MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
 				))}
 				<Divider />
@@ -55,8 +56,8 @@ export default function SemenReceiptHeaderFields({ header, tanks, errors, onChan
 			<TextField label="Notas" variant="filled" fullWidth multiline value={header.notes} InputProps={filledInputProps} onChange={(e) => onChange({ notes: e.target.value })} />
 
 			<WarehouseFormDialog open={creatingTank} defaultKind="CRYO_TANK" onClose={() => setCreatingTank(false)} onSaved={(w) => onChange({ warehouseId: w.id })} />
-			<CreateSupplierDialog open={creatingProvider} onClose={() => setCreatingProvider(false)} defaultRoles={{ supplies_livestock: false, supplies_items: true }}
-				onSuccess={(created?: Supplier) => created?.id && onChange({ providerId: created.id })} />
+			<CreatePartnerDialog open={creatingProvider} onClose={() => setCreatingProvider(false)} defaultRoles={['SUPPLIER_ITEMS']}
+				onSuccess={(created?: Partner) => created?.id && onChange({ providerId: created.id })} />
 		</Stack>
 	);
 }

@@ -1,4 +1,4 @@
-import { Supplier } from '@/core/suppliers/domain/entities/Supplier';
+import { Partner } from '@/core/partners/domain/entities/Partner';
 
 /** Who issued the document in the image, against the company's portfolio (Delivery F). */
 export type RecognitionStatus = 'MATCHED' | 'ROLE_MISSING' | 'NEW' | 'UNREADABLE';
@@ -53,7 +53,7 @@ export interface ResolvedFiscalLine {
 export interface ProviderRecognition {
 	status: RecognitionStatus;
 	reason: RecognitionReason | null;
-	provider: Supplier | null;
+	provider: Partner | null;
 	issuer: IssuerRead;
 	/** ISSUER_IS_OWN_COMPANY: the other CUIT on the paper, probably the real issuer. */
 	suggestedCuit: string | null;
