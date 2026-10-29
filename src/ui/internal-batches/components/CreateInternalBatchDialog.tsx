@@ -23,7 +23,7 @@ interface CreateInternalBatchDialogProps {
 	open: boolean;
 	onClose: () => void;
 	onSuccess?: () => void;
-	batchTypeCode: 'INTERNAL_CONSUMPTION' | 'INTERNAL_DEATH' | 'QUARANTINE';
+	batchTypeCode: 'INTERNAL_CONSUMPTION' | 'INTERNAL_DEATH' | 'INTERNAL_EXIT' | 'QUARANTINE';
 	title: string;
 }
 

@@ -28,6 +28,8 @@ export const MOVEMENT_TYPES = [
   { value: 'ENTRY', label: 'Entradas' },
   { value: 'TRANSFER', label: 'Transferencias' },
   { value: 'EXIT', label: 'Salidas' },
+  { value: 'SALE', label: 'Ventas' },
+  { value: 'DEATH', label: 'Muertes' },
   { value: 'ORIGIN', label: 'Orígenes' },
 ];
 

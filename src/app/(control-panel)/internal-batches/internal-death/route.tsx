@@ -1,14 +1,12 @@
-import { lazy } from 'react';
+import { Navigate } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const InternalDeathView = lazy(() => import('src/ui/internal-batches/views/InternalDeathView'));
-
 /**
- * The Internal Death Batches page route.
+ * Redirect to consolidated Lotes Administrativos Hub with death tab active.
  */
 const route: FuseRouteItemType = {
 	path: 'internal-batches/internal-death',
-	element: <InternalDeathView />
+	element: <Navigate to="/internal-batches?tab=death" replace />
 };
 
 export default route;

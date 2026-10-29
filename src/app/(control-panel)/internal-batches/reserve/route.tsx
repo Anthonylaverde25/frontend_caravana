@@ -1,14 +1,12 @@
-import { lazy } from 'react';
+import { Navigate } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const ReserveBatchView = lazy(() => import('src/ui/internal-batches/views/ReserveBatchView'));
-
 /**
- * The System Reserve Batch page route.
+ * Redirect to consolidated Lotes Administrativos Hub with reserve tab active.
  */
 const route: FuseRouteItemType = {
 	path: 'internal-batches/reserve',
-	element: <ReserveBatchView />
+	element: <Navigate to="/internal-batches?tab=reserve" replace />
 };
 
 export default route;

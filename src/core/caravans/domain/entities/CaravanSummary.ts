@@ -1,6 +1,6 @@
 import type { ReproductiveStatus } from '../rules/isBreedingCandidate';
 import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
-import type { DeathInfo } from './Death';
+import type { DeathInfo, ExitInfo } from './Death';
 
 /**
  * Light caravan row returned by GET /caravans/summary, for paginated inventory tables.
@@ -16,6 +16,8 @@ export interface CaravanSummary {
 	/** Registered dead: it lies in a death batch and is no longer operated on. */
 	is_dead: boolean;
 	death: DeathInfo | null;
+	/** Sold: it lies in an exit batch and is no longer operated on. */
+	exit: ExitInfo | null;
 	category: string | null;
 	category_id: number | null;
 	category_name: string | null;

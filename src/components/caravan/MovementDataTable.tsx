@@ -47,6 +47,16 @@ const TYPE_CONFIG: Record<
     icon: 'heroicons-outline:arrow-up-circle',
     color: 'warning',
   },
+  SALE: {
+    label: 'VENTA',
+    icon: 'heroicons-outline:banknotes',
+    color: 'warning',
+  },
+  DEATH: {
+    label: 'MUERTE',
+    icon: 'heroicons-outline:x-circle',
+    color: 'default',
+  },
   ORIGIN: {
     label: 'ORIGEN',
     icon: 'heroicons-outline:home',

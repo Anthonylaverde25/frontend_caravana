@@ -29,7 +29,8 @@ export function CaravanDetailDrawer({
 	onWeigh,
 	onMove,
 	onEdit,
-	onRegisterDeath
+	onRegisterDeath,
+	onSell
 }: CaravanDetailDrawerProps) {
 	const [tab, setTab] = useState<CaravanDrawerTab>('summary');
 	const { data: caravan, isLoading } = useCaravanDetail(open ? caravanId : null);
@@ -72,6 +73,7 @@ export function CaravanDetailDrawer({
 					onMove={onMove}
 					onEdit={onEdit}
 					onRegisterDeath={onRegisterDeath}
+					onSell={onSell}
 				/>
 
 				<Box sx={{ p: 2.5, flexGrow: 1, overflowY: 'auto' }}>

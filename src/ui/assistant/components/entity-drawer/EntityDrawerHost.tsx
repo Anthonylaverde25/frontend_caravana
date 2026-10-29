@@ -5,6 +5,7 @@ import AnimalCategoryEntityDrawer from './entities/AnimalCategoryEntityDrawer';
 import BatchEntityDrawer from './entities/BatchEntityDrawer';
 import BirthOrderEntityDrawer from './entities/BirthOrderEntityDrawer';
 import EntryOrderEntityDrawer from './entities/EntryOrderEntityDrawer';
+import ExitOrderEntityDrawer from './entities/ExitOrderEntityDrawer';
 import FiscalDocumentEntityDrawer from './entities/FiscalDocumentEntityDrawer';
 import ItemCategoryEntityDrawer from './entities/ItemCategoryEntityDrawer';
 import ItemDocumentEntityDrawer from './entities/ItemDocumentEntityDrawer';
@@ -36,6 +37,7 @@ const DRAWERS: Record<EntityKind, ComponentType<EntityDrawerProps>> = {
 	birth_order: BirthOrderEntityDrawer,
 	transfer_order: TransferOrderEntityDrawer,
 	weaning_order: WeaningOrderEntityDrawer,
+	exit_order: ExitOrderEntityDrawer,
 	item: ItemEntityDrawer,
 	item_document: ItemDocumentEntityDrawer,
 	warehouse: WarehouseEntityDrawer,

@@ -17,19 +17,29 @@ import { useDeathBatches, useDeathCauses, useRegisterDeath } from '@/features/ca
 import RegisterDeathAnimalsList from './RegisterDeathAnimalsList';
 import RegisterDeathFields from './RegisterDeathFields';
 import { buildDeathPayload, deathFormProblem, emptyDeathForm, mapDeathErrors, type DyingAnimal } from './registerDeath';
+import type { RegisterDeathPayload } from '@/core/caravans/domain/entities/Death';
+
+/** Another way to send the death, e.g. from the pending line of an exit order (01 §5.1). */
+export interface DeathSubmitter {
+	isPending: boolean;
+	send: (payload: RegisterDeathPayload, callbacks: { onSuccess: () => void; onError: (error: unknown) => void }) => void;
+}
 
 interface RegisterDeathDialogProps {
 	open: boolean;
 	onClose: () => void;
 	animals: DyingAnimal[];
 	onDone?: () => void;
+	submitter?: DeathSubmitter;
+	/** One line said above the form, e.g. that the animal leaves an order. */
+	notice?: string;
 }
 
 /**
  * "Registrar muerte": one or several animals, tagged or not, that died on the same day of the
  * same cause. They go to a death batch and leave every flow of the living herd.
  */
-export function RegisterDeathDialog({ open, onClose, animals, onDone }: RegisterDeathDialogProps) {
+export function RegisterDeathDialog({ open, onClose, animals, onDone, submitter, notice }: RegisterDeathDialogProps) {
 	const { data: causes = [], isLoading: loadingCauses } = useDeathCauses(open);
 	const { data: deathBatches = [], isLoading: loadingBatches } = useDeathBatches(open);
 	const registerDeath = useRegisterDeath();
@@ -48,7 +58,8 @@ export function RegisterDeathDialog({ open, onClose, animals, onDone }: Register
 
 		const payload = buildDeathPayload(animals, form);
 		setGeneral([]);
-		registerDeath.mutate(payload, {
+		const send: DeathSubmitter['send'] = submitter?.send ?? ((body, callbacks) => registerDeath.mutate(body, callbacks));
+		send(payload, {
 			onSuccess: () => {
 				onDone?.();
 				onClose();
@@ -110,6 +121,14 @@ export function RegisterDeathDialog({ open, onClose, animals, onDone }: Register
 							animals={animals}
 							errors={errors}
 						/>
+						{notice && (
+							<Alert
+								severity="info"
+								sx={{ borderRadius: '6px', fontSize: '0.8rem', py: 0.5 }}
+							>
+								{notice}
+							</Alert>
+						)}
 						{general.length > 0 && (
 							<Alert
 								severity="error"
@@ -140,7 +159,7 @@ export function RegisterDeathDialog({ open, onClose, animals, onDone }: Register
 				</Button>
 				<Button
 					onClick={handleSubmit}
-					disabled={registerDeath.isPending}
+					disabled={submitter?.isPending ?? registerDeath.isPending}
 					variant="contained"
 					sx={{
 						bgcolor: 'primary.main',
@@ -153,7 +172,7 @@ export function RegisterDeathDialog({ open, onClose, animals, onDone }: Register
 						'&:hover': { bgcolor: 'primary.dark' }
 					}}
 				>
-					{registerDeath.isPending ? 'Guardando...' : 'Registrar muerte'}
+					{(submitter?.isPending ?? registerDeath.isPending) ? 'Guardando...' : 'Registrar muerte'}
 				</Button>
 			</DialogActions>
 		</Dialog>

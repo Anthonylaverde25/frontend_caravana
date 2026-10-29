@@ -25,7 +25,11 @@ import { BullHealthEvaluation, VeterinaryDiagnosis } from '@/core/pre-service/do
  * act with legal weight, and state-based navigation silently loses the selection on a refresh —
  * which used to turn "these three bulls" into "the whole troop" without anyone noticing.
  */
-export const PreServiceView: React.FC = () => {
+export interface PreServiceViewProps {
+  subHeader?: React.ReactNode;
+}
+
+export const PreServiceView: React.FC<PreServiceViewProps> = ({ subHeader }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: bulls = [], isLoading, error } = usePreServiceBulls();
@@ -130,6 +134,7 @@ export const PreServiceView: React.FC = () => {
     <ViewLayout
       title="Pre-Servicio & Sanidad Reproductiva de Toros"
       subtitle="Evaluación andrológica en manga, biometría (CE/CC), aplomos y control sanitario de toros previo al entore"
+      subHeader={subHeader}
       actions={
         <PreServiceActionsBar
           selectedCount={selectedBullIds.size}

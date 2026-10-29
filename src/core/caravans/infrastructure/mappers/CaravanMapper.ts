@@ -17,6 +17,7 @@ export class CaravanMapper {
       tagged_at: raw.tagged_at ?? null,
       is_dead: Boolean(raw.is_dead),
       death: raw.death ?? null,
+      exit: raw.exit ?? null,
       category: raw.category ?? null,
       category_id: raw.category_id != null ? Number(raw.category_id) : null,
       category_code: raw.category_code ?? null,

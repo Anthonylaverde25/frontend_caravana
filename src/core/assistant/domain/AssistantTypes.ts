@@ -39,6 +39,7 @@ export type EntityKind =
 	| 'birth_order'
 	| 'transfer_order'
 	| 'weaning_order'
+	| 'exit_order'
 	| 'item'
 	| 'item_document'
 	| 'warehouse'

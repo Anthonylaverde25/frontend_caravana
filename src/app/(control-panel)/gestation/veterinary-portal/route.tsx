@@ -1,27 +1,22 @@
-import { lazy } from "react";
 import { Navigate } from "react-router";
 import { FuseRouteItemType } from "@fuse/utils/FuseUtils";
 
-const PortalDirectoryView = lazy(
-  () => import("src/ui/gestation/views/veterinary-portal/PortalDirectoryView"),
-);
-
 /**
  * Control Panel: Directory of Veterinary Portals.
- * Displays all external and registered veterinarians with their pending acts and access management.
+ * Canonical location is under the consolidated Sanidad & Veterinaria Hub (/health?tab=portal).
  */
 const routes: FuseRouteItemType[] = [
   {
     path: "gestation/veterinary-portal",
-    element: <PortalDirectoryView />,
+    element: <Navigate to="/health?tab=portal" replace />,
   },
   {
     path: "gestation/veterinary-portal/portales",
-    element: <Navigate to="/gestation/veterinary-portal" replace />,
+    element: <Navigate to="/health?tab=portal" replace />,
   },
   {
     path: "gestation/veterinary-portal/home",
-    element: <Navigate to="/gestation/veterinary-portal" replace />,
+    element: <Navigate to="/health?tab=portal" replace />,
   },
 ];
 

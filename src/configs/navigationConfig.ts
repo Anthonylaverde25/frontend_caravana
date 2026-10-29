@@ -84,41 +84,28 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/entry-orders'
 					},
 					{
+						id: 'gestion.batches.exit-orders',
+						title: 'Órdenes de Egreso',
+						subtitle: 'Ventas · Sin DTE',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-up-tray',
+						url: '/exit-orders'
+					},
+					{
 						id: 'gestion.batches.assignment',
 						title: 'Asignar a Lote Propio',
 						type: 'item',
 						icon: 'heroicons-outline:arrow-right-start-on-rectangle',
 						url: '/batches/external-assignment'
 					},
-					// Internal system batches
+					// Internal system batches consolidated into a tabbed Hub
 					{
-						id: 'internal-batches.internal-consumption',
-						title: 'Lote Consumo',
-						type: 'item',
-						icon: 'heroicons-outline:fire',
-						url: '/internal-batches/internal-consumption'
-					},
-					{
-						id: 'internal-batches.internal-death',
-						title: 'Lote Muertes',
-						type: 'item',
-						icon: 'heroicons-outline:x-circle',
-						url: '/internal-batches/internal-death'
-					},
-					{
-						id: 'internal-batches.quarantine',
-						title: 'Lote Cuarentena',
-						type: 'item',
-						icon: 'heroicons-outline:shield-exclamation',
-						url: '/internal-batches/quarantine'
-					},
-					{
-						id: 'internal-batches.reserve',
-						title: 'Lote Reserva',
-						subtitle: 'Animales Apartados',
+						id: 'internal-batches.hub',
+						title: 'Lotes Administrativos',
+						subtitle: 'Consumo, Muertes, Egresos, Cuarentena y Reserva',
 						type: 'item',
 						icon: 'heroicons-outline:archive-box',
-						url: '/internal-batches/reserve'
+						url: '/internal-batches'
 					}
 				]
 			},
@@ -262,27 +249,12 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:shield-check',
 		children: [
 			{
-				id: 'health.pre-service',
-				title: 'Pre-Servicio & Toros',
-				subtitle: 'Selección y planilla de manga',
+				id: 'health.hub',
+				title: 'Sanidad & Veterinaria',
+				subtitle: 'Pre-servicio, protocolos y portal',
 				type: 'item',
 				icon: 'heroicons-outline:shield-check',
-				url: '/gestation/pre-service'
-			},
-			{
-				id: 'health.veterinary-portal',
-				title: 'Portales Veterinarios',
-				type: 'item',
-				icon: 'heroicons-outline:users',
-				url: '/gestation/veterinary-portal'
-			},
-			{
-				id: 'health.diagnostic-protocols',
-				title: 'Protocolos Diagnósticos',
-				subtitle: 'Actas e Informes',
-				type: 'item',
-				icon: 'heroicons-outline:document-check',
-				url: '/gestation/diagnostic-protocols'
+				url: '/health'
 			}
 		]
 	},
@@ -352,14 +324,13 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:document-text',
 		children: [
 			{
-				id: 'work-templates.scan',
-				title: 'Escanear Planilla (AI)',
-				subtitle: 'Extracción y Carga OCR',
+				id: 'work-templates.hub',
+				title: 'Plantillas & OCR',
+				subtitle: 'Escaneo con IA y catálogo zootécnico',
 				type: 'item',
 				icon: 'heroicons-outline:camera',
-				url: 'work-templates/scan'
+				url: '/work-templates'
 			}
-			// Work templates gallery lives in Settings (/settings?section=work-templates, "Hacienda").
 		]
 	},
 ];

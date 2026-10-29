@@ -10,13 +10,23 @@ interface FullScreenEntryBarProps {
   busy: boolean;
   onClose: () => void;
   onPrimary: () => void;
+  secondaryAction?: React.ReactNode;
 }
 
 /**
  * Top bar of the full-screen entry sheets ("Cargar tacto", "Registrar partos"): close, cancel and
  * the primary action. The primary action is validated on click, never disabled for missing data.
  */
-export default function FullScreenEntryBar({ title, subtitle, primaryLabel, primaryIcon, busy, onClose, onPrimary }: FullScreenEntryBarProps) {
+export default function FullScreenEntryBar({
+  title,
+  subtitle,
+  primaryLabel,
+  primaryIcon,
+  busy,
+  onClose,
+  onPrimary,
+  secondaryAction
+}: FullScreenEntryBarProps) {
   const { settings: contrast } = useContrastTheme();
   const barBg = (contrast.enabled && (contrast.headerBg || contrast.primaryButtonBg)) || 'primary.main';
   const barText = (contrast.enabled && contrast.headerBg && contrast.headerText) || 'common.white';
@@ -38,6 +48,7 @@ export default function FullScreenEntryBar({ title, subtitle, primaryLabel, prim
         <Button color="inherit" onClick={onClose} sx={{ textTransform: 'none', fontWeight: 600, display: { xs: 'none', sm: 'inline-flex' } }}>
           Cancelar
         </Button>
+        {secondaryAction}
         <Button
           variant="contained"
           color="inherit"

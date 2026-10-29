@@ -29,6 +29,7 @@ import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useBulkTransferCaravans } from '@/features/caravans/hooks/useBulkTransferCaravans';
 import { animalLabel, isTagged, searchableTag } from '@/core/caravans/domain/services/animalLabel';
 import { useSeparationWeaning } from '@/ui/weaning-orders/components/separation/useSeparationWeaning';
+import { isTerminalBatchType } from '@/core/batch-types/domain/terminalBatchTypes';
 
 interface BatchQuickTransferDialogProps {
   open: boolean;
@@ -82,7 +83,8 @@ export default function BatchQuickTransferDialog({
 
   // Destination batches (exclude current batch). A death goes through "Registrar muerte".
   const candidateBatches = useMemo(() => {
-    return allBatches.filter((b: any) => b.id !== batch?.id && b.batch_type_code !== 'INTERNAL_DEATH');
+    // The backend refuses terminal destinations: a sale goes through an exit order, with buyer and DTE.
+    return allBatches.filter((b: any) => b.id !== batch?.id && !isTerminalBatchType(b.batch_type_code));
   }, [allBatches, batch?.id]);
 
   // Filtered caravans by search

@@ -180,6 +180,7 @@ export function toCaravanSummary(caravan: Caravan): CaravanSummary {
 		is_tagged: caravan.isTagged(),
 		is_dead: caravan.isDead(),
 		death: caravan.death,
+		exit: caravan.exit,
 		category: caravan.category,
 		category_id: caravan.category_id,
 		category_name: caravan.category_name ?? caravan.category,

@@ -9,6 +9,7 @@ import { CaravanWeightDialog } from '@/ui/weighing/components/caravan-weight/Car
 import type { HerdCaravanDialogsState } from '../../hooks/useHerdCaravanDialogs';
 import BreedingEligibilityDialog from './breeding-eligibility/BreedingEligibilityDialog';
 import RegisterDeathDialog from '../death/RegisterDeathDialog';
+import SellCaravansDialog from '@/ui/exit-orders/components/sell/SellCaravansDialog';
 
 interface HerdCaravanDialogsProps {
 	dialogs: HerdCaravanDialogsState;
@@ -35,7 +36,8 @@ export function HerdCaravanDialogs({ dialogs, ownBatches }: HerdCaravanDialogsPr
 				caravanIdentification={viewing ? (viewing.identification ?? viewing.label) : null}
 				onWeigh={viewing ? () => dialogs.openWeigh(viewing) : undefined}
 				onEdit={viewing ? () => dialogs.openEdit(viewing) : undefined}
-				onRegisterDeath={viewing && !viewing.is_dead ? () => dialogs.openDeath([viewing]) : undefined}
+				onRegisterDeath={viewing && !viewing.is_dead && !viewing.exit ? () => dialogs.openDeath([viewing]) : undefined}
+				onSell={viewing && !viewing.is_dead && !viewing.exit ? () => dialogs.openSell([viewing]) : undefined}
 				// Moving goes from one own batch to another: a caravan in no batch is assigned elsewhere.
 				onMove={
 					viewing && viewingBatch
@@ -79,6 +81,18 @@ export function HerdCaravanDialogs({ dialogs, ownBatches }: HerdCaravanDialogsPr
 					animals={dialogs.dying.caravans.map((c) => ({ id: c.id, label: c.is_tagged ? `#${c.identification}` : c.label }))}
 					onDone={() => {
 						dialogs.dying?.onDone?.();
+						dialogs.closeView();
+					}}
+				/>
+			)}
+
+			{dialogs.selling && (
+				<SellCaravansDialog
+					open
+					onClose={dialogs.closeSell}
+					caravanIds={dialogs.selling.caravans.map((c) => c.id)}
+					onDone={() => {
+						dialogs.selling?.onDone?.();
 						dialogs.closeView();
 					}}
 				/>

@@ -19,9 +19,10 @@ import FiscalEntryActions from './FiscalEntryActions';
 import ReplaceLinesDialog from './ReplaceLinesDialog';
 import ImageReadingOverlay from './image/ImageReadingOverlay';
 import ImageReadArea from './image/ImageReadArea';
+import { TERMINAL_BATCH_TYPES } from '@/core/batch-types/domain/terminalBatchTypes';
 
 /** Batches that never receive a cost: the animals are dead or slaughtered (DS10). */
-const EXCLUDED_BATCH_TYPES = ['INTERNAL_DEATH', 'INTERNAL_CONSUMPTION'];
+const EXCLUDED_BATCH_TYPES = [...TERMINAL_BATCH_TYPES, 'INTERNAL_CONSUMPTION'];
 
 export interface FiscalDocumentEntryFormProps {
 	initial: Partial<FiscalHeaderState>;

@@ -21,12 +21,16 @@ import { useReserveBatch } from '@/features/batches/hooks/useReserveBatch';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import ReserveCaravanDataTable from '../components/ReserveCaravanDataTable';
 
+export interface ReserveBatchViewProps {
+	subHeader?: React.ReactNode;
+}
+
 /**
  * ReserveBatchView Component
  * Renders the dedicated animal inventory for the System Reserve Batch (Lote Reserva | Animales Apartados).
  * Displays all caravans assigned to this structural system batch with KPIs and pedigree shortcuts.
  */
-function ReserveBatchView() {
+function ReserveBatchView({ subHeader }: ReserveBatchViewProps = {}) {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
 	const navigate = useNavigate();
@@ -81,6 +85,7 @@ function ReserveBatchView() {
 		<ViewLayout
 			title="Lote Reserva | Animales Apartados"
 			subtitle="Lote interno protegido del sistema para animales apartados por consanguinidad, descarte reproductivo o reserva genética."
+			subHeader={subHeader}
 			actions={
 				<Stack direction="row" spacing={1.5} alignItems="center">
 					<Chip

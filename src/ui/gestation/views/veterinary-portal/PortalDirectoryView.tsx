@@ -18,7 +18,11 @@ import { PortalDirectoryTable } from "../../components/veterinary-portal/directo
  * Displays real-time status of all external and registered veterinarians,
  * allowing livestock producers and managers to inspect workspaces and issue temporary access tokens.
  */
-export const PortalDirectoryView: React.FC = () => {
+export interface PortalDirectoryViewProps {
+  subHeader?: React.ReactNode;
+}
+
+export const PortalDirectoryView: React.FC<PortalDirectoryViewProps> = ({ subHeader }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -85,6 +89,7 @@ export const PortalDirectoryView: React.FC = () => {
     <ViewLayout
       title="Portales de Profesionales"
       subtitle="Supervisión de actas, despacho de muestras y gestión de accesos por veterinario"
+      subHeader={subHeader}
       actions={
         <Stack direction="row" spacing={1.5}>
           <Button

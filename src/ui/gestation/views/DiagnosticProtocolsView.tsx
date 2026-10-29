@@ -24,7 +24,11 @@ import { DiagnosticProtocolsTable } from '../components/diagnostic-protocols/Dia
  * Registry of the evidentiary documents backing sanitary certification and bull fertility.
  * Acts as a thin orchestrator (Container) delegating to modular presentational subcomponents.
  */
-export const DiagnosticProtocolsView: React.FC = () => {
+export interface DiagnosticProtocolsViewProps {
+  subHeader?: React.ReactNode;
+}
+
+export const DiagnosticProtocolsView: React.FC<DiagnosticProtocolsViewProps> = ({ subHeader }) => {
   const navigate = useNavigate();
   const { data: protocols = [], isLoading, error } = useDiagnosticProtocols();
 
@@ -137,6 +141,7 @@ export const DiagnosticProtocolsView: React.FC = () => {
     <ViewLayout
       title="Protocolos Diagnósticos"
       subtitle="Evidencia documental de laboratorio y sanidad reproductiva de la torada"
+      subHeader={subHeader}
       actions={
         <Stack direction="row" spacing={1.5}>
           <Button

@@ -8,11 +8,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { InternalBatchesTable } from '../components/InternalBatchesTable';
 import CreateInternalBatchDialog from '../components/CreateInternalBatchDialog';
 
+export interface InternalConsumptionViewProps {
+	subHeader?: React.ReactNode;
+}
+
 /**
  * InternalConsumptionView Component
  * Renders lists and tables for managing internal consumption batches (Lotes de Consumo Interno).
  */
-function InternalConsumptionView() {
+function InternalConsumptionView({ subHeader }: InternalConsumptionViewProps = {}) {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const queryClient = useQueryClient();
 
@@ -24,6 +28,7 @@ function InternalConsumptionView() {
 		<ViewLayout
 			title="Lotes de Consumo Interno"
 			subtitle="Gestión y control de lotes dedicados al consumo interno."
+			subHeader={subHeader}
 			actions={
 				<Button
 					variant="contained"

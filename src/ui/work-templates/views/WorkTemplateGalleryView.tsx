@@ -27,9 +27,10 @@ import TemplateQuickDetailModal from '../components/gallery/TemplateQuickDetailM
 export interface WorkTemplateGalleryViewProps {
 	/** If true, renders without outer ViewLayout (for embedding in /settings). */
 	embedded?: boolean;
+	subHeader?: React.ReactNode;
 }
 
-export const WorkTemplateGalleryView: React.FC<WorkTemplateGalleryViewProps> = ({ embedded = false }) => {
+export const WorkTemplateGalleryView: React.FC<WorkTemplateGalleryViewProps> = ({ embedded = false, subHeader }) => {
 	const { templates: rawTemplates, isLoading, error, refresh } = useTemplateData();
 
 	// Deduplicate templates by unique code (handles multi-tenant/multi-company DB seeds)
@@ -293,6 +294,7 @@ export const WorkTemplateGalleryView: React.FC<WorkTemplateGalleryViewProps> = (
 			<ViewLayout
 				title="Galería de Planillas Imprimibles"
 				subtitle="Vista previa de documentos de manga en formato A4 listos para imprimir y sus fundamentos zootécnicos."
+				subHeader={subHeader}
 				actions={
 					<Stack direction="row" spacing={1.5}>
 						<Button

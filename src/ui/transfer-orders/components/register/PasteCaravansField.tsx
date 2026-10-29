@@ -8,6 +8,10 @@ interface PasteCaravansFieldProps {
   selectedIds: number[];
   onSelectionChange: (ids: number[]) => void;
   disabled?: boolean;
+  /** The field's label, for a list that is not of a movement. */
+  label?: string;
+  /** What is said of the tags not found. */
+  notFoundLabel?: string;
 }
 
 /**
@@ -19,7 +23,9 @@ export const PasteCaravansField: React.FC<PasteCaravansFieldProps> = ({
   caravans,
   selectedIds,
   onSelectionChange,
-  disabled
+  disabled,
+  label = 'Caravanas que se movieron',
+  notFoundLabel = 'No están en el lote de origen'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [text, setText] = useState('');
@@ -55,7 +61,7 @@ export const PasteCaravansField: React.FC<PasteCaravansFieldProps> = ({
             fullWidth
             variant="filled"
             size="small"
-            label="Caravanas que se movieron"
+            label={label}
             placeholder="Una por línea, o separadas por coma o espacio"
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -82,7 +88,7 @@ export const PasteCaravansField: React.FC<PasteCaravansFieldProps> = ({
             >
               {result.matchedIds.length} caravana(s) seleccionada(s).
               {result.notFound.length > 0 &&
-                ` No están en el lote de origen: ${result.notFound.slice(0, 15).join(', ')}${result.notFound.length > 15 ? ` y ${result.notFound.length - 15} más` : ''}.`}
+                ` ${notFoundLabel}: ${result.notFound.slice(0, 15).join(', ')}${result.notFound.length > 15 ? ` y ${result.notFound.length - 15} más` : ''}.`}
             </Alert>
           )}
         </Box>

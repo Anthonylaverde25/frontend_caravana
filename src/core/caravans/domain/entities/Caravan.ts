@@ -1,5 +1,5 @@
 import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
-import type { DeathInfo } from './Death';
+import type { DeathInfo, ExitInfo } from './Death';
 
 export interface SireDTO {
   id: number;
@@ -77,6 +77,8 @@ export interface CaravanDTO {
   /** Registered dead: it lies in a death batch and is no longer operated on. */
   is_dead?: boolean;
   death?: DeathInfo | null;
+  /** Sold: it lies in an exit batch and is no longer operated on. */
+  exit?: ExitInfo | null;
   category?: string | null;
   category_id?: number | null;
   category_code?: string | null;
@@ -187,6 +189,7 @@ export class Caravan {
     public readonly label: string = '',
     public readonly tagged_at: string | null = null,
     public readonly death: DeathInfo | null = null,
+    public readonly exit: ExitInfo | null = null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -237,6 +240,7 @@ export class Caravan {
       dto.label ?? identification ?? '',
       dto.tagged_at ?? null,
       dto.death ?? null,
+      dto.exit ?? null,
     );
   }
 
@@ -247,6 +251,11 @@ export class Caravan {
   /** Whether the animal is registered dead. */
   public isDead(): boolean {
     return this.death !== null;
+  }
+
+  /** Whether the animal left the herd with an exit order. */
+  public hasLeft(): boolean {
+    return this.exit !== null;
   }
 
   /** Whether the calf already has its tag: only a calf born here may wait for it. */

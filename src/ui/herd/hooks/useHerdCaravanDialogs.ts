@@ -11,17 +11,21 @@ export interface HerdCaravanDialogsState {
 	breeding: { caravans: CaravanSummary[]; onSaved?: () => void } | null;
 	/** Animals whose death is being registered (one or many). */
 	dying: { caravans: CaravanSummary[]; onDone?: () => void } | null;
+	/** Animals being sold (one or many). */
+	selling: { caravans: CaravanSummary[]; onDone?: () => void } | null;
 	openView: (caravan: CaravanSummary) => void;
 	openWeigh: (caravan: CaravanSummary) => void;
 	openEdit: (caravan: CaravanSummary) => void;
 	openCreate: (defaultBatchId?: number) => void;
 	openBreeding: (caravans: CaravanSummary[], onSaved?: () => void) => void;
 	openDeath: (caravans: CaravanSummary[], onDone?: () => void) => void;
+	openSell: (caravans: CaravanSummary[], onDone?: () => void) => void;
 	closeView: () => void;
 	closeWeigh: () => void;
 	closeForm: () => void;
 	closeBreeding: () => void;
 	closeDeath: () => void;
+	closeSell: () => void;
 }
 
 /**
@@ -34,6 +38,7 @@ export function useHerdCaravanDialogs(): HerdCaravanDialogsState {
 	const [form, setForm] = useState<HerdCaravanDialogsState['form']>(null);
 	const [breeding, setBreeding] = useState<HerdCaravanDialogsState['breeding']>(null);
 	const [dying, setDying] = useState<HerdCaravanDialogsState['dying']>(null);
+	const [selling, setSelling] = useState<HerdCaravanDialogsState['selling']>(null);
 
 	return {
 		viewing,
@@ -41,6 +46,7 @@ export function useHerdCaravanDialogs(): HerdCaravanDialogsState {
 		form,
 		breeding,
 		dying,
+		selling,
 		openView: useCallback((caravan: CaravanSummary) => setViewing(caravan), []),
 		openWeigh: useCallback((caravan: CaravanSummary) => setWeighing(caravan), []),
 		openEdit: useCallback((caravan: CaravanSummary) => setForm({ mode: 'edit', caravan }), []),
@@ -57,6 +63,8 @@ export function useHerdCaravanDialogs(): HerdCaravanDialogsState {
 		),
 		closeBreeding: useCallback(() => setBreeding(null), []),
 		openDeath: useCallback((caravans: CaravanSummary[], onDone?: () => void) => setDying({ caravans, onDone }), []),
-		closeDeath: useCallback(() => setDying(null), [])
+		closeDeath: useCallback(() => setDying(null), []),
+		openSell: useCallback((caravans: CaravanSummary[], onDone?: () => void) => setSelling({ caravans, onDone }), []),
+		closeSell: useCallback(() => setSelling(null), [])
 	};
 }

@@ -66,6 +66,12 @@ export function reproductiveState(caravan: Caravan): ReproductiveState {
 export function statusChips(caravan: Caravan): StatusChip[] {
 	const chips: StatusChip[] = [];
 
+	// A sold animal has no other state worth showing.
+	if (caravan.exit) {
+		const [year, month, day] = caravan.exit.date.split('-');
+		return [{ label: `Vendida · ${day}/${month}/${year}${caravan.exit.order_code ? ` · ${caravan.exit.order_code}` : ''}`, tone: 'neutral' }];
+	}
+
 	// A dead animal has no other state worth showing.
 	if (caravan.death) {
 		const [year, month, day] = caravan.death.date.split('-');
@@ -182,7 +188,9 @@ const MOVEMENT_LABELS: Record<CaravanMovement['type'], string> = {
 	ORIGIN: 'Origen',
 	ENTRY: 'Ingreso',
 	EXIT: 'Egreso',
-	TRANSFER: 'Traslado'
+	TRANSFER: 'Traslado',
+	SALE: 'Venta',
+	DEATH: 'Muerte'
 };
 
 /** Movements, weighings and the current gestation, newest first. */

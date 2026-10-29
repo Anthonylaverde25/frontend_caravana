@@ -12,6 +12,11 @@ interface SheetGridStatusCellProps {
   info?: string;
   /** Shown while the row has nothing to tell, e.g. the "Quitar fila" button. */
   children?: React.ReactNode;
+  /**
+   * Kept beside the notice instead of replaced by it: on a load the operator builds, a row the
+   * server refused must still be removable.
+   */
+  keepChildren?: boolean;
 }
 
 const TONES = [
@@ -26,16 +31,15 @@ export const SheetGridStatusCell: React.FC<SheetGridStatusCellProps> = (props) =
   const tone = TONES.find((t) => props[t.key]);
 
   return (
-    <TableCell align="center" sx={{ ...cellSx, borderRight: 0, width: 48 }}>
-      {tone ? (
+    <TableCell align="center" sx={{ ...cellSx, borderRight: 0, width: 48, whiteSpace: 'nowrap' }}>
+      {tone && (
         <Tooltip title={props[tone.key]}>
-          <Box component="span" sx={{ color: tone.color, display: 'inline-flex' }}>
+          <Box component="span" sx={{ color: tone.color, display: 'inline-flex', verticalAlign: 'middle' }}>
             <FuseSvgIcon size={18}>{tone.icon}</FuseSvgIcon>
           </Box>
         </Tooltip>
-      ) : (
-        props.children
       )}
+      {(!tone || props.keepChildren) && props.children}
     </TableCell>
   );
 };

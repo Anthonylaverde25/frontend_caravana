@@ -8,11 +8,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { InternalBatchesTable } from '../components/InternalBatchesTable';
 import CreateInternalBatchDialog from '../components/CreateInternalBatchDialog';
 
+export interface InternalDeathViewProps {
+	subHeader?: React.ReactNode;
+}
+
 /**
  * InternalDeathView Component
  * Renders lists and tables for managing internal death batches (Lotes de Muertes).
  */
-function InternalDeathView() {
+function InternalDeathView({ subHeader }: InternalDeathViewProps = {}) {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const queryClient = useQueryClient();
 
@@ -24,6 +28,7 @@ function InternalDeathView() {
 		<ViewLayout
 			title="Lotes de Muertes"
 			subtitle="Gestión y control de lotes dedicados a muertes o bajas internas."
+			subHeader={subHeader}
 			actions={
 				<Button
 					variant="contained"

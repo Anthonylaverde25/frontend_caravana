@@ -189,7 +189,11 @@ const dest01SimulatedRow = (r: Record<string, unknown>) => {
   };
 };
 
-export const WorkTemplateScanView: React.FC = () => {
+export interface WorkTemplateScanViewProps {
+  subHeader?: React.ReactNode;
+}
+
+export const WorkTemplateScanView: React.FC<WorkTemplateScanViewProps> = ({ subHeader }) => {
   const navigate = useNavigate();
   const { code: routeCode } = useParams<{ code?: string }>();
   const [searchParams] = useSearchParams();
@@ -1627,6 +1631,7 @@ export const WorkTemplateScanView: React.FC = () => {
     <ViewLayout
       title="Escanear y Procesar Planilla de Campo"
       subtitle="Carga una fotografía o escaneo de la planilla para extracción automática con AI y persistencia transaccional."
+      subHeader={subHeader}
       backUrl="/settings?section=work-templates"
       backTitle="Lista de Plantillas"
       actions={

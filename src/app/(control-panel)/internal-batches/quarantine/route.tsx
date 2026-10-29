@@ -1,14 +1,12 @@
-import { lazy } from 'react';
+import { Navigate } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const QuarantineView = lazy(() => import('src/ui/internal-batches/views/QuarantineView'));
-
 /**
- * The Quarantine Batches page route.
+ * Redirect to consolidated Lotes Administrativos Hub with quarantine tab active.
  */
 const route: FuseRouteItemType = {
 	path: 'internal-batches/quarantine',
-	element: <QuarantineView />
+	element: <Navigate to="/internal-batches?tab=quarantine" replace />
 };
 
 export default route;

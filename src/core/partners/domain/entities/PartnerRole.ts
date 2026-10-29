@@ -26,7 +26,8 @@ export interface PartnerFilter {
 
 export const sortRoles = (roles: PartnerRole[]): PartnerRole[] => PARTNER_ROLES.filter((role) => roles.includes(role));
 
-/** Filters of the selectors (C3): who sold us the livestock, who sells us articles, any supplier. */
+/** Filters of the selectors (C3): who sold us the livestock, who buys it, who sells us articles, any supplier. */
 export const LIVESTOCK_SELLERS: PartnerFilter = { role: 'SUPPLIER_LIVESTOCK' };
+export const LIVESTOCK_BUYERS: PartnerFilter = { role: 'CUSTOMER_LIVESTOCK' };
 export const ITEM_SELLERS: PartnerFilter = { role: 'SUPPLIER_ITEMS' };
 export const ANY_SUPPLIER: PartnerFilter = { group: 'supplier' };

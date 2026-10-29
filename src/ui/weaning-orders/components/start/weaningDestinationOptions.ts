@@ -1,12 +1,13 @@
 import type { Batch } from '@/core/batches/domain/entities/Batch';
 import type { WeaningBatchOption } from './WeaningBatchSelectField';
+import { TERMINAL_BATCH_TYPES } from '@/core/batch-types/domain/terminalBatchTypes';
 
 /** Not a batch: the calves are weaned where they are. */
 export const STAY_IN_PLACE_ID = -2;
 export const STAY_IN_PLACE_LABEL = 'Quedan en su lote';
 
 /** Batches that never receive weaned calves. */
-const NOT_DESTINATIONS = ['INTERNAL_DEATH', 'INTERNAL_CONSUMPTION'];
+const NOT_DESTINATIONS = [...TERMINAL_BATCH_TYPES, 'INTERNAL_CONSUMPTION'];
 
 /**
  * Where weaned calves may go: a weaning batch is the recommended destination, listed first; any

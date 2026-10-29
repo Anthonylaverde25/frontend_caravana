@@ -16,6 +16,7 @@ import FiscalSheetFooter from './FiscalSheetFooter';
 import SheetSection from '../sheet/SheetSection';
 import FiscalLinesGrid from './FiscalLinesGrid';
 import DocumentTaxesGrid from './DocumentTaxesGrid';
+import { TERMINAL_BATCH_TYPES } from '@/core/batch-types/domain/terminalBatchTypes';
 
 const SlideUp = forwardRef(function SlideUp(
 	props: TransitionProps & { children: React.ReactElement },
@@ -31,7 +32,7 @@ const SlideUp = forwardRef(function SlideUp(
 });
 
 /** Batches that never receive a cost: the animals are dead or slaughtered (DS10). */
-const EXCLUDED_BATCH_TYPES = ['INTERNAL_DEATH', 'INTERNAL_CONSUMPTION'];
+const EXCLUDED_BATCH_TYPES = [...TERMINAL_BATCH_TYPES, 'INTERNAL_CONSUMPTION'];
 
 interface FiscalDocumentEntryDialogProps {
 	initial: Partial<FiscalHeaderState>;

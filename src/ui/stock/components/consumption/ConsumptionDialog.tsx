@@ -13,6 +13,7 @@ import { readApiErrors } from '@/ui/items/components/apiErrors';
 import { buildConsumptionPayload, ConsumptionHeader, ConsumptionLine, emptyConsumptionLine, isBlankConsumption, withTrailingConsumption } from './consumptionState';
 import ConsumptionHeaderFields from './ConsumptionHeaderFields';
 import ConsumptionLineRow from './ConsumptionLineRow';
+import { TERMINAL_BATCH_TYPES } from '@/core/batch-types/domain/terminalBatchTypes';
 
 interface ConsumptionDialogProps {
 	open: boolean;
@@ -22,7 +23,7 @@ interface ConsumptionDialogProps {
 }
 
 /** Batches that never receive a consumption: the animals are dead or slaughtered (DS10). */
-const EXCLUDED_BATCH_TYPES = ['INTERNAL_DEATH', 'INTERNAL_CONSUMPTION'];
+const EXCLUDED_BATCH_TYPES = [...TERMINAL_BATCH_TYPES, 'INTERNAL_CONSUMPTION'];
 const today = (): string => new Date().toISOString().slice(0, 10);
 
 /**

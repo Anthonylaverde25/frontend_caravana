@@ -11,6 +11,7 @@ export interface CaravanDrawerActions {
 	onMove?: () => void;
 	onEdit?: () => void;
 	onRegisterDeath?: () => void;
+	onSell?: () => void;
 }
 
 interface CaravanDrawerHeaderProps extends CaravanDrawerActions {
@@ -70,16 +71,18 @@ export function CaravanDrawerHeader({
 	onMove: onMoveAlive,
 	onEdit: onEditAlive,
 	onWeigh: onWeighAlive,
-	onRegisterDeath
+	onRegisterDeath,
+	onSell: onSellAlive
 }: CaravanDrawerHeaderProps) {
 	const chips = caravan ? statusChips(caravan) : [];
-	// A dead animal is not weighed, moved or edited.
-	const alive = !caravan?.isDead();
+	// A dead or sold animal is not weighed, moved, edited or sold.
+	const alive = !caravan?.isDead() && !caravan?.hasLeft();
 	const onWeigh = alive ? onWeighAlive : undefined;
 	const onMove = alive ? onMoveAlive : undefined;
 	const onEdit = alive ? onEditAlive : undefined;
 	const onDeath = alive ? onRegisterDeath : undefined;
-	const hasActions = !!caravan && (onWeigh || onMove || onEdit || onDeath);
+	const onSell = alive ? onSellAlive : undefined;
+	const hasActions = !!caravan && (onWeigh || onMove || onEdit || onDeath || onSell);
 
 	return (
 		<Box sx={{ px: 2.5, pt: 2.5, borderBottom: 1, borderColor: 'divider' }}>
@@ -205,6 +208,17 @@ export function CaravanDrawerHeader({
 							sx={actionSx}
 						>
 							Editar
+						</Button>
+					)}
+					{onSell && (
+						<Button
+							variant="outlined"
+							color="inherit"
+							onClick={onSell}
+							startIcon={<FuseSvgIcon size={16}>heroicons-outline:banknotes</FuseSvgIcon>}
+							sx={actionSx}
+						>
+							Vender
 						</Button>
 					)}
 					{onDeath && (

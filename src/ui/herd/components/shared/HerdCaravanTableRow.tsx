@@ -20,6 +20,7 @@ interface HerdCaravanTableRowProps {
 	onWeigh?: (caravan: CaravanSummary) => void;
 	onBreeding?: (caravan: CaravanSummary) => void;
 	onDeath?: (caravan: CaravanSummary) => void;
+	onSell?: (caravan: CaravanSummary) => void;
 }
 
 /** One caravan of the herd table: identity, reproductive state, weight and row actions. */
@@ -35,9 +36,12 @@ export function HerdCaravanTableRow({
 	onEdit,
 	onWeigh,
 	onBreeding,
-	onDeath
+	onDeath,
+	onSell
 }: HerdCaravanTableRowProps) {
 	const gestation = gestationLabel(caravan.gestation_status);
+	// A dead or sold animal is looked at, never operated on.
+	const gone = caravan.is_dead || caravan.exit != null;
 
 	return (
 		<TableRow
@@ -79,7 +83,15 @@ export function HerdCaravanTableRow({
 						sx={{ ...compactChipSx, mt: 0.25, color: 'text.secondary' }}
 					/>
 				)}
-				{!caravan.is_tagged && !caravan.is_dead && (
+				{caravan.exit && (
+					<Chip
+						size="small"
+						label={`Vendida · ${formatDate(caravan.exit.date)}${caravan.exit.order_code ? ` · ${caravan.exit.order_code}` : ''}`}
+						variant="outlined"
+						sx={{ ...compactChipSx, mt: 0.25, color: 'text.secondary' }}
+					/>
+				)}
+				{!caravan.is_tagged && !gone && (
 					<Chip
 						size="small"
 						label="Sin caravana"
@@ -157,7 +169,7 @@ export function HerdCaravanTableRow({
 						<FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
 					</IconButton>
 				</Tooltip>
-				{onEdit && !caravan.is_dead && (
+				{onEdit && !gone && (
 					<Tooltip title="Editar">
 						<IconButton
 							size="small"
@@ -168,7 +180,7 @@ export function HerdCaravanTableRow({
 						</IconButton>
 					</Tooltip>
 				)}
-				{onWeigh && !caravan.is_dead && (
+				{onWeigh && !gone && (
 					<Tooltip title="Pesar">
 						<IconButton
 							size="small"
@@ -180,7 +192,7 @@ export function HerdCaravanTableRow({
 						</IconButton>
 					</Tooltip>
 				)}
-				{onDeath && !caravan.is_dead && (
+				{onDeath && !gone && (
 					<Tooltip title="Registrar muerte">
 						<IconButton
 							size="small"
@@ -191,7 +203,18 @@ export function HerdCaravanTableRow({
 						</IconButton>
 					</Tooltip>
 				)}
-				{onBreeding && !caravan.is_dead && caravan.reproductive_status !== 'NOT_APPLICABLE' && (
+				{onSell && !gone && (
+					<Tooltip title="Vender">
+						<IconButton
+							size="small"
+							onClick={() => onSell(caravan)}
+							sx={{ height: 28, width: 28, color: 'text.secondary' }}
+						>
+							<FuseSvgIcon size={18}>heroicons-outline:banknotes</FuseSvgIcon>
+						</IconButton>
+					</Tooltip>
+				)}
+				{onBreeding && !gone && caravan.reproductive_status !== 'NOT_APPLICABLE' && (
 					<Tooltip title="Aptitud reproductiva">
 						<IconButton
 							size="small"

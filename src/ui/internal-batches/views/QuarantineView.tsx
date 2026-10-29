@@ -8,11 +8,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { InternalBatchesTable } from '../components/InternalBatchesTable';
 import CreateInternalBatchDialog from '../components/CreateInternalBatchDialog';
 
+export interface QuarantineViewProps {
+	subHeader?: React.ReactNode;
+}
+
 /**
  * QuarantineView Component
  * Renders lists and tables for managing quarantine batches (Lotes de Cuarentena).
  */
-function QuarantineView() {
+function QuarantineView({ subHeader }: QuarantineViewProps = {}) {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const queryClient = useQueryClient();
 
@@ -24,6 +28,7 @@ function QuarantineView() {
 		<ViewLayout
 			title="Lotes de Cuarentena"
 			subtitle="Gestión y control de lotes dedicados a cuarentena sanitaria."
+			subHeader={subHeader}
 			actions={
 				<Button
 					variant="contained"

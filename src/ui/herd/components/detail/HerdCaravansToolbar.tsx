@@ -16,6 +16,7 @@ interface HerdCaravansToolbarProps {
 	selectedCount?: number;
 	onBulkBreeding?: () => void;
 	onBulkDeath?: () => void;
+	onBulkSell?: () => void;
 }
 
 const fieldSx = { bgcolor: 'action.hover', minWidth: 160 } as const;
@@ -31,7 +32,8 @@ export function HerdCaravansToolbar({
 	onSortChange,
 	selectedCount = 0,
 	onBulkBreeding,
-	onBulkDeath
+	onBulkDeath,
+	onBulkSell
 }: HerdCaravansToolbarProps) {
 	return (
 		<Stack
@@ -46,6 +48,18 @@ export function HerdCaravansToolbar({
 			>
 				{total === null ? 'Caravanas' : `Caravanas (${total})`}
 			</Typography>
+			{onBulkSell && selectedCount > 0 && (
+				<Button
+					variant="outlined"
+					color="inherit"
+					size="small"
+					onClick={onBulkSell}
+					startIcon={<FuseSvgIcon size={16}>heroicons-outline:banknotes</FuseSvgIcon>}
+					sx={{ textTransform: 'none', fontWeight: 700, color: 'text.secondary' }}
+				>
+					Vender ({selectedCount})
+				</Button>
+			)}
 			{onBulkDeath && selectedCount > 0 && (
 				<Button
 					variant="outlined"

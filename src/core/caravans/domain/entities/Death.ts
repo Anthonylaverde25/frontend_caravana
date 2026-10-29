@@ -19,6 +19,13 @@ export interface DeathInfo {
 	observations?: string | null;
 }
 
+/** The exit of an animal that was sold, as the API shows it. */
+export interface ExitInfo {
+	date: string;
+	order_code: string | null;
+	order_id?: number | null;
+}
+
 /** POST /caravans/deaths: one or several animals that died on the same day, of the same cause. */
 export interface RegisterDeathPayload {
 	caravan_ids: number[];

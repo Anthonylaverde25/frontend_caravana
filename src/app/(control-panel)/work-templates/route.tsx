@@ -1,17 +1,15 @@
-import { Navigate } from 'react-router';
+import { lazy } from 'react';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
-import { settingsSectionPath } from '@/ui/settings/config/settingsNavigation';
+
+const WorkTemplatesHubView = lazy(() => import('@/ui/work-templates/views/WorkTemplatesHubView'));
 
 /**
- * Work templates gallery moved into Settings; the old /work-templates URL seamlessly redirects there.
+ * Plantillas & Digitalización OCR Hub:
+ * Unifies AI OCR template scanning and the Zootechnical Template Gallery.
  */
-function WorkTemplatesRedirect() {
-	return <Navigate replace to={settingsSectionPath('work-templates')} />;
-}
-
 const route: FuseRouteItemType = {
 	path: 'work-templates',
-	element: <WorkTemplatesRedirect />
+	element: <WorkTemplatesHubView />
 };
 
 export default route;
