@@ -181,7 +181,7 @@ export function useDteReception(order: EntryOrder, dte: EntryOrderDte | null, on
     rows,
     receivedAt,
     setReceivedAt,
-    minDate: dte?.dte_date,
+    minDate: dte?.dte_date ?? undefined,
     maxDate: today(),
     heads,
     setHeads,

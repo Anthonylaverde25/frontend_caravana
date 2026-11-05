@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Paper, Stack, Typography } from '@mui/material';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import type { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import type { CaravanWeightRecord } from '@/core/weighing/domain/entities/Weighing';
 import { EMPTY_VALUE, formatDate, formatKg } from 'src/ui/herd/utils/herdFormat';
@@ -10,6 +10,7 @@ import CaravanReproductionCard from './CaravanReproductionCard';
 interface CaravanSummaryTabProps {
 	caravan: Caravan;
 	weights: CaravanWeightRecord[];
+	onVoidCastration?: () => void;
 }
 
 function Kpi({ label, value, detail, color }: { label: string; value: string; detail: string; color?: string }) {
@@ -73,7 +74,7 @@ const SectionTitle = ({ children }: { children: ReactNode }) => (
 );
 
 /** Weight KPIs, reproduction (females), the caravan's data and its lineage. */
-export function CaravanSummaryTab({ caravan, weights }: CaravanSummaryTabProps) {
+export function CaravanSummaryTab({ caravan, weights, onVoidCastration }: CaravanSummaryTabProps) {
 	const gain = weightGain(caravan, weights);
 	const lastWeighing = weights.find((w) => w.current) ?? null;
 	const renspa = caravan.renspa && caravan.renspa !== 'NO_DEFINIDO' ? caravan.renspa : null;
@@ -143,6 +144,34 @@ export function CaravanSummaryTab({ caravan, weights }: CaravanSummaryTabProps) 
 					</Field>
 					<Field label="Raza">{caravan.breed || EMPTY_VALUE}</Field>
 					<Field label="Dentición">{caravan.teeth != null ? `${caravan.teeth} dientes` : EMPTY_VALUE}</Field>
+					{caravan.sex === 'M' && (
+						<Field label="Castración">
+							{caravan.castration ? (
+								<Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+									<span>
+										{`Castrado el ${formatDate(caravan.castration.castrated_on)}`}
+										{caravan.castration.method_label ? ` · ${caravan.castration.method_label}` : ''}
+									</span>
+									{onVoidCastration && (
+										<Button
+											size="small"
+											variant="text"
+											onClick={onVoidCastration}
+											sx={{ p: 0, minWidth: 0, fontSize: '0.75rem', fontWeight: 600, color: 'error.main', textTransform: 'none' }}
+										>
+											Anular
+										</Button>
+									)}
+								</Stack>
+							) : caravan.castration_status === 'castrated' ? (
+								'Castrado (por categoría)'
+							) : caravan.castration_status === 'intact' ? (
+								'Entero'
+							) : (
+								'Sin castración registrada'
+							)}
+						</Field>
+					)}
 					<Field label="Ingreso">
 						{formatDate(caravan.entry_date)}
 						{caravan.entry_weight != null && ` · ${formatKg(caravan.entry_weight)}`}

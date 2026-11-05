@@ -37,12 +37,17 @@ export class BatchMapper {
       nursing_weighed_count: raw.nursing_weighed_count ?? null,
       nursing_total_weight: raw.nursing_total_weight ?? null,
       untagged_calf_count: raw.untagged_calf_count ?? 0,
+      weighed_category_count: raw.weighed_category_count ?? 0,
+      bulls_on_service_count: raw.bulls_on_service_count ?? 0,
+      bulls_on_service_weighed_count: raw.bulls_on_service_weighed_count ?? 0,
+      bulls_on_service_total_weight: Number(raw.bulls_on_service_total_weight ?? 0),
       renspa: raw.renspa ?? null,
       age_in_months: raw.age_in_months,
       observaciones: raw.observaciones,
       is_active: raw.is_active !== undefined ? Boolean(raw.is_active) : true,
       is_in_service: Boolean(raw.is_in_service),
       active_service_order: raw.active_service_order ?? null,
+      unclosed_service_order: raw.unclosed_service_order ?? null,
       entry_order: raw.entry_order ?? null,
       created_at: raw.created_at,
     };
@@ -78,6 +83,7 @@ export class BatchMapper {
       is_active: entity.is_active,
       is_in_service: entity.is_in_service,
       active_service_order: entity.active_service_order,
+      unclosed_service_order: entity.unclosed_service_order,
       created_at: entity.created_at,
     };
   }

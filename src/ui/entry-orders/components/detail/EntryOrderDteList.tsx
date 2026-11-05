@@ -2,7 +2,7 @@ import React from 'react';
 import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { ARRIVAL_FINDINGS, type EntryOrder, type EntryOrderDte } from '@/features/entry-orders/types';
-import { formatDate } from '../entryOrderFormat';
+import { dteLabel, formatDate } from '../entryOrderFormat';
 import DteAnimalsTable from './DteAnimalsTable';
 
 interface EntryOrderDteListProps {
@@ -14,6 +14,8 @@ interface EntryOrderDteListProps {
   onCorrect: (dte: EntryOrderDte) => void;
   /** The ING-03 receipt sheet of the DTE, to receive it at the chute on paper. */
   onPrintSheet: (dte: EntryOrderDte) => void;
+  /** "Cargar DTE" on head that moved without it. */
+  onAttachDocument: (dte: EntryOrderDte) => void;
 }
 
 const buttonSx = { textTransform: 'none', fontWeight: 700, borderRadius: '6px', py: 0.25 } as const;
@@ -46,9 +48,10 @@ const progressOf = (dte: EntryOrderDte): string =>
  * Each DTE loaded against the order: the head it declares, how many arrived, are on their way or
  * will not arrive, and the caravans received on it. "Recibir" stays while the DTE has head in
  * transit; "Cargar caravanas" while head were received without caravan; the ING-03 while either;
- * "Corregir cabezas" while the order is open.
+ * "Corregir cabezas" while the order is open. Head that moved without the paper show as "Sin DTE",
+ * with "Cargar DTE" in any status: it is recommended, and never too late.
  */
-export const EntryOrderDteList: React.FC<EntryOrderDteListProps> = ({ order, onReceive, onReceiveWithCaravans, onCorrect, onPrintSheet }) => {
+export const EntryOrderDteList: React.FC<EntryOrderDteListProps> = ({ order, onReceive, onReceiveWithCaravans, onCorrect, onPrintSheet, onAttachDocument }) => {
   const stop = (action: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     action();
@@ -57,14 +60,14 @@ export const EntryOrderDteList: React.FC<EntryOrderDteListProps> = ({ order, onR
   return (
     <Box>
       <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.secondary' }}>
-        DTE cargados
+        {order.without_dte ? 'DTE e ingresos sin DTE' : 'DTE cargados'}
       </Typography>
       {order.dtes.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           {order.status === 'DRAFT'
             ? 'Los DTE se cargan una vez confirmada la compra.'
             : order.accepts_dte
-              ? 'Todavía no se cargó ningún DTE. Cada DTE declara cuántas cabezas vienen; las caravanas se anotan cuando llegan.'
+              ? 'Todavía no se cargó ningún DTE. Es recomendable cargarlo: declara cuántas cabezas vienen. Si no lo tenés, podés continuar sin él. Las caravanas se anotan cuando llegan.'
               : 'Se anuló antes de cargar un DTE.'}
         </Typography>
       ) : (
@@ -74,12 +77,26 @@ export const EntryOrderDteList: React.FC<EntryOrderDteListProps> = ({ order, onR
               <AccordionSummary expandIcon={<FuseSvgIcon size={18}>heroicons-outline:chevron-down</FuseSvgIcon>}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%', pr: 1, flexWrap: 'wrap' }}>
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 800, fontFamily: 'monospace' }}>DTE {dte.dte_number}</Typography>
+                    <Typography sx={{ fontWeight: 800, fontFamily: 'monospace', color: dte.dte_number ? 'text.primary' : 'warning.dark' }}>{dteLabel(dte)}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {progressOf(dte)} · emitido {formatDate(dte.dte_date)}
+                      {progressOf(dte)}
+                      {dte.dte_date ? ` · emitido ${formatDate(dte.dte_date)}` : ''}
                       {dte.loaded_by?.name ? ` · cargó ${dte.loaded_by.name}` : ''}
                     </Typography>
                   </Box>
+                  {!dte.dte_number && order.status !== 'CANCELLED' && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="warning"
+                      component="span"
+                      onClick={stop(() => onAttachDocument(dte))}
+                      startIcon={<FuseSvgIcon size={15}>heroicons-outline:document-arrow-down</FuseSvgIcon>}
+                      sx={buttonSx}
+                    >
+                      Cargar DTE
+                    </Button>
+                  )}
                   {order.can_correct_dtes && (
                     <Button size="small" variant="text" component="span" color="inherit" onClick={stop(() => onCorrect(dte))} sx={buttonSx}>
                       Corregir cabezas
@@ -160,7 +177,7 @@ export const EntryOrderDteList: React.FC<EntryOrderDteListProps> = ({ order, onR
                   <Typography variant="body2" color="text.secondary">
                     {dte.uncaravaned_count > 0
                       ? `Se recibieron ${dte.uncaravaned_count} cabezas sin caravana: cargalas a mano o con la hoja ING-03.`
-                      : 'Todavía no llegó ningún animal de este DTE.'}
+                      : `Todavía no llegó ningún animal de este ${dte.dte_number ? 'DTE' : 'ingreso'}.`}
                   </Typography>
                 ) : (
                   <DteAnimalsTable

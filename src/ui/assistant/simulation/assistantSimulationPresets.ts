@@ -18,6 +18,121 @@ export interface AssistantSimulationPreset {
 
 export const ASSISTANT_SIMULATION_PRESETS: AssistantSimulationPreset[] = [
 	{
+		key: 'batch-consumption-balance',
+		label: 'Balance de consumos de lote (KPIs y Tabla descargable)',
+		flow: 'happy',
+		question: '¿Cuál es el balance de lo consumido por el lote Terneros 2025?',
+		response: {
+			grounded: true,
+			tools_used: ['resolver_lote', 'consumos_lote', 'emit_kpis', 'emit_table', 'emit_action'],
+			model: 'simulación',
+			blocks: [
+				{
+					type: 'text',
+					markdown:
+						'El lote **Terneros 2025** acumula un gasto total registrado de **$ 1.845.200,00** en 5 aplicaciones de insumos, representando **$ 15.376,67 por cabeza** (n = 120 cabezas tratadas).\n\n¿Querés que te grafique la distribución del gasto por rubro?'
+				},
+				{
+					type: 'kpis',
+					title: 'Métricas Globales de Consumo',
+					items: [
+						{ label: 'Costo Total', value: '$ 1.845.200,00' },
+						{ label: 'Costo / Cabeza', value: '$ 15.376,67', unit: '$/cab' },
+						{ label: 'Cabezas Tratadas', value: 120, unit: 'cab' },
+						{ label: 'Insumos Aplicados', value: 5, unit: 'registros' }
+					]
+				},
+				{
+					type: 'table',
+					title: 'Detalle de Insumos y Consumos del Lote',
+					columns: [
+						{ key: 'fecha', label: 'Fecha' },
+						{ key: 'articulo', label: 'Insumo / Medicamento', entity: 'item' },
+						{ key: 'categoria', label: 'Rubro / Categoría' },
+						{ key: 'cantidad', label: 'Cantidad' },
+						{ key: 'unidad', label: 'Unidad' },
+						{ key: 'cabezas_tratadas', label: 'Cabezas' },
+						{ key: 'costo_total', label: 'Costo total ($)' },
+						{ key: 'costo_cabeza', label: 'Costo / Cabeza ($)' },
+						{ key: 'movimiento', label: 'Movimiento', entity: 'item_document' },
+						{ key: 'observacion', label: 'Observación' }
+					],
+					rows: [
+						{
+							fecha: '2026-09-10',
+							articulo: 'Maíz partido',
+							categoria: 'Nutrición / Suplementación',
+							cantidad: 3500,
+							unidad: 'kg',
+							cabezas_tratadas: 120,
+							costo_total: 840000,
+							costo_cabeza: 7000,
+							movimiento: 'SM-20260910-001',
+							observacion: 'Ración de acostumbramiento'
+						},
+						{
+							fecha: '2026-09-15',
+							articulo: 'Vacuna Clostridial 10V',
+							categoria: 'Sanidad / Vacunas',
+							cantidad: 120,
+							unidad: 'dosis',
+							cabezas_tratadas: 120,
+							costo_total: 360000,
+							costo_cabeza: 3000,
+							movimiento: 'SM-20260915-004',
+							observacion: 'Revacunación ingreso'
+						},
+						{
+							fecha: '2026-09-22',
+							articulo: 'Ivermectina 3.15%',
+							categoria: 'Antiparasitarios',
+							cantidad: 600,
+							unidad: 'ml',
+							cabezas_tratadas: 120,
+							costo_total: 185000,
+							costo_cabeza: 1541.67,
+							movimiento: 'SM-20260922-002',
+							observacion: 'Control parasitario'
+						},
+						{
+							fecha: '2026-10-01',
+							articulo: 'Núcleo Mineral Proteico',
+							categoria: 'Nutrición / Suplementación',
+							cantidad: 800,
+							unidad: 'kg',
+							cabezas_tratadas: 120,
+							costo_total: 280000,
+							costo_cabeza: 2333.33,
+							movimiento: 'SM-20261001-008',
+							observacion: 'Suplemento batea'
+						},
+						{
+							fecha: '2026-10-14',
+							articulo: 'Vacuna Respiratoria Viral',
+							categoria: 'Sanidad / Vacunas',
+							cantidad: 120,
+							unidad: 'dosis',
+							cabezas_tratadas: 120,
+							costo_total: 180200,
+							costo_cabeza: 1501.67,
+							movimiento: 'SM-20261014-003',
+							observacion: 'Dosis preventiva neumonías'
+						}
+					],
+					refs: [
+						{ articulo: 14, movimiento: 102 },
+						{ articulo: 8, movimiento: 105 },
+						{ articulo: 22, movimiento: 110 },
+						{ articulo: 19, movimiento: 114 },
+						{ articulo: 9, movimiento: 118 }
+					],
+					total_rows: 5
+				},
+				{ type: 'action', label: 'Ver lote Terneros 2025', route: '/batches/3' }
+			]
+		}
+	},
+	{
 		key: 'herd-stock',
 		label: 'Existencias por categoría',
 		flow: 'happy',

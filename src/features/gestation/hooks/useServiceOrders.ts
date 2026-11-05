@@ -86,6 +86,8 @@ export interface ServiceOrder {
   batch_name?: string | null;
   code: string;
   status: string;
+  /** Issued in the system, or registered after the service ended in the field. */
+  kind?: 'ISSUED' | 'REGISTERED';
   requested_by_user_id: number | null;
   reviewed_by_user_id: number | null;
   approved_by_user_id: number | null;

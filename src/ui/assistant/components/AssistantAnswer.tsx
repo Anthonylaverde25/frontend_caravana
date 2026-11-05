@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -5,7 +6,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { AssistantResponse } from '@/core/assistant/domain/AssistantTypes';
 import BlockRenderer from './blocks/BlockRenderer';
 import SourceBadge from './SourceBadge';
-import { hasVisualBlocks } from './answerBlocks';
+import { canonicalizeBlocks, hasVisualBlocks } from './answerBlocks';
 
 interface AssistantAnswerProps {
 	response: AssistantResponse;
@@ -17,6 +18,8 @@ interface AssistantAnswerProps {
 
 /** One assistant reply in the drawer: its blocks in compact size, the source badge and the time. */
 export function AssistantAnswer({ response, at, onNavigate, onExpand }: AssistantAnswerProps) {
+	const orderedBlocks = useMemo(() => canonicalizeBlocks(response.blocks), [response.blocks]);
+
 	return (
 		<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
 			<Box
@@ -35,7 +38,7 @@ export function AssistantAnswer({ response, at, onNavigate, onExpand }: Assistan
 					gap: 1.5
 				}}
 			>
-				{response.blocks.map((block, index) => (
+				{orderedBlocks.map((block, index) => (
 					<BlockRenderer
 						key={index}
 						block={block}

@@ -6,7 +6,8 @@ const today = (): string => new Date().toISOString().slice(0, 10);
 /**
  * The DTE being loaded: its number, date and the head it declares. The caravans are not part of
  * it — they are written down when the animals arrive. "Registrar ingreso" also asks the day the
- * animals entered, because there they arrive with the document.
+ * animals entered. The paper is recommended, not required: `withoutDte` validates and sends only
+ * the head that move.
  */
 export function useDteDraft() {
   const [dteNumber, setDteNumber] = useState('');
@@ -33,20 +34,19 @@ export function useDteDraft() {
    * What can be told before asking the server. Marks the fields and returns whether it can be sent.
    * `fallbackHead` stands for a head count left blank ("Registrar ingreso": the animals loaded).
    */
-  const validate = (fallbackHead = 0): boolean => {
+  const validate = (fallbackHead = 0, withoutDte = false): boolean => {
     const errors: DteHeaderError[] = [];
 
-    if (dteNumber.trim() === '') errors.push({ field: 'dte_number', code: 'DTE_NUMBER_MISSING', message: 'Falta el número de DTE.' });
-    if ((headCount === '' ? fallbackHead : heads) < 1) errors.push({ field: 'head_count', code: 'HEAD_COUNT_INVALID', message: 'Indicá cuántas cabezas declara el DTE.' });
+    if (!withoutDte && dteNumber.trim() === '') errors.push({ field: 'dte_number', code: 'DTE_NUMBER_MISSING', message: 'Falta el número de DTE.' });
+    if ((headCount === '' ? fallbackHead : heads) < 1) errors.push({ field: 'head_count', code: 'HEAD_COUNT_INVALID', message: 'Indicá cuántas cabezas vienen.' });
 
     setHeaderErrors(errors);
 
     return errors.length === 0;
   };
 
-  const payload = (): LoadDtePayload => ({
-    dte_number: dteNumber.trim(),
-    dte_date: dteDate,
+  const payload = (withoutDte = false): LoadDtePayload => ({
+    ...(withoutDte ? { without_dte: true } : { dte_number: dteNumber.trim(), dte_date: dteDate }),
     head_count: heads,
     observations: observations.trim() || null
   });

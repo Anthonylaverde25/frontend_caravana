@@ -2,6 +2,9 @@ import type { EntryOrderSummary, ReceptionMethod } from '@/features/entry-orders
 
 export { formatDate, formatDateTime, useTransferOrderTableStyles as useEntryOrderTableStyles } from '@/ui/transfer-orders/components/transferOrderFormat';
 
+/** How a DTE is named on screen: "DTE 0123", or "Sin DTE" while its paper is still to come. */
+export const dteLabel = (dte: { dte_number: string | null }): string => (dte.dte_number ? `DTE ${dte.dte_number}` : 'Sin DTE');
+
 /** "Juan Pérez · La Porteña". */
 export const originOf = (order: EntryOrderSummary): string =>
   [order.provider.name, order.farm.name].filter(Boolean).join(' · ') || '—';

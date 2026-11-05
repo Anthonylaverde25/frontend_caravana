@@ -12,13 +12,14 @@ import { scrollToBatchElement } from '../../utils/herdScroll';
 interface HerdUnassignedRowProps {
 	selectedCaravanId?: number | null;
 	onViewCaravan: (caravan: CaravanSummary) => void;
+	onWeighCaravan: (caravan: CaravanSummary) => void;
 }
 
 /**
  * Caravans in no batch: same row pattern as a batch, in the warning tone. Target of the
  * "Sin lote asignado" KPI.
  */
-export function HerdUnassignedRow({ selectedCaravanId, onViewCaravan }: HerdUnassignedRowProps) {
+export function HerdUnassignedRow({ selectedCaravanId, onViewCaravan, onWeighCaravan }: HerdUnassignedRowProps) {
 	const navigate = useNavigate();
 	const [expanded, setExpanded] = useState(false);
 	const rowRef = useRef<HTMLDivElement>(null);
@@ -138,6 +139,7 @@ export function HerdUnassignedRow({ selectedCaravanId, onViewCaravan }: HerdUnas
 						batchId={UNASSIGNED_BATCH}
 						highlightId={selectedCaravanId}
 						onView={onViewCaravan}
+						onWeigh={onWeighCaravan}
 					/>
 				</Box>
 			</Collapse>

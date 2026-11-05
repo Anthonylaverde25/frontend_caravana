@@ -39,46 +39,27 @@ const navigationConfig: FuseNavItemType[] = [
 		icon: 'heroicons-outline:building-storefront',
 		children: [
 			{
-				// Own batches and their caravans in one view: replaced "Caravanas" (/caravans) and "Lotes Propios" (/batches/own).
+				// Own batches, production stages and movement traceability in one consolidated view.
 				id: 'livestock.herd',
 				title: 'Hacienda Propia',
-				subtitle: 'Lotes y Caravanas',
+				subtitle: 'Lotes, Producción y Trazabilidad',
 				type: 'item',
 				icon: 'heroicons-outline:rectangle-stack',
 				url: '/herd',
 				end: true
 			},
-			// {
-			// 	id: 'gestion.farms',
-			// 	title: 'Establecimientos',
-			// 	subtitle: 'Sedes y Campos',
-			// 	type: 'item',
-			// 	icon: 'heroicons-outline:home-modern',
-			// 	url: '/farms'
-			// },
-			// All batch types consolidated under one collapse
+			// Operational orders and administrative batch management
 			{
 				id: 'gestion.batches-collapse',
-				title: 'Lotes',
-				subtitle: 'Tropas, Grupos e Internos',
+				title: 'Lotes y Órdenes',
+				subtitle: 'Ingresos, Egresos, Traslados e Internos',
 				type: 'collapse',
 				icon: 'heroicons-outline:view-columns',
 				children: [
-					// NOTE: Under evaluation for complete deprecation and removal.
-					// Purchases and external incoming livestock are canonically managed in /entry-orders,
-					// and allocation to ranch herds is performed via /batches/external-assignment.
-					// {
-					// 	id: 'gestion.batches.external',
-					// 	title: 'Lotes Externos',
-					// 	subtitle: 'De Proveedores',
-					// 	type: 'item',
-					// 	icon: 'heroicons-outline:truck',
-					// 	url: '/batches/external'
-					// },
 					{
 						id: 'gestion.batches.entry-orders',
 						title: 'Órdenes de Ingreso',
-						subtitle: 'ING-02 · Espera de DTE',
+						subtitle: 'Compras · Sin DTE',
 						type: 'item',
 						icon: 'heroicons-outline:arrow-down-tray',
 						url: '/entry-orders'
@@ -92,44 +73,22 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/exit-orders'
 					},
 					{
-						id: 'gestion.batches.assignment',
-						title: 'Asignar a Lote Propio',
+						id: 'gestion.batches.transfer-orders',
+						title: 'Órdenes de Transferencia',
 						type: 'item',
-						icon: 'heroicons-outline:arrow-right-start-on-rectangle',
-						url: '/batches/external-assignment'
+						icon: 'heroicons-outline:arrows-right-left',
+						url: '/transfer-orders'
 					},
-					// Internal system batches consolidated into a tabbed Hub
+					// Internal and administrative system batches consolidated into a tabbed Hub
 					{
 						id: 'internal-batches.hub',
 						title: 'Lotes Administrativos',
-						subtitle: 'Consumo, Muertes, Egresos, Cuarentena y Reserva',
+						subtitle: 'Consumo, Muertes, Egresos, Cuarentena, Reserva y Asignación',
 						type: 'item',
 						icon: 'heroicons-outline:archive-box',
 						url: '/internal-batches'
 					}
 				]
-			},
-			// Operational items
-			{
-				id: 'livestock.movements',
-				title: 'Movimientos',
-				type: 'item',
-				icon: 'heroicons-outline:arrow-path',
-				url: '/herd/movements'
-			},
-			{
-				id: 'gestion.activities',
-				title: 'Actividades',
-				type: 'item',
-				icon: 'heroicons-outline:clipboard-document-list',
-				url: '/activities'
-			},
-			{
-				id: 'gestion.transfer-orders',
-				title: 'Órdenes de Transferencia',
-				type: 'item',
-				icon: 'heroicons-outline:arrows-right-left',
-				url: '/transfer-orders'
 			}
 		]
 	},
@@ -150,13 +109,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'collapse',
 				icon: 'heroicons-outline:calendar-days',
 				children: [
-					{
-						id: 'gestation.bull-rotation',
-						title: 'Rotación de Toros',
-						type: 'item',
-						icon: 'heroicons-outline:arrow-path-round-square',
-						url: '/gestation/bull-rotation'
-					},
+					
 					{
 						id: 'gestation.service-orders',
 						title: 'Órdenes de servicio',

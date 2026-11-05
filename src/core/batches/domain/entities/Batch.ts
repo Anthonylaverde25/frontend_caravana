@@ -10,6 +10,13 @@ export interface ActiveServiceOrderSummary {
   is_controlled_service: boolean;
 }
 
+/** The order that keeps a batch from starting another: running, or waiting for its diagnosis. */
+export interface UnclosedServiceOrderSummary {
+  id: number;
+  code: string;
+  status: string;
+}
+
 /** The entry order an external batch was born from (a purchase waiting for, or fed by, its DTEs). */
 export interface BatchEntryOrderSummary {
   id: number;
@@ -79,6 +86,15 @@ export interface BatchDTO {
   nursing_weighed_count?: number | null;
   /** Kilos of the calves at foot inside total_weight. */
   nursing_total_weight?: number | null;
+  /**
+   * Bulls a running service keeps here for now: inside caravans_count and head_count, outside every
+   * measure of the batch (weights, weighed head, composition), which describe its herd.
+   */
+  bulls_on_service_count?: number | null;
+  bulls_on_service_weighed_count?: number | null;
+  bulls_on_service_total_weight?: number | null;
+  /** Categories the current weights span. Above one, current_weight describes no animal. */
+  weighed_category_count?: number | null;
   /** The batch's RENSPA: its provider farm's when external, the company's when own. */
   renspa?: string | null;
   incoming_entry_orders?: BatchIncomingEntryOrder[];
@@ -89,6 +105,7 @@ export interface BatchDTO {
   /** An APPROVED service runs on the batch (the bulls are with the females). */
   is_in_service?: boolean;
   active_service_order?: ActiveServiceOrderSummary | null;
+  unclosed_service_order?: UnclosedServiceOrderSummary | null;
   entry_order?: BatchEntryOrderSummary | null;
   created_at?: string;
 }
@@ -153,7 +170,12 @@ export class Batch {
     public readonly nursing_count = 0,
     public readonly nursing_weighed_count = 0,
     public readonly nursing_total_weight = 0,
-    public readonly untagged_calf_count = 0
+    public readonly untagged_calf_count = 0,
+    public readonly weighed_category_count = 0,
+    public readonly unclosed_service_order: UnclosedServiceOrderSummary | null = null,
+    public readonly bulls_on_service_count = 0,
+    public readonly bulls_on_service_weighed_count = 0,
+    public readonly bulls_on_service_total_weight = 0
   ) {}
 
   public static create(dto: BatchDTO): Batch {
@@ -198,7 +220,12 @@ export class Batch {
       dto.nursing_count ?? 0,
       dto.nursing_weighed_count ?? 0,
       dto.nursing_total_weight ?? 0,
-      dto.untagged_calf_count ?? 0
+      dto.untagged_calf_count ?? 0,
+      dto.weighed_category_count ?? 0,
+      dto.unclosed_service_order ?? null,
+      dto.bulls_on_service_count ?? 0,
+      dto.bulls_on_service_weighed_count ?? 0,
+      dto.bulls_on_service_total_weight ?? 0
     );
   }
 
@@ -208,6 +235,11 @@ export class Batch {
    */
   public get head_count(): number {
     return (this.caravans_count ?? 0) + this.pending_identification_count;
+  }
+
+  /** The caravans of its herd: what the batch measures. A bull on service is here, but passing through. */
+  public get herd_caravans_count(): number {
+    return Math.max(0, (this.caravans_count ?? 0) - this.bulls_on_service_count);
   }
 
   // Domain Behaviors
@@ -227,6 +259,11 @@ export class Batch {
   /** A service (DRAFT or APPROVED) is open on the batch, so another one cannot start. */
   public hasActiveService(): boolean {
     return this.active_service_order != null;
+  }
+
+  /** An order runs or waits for its tacto: the batch cannot start another until it is closed. */
+  public hasUnclosedServiceOrder(): boolean {
+    return this.unclosed_service_order != null;
   }
 
   public isWeaning(): boolean {

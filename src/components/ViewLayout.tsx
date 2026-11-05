@@ -24,7 +24,8 @@ const Root = styled(FusePageSimple)(({ theme }) => ({
     flexDirection: 'column',
     flex: '1 1 auto',
     padding: 0,
-    backgroundColor: theme.palette.background.default,
+    // Same white as the layout's content sheet: the page reads as one sheet.
+    backgroundColor: theme.palette.background.paper,
     '& > .container': {
       maxWidth: 'none !important',
       width: '100% !important',

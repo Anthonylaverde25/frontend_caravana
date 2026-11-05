@@ -40,7 +40,7 @@ export default function AiConnectionsSection() {
 			}
 		>
 			<Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-				Las conexiones sólo consultan datos de esta empresa con tus permisos; nunca cargan ni modifican nada. Cada usuario ve y
+				Las conexiones consultan datos de esta empresa con tus permisos y sólo registran tareas, pesajes de caravanas y consumos de lotes. Cada usuario ve y
 				revoca las suyas.
 			</Alert>
 			{data && <McpConnectorCard serverUrl={data.serverUrl} />}

@@ -6,7 +6,7 @@ import { BATCH_TYPE_SCOPE_OPTIONS } from '../../registry/boardTemplates';
 
 /** Widgets suggested for an empty board, by the batch type the board is scoped to. */
 const SUGGESTIONS: Partial<Record<BatchTypeCode | 'ALL', string[]>> = {
-	ALL: ['stock-total', 'stock-by-breed', 'ops-dte-kpi', 'stock-females-matrix'],
+	ALL: ['ops-critical-alerts', 'stock-total', 'stock-by-breed', 'ops-dte-kpi', 'stock-females-matrix'],
 	GROWING_REPLACEMENT_FEMALES: ['stock-total', 'stock-females-matrix'],
 	GROWING_HEIFERS: ['stock-total', 'stock-females-matrix'],
 	GROWING_STEERS: ['stock-total', 'stock-males-matrix'],

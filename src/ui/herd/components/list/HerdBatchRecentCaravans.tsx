@@ -12,13 +12,14 @@ interface HerdBatchRecentCaravansProps {
 	/** The caravan open in the detail drawer. */
 	highlightId?: number | null;
 	onView: (caravan: CaravanSummary) => void;
+	onWeigh: (caravan: CaravanSummary) => void;
 }
 
 /**
  * The last caravans that arrived to a batch. Mounted only when its row is expanded, so a closed
  * batch costs no request; "Ver todas" opens the batch page with the full, paginated list.
  */
-export function HerdBatchRecentCaravans({ batchId, highlightId, onView }: HerdBatchRecentCaravansProps) {
+export function HerdBatchRecentCaravans({ batchId, highlightId, onView, onWeigh }: HerdBatchRecentCaravansProps) {
 	const navigate = useNavigate();
 	const { data, isLoading, isError } = useCaravansSummary({ batchId, sort: 'recent', perPage: RECENT_COUNT });
 	const rows = data?.data ?? [];
@@ -75,6 +76,7 @@ export function HerdBatchRecentCaravans({ batchId, highlightId, onView }: HerdBa
 				rows={rows}
 				highlightId={highlightId}
 				onView={onView}
+				onWeigh={onWeigh}
 			/>
 			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pl: 2, pr: 1, py: 0.5 }}>
 				<Typography

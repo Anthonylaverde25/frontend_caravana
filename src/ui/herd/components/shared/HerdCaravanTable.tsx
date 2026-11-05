@@ -1,13 +1,4 @@
-import {
-	Checkbox,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableRow,
-	useTheme
-} from '@mui/material';
+import { Checkbox, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useTheme } from '@mui/material';
 import type { CaravanSummary } from '@/core/caravans/domain/entities/CaravanSummary';
 import HerdCaravanTableRow from './HerdCaravanTableRow';
 
@@ -22,6 +13,7 @@ interface HerdCaravanTableProps {
 	onBreeding?: (caravan: CaravanSummary) => void;
 	onDeath?: (caravan: CaravanSummary) => void;
 	onSell?: (caravan: CaravanSummary) => void;
+	onAbort?: (caravan: CaravanSummary) => void;
 	/** Row selection for bulk actions; the table is read-only without it. */
 	selectedIds?: number[];
 	onSelectionChange?: (ids: number[]) => void;
@@ -41,6 +33,7 @@ export function HerdCaravanTable({
 	onBreeding,
 	onDeath,
 	onSell,
+	onAbort,
 	selectedIds,
 	onSelectionChange
 }: HerdCaravanTableProps) {
@@ -93,8 +86,16 @@ export function HerdCaravanTable({
 				<TableHead>
 					<TableRow>
 						{selectable && (
-							<TableCell padding="checkbox" sx={headerCellStyle}>
-								<Checkbox size="small" checked={allSelected} indeterminate={someSelected} onChange={toggleAll} />
+							<TableCell
+								padding="checkbox"
+								sx={headerCellStyle}
+							>
+								<Checkbox
+									size="small"
+									checked={allSelected}
+									indeterminate={someSelected}
+									onChange={toggleAll}
+								/>
 							</TableCell>
 						)}
 						<TableCell sx={{ ...headerCellStyle, minWidth: 140 }}>Caravana</TableCell>
@@ -111,7 +112,7 @@ export function HerdCaravanTable({
 						{showBatch && <TableCell sx={{ ...headerCellStyle, minWidth: 140 }}>Lote</TableCell>}
 						<TableCell sx={{ ...headerCellStyle, minWidth: 130 }}>Ingreso al lote</TableCell>
 						<TableCell
-							sx={{ ...headerCellStyle, minWidth: 110, borderRight: 0, textAlign: 'right' }}
+							sx={{ ...headerCellStyle, minWidth: 80, borderRight: 0, textAlign: 'right' }}
 							align="right"
 						>
 							Acciones
@@ -145,6 +146,7 @@ export function HerdCaravanTable({
 								onBreeding={onBreeding}
 								onDeath={onDeath}
 								onSell={onSell}
+								onAbort={onAbort}
 							/>
 						);
 					})}

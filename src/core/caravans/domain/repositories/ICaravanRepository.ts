@@ -3,6 +3,7 @@ import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../entities/Car
 import { CaravanSummaryPage, CaravanSummaryQuery } from '../entities/CaravanSummary';
 import { TagCalvesPayload, UntaggedCalf } from '../entities/UntaggedCalf';
 import { DeathBatchOption, DeathCause, RegisterDeathPayload } from '../entities/Death';
+import { CastrationCandidates, CategoryChange, RegisterCastrationPayload } from '../entities/Castration';
 
 /**
  * ICaravanRepository
@@ -23,12 +24,12 @@ export interface ICaravanRepository {
    * Creates or updates a caravan based on the identification field.
    * Mirrors the backend's Upsert strategy.
    */
-  upsert(data: CreateCaravanRequest): Promise<{ action: string; id: number }>;
+  upsert(data: CreateCaravanRequest): Promise<{ action: string; id: number; warnings?: string[] }>;
 
   /**
    * Mass upsert of multiple caravans.
    */
-  bulkUpsert(data: CreateCaravanRequest[]): Promise<void>;
+  bulkUpsert(data: CreateCaravanRequest[]): Promise<{ warnings: string[] }>;
 
   /**
    * Registers multiple births (Bulk Birth).
@@ -61,4 +62,19 @@ export interface ICaravanRepository {
 
   /** Registers the death of one or several animals. Rejects with a 422 keyed by animal on any error. */
   registerDeath(payload: RegisterDeathPayload): Promise<void>;
+
+  /** Castration candidates in a batch. */
+  listCastrationCandidates(batchId: number): Promise<CastrationCandidates>;
+
+  /** Registers castration for a troop of animals. Rejects with a 422 keyed by row on any error. */
+  registerCastration(payload: RegisterCastrationPayload): Promise<void>;
+
+  /** Voids an active castration record. */
+  voidCastration(id: number, reason?: string | null): Promise<void>;
+
+  /** Lists historical category change events for a caravan. */
+  listCategoryChanges(caravanId: number): Promise<CategoryChange[]>;
+
+  /** Registers an abortion for a pregnant female and optionally promotes a vaquillona to cow. */
+  registerAbortion(caravanId: number, payload: { aborted_on: string; notes?: string | null; becomes_cow?: boolean }): Promise<void>;
 }

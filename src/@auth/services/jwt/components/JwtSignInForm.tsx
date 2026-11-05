@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import _ from 'lodash';
 import {
 	TextField,
 	FormControl,
@@ -49,7 +48,7 @@ function JwtSignInForm() {
 		resolver: zodResolver(schema)
 	});
 
-	const { isValid, dirtyFields, errors } = formState;
+	const { errors } = formState;
 
 	function onSubmit(formData: FormType) {
 		setLoading(true);
@@ -186,7 +185,7 @@ function JwtSignInForm() {
 			<Button
 				variant="contained"
 				className="w-full py-3 text-sm font-bold shadow-md transition-all duration-200"
-				disabled={_.isEmpty(dirtyFields) || !isValid || loading}
+				disabled={loading}
 				type="submit"
 				size="large"
 				endIcon={

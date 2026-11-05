@@ -5,43 +5,39 @@ import ViewLayout from 'src/components/ViewLayout';
 import { useBatch } from '@/features/batches/hooks/useBatch';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useBatchOverview } from '@/features/batches/hooks/useBatchOverview';
-import AddCaravansDialog from 'src/ui/batches/components/AddCaravansDialog';
-import StartBatchServiceDialog from 'src/ui/batches/components/dialogs/StartBatchServiceDialog';
-import BatchQuickTransferDialog from 'src/ui/batches/components/details/BatchQuickTransferDialog';
-import HerdBatchActions from '../components/detail/HerdBatchActions';
-import TagCalvesDialog from '../components/tag-calves/TagCalvesDialog';
-import { BatchWeighingDialog } from '@/ui/weighing/components/batch-weighing/BatchWeighingDialog';
-import HerdBatchKpiGrid from '../components/detail/HerdBatchKpiGrid';
-import HerdBatchAlerts from '../components/detail/HerdBatchAlerts';
-import HerdBatchCategoryBreakdown from '../components/detail/HerdBatchCategoryBreakdown';
+import HerdBatchHeaderActions from '../components/detail/HerdBatchHeaderActions';
+import HerdBatchTabs, { type HerdBatchTab } from '../components/detail/HerdBatchTabs';
+import HerdBatchSummaryTab from '../components/detail/summary/HerdBatchSummaryTab';
+import HerdBatchNoveltiesTab from '../components/detail/HerdBatchNoveltiesTab';
 import HerdBatchCaravansTable from '../components/detail/HerdBatchCaravansTable';
-import HerdBatchWeightSection from '../components/detail/HerdBatchWeightSection';
-import HerdBatchConsumptionSection from '../components/detail/HerdBatchConsumptionSection';
-import ConsumptionDialog from '@/ui/stock/components/consumption/ConsumptionDialog';
+import HerdBatchConsumptionTab from '../components/detail/HerdBatchConsumptionTab';
+import HerdBatchDialogs, { type HerdBatchDialog } from '../components/detail/HerdBatchDialogs';
 import HerdCaravanDialogs from '../components/shared/HerdCaravanDialogs';
 import { useHerdCaravanDialogs } from '../hooks/useHerdCaravanDialogs';
-import { UNASSIGNED_BATCH } from '../utils/herdFormat';
-import { useCompany } from '@/contexts/CompanyContext';
+import { orderLink, UNASSIGNED_BATCH } from '../utils/herdFormat';
 
-type BatchDialog = 'add' | 'transfer' | 'weigh' | 'service' | 'consume' | 'tag' | null;
+const TABS: HerdBatchTab[] = ['summary', 'novelties', 'caravans', 'consumption'];
 
 /**
- * The page of one batch: its figures, what needs attention, and all its caravans paginated.
- * "unassigned" shows the caravans in no batch, with the table only.
+ * The page of one batch as one sheet with three tabs: "Resumen" (the batch sheet and a section per
+ * subject, each with its own actions), "Caravanas" and "Consumos y costos". The tab lives in
+ * ?tab=; a link to a caravan (?caravan= or ?q=) opens the caravans. "unassigned" shows the caravans
+ * in no batch, with the table only.
  */
 function HerdBatchView() {
 	const navigate = useNavigate();
 	const { batchId: rawBatchId } = useParams();
-	const [searchParams] = useSearchParams();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const isUnassigned = rawBatchId === UNASSIGNED_BATCH;
 	const batchId = isUnassigned ? undefined : Number(rawBatchId) || undefined;
 	const highlightId = Number(searchParams.get('caravan')) || null;
 	const initialSearch = searchParams.get('q') ?? '';
+	const tabParam = searchParams.get('tab') as HerdBatchTab | null;
+	const tab: HerdBatchTab =
+		tabParam && TABS.includes(tabParam) ? tabParam : highlightId || initialSearch ? 'caravans' : 'summary';
 
-	const { activeCompanyId, companies } = useCompany();
-	const companyName = companies.find((c) => c.id === activeCompanyId)?.name;
 	const dialogs = useHerdCaravanDialogs();
-	const [openDialog, setOpenDialog] = useState<BatchDialog>(null);
+	const [dialog, setDialog] = useState<HerdBatchDialog>(null);
 	const { data: batch, isLoading, isError } = useBatch(batchId);
 	const { data: overview } = useBatchOverview(batchId);
 	const { data: batches } = useBatches(undefined, undefined, 'own');
@@ -50,14 +46,30 @@ function HerdBatchView() {
 		[batches]
 	);
 
-	const tableKey = `${rawBatchId}-${highlightId ?? ''}-${initialSearch}`;
+	const changeTab = (next: HerdBatchTab) =>
+		setSearchParams(
+			(params) => {
+				params.set('tab', next);
+
+				// The caravan a link pointed to belongs to the caravans tab only.
+				if (next !== 'caravans') {
+					params.delete('caravan');
+					params.delete('q');
+				}
+
+				return params;
+			},
+			{ replace: true }
+		);
+
 	const table = (
 		<HerdBatchCaravansTable
-			key={tableKey}
+			key={`${rawBatchId}-${highlightId ?? ''}-${initialSearch}`}
 			batchId={isUnassigned ? UNASSIGNED_BATCH : (batchId as number)}
 			initialSearch={initialSearch}
 			highlightId={highlightId}
 			dialogs={dialogs}
+			onBulkTransfer={isUnassigned ? undefined : (caravanIds) => setDialog({ kind: 'transfer', caravanIds })}
 		/>
 	);
 
@@ -66,8 +78,9 @@ function HerdBatchView() {
 			<ViewLayout
 				title="Sin lote asignado"
 				subtitle="Caravanas propias que no están en ningún lote."
+				className=""
 			>
-				<Box sx={{ p: { xs: 2, md: 3 } }}>{table}</Box>
+				{table}
 				<HerdCaravanDialogs
 					dialogs={dialogs}
 					ownBatches={ownBatches}
@@ -102,96 +115,74 @@ function HerdBatchView() {
 		);
 	}
 
-	const subtitle = [
-		// An own batch has no farm: its place is the company itself.
-		batch.farm_name ?? companyName,
-		batch.activity_name,
-		batch.batch_type_name,
-		batch.is_active ? null : 'Inactivo'
-	]
-		.filter(Boolean)
-		.join(' · ');
+	const service = batch.active_service_order;
+	const serviceLink = service ? orderLink('service_order', service.id) : null;
+	const open = (kind: Exclude<NonNullable<HerdBatchDialog>['kind'], 'transfer'>) => () => setDialog({ kind });
 
 	return (
 		<ViewLayout
 			title={batch.name}
-			subtitle={subtitle}
+			subtitle={batch.is_active ? undefined : 'Inactivo'}
+			className=""
+			breadcrumbs={[
+				{ title: 'Hacienda Propia', url: '/herd' },
+				{ title: batch.name, url: `/herd/batches/${batch.id}` }
+			]}
 			actions={
-				<HerdBatchActions
-					batch={batch}
-					onAddCaravans={() => setOpenDialog('add')}
-					onTransfer={() => setOpenDialog('transfer')}
-					onWeighBatch={() => setOpenDialog('weigh')}
-					onConsume={() => setOpenDialog('consume')}
-					onStartService={() => setOpenDialog('service')}
-					onTagCalves={() => setOpenDialog('tag')}
+				<HerdBatchHeaderActions
+					onPrintSheet={() => navigate(`/herd/batches/${batch.id}/weight-sheet`)}
+					onAddCaravans={open('add')}
+					onTransfer={() => setDialog({ kind: 'transfer', caravanIds: undefined })}
+					onChangeManagement={open('management')}
+				/>
+			}
+			subHeader={
+				<HerdBatchTabs
+					value={tab}
+					caravanCount={batch.caravans_count ?? null}
+					alertsCount={overview?.alerts?.length ?? 0}
+					onChange={changeTab}
 				/>
 			}
 		>
-			<Stack
-				spacing={2}
-				sx={{ p: { xs: 2, md: 3 } }}
-			>
-				<HerdBatchKpiGrid
+			{tab === 'summary' && (
+				<HerdBatchSummaryTab
 					batch={batch}
 					overview={overview}
+					actions={{
+						onChangeManagement: open('management'),
+						onTagCalves: open('tag'),
+						onCastrate: open('castrate'),
+						onWeighBatch: open('weigh'),
+						onWeighByCaravan: () => navigate(`/herd/batches/${batch.id}/bulk-weight`),
+						onOpenService: () => serviceLink && navigate(serviceLink),
+						onStartService: batch.isCria() && !batch.hasUnclosedServiceOrder() ? open('service') : null,
+						onConsume: open('consume'),
+						onShowConsumption: () => changeTab('consumption'),
+						onShowNovelties: () => changeTab('novelties')
+					}}
 				/>
-				<Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', lg: '3fr 2fr' } }}>
-					<HerdBatchAlerts alerts={overview?.alerts ?? []} />
-					<HerdBatchCategoryBreakdown categories={overview?.category_composition ?? []} />
-				</Box>
-				{table}
-				<HerdBatchWeightSection batchId={batch.id} />
-				<HerdBatchConsumptionSection batchId={batch.id} />
-			</Stack>
+			)}
+			{tab === 'novelties' && (
+				<HerdBatchNoveltiesTab alerts={overview?.alerts ?? []} />
+			)}
+			{tab === 'caravans' && table}
+			{tab === 'consumption' && (
+				<HerdBatchConsumptionTab
+					batchId={batch.id as number}
+					onConsume={open('consume')}
+				/>
+			)}
 
 			<HerdCaravanDialogs
 				dialogs={dialogs}
 				ownBatches={ownBatches}
 			/>
-			{/* Mounted only while open: these dialogs derive state from queries that are idle when closed. */}
-			{openDialog === 'add' && (
-				<AddCaravansDialog
-					open
-					onClose={() => setOpenDialog(null)}
-					batch={batch}
-				/>
-			)}
-			{openDialog === 'transfer' && (
-				<BatchQuickTransferDialog
-					open
-					onClose={() => setOpenDialog(null)}
-					batch={batch}
-				/>
-			)}
-			{openDialog === 'weigh' && (
-				<BatchWeighingDialog
-					open
-					onClose={() => setOpenDialog(null)}
-					batch={batch}
-				/>
-			)}
-			{openDialog === 'consume' && (
-				<ConsumptionDialog
-					open
-					onClose={() => setOpenDialog(null)}
-					batch={batch}
-				/>
-			)}
-			{openDialog === 'tag' && (
-				<TagCalvesDialog
-					open
-					onClose={() => setOpenDialog(null)}
-					batch={batch}
-				/>
-			)}
-			{openDialog === 'service' && (
-				<StartBatchServiceDialog
-					open
-					onClose={() => setOpenDialog(null)}
-					batch={batch}
-				/>
-			)}
+			<HerdBatchDialogs
+				batch={batch}
+				dialog={dialog}
+				onClose={() => setDialog(null)}
+			/>
 		</ViewLayout>
 	);
 }

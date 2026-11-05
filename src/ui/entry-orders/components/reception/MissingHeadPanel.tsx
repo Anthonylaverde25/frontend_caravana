@@ -42,7 +42,7 @@ export const MissingHeadPanel: React.FC<MissingHeadPanelProps> = ({ left, fate, 
       <Stack spacing={1.5}>
         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {left === 1 ? 'Falta 1 cabeza del DTE:' : `Faltan ${left} cabezas del DTE:`}
+            {left === 1 ? 'Falta 1 cabeza declarada:' : `Faltan ${left} cabezas declaradas:`}
           </Typography>
           <ChoiceButtons
             value={fate}

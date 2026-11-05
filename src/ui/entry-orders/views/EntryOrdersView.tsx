@@ -19,7 +19,7 @@ const searchableOf = (order: EntryOrderSummary): string[] => [
   originOf(order),
   order.auction_number ?? '',
   breedsOf(order),
-  ...order.dtes.map((d) => d.dte_number)
+  ...order.dtes.flatMap((d) => (d.dte_number ? [d.dte_number] : []))
 ];
 
 /**
@@ -54,12 +54,14 @@ export const EntryOrdersView: React.FC = () => {
       COMPLETED: 0,
       CLOSED_INCOMPLETE: 0,
       CANCELLED: 0,
-      WITH_INCIDENTS: 0
+      WITH_INCIDENTS: 0,
+      WITHOUT_DTE: 0
     };
 
     orders.forEach((order) => {
       result[order.status] += 1;
       if (order.open_incidents_count > 0) result.WITH_INCIDENTS += 1;
+      if (order.without_dte) result.WITHOUT_DTE += 1;
       if (isDiscardedDraft(order.status, order)) result.ALL -= 1;
     });
 
@@ -74,7 +76,8 @@ export const EntryOrdersView: React.FC = () => {
         // Discarded drafts are not purchases: they only show under "Anulada".
         ((status === 'ALL' && !isDiscardedDraft(order.status, order)) ||
           order.status === status ||
-          (status === 'WITH_INCIDENTS' && order.open_incidents_count > 0)) &&
+          (status === 'WITH_INCIDENTS' && order.open_incidents_count > 0) ||
+          (status === 'WITHOUT_DTE' && order.without_dte)) &&
         (term === '' || searchableOf(order).some((text) => normalize(text).includes(term)))
     );
   }, [orders, status, search]);
@@ -82,7 +85,7 @@ export const EntryOrdersView: React.FC = () => {
   return (
     <ViewLayout
       title="Órdenes de Ingreso"
-      subtitle="Compras de hacienda externa (ING-02): la orden nace sin caravanas, espera su DTE y después la hacienda."
+      subtitle="Compras de hacienda externa (ING-02): la orden nace sin caravanas, se recomienda cargar su DTE y después llega la hacienda."
       actions={<EntryStartActions onSaved={(result) => setOpened(result.order.id)} />}
     >
       <Stack spacing={2}>

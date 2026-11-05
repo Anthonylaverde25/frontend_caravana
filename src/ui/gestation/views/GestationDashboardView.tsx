@@ -255,11 +255,11 @@ export function GestationDashboardView({ embedded = false }: GestationDashboardV
       <Button
         variant="outlined"
         size={embedded ? 'small' : 'medium'}
-        startIcon={<FuseSvgIcon size={18}>heroicons-outline:arrow-path-round-square</FuseSvgIcon>}
-        onClick={() => navigate('/gestation/bull-rotation')}
+        startIcon={<FuseSvgIcon size={18}>heroicons-outline:clipboard-document-list</FuseSvgIcon>}
+        onClick={() => navigate('/gestation/services/conventional')}
         sx={{ textTransform: 'none', fontWeight: 700 }}
       >
-        Rotación de Toros
+        Servicios
       </Button>
       <Button
         variant="outlined"

@@ -123,15 +123,16 @@ export default function BatchQuickEntryDialog({
         is_empty: data.sex === 'H' ? true : null,
       }));
 
-      if (payloads.length === 1) {
-        await caravanRepository.upsert(payloads[0]);
-      } else {
-        await caravanRepository.bulkUpsert(payloads);
-      }
+      const { warnings = [] } =
+        payloads.length === 1
+          ? await caravanRepository.upsert(payloads[0])
+          : await caravanRepository.bulkUpsert(payloads);
 
-      return tags.length;
+      return { count: tags.length, warnings };
     },
-    onSuccess: (count) => {
+    onSuccess: ({ count, warnings }) => {
+      // A load never ends a pregnancy: what it could not do is said here.
+      warnings.forEach((warning) => toast.warning(warning));
       queryClient.invalidateQueries({ queryKey: ['batch-weight-history'] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });

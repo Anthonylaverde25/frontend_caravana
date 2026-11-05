@@ -23,7 +23,7 @@ interface MessageListProps {
 
 const WELCOME =
 	'Hola, soy XIMON. Consulto las existencias, lotes, servicios, partos y órdenes de tu establecimiento, ' +
-	'y armo tablas y gráficos con esos datos. Solo leo información: no modifico registros.';
+	'y armo tablas y gráficos con esos datos. Además, puedo registrar tareas, pesajes y consumos de lotes; lo demás se carga desde el sistema.';
 
 /** The scrolling conversation; keeps the newest turn in view. */
 export function MessageList({

@@ -69,6 +69,22 @@ function NavbarStyle1Content(props: NavbarStyle1ContentProps) {
           isContrastActive && contrastSettings.asideText
             ? contrastSettings.asideText
             : theme.vars.palette.text.primary,
+        // Quiet idle icons, dark active item: the selection is read at a glance.
+        "& .MuiButton-root .fuse-list-item-icon": {
+          color: theme.vars.palette.text.secondary,
+        },
+        "& .MuiButton-root.active .fuse-list-item-icon": {
+          color: theme.vars.palette.text.primary,
+        },
+        "& .MuiButton-root.active .fuse-list-item-title": {
+          fontWeight: 600,
+        },
+        "& .fuse-nav-group .fuse-list-item-title": {
+          fontSize: "11px",
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          color: theme.vars.palette.text.secondary,
+        },
         ...(isContrastActive &&
           contrastSettings.asideText && {
             "& .MuiTypography-root, & .fuse-list-item-text, & .fuse-list-item-icon, & .MuiSvgIcon-root, & svg":

@@ -22,16 +22,20 @@ export const BATCH_TYPE_SCOPE_OPTIONS: { value: BatchTypeCode; label: string; he
 
 const TEMPLATE_SLOTS: Record<Exclude<BoardTemplateType, 'BLANK' | 'PASTURE'>, TemplateSlot[]> = {
 	GENERAL: [
+		['ops-critical-alerts', 'M'],
 		['stock-total', 'S'],
-		['stock-females-kpi', 'S'],
-		['stock-males-kpi', 'S'],
 		['ops-dte-kpi', 'S'],
+		['stock-females-kpi', 'S'],
+		['ops-pending-orders-kpi', 'S'],
 		['stock-females-matrix', 'M'],
 		['stock-males-matrix', 'M'],
+		['ops-orders-worklist', 'L'],
 		['ops-dte-status', 'L']
 	],
 	REPRODUCTIVE: [],
-	WEIGHTS: [],
+	WEIGHTS: [
+		['weights-category-area-pieces', 'L']
+	],
 	HEALTH: [
 		['health-lab-worklist', 'L']
 	]

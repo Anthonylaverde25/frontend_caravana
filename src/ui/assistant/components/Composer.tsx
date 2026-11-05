@@ -71,7 +71,7 @@ export function Composer({ disabled, onSend }: ComposerProps) {
 			<Typography
 				sx={{ display: 'block', textAlign: 'center', color: 'text.secondary', fontSize: '0.65rem', mt: 1 }}
 			>
-				XIMON responde con los registros del establecimiento y solo consulta: no modifica datos.
+				XIMON responde con los registros del establecimiento; consulta datos y sólo registra tareas, pesajes y consumos de lotes.
 			</Typography>
 		</Box>
 	);

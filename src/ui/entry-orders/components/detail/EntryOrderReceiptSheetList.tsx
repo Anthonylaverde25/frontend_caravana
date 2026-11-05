@@ -4,7 +4,7 @@ import { Box, Chip, Paper, Stack, Typography, alpha, useTheme } from '@mui/mater
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { EntryOrder, EntryOrderReceiptSheet } from '@/features/entry-orders/types';
 import { ing03Url } from '@/ui/work-templates/templates/ing03';
-import { formatDateTime, headsOf } from '../entryOrderFormat';
+import { dteLabel, formatDateTime, headsOf } from '../entryOrderFormat';
 
 /** "2 de 3 hojas escaneadas · falta la hoja 3". */
 const progressOf = (sheet: EntryOrderReceiptSheet): string => {
@@ -59,7 +59,7 @@ export const EntryOrderReceiptSheetList: React.FC<{ order: EntryOrder }> = ({ or
               <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography sx={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                    {sheet.label} · DTE {sheet.dte_number}
+                    {sheet.label} · {dteLabel(sheet)}
                   </Typography>
                   <Chip
                     size="small"

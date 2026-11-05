@@ -115,7 +115,7 @@ export function useDteMetrics(): DteMetricsResult {
           id: `${order.id}-${dte.id}`,
           orderId: order.id,
           orderCode: order.code,
-          dteNumber: dte.dte_number || `DTE-${dte.id}`,
+          dteNumber: dte.dte_number || 'Sin DTE',
           dteDate: dte.dte_date || order.purchase_date || '—',
           providerName: order.provider?.name || 'Proveedor sin especificar',
           farmName: order.farm?.name || 'Establecimiento general',

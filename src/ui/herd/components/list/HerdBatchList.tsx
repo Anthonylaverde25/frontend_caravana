@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { Batch } from '@/core/batches/domain/entities/Batch';
 import { useBatches } from '@/features/batches/hooks/useBatches';
 import { useActivities } from '@/features/activities/hooks/useActivities';
@@ -28,14 +29,105 @@ interface HerdBatchListProps {
 	onCreateBatch: () => void;
 	/** Owned by the view, so its "Insertar caravana" action opens the same form. */
 	dialogs: HerdCaravanDialogsState;
+	emptyBatchesOnly?: boolean;
+	stockedBatchesOnly?: boolean;
 }
 
 const asArray = <T,>(value: T[] | undefined): T[] => (Array.isArray(value) ? value : []);
 
+function HerdEmptyBatchesKpiStrip({
+	batches,
+	totalEmptyCount,
+	activeFiltersCount
+}: {
+	batches: Batch[];
+	totalEmptyCount: number;
+	activeFiltersCount: number;
+}) {
+	const uniqueFarms = useMemo(
+		() => new Set(batches.map((b) => b.farm_name).filter(Boolean)).size,
+		[batches]
+	);
+	const uniqueActivities = useMemo(
+		() => new Set(batches.map((b) => b.activity_name).filter(Boolean)).size,
+		[batches]
+	);
+
+	return (
+		<Paper
+			component="section"
+			aria-label="Resumen de Lotes Vacíos"
+			elevation={0}
+			sx={{
+				display: 'grid',
+				gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+				border: 1,
+				borderColor: 'divider',
+				borderRadius: '10px',
+				overflow: 'hidden',
+				'& > *:not(:last-child)': { borderRight: 1, borderColor: 'divider' }
+			}}
+		>
+			<Box sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+				<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+					Lotes vacíos disponibles
+				</Typography>
+				<Typography sx={{ fontSize: '1.6rem', fontWeight: 700, lineHeight: 1.15, color: 'text.primary' }}>
+					{batches.length.toLocaleString('es-AR')}
+				</Typography>
+				<Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+					{activeFiltersCount > 0 ? `de ${totalEmptyCount} lotes vacíos` : 'sin hacienda asignada'}
+				</Typography>
+			</Box>
+
+			<Box sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+				<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+					Establecimientos
+				</Typography>
+				<Typography sx={{ fontSize: '1.6rem', fontWeight: 700, lineHeight: 1.15, color: 'text.primary' }}>
+					{uniqueFarms.toLocaleString('es-AR')}
+				</Typography>
+				<Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+					con disponibilidad de potrero
+				</Typography>
+			</Box>
+
+			<Box sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+				<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+					Actividades configuradas
+				</Typography>
+				<Typography sx={{ fontSize: '1.6rem', fontWeight: 700, lineHeight: 1.15, color: 'text.primary' }}>
+					{uniqueActivities.toLocaleString('es-AR')}
+				</Typography>
+				<Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+					destinos productivos listos
+				</Typography>
+			</Box>
+
+			<Box sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+				<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+					Carga Animal
+				</Typography>
+				<Typography sx={{ fontSize: '1.6rem', fontWeight: 700, lineHeight: 1.15, color: '#16a34a' }}>
+					0 cab.
+				</Typography>
+				<Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+					listos para ingreso o traslado
+				</Typography>
+			</Box>
+		</Paper>
+	);
+}
+
 /**
  * Own batches with their filters and KPIs. Each row expands to its latest caravans on demand.
  */
-export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
+export function HerdBatchList({
+	onCreateBatch,
+	dialogs,
+	emptyBatchesOnly = false,
+	stockedBatchesOnly = false
+}: HerdBatchListProps) {
 	const navigate = useNavigate();
 	const { activeCompanyId } = useCompany();
 	const [addingTo, setAddingTo] = useState<Batch | null>(null);
@@ -51,7 +143,12 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 	const { data: serviceOrders = [] } = useServiceOrders();
 	const { data: allCaravans = [] } = useCaravans(openServiceOrderId ? activeCompanyId : null, 'own');
 
-	const ownBatches = useMemo(() => asArray(batches).filter((b) => b && b.provider_id == null), [batches]);
+	const ownBatches = useMemo(() => {
+		const list = asArray(batches).filter((b) => b && b.provider_id == null);
+		if (emptyBatchesOnly) return list.filter((b) => b.head_count <= 0);
+		if (stockedBatchesOnly) return list.filter((b) => b.head_count > 0);
+		return list;
+	}, [batches, emptyBatchesOnly, stockedBatchesOnly]);
 
 	const openServiceOrder = useMemo(
 		() => serviceOrders.find((o) => o.id === openServiceOrderId) ?? null,
@@ -84,7 +181,15 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 	return (
 		<Box sx={{ width: '100%' }}>
 			<Box sx={{ p: { xs: 2, md: 3 }, pb: { xs: 0, md: 0 } }}>
-				<HerdKpiStrip batches={filteredBatches} />
+				{emptyBatchesOnly ? (
+					<HerdEmptyBatchesKpiStrip
+						batches={filteredBatches}
+						totalEmptyCount={ownBatches.length}
+						activeFiltersCount={activeFiltersCount}
+					/>
+				) : (
+					<HerdKpiStrip batches={filteredBatches} />
+				)}
 			</Box>
 			<BatchFiltersBar
 				filters={filters}
@@ -122,6 +227,7 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 								defaultExpanded={index === 0}
 								selectedCaravanId={selectedCaravanId}
 								onViewCaravan={dialogs.openView}
+								onWeighCaravan={dialogs.openWeigh}
 								onAddCaravans={setAddingTo}
 								onWeighBatch={setWeighing}
 								onConsume={setConsumingIn}
@@ -130,13 +236,66 @@ export function HerdBatchList({ onCreateBatch, dialogs }: HerdBatchListProps) {
 								onOpenServiceOrder={setOpenServiceOrderId}
 							/>
 						))}
-						{activeFiltersCount === 0 && (
+						{!emptyBatchesOnly && activeFiltersCount === 0 && (
 							<HerdUnassignedRow
 								selectedCaravanId={selectedCaravanId}
 								onViewCaravan={dialogs.openView}
+								onWeighCaravan={dialogs.openWeigh}
 							/>
 						)}
 					</Stack>
+				) : emptyBatchesOnly && activeFiltersCount === 0 ? (
+					<Paper
+						elevation={0}
+						sx={{
+							p: 6,
+							py: 8,
+							borderRadius: '8px',
+							border: '1px dashed',
+							borderColor: 'divider',
+							textAlign: 'center',
+							bgcolor: 'background.paper'
+						}}
+					>
+						<Stack spacing={2.5} alignItems="center" justifyContent="center">
+							<Box
+								sx={{
+									p: 2,
+									bgcolor: 'action.hover',
+									color: 'success.main',
+									borderRadius: '50%',
+									display: 'flex'
+								}}
+							>
+								<FuseSvgIcon size={40}>heroicons-outline:check-circle</FuseSvgIcon>
+							</Box>
+							<Stack spacing={0.5} maxWidth={440}>
+								<Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', fontSize: '1.05rem' }}>
+									No hay lotes vacíos actualmente
+								</Typography>
+								<Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem' }}>
+									Todos los lotes propios de su establecimiento cuentan con hacienda asignada. Si necesita crear un nuevo lote para futuras tropas o descansos de potrero, puede crearlo aquí.
+								</Typography>
+							</Stack>
+							{onCreateBatch && (
+								<Button
+									variant="contained"
+									size="small"
+									onClick={onCreateBatch}
+									startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus-circle</FuseSvgIcon>}
+									sx={{
+										mt: 1,
+										borderRadius: '6px',
+										textTransform: 'none',
+										fontWeight: 700,
+										px: 3
+									}}
+								>
+									Crear Nuevo Lote
+								</Button>
+							)}
+						</Stack>
+					</Paper>
 				) : (
 					<OwnBatchesEmptyState
 						hasActiveFilters={activeFiltersCount > 0}

@@ -16,9 +16,10 @@ interface McpConsentCardProps {
 
 const ALLOWED = [
 	'Consultar existencias, lotes, caravanas, órdenes y stock de la empresa elegida.',
-	'Ver sólo lo que tu usuario ya puede ver en el sistema.'
+	'Ver sólo lo que tu usuario ya puede ver en el sistema.',
+	'Registrar tareas, pesajes de caravanas y consumos de lotes.'
 ];
-const NEVER = ['Cargar, modificar ni borrar datos.', 'Ver otras empresas o establecimientos.'];
+const NEVER = ['Modificar ni borrar otros datos.', 'Ver otras empresas o establecimientos.'];
 
 /** What the user approves: who asks, for which company, and what it can and cannot do. */
 export default function McpConsentCard(props: McpConsentCardProps) {

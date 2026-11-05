@@ -53,7 +53,7 @@ export const ScanLser01MetadataHeader: React.FC<ScanLser01MetadataHeaderProps> =
         options={criaBatches}
         value={selectedBatch}
         getOptionLabel={(option) => `${option.name} (ID ${option.id})`}
-        getOptionDisabled={(option) => option.hasActiveService()}
+        getOptionDisabled={(option) => option.hasUnclosedServiceOrder()}
         isOptionEqualToValue={(option, value) => option.id === value.id}
         onChange={(_, value) => {
           onChange('lote_id', value?.id ?? null);

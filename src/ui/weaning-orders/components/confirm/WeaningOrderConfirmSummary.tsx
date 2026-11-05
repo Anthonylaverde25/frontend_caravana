@@ -33,7 +33,7 @@ const CATEGORY_TEXT = { KEEP: 'No cambia', DECLARED: 'Se declara ahora', AT_CHUT
 
 const formatDate = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '—');
 
-const Fact: React.FC<{ label: string; value: React.ReactNode; hint?: string }> = ({ label, value, hint }) => (
+export const Fact: React.FC<{ label: string; value: React.ReactNode; hint?: string }> = ({ label, value, hint }) => (
   <Box sx={{ minWidth: 0 }}>
     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
       {label}
@@ -47,7 +47,7 @@ const Fact: React.FC<{ label: string; value: React.ReactNode; hint?: string }> =
   </Box>
 );
 
-const Consequence: React.FC<{ icon: string; children: React.ReactNode }> = ({ icon, children }) => (
+export const Consequence: React.FC<{ icon: string; children: React.ReactNode }> = ({ icon, children }) => (
   <Stack direction="row" spacing={1} alignItems="flex-start">
     <Box sx={{ color: 'primary.main', display: 'flex', mt: '2px' }}>
       <FuseSvgIcon size={16}>{icon}</FuseSvgIcon>

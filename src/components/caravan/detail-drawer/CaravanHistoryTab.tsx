@@ -3,6 +3,7 @@ import type { Theme } from '@mui/material/styles';
 import type { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import type { CaravanWeightRecord } from '@/core/weighing/domain/entities/Weighing';
 import { useCaravanMovements } from '@/features/caravans/hooks/useCaravanMovements';
+import { useCaravanCategoryChanges } from '@/features/caravans/hooks/useCaravanCategoryChanges';
 import { formatDate } from 'src/ui/herd/utils/herdFormat';
 import { timeline, type TimelineEvent } from './caravanDrawerModel';
 
@@ -21,13 +22,14 @@ const dotColor = (tone: TimelineEvent['tone']) => (theme: Theme) =>
 	})[tone];
 
 /**
- * Movements, weighings and the current gestation of the caravan, newest first. Movements are
- * fetched only when this tab opens.
+ * Movements, weighings, category changes and the current gestation of the caravan, newest first.
+ * Movements and category changes are fetched only when this tab opens.
  */
 export function CaravanHistoryTab({ caravan, weights }: CaravanHistoryTabProps) {
-	const { data: movements = [], isLoading } = useCaravanMovements(caravan.id);
+	const { data: movements = [], isLoading: loadingMovements } = useCaravanMovements(caravan.id);
+	const { data: categoryChanges = [], isLoading: loadingChanges } = useCaravanCategoryChanges(caravan.id);
 
-	if (isLoading) {
+	if (loadingMovements || loadingChanges) {
 		return (
 			<Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
 				<CircularProgress size={28} />
@@ -35,7 +37,7 @@ export function CaravanHistoryTab({ caravan, weights }: CaravanHistoryTabProps) 
 		);
 	}
 
-	const events = timeline(caravan, movements, weights);
+	const events = timeline(caravan, movements, weights, categoryChanges);
 
 	if (events.length === 0) {
 		return (

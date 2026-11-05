@@ -45,7 +45,7 @@ export const Ing03Header: React.FC<Ing03HeaderProps> = ({ code, order, sheet, pa
         {order.batch_name ?? '—'} · {order.provider.name ?? '—'}
       </Typography>
       <Typography sx={{ fontWeight: 800, fontSize: '0.66rem', color: '#000' }}>
-        Cabezas del DTE: {sheet.dte_head_count} · a recibir: {sheet.expected_head_count}
+        {sheet.dte_number ? 'Cabezas del DTE' : 'Cabezas declaradas'}: {sheet.dte_head_count} · a recibir: {sheet.expected_head_count}
       </Typography>
     </>
   );
@@ -81,7 +81,7 @@ export const Ing03Header: React.FC<Ing03HeaderProps> = ({ code, order, sheet, pa
                 </Typography>
               </td>
               <td style={{ ...valueCellStyle, padding: '3px 6px', border: '3px solid #000', backgroundColor: '#f8fafc' }}>
-                <Typography sx={{ ...monoSx, fontSize: '0.82rem' }}>{sheet.dte_number}</Typography>
+                <Typography sx={{ ...monoSx, fontSize: '0.82rem' }}>{sheet.dte_number ?? 'SIN DTE'}</Typography>
               </td>
               <td style={{ border: '1px solid #000', padding: '3px 10px' }}>{batchAndSeller}</td>
               <td style={{ border: '1px solid #000', padding: '3px 8px' }}>{dateBlank}</td>
@@ -127,7 +127,7 @@ export const Ing03Header: React.FC<Ing03HeaderProps> = ({ code, order, sheet, pa
             </tr>
             <tr style={{ height: 32 }}>
               <td style={{ border: '3px solid #000', padding: '3px 10px', backgroundColor: '#f8fafc' }}>
-                <Typography sx={{ ...monoSx, fontSize: averaged ? '0.88rem' : '1rem' }}>{sheet.dte_number}</Typography>
+                <Typography sx={{ ...monoSx, fontSize: averaged ? '0.88rem' : '1rem' }}>{sheet.dte_number ?? 'SIN DTE'}</Typography>
               </td>
               <td style={{ border: '1px solid #000', padding: '3px 10px' }}>{batchAndSeller}</td>
               <td style={{ border: '1px solid #000', padding: '3px 10px' }}>{dateBlank}</td>

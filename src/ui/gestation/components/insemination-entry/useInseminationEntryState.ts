@@ -7,7 +7,7 @@ import { defaultLot, draftFor, type InseminationDefaults, type InseminationDraft
  * State of the insemination sheet: a draft per female, the defaults of the load (date, tank, straws)
  * that fill every row not typed by hand, the marked rows and the cell errors of the last attempt.
  */
-export function useInseminationEntryState(females: InseminationFemale[], byId: Map<number, SemenOption>, defaultTankId: number | null) {
+export function useInseminationEntryState(females: InseminationFemale[], byId: Map<number, SemenOption>, defaultTankId: number | null, lastDay: string | null = null) {
   const [defaults, setDefaultsState] = useState<InseminationDefaults>({ date: todayIso(), warehouseId: null, straws: 1, lots: {} });
   const [drafts, setDrafts] = useState<Record<number, InseminationDraft>>({});
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -18,6 +18,11 @@ export function useInseminationEntryState(females: InseminationFemale[], byId: M
   useEffect(() => {
     if (defaultTankId && defaults.warehouseId === null) setDefaultsState((prev) => ({ ...prev, warehouseId: defaultTankId }));
   }, [defaultTankId, defaults.warehouseId]);
+
+  // A service that already ended takes no insemination after its last day (an order registered late).
+  useEffect(() => {
+    if (lastDay && defaults.date > lastDay) setDefaultsState((prev) => ({ ...prev, date: lastDay }));
+  }, [lastDay, defaults.date]);
 
   // Rows not typed by hand follow the defaults and the planned semen: derived, never stored.
   const effective = useMemo(() => {

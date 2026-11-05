@@ -5,7 +5,7 @@ interface KpiCardProps {
 	/** Full indicator name, never abbreviated. */
 	label: string;
 	status?: ReactNode;
-	value: string;
+	value: ReactNode;
 	unit?: string;
 	/** Reference visual: ReferenceBar, StackedBar or a sparkline. */
 	visual?: ReactNode;
@@ -16,8 +16,8 @@ interface KpiCardProps {
 }
 
 /**
- * Canonical KPI tile. Answers, in order: how much, over what total,
- * against what reference, is it good or bad, and how fresh is the data.
+ * Canonical KPI tile redesigned with minimalist executive aesthetics.
+ * Answers clearly: metric volume, distribution, and operational context without visual clutter.
  */
 export function KpiCard({ label, status, value, unit, visual, context, footnote }: KpiCardProps) {
 	return (
@@ -26,21 +26,21 @@ export function KpiCard({ label, status, value, unit, visual, context, footnote 
 			component="article"
 			sx={{
 				height: '100%',
-				p: { xs: 2, sm: 2.5 },
+				p: { xs: 2, sm: 2.25 },
 				display: 'flex',
 				flexDirection: 'column',
-				gap: 1.5,
+				gap: 1.25,
 				border: 1,
 				borderColor: 'divider',
 				borderRadius: '10px',
 				bgcolor: 'background.paper',
-				transition: 'all 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+				transition: 'all 160ms ease-in-out',
 				'&:hover': {
 					borderColor: 'divider',
 					boxShadow: (theme) =>
 						theme.palette.mode === 'dark'
-							? '0 6px 20px rgba(0,0,0,0.35)'
-							: '0 6px 18px rgba(0,0,0,0.04)',
+							? '0 4px 16px rgba(0,0,0,0.28)'
+							: '0 4px 14px rgba(0,0,0,0.03)',
 					transform: 'translateY(-1px)'
 				}
 			}}
@@ -48,7 +48,7 @@ export function KpiCard({ label, status, value, unit, visual, context, footnote 
 			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
 				<Typography
 					sx={{
-						fontSize: '0.8125rem',
+						fontSize: '0.78125rem',
 						fontWeight: 600,
 						letterSpacing: '-0.01em',
 						color: 'text.secondary',
@@ -59,26 +59,33 @@ export function KpiCard({ label, status, value, unit, visual, context, footnote 
 				</Typography>
 				{status}
 			</Box>
-			<Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
-				<Typography
-					sx={{
-						fontSize: { xs: '1.875rem', sm: '2.15rem' },
-						fontWeight: 700,
-						letterSpacing: '-0.03em',
-						lineHeight: 1.1,
-						fontVariantNumeric: 'tabular-nums',
-						color: 'text.primary'
-					}}
-				>
-					{value}
-				</Typography>
-				{unit && (
-					<Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.secondary' }}>
-						{unit}
+
+			{typeof value === 'string' || typeof value === 'number' ? (
+				<Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+					<Typography
+						sx={{
+							fontSize: { xs: '1.75rem', sm: '2rem' },
+							fontWeight: 700,
+							letterSpacing: '-0.03em',
+							lineHeight: 1.1,
+							fontVariantNumeric: 'tabular-nums',
+							color: 'text.primary'
+						}}
+					>
+						{value}
 					</Typography>
-				)}
-			</Box>
+					{unit && (
+						<Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.secondary' }}>
+							{unit}
+						</Typography>
+					)}
+				</Box>
+			) : (
+				<Box>{value}</Box>
+			)}
+
 			{visual}
+
 			<Box
 				sx={{
 					fontSize: '0.8125rem',
@@ -90,14 +97,16 @@ export function KpiCard({ label, status, value, unit, visual, context, footnote 
 			>
 				{context}
 			</Box>
+
 			{footnote && (
 				<Box
 					sx={{
 						mt: 'auto',
-						pt: 1.25,
-						borderTop: 1,
-						borderColor: 'divider',
-						fontSize: '0.71875rem',
+						pt: 1,
+						borderTop: '1px solid',
+						borderColor: (theme) =>
+							theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+						fontSize: '0.6875rem',
 						color: 'text.secondary',
 						display: 'flex',
 						alignItems: 'center',

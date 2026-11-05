@@ -16,6 +16,7 @@ interface HerdBatchRowProps {
 	/** The caravan open in the detail drawer, marked in the table. */
 	selectedCaravanId?: number | null;
 	onViewCaravan: (caravan: CaravanSummary) => void;
+	onWeighCaravan: (caravan: CaravanSummary) => void;
 	onAddCaravans: (batch: Batch) => void;
 	onWeighBatch: (batch: Batch) => void;
 	onConsume: (batch: Batch) => void;
@@ -33,6 +34,7 @@ export function HerdBatchRow({
 	defaultExpanded = false,
 	selectedCaravanId,
 	onViewCaravan,
+	onWeighCaravan,
 	onAddCaravans,
 	onWeighBatch,
 	onConsume,
@@ -130,6 +132,7 @@ export function HerdBatchRow({
 					batch={batch}
 					selectedCaravanId={selectedCaravanId}
 					onViewCaravan={onViewCaravan}
+					onWeighCaravan={onWeighCaravan}
 				/>
 			</Collapse>
 		</Paper>

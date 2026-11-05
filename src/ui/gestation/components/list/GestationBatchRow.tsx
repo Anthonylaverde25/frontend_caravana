@@ -18,6 +18,7 @@ interface GestationBatchRowProps {
 	onViewCaravan: (caravan: CaravanSummary) => void;
 	onEditCaravan: (caravan: CaravanSummary) => void;
 	onWeighCaravan: (caravan: CaravanSummary) => void;
+	onAbortCaravan?: (caravan: CaravanSummary) => void;
 	onOpenServiceOrder?: (serviceOrderId: number) => void;
 }
 
@@ -32,6 +33,7 @@ export function GestationBatchRow({
 	onViewCaravan,
 	onEditCaravan,
 	onWeighCaravan,
+	onAbortCaravan,
 	onOpenServiceOrder
 }: GestationBatchRowProps) {
 	const [expanded, setExpanded] = useState(defaultExpanded);
@@ -47,11 +49,13 @@ export function GestationBatchRow({
 	const handleToggle = () => {
 		setExpanded((prev) => {
 			const nextState = !prev;
+
 			if (nextState) {
 				requestAnimationFrame(() => {
 					scrollToBatchElement(rowRef.current);
 				});
 			}
+
 			return nextState;
 		});
 	};
@@ -64,8 +68,7 @@ export function GestationBatchRow({
 				position: 'relative',
 				scrollMarginTop: { xs: '68px', sm: '78px' },
 				borderRadius: expanded ? '0 10px 10px 0' : '10px',
-				bgcolor: (theme) =>
-					group.isUnassigned ? alpha(theme.palette.warning.main, 0.08) : 'background.paper',
+				bgcolor: (theme) => (group.isUnassigned ? alpha(theme.palette.warning.main, 0.08) : 'background.paper'),
 				borderLeft: '4px solid',
 				borderLeftColor: (theme) =>
 					expanded
@@ -141,6 +144,7 @@ export function GestationBatchRow({
 							onViewCaravan={onViewCaravan}
 							onEditCaravan={onEditCaravan}
 							onWeighCaravan={onWeighCaravan}
+							onAbortCaravan={onAbortCaravan}
 						/>
 					</Box>
 				</Box>

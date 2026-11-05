@@ -8,11 +8,17 @@ import HerdBatchList from '../components/list/HerdBatchList';
 import HerdCaravanSearch from '../components/search/HerdCaravanSearch';
 import { useHerdCaravanDialogs } from '../hooks/useHerdCaravanDialogs';
 
+export interface HerdViewProps {
+	subHeader?: React.ReactNode;
+	emptyBatchesOnly?: boolean;
+	stockedBatchesOnly?: boolean;
+}
+
 /**
  * Own herd: the batches are the base, and each one opens to its caravans. It replaced /caravans and
  * /batches/own. `?new=caravan` (the "Nueva Caravana" quick action) opens the caravan form.
  */
-function HerdView() {
+function HerdView({ subHeader, emptyBatchesOnly = false, stockedBatchesOnly = false }: HerdViewProps = {}) {
 	const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false);
 	const dialogs = useHerdCaravanDialogs();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -27,8 +33,13 @@ function HerdView() {
 
 	return (
 		<ViewLayout
-			title="Hacienda Propia"
-			subtitle="Tus lotes y sus caravanas en un solo lugar. Expandí un lote para ver sus últimos ingresos."
+			title={emptyBatchesOnly ? 'Lotes Vacíos' : 'Hacienda Propia'}
+			subtitle={
+				emptyBatchesOnly
+					? 'Lotes propios sin hacienda asignada actualmente. Listos para recibir ingresos, traslados o asignaciones.'
+					: 'Tus lotes y sus caravanas en un solo lugar. Expandí un lote para ver sus últimos ingresos.'
+			}
+			subHeader={subHeader}
 			actions={
 				<Stack
 					direction={{ xs: 'column', md: 'row' }}
@@ -69,6 +80,8 @@ function HerdView() {
 					<HerdBatchList
 						onCreateBatch={() => setIsCreateBatchOpen(true)}
 						dialogs={dialogs}
+						emptyBatchesOnly={emptyBatchesOnly}
+						stockedBatchesOnly={stockedBatchesOnly}
 					/>
 				</Paper>
 			</Box>

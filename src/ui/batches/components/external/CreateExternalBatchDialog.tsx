@@ -143,8 +143,8 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
 
   const dteNote =
     mode === 'register'
-      ? 'El DTE ya está en mano: después de la tropa se cargan sus caravanas.'
-      : 'La orden nace sin caravanas: queda en espera del DTE.';
+      ? 'La hacienda ya llegó: después de la tropa se cargan el DTE (recomendado) y sus caravanas.'
+      : 'La orden nace sin caravanas: se recomienda cargar el DTE, pero se puede continuar sin él.';
 
   return (
     <Dialog
@@ -249,7 +249,7 @@ export const CreateExternalBatchDialog: React.FC<CreateExternalBatchDialogProps>
             '&:hover': { bgcolor: 'primary.dark' }
           }}
         >
-          {isPending ? 'Guardando...' : mode === 'register' ? 'Continuar con el DTE' : 'Confirmar compra'}
+          {isPending ? 'Guardando...' : mode === 'register' ? 'Continuar' : 'Confirmar compra'}
         </Button>
       </DialogActions>
     </Dialog>

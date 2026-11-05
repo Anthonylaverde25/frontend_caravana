@@ -13,6 +13,12 @@ export interface HerdCaravanDialogsState {
 	dying: { caravans: CaravanSummary[]; onDone?: () => void } | null;
 	/** Animals being sold (one or many). */
 	selling: { caravans: CaravanSummary[]; onDone?: () => void } | null;
+	/** Animals being castrated (from selection or batch). */
+	castrating: { caravans: CaravanSummary[]; onDone?: () => void } | null;
+	/** Animal whose castration is being voided. */
+	voidingCastration: CaravanSummary | null;
+	/** Female whose abortion is being registered. */
+	aborting: CaravanSummary | null;
 	openView: (caravan: CaravanSummary) => void;
 	openWeigh: (caravan: CaravanSummary) => void;
 	openEdit: (caravan: CaravanSummary) => void;
@@ -20,12 +26,18 @@ export interface HerdCaravanDialogsState {
 	openBreeding: (caravans: CaravanSummary[], onSaved?: () => void) => void;
 	openDeath: (caravans: CaravanSummary[], onDone?: () => void) => void;
 	openSell: (caravans: CaravanSummary[], onDone?: () => void) => void;
+	openCastrate: (caravans: CaravanSummary[], onDone?: () => void) => void;
+	openVoidCastration: (caravan: CaravanSummary) => void;
+	openAbort: (caravan: CaravanSummary) => void;
 	closeView: () => void;
 	closeWeigh: () => void;
 	closeForm: () => void;
 	closeBreeding: () => void;
 	closeDeath: () => void;
 	closeSell: () => void;
+	closeCastrate: () => void;
+	closeVoidCastration: () => void;
+	closeAbort: () => void;
 }
 
 /**
@@ -39,6 +51,9 @@ export function useHerdCaravanDialogs(): HerdCaravanDialogsState {
 	const [breeding, setBreeding] = useState<HerdCaravanDialogsState['breeding']>(null);
 	const [dying, setDying] = useState<HerdCaravanDialogsState['dying']>(null);
 	const [selling, setSelling] = useState<HerdCaravanDialogsState['selling']>(null);
+	const [castrating, setCastrating] = useState<HerdCaravanDialogsState['castrating']>(null);
+	const [voidingCastration, setVoidingCastration] = useState<HerdCaravanDialogsState['voidingCastration']>(null);
+	const [aborting, setAborting] = useState<HerdCaravanDialogsState['aborting']>(null);
 
 	return {
 		viewing,
@@ -47,6 +62,9 @@ export function useHerdCaravanDialogs(): HerdCaravanDialogsState {
 		breeding,
 		dying,
 		selling,
+		castrating,
+		voidingCastration,
+		aborting,
 		openView: useCallback((caravan: CaravanSummary) => setViewing(caravan), []),
 		openWeigh: useCallback((caravan: CaravanSummary) => setWeighing(caravan), []),
 		openEdit: useCallback((caravan: CaravanSummary) => setForm({ mode: 'edit', caravan }), []),
@@ -64,7 +82,19 @@ export function useHerdCaravanDialogs(): HerdCaravanDialogsState {
 		closeBreeding: useCallback(() => setBreeding(null), []),
 		openDeath: useCallback((caravans: CaravanSummary[], onDone?: () => void) => setDying({ caravans, onDone }), []),
 		closeDeath: useCallback(() => setDying(null), []),
-		openSell: useCallback((caravans: CaravanSummary[], onDone?: () => void) => setSelling({ caravans, onDone }), []),
-		closeSell: useCallback(() => setSelling(null), [])
+		openSell: useCallback(
+			(caravans: CaravanSummary[], onDone?: () => void) => setSelling({ caravans, onDone }),
+			[]
+		),
+		closeSell: useCallback(() => setSelling(null), []),
+		openCastrate: useCallback(
+			(caravans: CaravanSummary[], onDone?: () => void) => setCastrating({ caravans, onDone }),
+			[]
+		),
+		closeCastrate: useCallback(() => setCastrating(null), []),
+		openVoidCastration: useCallback((caravan: CaravanSummary) => setVoidingCastration(caravan), []),
+		closeVoidCastration: useCallback(() => setVoidingCastration(null), []),
+		openAbort: useCallback((caravan: CaravanSummary) => setAborting(caravan), []),
+		closeAbort: useCallback(() => setAborting(null), [])
 	};
 }

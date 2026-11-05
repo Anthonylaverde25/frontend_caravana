@@ -109,21 +109,30 @@ function GestationListView() {
 				const matchingCaravans = group.caravans.filter((caravan) => {
 					if (query.length > 0 && !batchNameMatches) {
 						const idMatch = searchableTag(caravan).includes(query);
-						const catMatch = (caravan.category_name ?? caravan.category ?? '').toLowerCase().includes(query);
+						const catMatch = (caravan.category_name ?? caravan.category ?? '')
+							.toLowerCase()
+							.includes(query);
+
 						if (!idMatch && !catMatch) return false;
 					}
+
 					if (filters.stage !== 'ALL' && caravan.active_gestation?.gestation_stage !== filters.stage) {
 						return false;
 					}
+
 					const daysLeft = getDaysLeft(caravan.active_gestation?.estimated_due_date);
+
 					if (
 						filters.risk !== 'ALL' &&
 						getRiskDetails(caravan.category_name ?? caravan.category, daysLeft).risk !== filters.risk
 					) {
 						return false;
 					}
+
 					if (filters.alertFilter === 'IMMINENT' && (daysLeft === null || daysLeft > 45)) return false;
+
 					if (filters.alertFilter === 'OVERDUE' && !isCalvingOverdue(caravan)) return false;
+
 					return true;
 				});
 				return { ...group, caravans: matchingCaravans };
@@ -189,6 +198,7 @@ function GestationListView() {
 												onViewCaravan={dialogs.openView}
 												onEditCaravan={dialogs.openEdit}
 												onWeighCaravan={dialogs.openWeigh}
+												onAbortCaravan={dialogs.openAbort}
 												onOpenServiceOrder={setOpenServiceOrderId}
 											/>
 										))}
@@ -227,7 +237,12 @@ function GestationListView() {
 												variant="outlined"
 												size="small"
 												onClick={() => setFilters(INITIAL_FILTERS)}
-												sx={{ mt: 2, textTransform: 'none', fontWeight: 600, borderRadius: '6px' }}
+												sx={{
+													mt: 2,
+													textTransform: 'none',
+													fontWeight: 600,
+													borderRadius: '6px'
+												}}
 											>
 												Limpiar filtros
 											</Button>

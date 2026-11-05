@@ -30,6 +30,7 @@ interface GestationBatchCaravansTableProps {
 	onViewCaravan: (caravan: CaravanSummary) => void;
 	onEditCaravan: (caravan: CaravanSummary) => void;
 	onWeighCaravan: (caravan: CaravanSummary) => void;
+	onAbortCaravan?: (caravan: CaravanSummary) => void;
 }
 
 /**
@@ -42,7 +43,8 @@ export function GestationBatchCaravansTable({
 	highlightId,
 	onViewCaravan,
 	onEditCaravan,
-	onWeighCaravan
+	onWeighCaravan,
+	onAbortCaravan
 }: GestationBatchCaravansTableProps) {
 	const navigate = useNavigate();
 	const theme = useTheme();
@@ -60,13 +62,16 @@ export function GestationBatchCaravansTable({
 		return [...caravans].sort((a, b) => {
 			const overdueA = isCalvingOverdue(a);
 			const overdueB = isCalvingOverdue(b);
+
 			if (overdueA !== overdueB) return overdueA ? -1 : 1;
 
 			const daysA = getDaysLeft(a.active_gestation?.estimated_due_date);
 			const daysB = getDaysLeft(b.active_gestation?.estimated_due_date);
 
 			if (daysA !== null && daysB !== null) return daysA - daysB;
+
 			if (daysA !== null) return -1;
+
 			if (daysB !== null) return 1;
 
 			return 0;
@@ -76,7 +81,9 @@ export function GestationBatchCaravansTable({
 	// Jump to the page of the highlighted caravan if requested
 	useEffect(() => {
 		if (!highlightId) return;
+
 		const index = sortedCaravans.findIndex((c) => c.id === highlightId);
+
 		if (index >= 0) {
 			setPage(Math.floor(index / rowsPerPage));
 		}
@@ -179,6 +186,7 @@ export function GestationBatchCaravansTable({
 									onView={onViewCaravan}
 									onEdit={onEditCaravan}
 									onWeigh={onWeighCaravan}
+									onAbort={onAbortCaravan}
 								/>
 							);
 						})}

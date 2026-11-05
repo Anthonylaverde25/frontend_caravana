@@ -93,7 +93,7 @@ export const Ing03OrderToolbarActions: React.FC = () => {
             {order.code} · {sheet.label}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem' }}>
-            DTE {sheet.dte_number} · {sheet.expected_head_count === 1 ? '1 cabeza a recibir' : `${sheet.expected_head_count} cabezas a recibir`}
+            {sheet.dte_number ? `DTE ${sheet.dte_number}` : 'Sin DTE'} · {sheet.expected_head_count === 1 ? '1 cabeza a recibir' : `${sheet.expected_head_count} cabezas a recibir`}
           </Typography>
         </Box>
         <Chip size="small" label={sheet.status_label} color={sheet.is_active ? 'info' : 'default'} sx={{ fontWeight: 700, borderRadius: '6px' }} />

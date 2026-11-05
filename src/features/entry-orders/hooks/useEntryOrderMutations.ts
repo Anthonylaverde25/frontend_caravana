@@ -144,10 +144,28 @@ export function useLoadEntryOrderDte() {
     onSuccess: (result, variables) => {
       invalidate(true);
       const pending = result.order.pending_dte_count;
+      const moving = heads(variables.payload.head_count, 'cabeza en tránsito', 'cabezas en tránsito');
       toast.success(
-        `DTE ${variables.payload.dte_number} cargado: ${heads(variables.payload.head_count, 'cabeza en tránsito', 'cabezas en tránsito')}` +
-          (pending > 0 ? `. ${pending === 1 ? 'Falta DTE para 1 cabeza' : `Falta DTE para ${pending} cabezas`}.` : '.')
+        variables.payload.without_dte
+          ? `Sin DTE: ${moving}. La orden queda marcada para cargarlo después.`
+          : `DTE ${variables.payload.dte_number} cargado: ${moving}` +
+              (pending > 0 ? `. ${pending === 1 ? 'Falta DTE para 1 cabeza' : `Falta DTE para ${pending} cabezas`}.` : '.')
       );
+      showWarnings(result);
+    }
+  });
+}
+
+/** "Cargar DTE" on head that moved without it: also on a closed order. */
+export function useAttachDteDocument() {
+  const invalidate = useInvalidateOrders();
+
+  return useMutation({
+    mutationFn: async ({ id, dteId, payload }: { id: number; dteId: number; payload: LoadDtePayload }): Promise<EntryOrderResult> =>
+      (await axiosInstance.put<EntryOrderResult>(`/entry-orders/${id}/dtes/${dteId}/document`, payload)).data,
+    onSuccess: (result, variables) => {
+      invalidate(true);
+      toast.success(`DTE ${variables.payload.dte_number} cargado en la orden ${result.order.code}.`);
       showWarnings(result);
     }
   });
@@ -223,7 +241,7 @@ export function useCorrectDteHeadCount() {
       (await axiosInstance.patch<EntryOrderResult>(`/entry-orders/${id}/dtes/${dteId}`, payload)).data,
     onSuccess: (result, variables) => {
       invalidate(true);
-      toast.success(`DTE corregido: declara ${heads(variables.payload.head_count, 'cabeza', 'cabezas')}. Orden ${result.order.code}: ${result.order.status_label.toLowerCase()}.`);
+      toast.success(`Cabezas corregidas: declara ${heads(variables.payload.head_count, 'cabeza', 'cabezas')}. Orden ${result.order.code}: ${result.order.status_label.toLowerCase()}.`);
       showWarnings(result);
     }
   });

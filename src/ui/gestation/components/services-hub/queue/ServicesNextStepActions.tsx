@@ -7,6 +7,7 @@ import type { TrayOrderHandlers } from '../../diagnosis-tray/table/DiagnosisTray
 import FemalesVerdictDialog from '../../service-order-work-card/FemalesVerdictDialog';
 import { INSEMINATE_ICON, useAiWorkCardActions } from '../../service-order-work-card/useAiWorkCardActions';
 import { pendingToClose } from '../../tacto-start/tactoStart';
+import { usePlannedOrderActions } from '../../service-orders/dialogs/planned/usePlannedOrderActions';
 import { getNextStep, type NextStep } from '../../../utils/servicesQueue';
 
 /** What the queue can do with an order: the tray's actions plus the approval of an emitted one. */
@@ -31,6 +32,7 @@ const CLOSE_ICON = 'heroicons-outline:lock-closed';
 const WITHDRAW_ICON = 'lucide:flag';
 
 const STEP_UI: Record<NextStep, { label: string; icon: string }> = {
+  START: { label: 'Iniciar', icon: 'heroicons-outline:play' },
   APPROVE: { label: 'Aprobar orden', icon: 'heroicons-outline:check-circle' },
   INSEMINATE: { label: 'Cargar inseminaciones', icon: INSEMINATE_ICON },
   WITHDRAW_BULLS: { label: 'Retirar torada', icon: WITHDRAW_ICON },
@@ -51,6 +53,9 @@ export default function ServicesNextStepActions({ order, batchName, caravans, is
   const ai = useAiWorkCardActions(order);
   const step = getNextStep(order);
   const isDraft = step === 'APPROVE';
+  const isPlanned = step === 'START';
+  const notStarted = isDraft || isPlanned;
+  const planned = usePlannedOrderActions(order);
   const pending = pendingToClose(order);
   const isPanel = variant === 'panel';
   // The backend swaps a bull only while the order is in service (bulls in the batch).
@@ -60,6 +65,7 @@ export default function ServicesNextStepActions({ order, batchName, caravans, is
   const activeBulls = ai.inService ? caravans.filter((caravan) => activeBullIds.includes(caravan.id)) : [];
 
   const run: Record<NextStep, () => void> = {
+    START: planned.openStart,
     APPROVE: () => handlers.onApprove(order),
     INSEMINATE: ai.loadInseminations,
     WITHDRAW_BULLS: () => handlers.onWithdrawBulls(order),
@@ -84,8 +90,8 @@ export default function ServicesNextStepActions({ order, batchName, caravans, is
     </MenuItem>
   );
 
-  const workItems = isDraft
-    ? []
+  const workItems = notStarted
+    ? [isPlanned && item('Editar orden', 'heroicons-outline:pencil-square', planned.openEdit)].filter(Boolean)
     : [
         step !== 'TACTO' && item('Cargar tacto', TACTO_ICON, run.TACTO),
         ai.showsWithdrawal && step !== 'WITHDRAW_BULLS' && item('Retirar torada', WITHDRAW_ICON, run.WITHDRAW_BULLS),
@@ -144,13 +150,16 @@ export default function ServicesNextStepActions({ order, batchName, caravans, is
         {workItems.length > 0 && <Divider />}
         {!isPanel && item('Ver detalle de la orden', 'heroicons-outline:eye', () => handlers.onView(order))}
         {item(`Ver vientres (${order.female_caravan_ids.length})`, 'heroicons-outline:list-bullet', () => setFemalesOpen(true))}
-        {!isDraft && step !== 'CLOSE' && <Divider />}
-        {!isDraft && step !== 'CLOSE' && item('Cerrar orden', CLOSE_ICON, run.CLOSE, pending > 0 ? `faltan ${pending}` : undefined)}
+        {!notStarted && step !== 'CLOSE' && <Divider />}
+        {!notStarted && step !== 'CLOSE' && item('Cerrar orden', CLOSE_ICON, run.CLOSE, pending > 0 ? `faltan ${pending}` : undefined)}
+        {isPlanned && <Divider />}
+        {isPlanned && item('Cancelar orden', 'heroicons-outline:x-circle', planned.cancel)}
         {isDraft && <Divider />}
         {isDraft && item('Rechazar orden', 'heroicons-outline:x-circle', () => handlers.onReject(order))}
       </Menu>
       {femalesOpen && <FemalesVerdictDialog open onClose={() => setFemalesOpen(false)} order={order} batchName={batchName} caravans={caravans} />}
       {ai.dialogs}
+      {planned.dialogs}
     </Box>
   );
 }

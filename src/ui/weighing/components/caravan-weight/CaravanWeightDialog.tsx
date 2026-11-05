@@ -17,10 +17,13 @@ import {
   validateForm,
 } from './caravanWeightFormModel';
 
+/** Only what the dialog reads: any caravan row of any table will do. */
+export type CaravanToWeigh = Pick<Caravan, 'id' | 'identification' | 'label' | 'current_weight'>;
+
 interface CaravanWeightDialogProps {
   open: boolean;
   onClose: () => void;
-  caravan: Caravan | null;
+  caravan: CaravanToWeigh | null;
 }
 
 /** Records a single weighing of one animal and shows its history. */
@@ -86,7 +89,7 @@ export function CaravanWeightDialog({ open, onClose, caravan }: CaravanWeightDia
             Pesajes
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Caravana {caravan.identification}
+            {caravan.identification ? `Caravana ${caravan.identification}` : caravan.label}
             {currentWeight ? ` · peso vigente ${currentWeight.toLocaleString('es-AR')} kg` : ' · sin peso registrado'}
           </Typography>
         </Box>

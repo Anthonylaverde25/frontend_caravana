@@ -87,6 +87,23 @@ export class CaravanMapper {
         is_nursing: raw.physiological_state.is_nursing != null ? Boolean(raw.physiological_state.is_nursing) : null,
         gestation_stage: raw.physiological_state.gestation_stage ?? null,
         gestation_months: raw.physiological_state.gestation_months != null ? Number(raw.physiological_state.gestation_months) : null,
+      } : null,
+      castration_status: raw.castration_status ?? null,
+      castration_status_label: raw.castration_status_label ?? null,
+      castration: raw.castration ? {
+        id: Number(raw.castration.id),
+        castrated_on: raw.castration.castrated_on,
+        method: raw.castration.method ?? null,
+        method_label: raw.castration.method_label ?? null,
+        notes: raw.castration.notes ?? null,
+        from_category_id: Number(raw.castration.from_category_id),
+        from_category_name: raw.castration.from_category_name ?? null,
+        voided_at: raw.castration.voided_at ?? null,
+        void_reason: raw.castration.void_reason ?? null,
+        registered_by: raw.castration.registered_by ? {
+          id: Number(raw.castration.registered_by.id),
+          name: raw.castration.registered_by.name,
+        } : null,
       } : null
     };
 

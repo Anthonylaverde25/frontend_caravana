@@ -13,6 +13,8 @@ import { getServiceOrderPhase } from '../../utils/serviceOrderPhase';
 
 export const getServiceStatusConfig = (status: string) => {
 	switch (status.toUpperCase()) {
+		case 'PLANNED':
+			return { label: 'Planificada', color: 'info' as const };
 		case 'DRAFT':
 			return { label: 'Borrador', color: 'default' as const };
 		case 'APPROVED':
@@ -56,8 +58,11 @@ export function ServiceOrdersStatusChip({ order, disabled = false }: ServiceOrde
 	const updateStatusMutation = useUpdateServiceOrderStatus();
 	const theme = useTheme();
 
+	// A planned order only starts or is cancelled, from its row: no administrative status change.
+	const isPlanned = order.status === 'PLANNED';
+
 	const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-		if (disabled || updateStatusMutation.isPending) return;
+		if (isPlanned || disabled || updateStatusMutation.isPending) return;
 		setAnchorEl(event.currentTarget);
 	};
 
@@ -89,7 +94,7 @@ export function ServiceOrdersStatusChip({ order, disabled = false }: ServiceOrde
 				onClick={handleClick}
 				disabled={disabled || updateStatusMutation.isPending}
 				icon={
-					updateStatusMutation.isPending ? (
+					isPlanned ? undefined : updateStatusMutation.isPending ? (
 						<CircularProgress
 							size={10}
 							color="inherit"

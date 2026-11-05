@@ -1,14 +1,17 @@
 import { KeyboardEvent, useRef } from 'react';
-import { Button, IconButton, Table, TableBody, TableCell, TableFooter, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
+import { Button, IconButton, MenuItem, TableBody, TableCell, TableFooter, TableHead, TableRow, TextField, Tooltip, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import SheetGrid from '@/components/sheet-grid/SheetGrid';
+import SheetGridStatusCell from '@/components/sheet-grid/SheetGridStatusCell';
+import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
+import type { BatchCategoryCount } from '@/core/batches/domain/entities/BatchOverview';
 import { CageGroupsSummary, groupAverage } from '@/core/weighing/domain/services/cageGroups';
-import { CageSheetCell } from './CageSheetCell';
-import { CageGroupRow, emptyGroup, toGroupInput } from './batchWeighingFormModel';
-import { sheetCellSx, sheetHeadSx, sheetIndexSx } from './sheetStyles';
+import { CageGroupRow, categoryKey, emptyGroup, rowCategoryKey, toGroupInput } from './batchWeighingFormModel';
 
 interface CageGroupsSheetProps {
   groups: CageGroupRow[];
+  categories: BatchCategoryCount[];
   rowErrors?: Record<number, string>;
   withTare: boolean;
   summary: CageGroupsSummary;
@@ -21,62 +24,104 @@ const kg = (value: number | null) => (value === null ? '—' : value.toLocaleStr
 
 /**
  * The loads of the scale as a spreadsheet: one row per cage, Enter moves down the column and
- * adds a row at the end, and the footer keeps the running totals.
+ * adds a row at the end, and the footer keeps the running totals. Each cage declares its category;
+ * a new one starts with the category of the last, since cages of a category usually go in a row.
  */
-export function CageGroupsSheet({ groups, rowErrors = {}, withTare, summary, onChange }: CageGroupsSheetProps) {
+export function CageGroupsSheet({ groups, categories, rowErrors = {}, withTare, summary, onChange }: CageGroupsSheetProps) {
+  const { cellSx, headSx, indexSx, inputSx, textCellSx, errorRing } = useGridCellStyles();
   const sheetRef = useRef<HTMLDivElement>(null);
   const fields: Field[] = withTare ? ['headCount', 'gross', 'tare'] : ['headCount', 'gross'];
+  const mixed = categories.length > 1;
+  const loadedCategories = new Set(groups.map((g) => rowCategoryKey(g, categories)).filter(Boolean));
+  const addRow = () => onChange([...groups, emptyGroup(groups[groups.length - 1]?.categoryKey)]);
 
   // After the render that may have added the row.
   const focusCell = (row: number, column: number) =>
     setTimeout(() => sheetRef.current?.querySelector<HTMLInputElement>(`[data-sheet-cell="${row}:${column}"]`)?.focus(), 0);
 
-  const update = (key: number, field: Field, value: string) =>
+  const update = (key: number, field: Field | 'categoryKey', value: string) =>
     onChange(groups.map((g) => (g.key === key ? { ...g, [field]: value } : g)));
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>, row: number, column: number) => {
+  const handleKeyDown = (event: KeyboardEvent, row: number, column: number) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
 
     if (row === groups.length - 1) {
-      onChange([...groups, emptyGroup()]);
+      addRow();
     }
     focusCell(row + 1, column);
   };
 
   return (
     <div ref={sheetRef}>
-      <Table size="small" sx={{ borderCollapse: 'collapse' }}>
+      <SheetGrid minWidth={720}>
         <TableHead>
           <TableRow>
-            <TableCell sx={sheetIndexSx}>Jaula</TableCell>
-            <TableCell align="right" sx={sheetHeadSx}>Cabezas</TableCell>
-            <TableCell align="right" sx={sheetHeadSx}>{withTare ? 'Bruto (kg)' : 'Kg'}</TableCell>
-            {withTare && <TableCell align="right" sx={sheetHeadSx}>Tara (kg)</TableCell>}
-            <TableCell align="right" sx={sheetHeadSx}>Kg / cab</TableCell>
-            <TableCell sx={(t) => ({ ...sheetHeadSx(t), width: 40 })} />
+            <TableCell sx={indexSx}>Jaula</TableCell>
+            <TableCell sx={headSx}>Categoría</TableCell>
+            <TableCell sx={{ ...headSx, width: 110 }} align="right">Cabezas</TableCell>
+            <TableCell sx={{ ...headSx, width: 130 }} align="right">{withTare ? 'Bruto (kg)' : 'Kg'}</TableCell>
+            {withTare && <TableCell sx={{ ...headSx, width: 110 }} align="right">Tara (kg)</TableCell>}
+            <TableCell sx={{ ...headSx, width: 110 }} align="right">Kg / cab</TableCell>
+            <TableCell sx={{ ...headSx, width: 48 }} />
           </TableRow>
         </TableHead>
         <TableBody>
           {groups.map((row, index) => (
             <TableRow key={row.key}>
-              <TableCell sx={sheetIndexSx}>{index + 1}</TableCell>
-              {fields.map((field, column) => (
-                <CageSheetCell
-                  key={field}
-                  value={row[field]}
-                  row={index}
-                  column={column}
-                  label={`${field} jaula ${index + 1}`}
-                  error={!!rowErrors[row.key]}
-                  onChange={(value) => update(row.key, field, value)}
-                  onKeyDown={handleKeyDown}
-                />
-              ))}
-              <TableCell align="right" sx={(t) => ({ ...sheetCellSx(t), px: 1.25, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' })}>
-                {kg(groupAverage(toGroupInput(row)))}
+              <TableCell sx={indexSx}>{index + 1}</TableCell>
+              <TableCell sx={{ ...cellSx, ...(rowErrors[row.key] && !row.categoryKey && mixed ? errorRing : {}) }}>
+                {mixed ? (
+                  <TextField
+                    select
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    value={row.categoryKey}
+                    onChange={(e) => update(row.key, 'categoryKey', e.target.value)}
+                    SelectProps={{ displayEmpty: true }}
+                    inputProps={{ 'aria-label': `Categoría jaula ${index + 1}` }}
+                    sx={inputSx}
+                  >
+                    <MenuItem value="" disabled>
+                      Elegir categoría
+                    </MenuItem>
+                    {categories.map((category) => (
+                      <MenuItem key={categoryKey(category)} value={categoryKey(category)}>
+                        {category.name ?? 'Sin categoría'}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                ) : (
+                  <Tooltip title="El lote tiene una sola categoría" disableInteractive>
+                    <TextField fullWidth variant="outlined" size="small" disabled value={categories[0]?.name ?? 'Sin categoría'} sx={inputSx} />
+                  </Tooltip>
+                )}
               </TableCell>
-              <TableCell align="center" sx={sheetCellSx}>
+              {fields.map((field, column) => (
+                <TableCell key={field} sx={{ ...cellSx, ...(rowErrors[row.key] && rowCategoryKey(row, categories) ? errorRing : {}) }}>
+                  <TextField
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    value={row[field]}
+                    onChange={(e) => update(row.key, field, e.target.value.replace(/[^\d.,]/g, '').replace(',', '.'))}
+                    onKeyDown={(e) => handleKeyDown(e, index, column)}
+                    onFocus={(e) => e.target.select()}
+                    inputProps={{
+                      inputMode: 'decimal',
+                      'aria-label': `${field} jaula ${index + 1}`,
+                      'data-sheet-cell': `${index}:${column}`,
+                      style: { textAlign: 'right' },
+                    }}
+                    sx={inputSx}
+                  />
+                </TableCell>
+              ))}
+              <TableCell sx={{ ...textCellSx, color: 'text.secondary' }} align="right">
+                {kg(groupAverage(toGroupInput(row, categories)))}
+              </TableCell>
+              <SheetGridStatusCell error={rowErrors[row.key]} keepChildren>
                 <Tooltip title="Quitar jaula">
                   <span>
                     <IconButton size="small" onClick={() => onChange(groups.filter((g) => g.key !== row.key))} disabled={groups.length === 1}>
@@ -84,22 +129,22 @@ export function CageGroupsSheet({ groups, rowErrors = {}, withTare, summary, onC
                     </IconButton>
                   </span>
                 </Tooltip>
-              </TableCell>
+              </SheetGridStatusCell>
             </TableRow>
           ))}
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell sx={sheetIndexSx}>Total</TableCell>
-            <TableCell align="right" sx={(t) => ({ ...sheetHeadSx(t), color: 'text.primary' })}>{summary.heads}</TableCell>
-            <TableCell align="right" sx={(t) => ({ ...sheetHeadSx(t), color: 'text.primary' })} colSpan={withTare ? 2 : 1}>
-              {kg(summary.netWeight)}
-            </TableCell>
-            <TableCell align="right" sx={(t) => ({ ...sheetHeadSx(t), color: 'text.primary' })}>{kg(summary.average)}</TableCell>
-            <TableCell sx={sheetHeadSx} />
+            <TableCell sx={indexSx}>Total</TableCell>
+            <TableCell sx={headSx} />
+            <TableCell sx={{ ...headSx, color: 'text.primary' }} align="right">{summary.heads}</TableCell>
+            <TableCell sx={{ ...headSx, color: 'text.primary' }} align="right" colSpan={withTare ? 2 : 1}>{kg(summary.netWeight)}</TableCell>
+            {/* Across categories a single average would be the very figure this sheet avoids. */}
+            <TableCell sx={{ ...headSx, color: 'text.primary' }} align="right">{kg(loadedCategories.size > 1 ? null : summary.average)}</TableCell>
+            <TableCell sx={headSx} />
           </TableRow>
         </TableFooter>
-      </Table>
+      </SheetGrid>
       {Object.values(rowErrors).map((message) => (
         <Typography key={message} variant="caption" color="error" component="div" sx={{ mt: 0.5 }}>
           {message}
@@ -108,7 +153,7 @@ export function CageGroupsSheet({ groups, rowErrors = {}, withTare, summary, onC
       <Button
         size="small"
         onClick={() => {
-          onChange([...groups, emptyGroup()]);
+          addRow();
           focusCell(groups.length, 0);
         }}
         startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}

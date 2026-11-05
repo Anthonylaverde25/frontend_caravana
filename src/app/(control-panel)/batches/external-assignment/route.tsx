@@ -1,14 +1,13 @@
-import { lazy } from 'react';
+import { Navigate } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
-
-const ExternalBatchAssignmentView = lazy(() => import('src/ui/batches/views/ExternalBatchAssignmentView'));
 
 /**
  * The External Batch Assignment page route.
+ * Canonical location is now under Lotes Administrativos Hub (/internal-batches?tab=assignment).
  */
 const route: FuseRouteItemType = {
   path: 'batches/external-assignment',
-  element: <ExternalBatchAssignmentView />
+  element: <Navigate to="/internal-batches?tab=assignment" replace />
 };
 
 export default route;

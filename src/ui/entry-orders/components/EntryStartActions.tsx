@@ -12,9 +12,9 @@ interface EntryStartActionsProps {
 }
 
 /**
- * The two ways a purchase of external livestock starts, wherever they are offered: the DTE has
- * not arrived yet ("Nueva orden de ingreso": the order waits for it) or it is already in hand
- * ("Registrar ingreso": the troop, then the DTE on its confirmation page).
+ * The two ways a purchase of external livestock starts, wherever they are offered: the animals have
+ * not arrived yet ("Nueva orden de ingreso") or they already did ("Registrar ingreso": the troop,
+ * then the DTE, recommended and optional, and the caravans on its confirmation page).
  * Also offers a test action to open the form in a structured right-hand slide-over Drawer.
  */
 export const EntryStartActions: React.FC<EntryStartActionsProps> = ({ onSaved }) => {

@@ -7,8 +7,10 @@ interface DteEntryFormProps {
   draft: DteDraft;
   /** Head bought still waiting for their document. */
   pending: number;
-  /** "Registrar ingreso": the animals arrive with the DTE, so it asks the day they entered. */
+  /** "Registrar ingreso": the animals already arrived, so it asks the day they entered. */
   withArrival?: boolean;
+  /** The number can be left blank: the DTE is recommended, not required. */
+  optional?: boolean;
 }
 
 const filledSx = { '& .MuiFilledInput-root': { bgcolor: 'action.hover', borderRadius: '6px' } } as const;
@@ -20,7 +22,7 @@ const linkSx = { textTransform: 'none', fontWeight: 600, fontSize: '0.75rem', mi
  * than expected is not an error: it is warned before confirming and recorded as an incident to
  * settle with the provider.
  */
-export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, pending, withArrival = false }) => {
+export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, pending, withArrival = false, optional = false }) => {
   const [showObservations, setShowObservations] = useState(draft.observations !== '');
   const today = new Date().toISOString().slice(0, 10);
   const headerError = (field: string) => draft.headerErrors.find((e) => e.field === field)?.message;
@@ -32,7 +34,7 @@ export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, pending, with
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField
           label="N° de DTE"
-          required
+          required={!optional}
           fullWidth
           variant="filled"
           value={draft.dteNumber}
@@ -46,7 +48,7 @@ export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, pending, with
         <TextField
           label="Fecha del DTE"
           type="date"
-          required
+          required={!optional}
           fullWidth
           variant="filled"
           value={draft.dteDate}
@@ -59,7 +61,7 @@ export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, pending, with
           sx={filledSx}
         />
         <TextField
-          label="Cabezas del DTE"
+          label={optional ? 'Cabezas' : 'Cabezas del DTE'}
           type="number"
           required
           fullWidth
@@ -93,7 +95,7 @@ export const DteEntryForm: React.FC<DteEntryFormProps> = ({ draft, pending, with
 
       {over > 0 && (
         <Alert severity="warning" sx={{ borderRadius: '6px', py: 0 }}>
-          Este DTE declara {over} {over === 1 ? 'cabeza más' : 'cabezas más'} que las compradas; se registrará una novedad para revisar con el
+          {draft.dteNumber.trim() ? 'Este DTE declara' : 'Se declaran'} {over} {over === 1 ? 'cabeza más' : 'cabezas más'} que las compradas; se registrará una novedad para revisar con el
           proveedor. La carga no se bloquea.
         </Alert>
       )}

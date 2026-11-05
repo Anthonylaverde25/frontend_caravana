@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { useMemo, useState } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { BatchWeightChart } from './BatchWeightChart';
+import { BatchWeightCurve } from './category-weight/BatchWeightCurve';
 import { useBatchWeightHistory } from '@/features/batches/hooks/useBatchWeightHistory';
 import BatchWeightLogTable from './details/BatchWeightLogTable';
 import BatchDetailsToolbar from './details/BatchDetailsToolbar';
@@ -143,7 +143,7 @@ export function BatchDetailsDialog({ open, onClose, batch, onStartService }: Bat
                                     <CircularProgress size={32} />
                                 </Box>
                             ) : (
-                                <BatchWeightChart data={history} />
+                                <BatchWeightCurve batch={batch} history={history} />
                             )}
                         </Box>
 

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Box, Paper, TablePagination, Typography } from '@mui/material';
+import { Box, TablePagination, Typography } from '@mui/material';
 import type { CaravanSummarySort } from '@/core/caravans/domain/entities/CaravanSummary';
 import { useCaravansSummary } from '@/features/caravans/hooks/useCaravansSummary';
 import HerdCaravanTable from '../shared/HerdCaravanTable';
 import HerdCaravanTableSkeleton from '../shared/HerdCaravanTableSkeleton';
 import HerdCaravansToolbar, { type HerdSexFilter } from './HerdCaravansToolbar';
+import HerdCaravansSelectionBar from './HerdCaravansSelectionBar';
 import type { HerdCaravanDialogsState } from '../../hooks/useHerdCaravanDialogs';
 import { UNASSIGNED_BATCH } from '../../utils/herdFormat';
 
@@ -15,16 +16,20 @@ interface HerdBatchCaravansTableProps {
 	initialSearch?: string;
 	highlightId?: number | null;
 	dialogs: HerdCaravanDialogsState;
+	/** Moves the ticked caravans to another batch; absent where there is no batch to move from. */
+	onBulkTransfer?: (caravanIds: number[]) => void;
 }
 
 /**
  * Every caravan of the batch, paginated by the server: only the page on screen is downloaded.
+ * Full width on the sheet, no box: filters on top, a selection bar while rows are ticked.
  */
 export function HerdBatchCaravansTable({
 	batchId,
 	initialSearch = '',
 	highlightId,
-	dialogs
+	dialogs,
+	onBulkTransfer
 }: HerdBatchCaravansTableProps) {
 	const [searchInput, setSearchInput] = useState(initialSearch);
 	const [search, setSearch] = useState(initialSearch);
@@ -54,12 +59,12 @@ export function HerdBatchCaravansTable({
 	});
 	const rows = data?.data ?? [];
 	const total = data?.meta.total ?? null;
+	// A dead or sold animal is looked at, never operated on.
+	const selectedOperable = rows.filter((row) => selectedIds.includes(row.id) && !row.is_dead && !row.exit);
+	const clearSelection = () => setSelectedIds([]);
 
 	return (
-		<Paper
-			elevation={0}
-			sx={{ borderRadius: '8px', border: 1, borderColor: 'divider', overflow: 'hidden' }}
-		>
+		<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
 			<HerdCaravansToolbar
 				search={searchInput}
 				sex={sex}
@@ -68,26 +73,30 @@ export function HerdBatchCaravansTable({
 				onSearchChange={setSearchInput}
 				onSexChange={setSex}
 				onSortChange={setSort}
-				selectedCount={selectedIds.length}
-				onBulkDeath={() =>
-					dialogs.openDeath(
-						rows.filter((row) => selectedIds.includes(row.id) && !row.is_dead && !row.exit),
-						() => setSelectedIds([])
-					)
-				}
-				onBulkSell={() =>
-					dialogs.openSell(
-						rows.filter((row) => selectedIds.includes(row.id) && !row.is_dead && !row.exit),
-						() => setSelectedIds([])
-					)
-				}
-				onBulkBreeding={() =>
-					dialogs.openBreeding(
-						rows.filter((row) => selectedIds.includes(row.id)),
-						() => setSelectedIds([])
-					)
-				}
 			/>
+			{selectedIds.length > 0 && (
+				<HerdCaravansSelectionBar
+					count={selectedIds.length}
+					onClear={clearSelection}
+					onWeigh={
+						selectedIds.length === 1 && selectedOperable.length === 1
+							? () => dialogs.openWeigh(selectedOperable[0])
+							: undefined
+					}
+					onTransfer={
+						onBulkTransfer ? () => onBulkTransfer(selectedOperable.map((row) => row.id)) : undefined
+					}
+					onSell={() => dialogs.openSell(selectedOperable, clearSelection)}
+					onDeath={() => dialogs.openDeath(selectedOperable, clearSelection)}
+					onBreeding={() =>
+						dialogs.openBreeding(
+							rows.filter((row) => selectedIds.includes(row.id)),
+							clearSelection
+						)
+					}
+					onCastrate={() => dialogs.openCastrate(selectedOperable, clearSelection)}
+				/>
+			)}
 
 			{isLoading ? (
 				<HerdCaravanTableSkeleton
@@ -98,14 +107,14 @@ export function HerdBatchCaravansTable({
 			) : isError ? (
 				<Typography
 					color="error"
-					sx={{ p: 3 }}
+					sx={{ px: 3.5, py: 3 }}
 				>
 					No se pudieron cargar las caravanas.
 				</Typography>
 			) : rows.length === 0 ? (
 				<Typography
 					color="text.secondary"
-					sx={{ p: 3 }}
+					sx={{ px: 3.5, py: 3 }}
 				>
 					{search || sex !== 'ALL'
 						? 'Ninguna caravana coincide con los filtros.'
@@ -122,6 +131,7 @@ export function HerdBatchCaravansTable({
 						onBreeding={(caravan) => dialogs.openBreeding([caravan])}
 						onDeath={(caravan) => dialogs.openDeath([caravan])}
 						onSell={(caravan) => dialogs.openSell([caravan])}
+						onAbort={dialogs.openAbort}
 						selectedIds={selectedIds}
 						onSelectionChange={setSelectedIds}
 					/>
@@ -138,8 +148,9 @@ export function HerdBatchCaravansTable({
 				onRowsPerPageChange={(event) => setPerPage(Number(event.target.value))}
 				labelRowsPerPage="Por página"
 				labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+				sx={{ px: 1.5 }}
 			/>
-		</Paper>
+		</Box>
 	);
 }
 

@@ -33,6 +33,8 @@ export function useUpsertCaravan() {
         : 'Caravana actualizada correctamente';
       
       toast.success(message);
+      // A load never ends a pregnancy: what it could not do is said here.
+      response.warnings?.forEach((warning) => toast.warning(warning));
     },
     onError: (error: any) => {
       console.error('Error in upsertCaravan:', error);

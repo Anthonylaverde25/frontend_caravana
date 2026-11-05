@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Tab, Tabs, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
-export type AdministrativeBatchesTabKey = 'consumption' | 'death' | 'exit' | 'quarantine' | 'reserve';
+export type AdministrativeBatchesTabKey = 'consumption' | 'death' | 'exit' | 'quarantine' | 'reserve' | 'assignment';
 
 interface AdministrativeBatchesSubheaderProps {
 	activeTab: AdministrativeBatchesTabKey;
@@ -168,6 +168,22 @@ export default function AdministrativeBatchesSubheader({ activeTab, onTabChange 
 								sx={{ fontSize: '0.88rem', fontWeight: 'inherit', color: 'inherit' }}
 							>
 								Lote Reserva
+							</Typography>
+						</Box>
+					}
+				/>
+
+				{/* Tab 6: Asignar a Lote Propio */}
+				<Tab
+					value="assignment"
+					label={
+						<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+							<FuseSvgIcon size={18}>heroicons-outline:arrow-right-start-on-rectangle</FuseSvgIcon>
+							<Typography
+								component="span"
+								sx={{ fontSize: '0.88rem', fontWeight: 'inherit', color: 'inherit' }}
+							>
+								Asignar a Lote Propio
 							</Typography>
 						</Box>
 					}

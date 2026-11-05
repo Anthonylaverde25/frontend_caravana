@@ -13,6 +13,7 @@ export function useRecordCaravanWeight() {
       caravanRepository.recordWeight(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['caravan-weights', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['caravan-detail', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
       queryClient.invalidateQueries({ queryKey: ['batch'] });

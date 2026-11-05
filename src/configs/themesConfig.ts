@@ -140,7 +140,8 @@ export const themesConfig: FuseThemesType = {
 			primary: { main: '#1F232B', light: '#363B44', dark: '#0F1115', contrastText: '#FFFFFF' },
 			secondary: { main: '#1565C0', light: '#3C83D6', dark: '#0E4B90', contrastText: '#FFFFFF' },
 			text: { primary: '#1F232B', secondary: '#4B5563', disabled: '#9CA3AF' },
-			background: { default: '#FAF9F6', paper: '#F9F8F5' },
+			// Toolbar and navbar share this colour: together they frame the content sheet.
+			background: { default: '#F3F4F6', paper: '#F9F8F5' },
 			divider: '#E2E8F0',
 			action: {
 				active: '#4B5563',

@@ -42,7 +42,7 @@ export function AssistantDrawerHeader({ canReset, onReset, onClose, extra }: Ass
 						variant="caption"
 						color="text.secondary"
 					>
-						XIMON Ganadero AI · Solo lectura
+						XIMON Ganadero AI · Consulta y registra
 					</Typography>
 				</Box>
 			</Box>

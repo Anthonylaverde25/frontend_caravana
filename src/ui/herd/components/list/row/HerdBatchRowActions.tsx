@@ -33,7 +33,7 @@ export function HerdBatchRowActions({
 }: HerdBatchRowActionsProps) {
 	const navigate = useNavigate();
 	const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-	const canStartService = batch.isCria() && !batch.hasActiveService();
+	const canStartService = batch.isCria() && !batch.hasUnclosedServiceOrder();
 
 	const go = (path: string) => {
 		setMenuAnchor(null);

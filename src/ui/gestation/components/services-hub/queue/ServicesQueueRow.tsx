@@ -5,7 +5,7 @@ import type { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import { getTrayDeadline } from '../../../utils/diagnosisTray';
 import { orderHeadline } from '../../../utils/serviceOrderPhase';
-import { queueDeadline, queuePhaseOf, queueProgress, serviceMethodLabel } from '../../../utils/servicesQueue';
+import { isNotStarted, queueDeadline, queueProgress, serviceMethodLabel } from '../../../utils/servicesQueue';
 import ServicesNextStepActions, { type QueueOrderHandlers } from './ServicesNextStepActions';
 
 interface ServicesQueueRowProps extends QueueOrderHandlers {
@@ -23,9 +23,9 @@ export default function ServicesQueueRow({ order, batchName, caravans, zebra, is
   const { cellSx, zebraBg } = useGridCellStyles();
   const progress = queueProgress(order);
   const plazo = queueDeadline(order);
-  const isDraft = queuePhaseOf(order) === 'DRAFT';
+  const notStarted = isNotStarted(order);
   const deadline = getTrayDeadline(order);
-  const urgent = !isDraft && (deadline === 'OVERDUE' || deadline === 'CLOSING_SOON');
+  const urgent = !notStarted && (deadline === 'OVERDUE' || deadline === 'CLOSING_SOON');
   const urgentColor = deadline === 'OVERDUE' ? 'error' : 'warning';
   const cell = { ...cellSx, px: 2, py: 1.25 };
 
@@ -71,7 +71,7 @@ export default function ServicesQueueRow({ order, batchName, caravans, zebra, is
       </TableCell>
 
       <TableCell sx={cell}>
-        {isDraft ? (
+        {notStarted ? (
           <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{plazo.title}</Typography>
         ) : (
           <Box

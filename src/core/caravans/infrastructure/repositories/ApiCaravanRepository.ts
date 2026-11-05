@@ -4,6 +4,7 @@ import { Caravan, CreateCaravanRequest, RegisterBirthDTO } from '../../domain/en
 import { CaravanSummaryPage, CaravanSummaryQuery } from '../../domain/entities/CaravanSummary';
 import { TagCalvesPayload, UntaggedCalf } from '../../domain/entities/UntaggedCalf';
 import { DeathBatchOption, DeathCause, RegisterDeathPayload } from '../../domain/entities/Death';
+import { CastrationCandidates, CategoryChange, RegisterCastrationPayload } from '../../domain/entities/Castration';
 import { ICaravanRepository } from '../../domain/repositories/ICaravanRepository';
 import { CaravanMapper } from '../mappers/CaravanMapper';
 
@@ -30,8 +31,8 @@ export class ApiCaravanRepository implements ICaravanRepository {
   }
 
 
-  async upsert(data: CreateCaravanRequest): Promise<{ action: string; id: number }> {
-    const response = await axiosInstance.post<{ action: string; id: number }>(
+  async upsert(data: CreateCaravanRequest): Promise<{ action: string; id: number; warnings?: string[] }> {
+    const response = await axiosInstance.post<{ action: string; id: number; warnings?: string[] }>(
       '/caravans',
       data,
     );
@@ -39,8 +40,10 @@ export class ApiCaravanRepository implements ICaravanRepository {
     return response.data;
   }
 
-  async bulkUpsert(data: CreateCaravanRequest[]): Promise<void> {
-    await axiosInstance.post('/caravans/bulk', { caravans: data });
+  async bulkUpsert(data: CreateCaravanRequest[]): Promise<{ warnings: string[] }> {
+    const response = await axiosInstance.post<{ warnings?: string[] }>('/caravans/bulk', { caravans: data });
+
+    return { warnings: response.data.warnings ?? [] };
   }
 
   async bulkRegisterBirth(births: RegisterBirthDTO[]): Promise<void> {
@@ -126,5 +129,39 @@ export class ApiCaravanRepository implements ICaravanRepository {
 
   async registerDeath(payload: RegisterDeathPayload): Promise<void> {
     await axiosInstance.post('/caravans/deaths', payload);
+  }
+
+  async listCastrationCandidates(batchId: number): Promise<CastrationCandidates> {
+    const response = await axiosInstance.get<{ data: any[]; steer_age_limit_months: number }>(
+      `/batches/${batchId}/castration-candidates`
+    );
+    return {
+      candidates: response.data.data,
+      steer_age_limit_months: response.data.steer_age_limit_months,
+    };
+  }
+
+  async registerCastration(payload: RegisterCastrationPayload): Promise<void> {
+    await axiosInstance.post('/caravans/castrations', payload);
+  }
+
+  async voidCastration(id: number, reason?: string | null): Promise<void> {
+    await axiosInstance.delete(`/caravans/castrations/${id}`, {
+      data: { reason },
+    });
+  }
+
+  async listCategoryChanges(caravanId: number): Promise<CategoryChange[]> {
+    const response = await axiosInstance.get<{ data: CategoryChange[] }>(
+      `/caravans/${caravanId}/category-changes`
+    );
+    return response.data.data;
+  }
+
+  async registerAbortion(
+    caravanId: number,
+    payload: { aborted_on: string; notes?: string | null; becomes_cow?: boolean }
+  ): Promise<void> {
+    await axiosInstance.post(`/caravans/${caravanId}/abortion`, payload);
   }
 }

@@ -65,7 +65,7 @@ export function ChatSidebarHeader({
 					Análisis XIMON
 				</Typography>
 				<Chip
-					label="Solo lectura"
+					label="Consulta y registra"
 					size="small"
 					sx={{
 						height: 20,

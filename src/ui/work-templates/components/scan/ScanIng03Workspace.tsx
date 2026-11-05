@@ -141,7 +141,7 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
               size="small"
               label={
                 sheet
-                  ? `${sheet.label} · DTE ${sheet.dte_number} · ${sheet.weighing_mode_label} · ${sheet.status_label}`
+                  ? `${sheet.label} · ${sheet.dte_number ? `DTE ${sheet.dte_number}` : 'Sin DTE'} · ${sheet.weighing_mode_label} · ${sheet.status_label}`
                   : `Hoja ${metadata.hoja_recepcion || '¿?'}`
               }
               color={sheet ? (sheet.is_active ? 'info' : 'default') : 'error'}
@@ -243,7 +243,7 @@ export const ScanIng03Workspace: React.FC<ScanIng03WorkspaceProps> = ({ state, o
           <Chip
             size="small"
             variant="outlined"
-            label={`DTE ${resolution.dte.dte_number}: ${resolution.dte.head_count} cabezas · ${resolution.dte.pending_count} en tránsito`}
+            label={`${resolution.dte.dte_number ? `DTE ${resolution.dte.dte_number}` : 'Sin DTE'}: ${resolution.dte.head_count} cabezas · ${resolution.dte.pending_count} en tránsito`}
             sx={{ fontWeight: 700 }}
           />
         )}

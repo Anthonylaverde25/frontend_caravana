@@ -1,4 +1,4 @@
-import { Button, InputAdornment, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { InputAdornment, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { CaravanSummarySort } from '@/core/caravans/domain/entities/CaravanSummary';
 
@@ -12,11 +12,6 @@ interface HerdCaravansToolbarProps {
 	onSearchChange: (value: string) => void;
 	onSexChange: (value: HerdSexFilter) => void;
 	onSortChange: (value: CaravanSummarySort) => void;
-	/** Rows ticked in the table; enables the bulk breeding action. */
-	selectedCount?: number;
-	onBulkBreeding?: () => void;
-	onBulkDeath?: () => void;
-	onBulkSell?: () => void;
 }
 
 const fieldSx = { bgcolor: 'action.hover', minWidth: 160 } as const;
@@ -29,68 +24,22 @@ export function HerdCaravansToolbar({
 	total,
 	onSearchChange,
 	onSexChange,
-	onSortChange,
-	selectedCount = 0,
-	onBulkBreeding,
-	onBulkDeath,
-	onBulkSell
+	onSortChange
 }: HerdCaravansToolbarProps) {
 	return (
 		<Stack
 			direction={{ xs: 'column', md: 'row' }}
 			spacing={1.5}
 			alignItems={{ xs: 'stretch', md: 'center' }}
-			sx={{ p: 2 }}
+			sx={{ px: { xs: 2.5, md: 3.5 }, py: 1.75 }}
 		>
-			<Typography
-				variant="subtitle2"
-				sx={{ fontWeight: 800, flexGrow: 1 }}
-			>
-				{total === null ? 'Caravanas' : `Caravanas (${total})`}
-			</Typography>
-			{onBulkSell && selectedCount > 0 && (
-				<Button
-					variant="outlined"
-					color="inherit"
-					size="small"
-					onClick={onBulkSell}
-					startIcon={<FuseSvgIcon size={16}>heroicons-outline:banknotes</FuseSvgIcon>}
-					sx={{ textTransform: 'none', fontWeight: 700, color: 'text.secondary' }}
-				>
-					Vender ({selectedCount})
-				</Button>
-			)}
-			{onBulkDeath && selectedCount > 0 && (
-				<Button
-					variant="outlined"
-					color="inherit"
-					size="small"
-					onClick={onBulkDeath}
-					startIcon={<FuseSvgIcon size={16}>heroicons-outline:x-circle</FuseSvgIcon>}
-					sx={{ textTransform: 'none', fontWeight: 700, color: 'text.secondary' }}
-				>
-					Registrar muerte ({selectedCount})
-				</Button>
-			)}
-			{onBulkBreeding && selectedCount > 0 && (
-				<Button
-					variant="outlined"
-					color="secondary"
-					size="small"
-					onClick={onBulkBreeding}
-					startIcon={<FuseSvgIcon size={16}>heroicons-outline:heart</FuseSvgIcon>}
-					sx={{ textTransform: 'none', fontWeight: 700 }}
-				>
-					Aptitud reproductiva ({selectedCount})
-				</Button>
-			)}
 			<TextField
 				variant="filled"
 				size="small"
 				placeholder="Caravana, raza o categoría"
 				value={search}
 				onChange={(event) => onSearchChange(event.target.value)}
-				sx={{ ...fieldSx, minWidth: 240 }}
+				sx={{ ...fieldSx, minWidth: 260 }}
 				InputProps={{
 					startAdornment: (
 						<InputAdornment position="start">
@@ -124,6 +73,11 @@ export function HerdCaravansToolbar({
 				<MenuItem value="recent">Último ingreso primero</MenuItem>
 				<MenuItem value="identification">Por caravana</MenuItem>
 			</TextField>
+			{total !== null && (
+				<Typography sx={{ ml: { md: 'auto !important' }, fontSize: '0.8rem', color: 'text.secondary' }}>
+					{`${total} ${total === 1 ? 'caravana' : 'caravanas'}`}
+				</Typography>
+			)}
 		</Stack>
 	);
 }

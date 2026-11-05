@@ -16,6 +16,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useWriteOffPendingHeads } from '@/features/entry-orders/hooks/useEntryOrderMutations';
 import { EntryOrder, entryOrderApiError, entryOrderErrorMessage } from '@/features/entry-orders/types';
 import { filledSx } from '@/ui/batches/components/external/externalFormParts';
+import { dteLabel } from '../entryOrderFormat';
 
 interface WriteOffPendingHeadsDialogProps {
   order: EntryOrder;
@@ -40,7 +41,7 @@ export const WriteOffPendingHeadsDialog: React.FC<WriteOffPendingHeadsDialogProp
           dteId: dte.id,
           batchId: p.batch.id,
           max: p.head_count,
-          label: `DTE ${dte.dte_number} · ${p.batch.name ?? `Lote #${p.batch.id}`} · ${p.head_count} por identificar`
+          label: `${dteLabel(dte)} · ${p.batch.name ?? `Lote #${p.batch.id}`} · ${p.head_count} por identificar`
         }))
       ),
     [order.dtes]

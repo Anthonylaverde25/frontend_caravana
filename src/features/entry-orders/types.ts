@@ -134,11 +134,14 @@ export interface EntryOrderAnimal {
   current_batch?: { id: number; name: string | null } | null;
 }
 
-/** A DTE declares head, not caravans: what is in transit is a count. */
+/**
+ * A DTE declares head, not caravans: what is in transit is a count. The paper is recommended, not
+ * required: without number nor date it is a group of head moving with the document still to come.
+ */
 export interface EntryOrderDte {
   id: number;
-  dte_number: string;
-  dte_date: string;
+  dte_number: string | null;
+  dte_date: string | null;
   /** Head the document declares. */
   head_count: number;
   received_count: number;
@@ -214,7 +217,7 @@ export interface EntryOrderReceiptSheet {
   /** "R1". */
   label: string;
   dte_id: number;
-  dte_number: string;
+  dte_number: string | null;
   status: ReceiptSheetStatus;
   status_label: string;
   /** Issued or scanned in part: still expected back from the field. */
@@ -327,10 +330,15 @@ export interface EntryOrderSummary {
   responsable: string | null;
   observations: string | null;
   breeds: EntryOrderBreed[];
-  /** Head declared by the DTEs; may exceed head_count when a DTE declared more. */
+  /** Head declared by the DTEs with their paper; may exceed head_count when a DTE declared more. */
   with_dte_count: number;
-  /** Head bought still waiting for their document. */
+  /** Head bought still waiting for their document, moving already or not. */
   pending_dte_count: number;
+  /** Head nothing declares yet: what a new "Cargar DTE" or "Continuar sin DTE" would take. */
+  undeclared_head_count: number;
+  /** Some head moved without their paper: a reminder, never a block. */
+  without_dte: boolean;
+  without_dte_head_count: number;
   /** Head of the DTEs still on their way. */
   in_transit_count: number;
   received_count: number;
@@ -424,8 +432,10 @@ export interface WriteOffPendingPayload {
 
 /** A DTE as loaded: the head it declares. No caravans: they are written down on arrival. */
 export interface LoadDtePayload {
-  dte_number: string;
-  dte_date: string;
+  /** The paper is not in hand: only the head that move are sent. */
+  without_dte?: boolean;
+  dte_number?: string | null;
+  dte_date?: string | null;
   head_count: number;
   observations: string | null;
 }

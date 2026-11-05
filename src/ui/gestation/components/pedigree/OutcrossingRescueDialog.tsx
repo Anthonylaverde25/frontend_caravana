@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { isBreedingCandidate } from '@/core/caravans/domain/rules/isBreedingCandidate';
-import { useNavigate } from 'react-router';
 import {
 	Dialog,
 	DialogTitle,
@@ -63,7 +62,6 @@ export default function OutcrossingRescueDialog({
 }: OutcrossingRescueDialogProps) {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === 'dark';
-	const navigate = useNavigate();
 
 	// SAP Fiori Horizon palette tokens
 	const accent = isDark ? '#3582e8' : '#0a6ed1';
@@ -192,18 +190,6 @@ export default function OutcrossingRescueDialog({
 			const msg = error.response?.data?.message || 'Error al crear la orden de rescate exogámico';
 			toast.error(msg);
 		}
-	};
-
-	const handleOpenInAdvancedCreator = () => {
-		navigate('/gestation/bull-rotation?action=create', {
-			state: {
-				preselectedFemaleIds: femaleIds,
-				preselectedSireIds: selectedBullIds,
-				serviceType,
-				isRescueMode: true,
-			},
-		});
-		onClose();
 	};
 
 	const getInbreedingStatus = (fx: number) => {
@@ -693,17 +679,6 @@ export default function OutcrossingRescueDialog({
 						sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
 					>
 						Cancelar
-					</Button>
-
-					<Button
-						variant="outlined"
-						color="inherit"
-						onClick={handleOpenInAdvancedCreator}
-						disabled={createOrderMutation.isPending}
-						startIcon={<FuseSvgIcon size={18}>heroicons-outline:adjustments-horizontal</FuseSvgIcon>}
-						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '6px', borderColor: borders }}
-					>
-						Abrir en creador avanzado
 					</Button>
 
 					<Button

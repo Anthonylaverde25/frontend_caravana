@@ -55,6 +55,31 @@ export const entryOrderStatusLabel = (status: EntryOrderStatus, progress?: Entry
   return base;
 };
 
+/** Head moved without the paper: a reminder, never a block. The same mark as an exit order. */
+export const WithoutDteChip: React.FC = () => {
+  const theme = useTheme();
+  const color = theme.palette.warning.main;
+
+  return (
+    <Tooltip title="Es recomendable cargar el DTE. La orden sigue su curso sin él.">
+      <Chip
+        size="small"
+        label="Sin DTE"
+        sx={{
+          fontWeight: 700,
+          fontSize: '0.7rem',
+          letterSpacing: '0.3px',
+          textTransform: 'uppercase',
+          color,
+          bgcolor: alpha(color, 0.1),
+          border: `1px solid ${alpha(color, 0.3)}`,
+          borderRadius: '6px'
+        }}
+      />
+    </Tooltip>
+  );
+};
+
 interface EntryOrderStatusChipProps {
   status: EntryOrderStatus;
   size?: 'small' | 'medium';

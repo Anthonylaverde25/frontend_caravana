@@ -24,7 +24,7 @@ export function useLser01Roster(batchId: number | null): Lser01Roster {
   const { data: caravans = [], isLoading: isLoadingCaravans } = useCaravans(batchId ? activeCompanyId : null, 'own');
 
   const eligibleBatches = useMemo(
-    () => batches.filter((b) => b.isCria() && !b.provider_id && !b.hasActiveService()),
+    () => batches.filter((b) => b.isCria() && !b.provider_id && !b.hasUnclosedServiceOrder()),
     [batches]
   );
 

@@ -4,6 +4,7 @@ export type WeighingTypeCode =
   | 'WEANING'
   | 'CONTROL'
   | 'BATCH_CONTROL'
+  | 'BATCH_AVERAGE'
   | 'PRE_SERVICE'
   | 'PREGNANCY_CHECK'
   | 'ENTRY'
@@ -21,7 +22,9 @@ export type WeighingSource =
   | 'ACTIVITY_CHANGE'
   | 'ENTRY'
   | 'BIRTH'
-  | 'IMPORT';
+  | 'IMPORT'
+  | 'EXIT_ORDER'
+  | 'AI';
 
 export interface WeighingType {
   id: number;
@@ -31,10 +34,12 @@ export interface WeighingType {
   affects_adpv: boolean;
   default_method: WeighingMethod;
   default_shrunk_condition: ShrunkCondition;
-  /** Can be measured on one animal (everything but a cage re-weighing). */
+  /** Can be measured on one animal (everything but a batch weighing). */
   allows_individual: boolean;
-  /** Can be measured on a batch as a whole (everything but birth and an individual control). */
+  /** A weighing of a batch: a cage re-weighing or a general average. */
   allows_group: boolean;
+  /** What is written down when weighing a batch for this purpose. Null: not a batch weighing. */
+  batch_entry: BatchWeighingEntry | null;
   display_order: number;
   is_system: boolean;
   is_active: boolean;
@@ -86,15 +91,23 @@ export const SHRUNK_CONDITION_LABELS: Record<ShrunkCondition, string> = {
 /** Methods that describe one animal on a scale. An average only exists as a batch weighing. */
 export const INDIVIDUAL_WEIGHING_METHODS: WeighingMethod[] = ['INDIVIDUAL', 'PORTABLE_FIELD', 'ESTIMATED'];
 
-/** One load of a cage or truck scale. */
+/** One load of a cage or truck scale; a null category stands for the animals without one. */
 export interface CageGroupInput {
+  category_id: number | null;
   head_count: number;
   gross_weight: number;
   tare_weight: number;
 }
 
-/** What the operator wrote down: each cage load, or the average per head already worked out. */
-export type BatchWeighingEntry = 'AVERAGE' | 'LOADS';
+/** What the operator wrote down: each cage load, or the average of each category weighed. */
+export type BatchWeighingEntry = 'LOADS' | 'BY_CATEGORY';
+
+/** The average per head of one category; a null category stands for the animals without one. */
+export interface CategoryAverageInput {
+  category_id: number | null;
+  head_count: number;
+  average_weight: number;
+}
 
 export interface RegisterBatchWeighingPayload {
   batch_id: number;
@@ -106,17 +119,21 @@ export interface RegisterBatchWeighingPayload {
   responsable?: string | null;
   observations?: string | null;
   entry: BatchWeighingEntry;
-  /** AVERAGE only. */
-  average_weight?: number;
-  head_count?: number;
+  /** BY_CATEGORY only. */
+  averages?: CategoryAverageInput[];
   /** LOADS only. */
   groups?: CageGroupInput[];
 }
 
 export interface WeighingOrderGroup extends CageGroupInput {
+  category_name: string | null;
   sequence: number;
   net_weight: number;
   average_weight: number;
+}
+
+export interface WeighingOrderCategoryAverage extends CategoryAverageInput {
+  category_name: string | null;
 }
 
 export interface WeighingOrder {
@@ -139,8 +156,10 @@ export interface WeighingOrder {
   total_heads: number;
   total_net_weight: number;
   average_weight: number | null;
-  entry: BatchWeighingEntry | null;
+  /** AVERAGE: an order registered with one average for the whole batch, no longer accepted. */
+  entry: BatchWeighingEntry | 'AVERAGE' | null;
   groups: WeighingOrderGroup[];
+  category_averages: WeighingOrderCategoryAverage[];
   responsable: string | null;
   observations: string | null;
   created_at: string | null;

@@ -1,9 +1,9 @@
-import { Checkbox, Chip, IconButton, TableCell, TableRow, Tooltip, Typography } from '@mui/material';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { Checkbox, Chip, TableCell, TableRow, Typography } from '@mui/material';
 import type { CaravanSummary } from '@/core/caravans/domain/entities/CaravanSummary';
 import { formatDate, formatKg, gestationLabel, sexLabel } from '../../utils/herdFormat';
 import BreedingEligibilityChip from './breeding-eligibility/BreedingEligibilityChip';
 import NotApplicable from './NotApplicable';
+import HerdCaravanRowActions from './HerdCaravanRowActions';
 
 const compactChipSx = { height: 20, fontSize: '0.65rem', fontWeight: 700 };
 
@@ -21,6 +21,7 @@ interface HerdCaravanTableRowProps {
 	onBreeding?: (caravan: CaravanSummary) => void;
 	onDeath?: (caravan: CaravanSummary) => void;
 	onSell?: (caravan: CaravanSummary) => void;
+	onAbort?: (caravan: CaravanSummary) => void;
 }
 
 /** One caravan of the herd table: identity, reproductive state, weight and row actions. */
@@ -37,7 +38,8 @@ export function HerdCaravanTableRow({
 	onWeigh,
 	onBreeding,
 	onDeath,
-	onSell
+	onSell,
+	onAbort
 }: HerdCaravanTableRowProps) {
 	const gestation = gestationLabel(caravan.gestation_status);
 	// A dead or sold animal is looked at, never operated on.
@@ -91,6 +93,15 @@ export function HerdCaravanTableRow({
 						sx={{ ...compactChipSx, mt: 0.25, color: 'text.secondary' }}
 					/>
 				)}
+				{caravan.service_order_code_on_stay && !gone && (
+					<Chip
+						size="small"
+						label={`En servicio · ${caravan.service_order_code_on_stay}`}
+						color="info"
+						variant="outlined"
+						sx={{ ...compactChipSx, mt: 0.25 }}
+					/>
+				)}
 				{!caravan.is_tagged && !gone && (
 					<Chip
 						size="small"
@@ -133,7 +144,10 @@ export function HerdCaravanTableRow({
 			</TableCell>
 			<TableCell sx={cellSx}>
 				<BreedingEligibilityChip
-					status={caravan.reproductive_status ?? (caravan.is_breeding_eligible !== false ? 'ELIGIBLE' : 'EXCLUDED')}
+					status={
+						caravan.reproductive_status ??
+						(caravan.is_breeding_eligible !== false ? 'ELIGIBLE' : 'EXCLUDED')
+					}
 					reasonLabel={caravan.breeding_exclusion_reason_label}
 				/>
 			</TableCell>
@@ -160,72 +174,16 @@ export function HerdCaravanTableRow({
 				align="right"
 				sx={{ ...cellSx, borderRight: 0, textAlign: 'right', whiteSpace: 'nowrap' }}
 			>
-				<Tooltip title="Ver detalle">
-					<IconButton
-						size="small"
-						onClick={() => onView(caravan)}
-						sx={{ height: 28, width: 28 }}
-					>
-						<FuseSvgIcon size={18}>heroicons-outline:eye</FuseSvgIcon>
-					</IconButton>
-				</Tooltip>
-				{onEdit && !gone && (
-					<Tooltip title="Editar">
-						<IconButton
-							size="small"
-							onClick={() => onEdit(caravan)}
-							sx={{ height: 28, width: 28 }}
-						>
-							<FuseSvgIcon size={18}>heroicons-outline:pencil-square</FuseSvgIcon>
-						</IconButton>
-					</Tooltip>
-				)}
-				{onWeigh && !gone && (
-					<Tooltip title="Pesar">
-						<IconButton
-							size="small"
-							color="success"
-							onClick={() => onWeigh(caravan)}
-							sx={{ height: 28, width: 28 }}
-						>
-							<FuseSvgIcon size={18}>heroicons-outline:scale</FuseSvgIcon>
-						</IconButton>
-					</Tooltip>
-				)}
-				{onDeath && !gone && (
-					<Tooltip title="Registrar muerte">
-						<IconButton
-							size="small"
-							onClick={() => onDeath(caravan)}
-							sx={{ height: 28, width: 28, color: 'text.secondary' }}
-						>
-							<FuseSvgIcon size={18}>heroicons-outline:x-circle</FuseSvgIcon>
-						</IconButton>
-					</Tooltip>
-				)}
-				{onSell && !gone && (
-					<Tooltip title="Vender">
-						<IconButton
-							size="small"
-							onClick={() => onSell(caravan)}
-							sx={{ height: 28, width: 28, color: 'text.secondary' }}
-						>
-							<FuseSvgIcon size={18}>heroicons-outline:banknotes</FuseSvgIcon>
-						</IconButton>
-					</Tooltip>
-				)}
-				{onBreeding && !gone && caravan.reproductive_status !== 'NOT_APPLICABLE' && (
-					<Tooltip title="Aptitud reproductiva">
-						<IconButton
-							size="small"
-							color="secondary"
-							onClick={() => onBreeding(caravan)}
-							sx={{ height: 28, width: 28 }}
-						>
-							<FuseSvgIcon size={18}>heroicons-outline:heart</FuseSvgIcon>
-						</IconButton>
-					</Tooltip>
-				)}
+				<HerdCaravanRowActions
+					caravan={caravan}
+					onView={onView}
+					onEdit={onEdit}
+					onWeigh={onWeigh}
+					onBreeding={onBreeding}
+					onDeath={onDeath}
+					onSell={onSell}
+					onAbort={onAbort}
+				/>
 			</TableCell>
 		</TableRow>
 	);

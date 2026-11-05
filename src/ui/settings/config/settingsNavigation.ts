@@ -58,7 +58,7 @@ export const SETTINGS_NAVIGATION_GROUPS: SettingsNavGroupConfig[] = [
     groupTitle: 'Sistema',
     items: [
       { id: 'appearance', title: 'Apariencia', description: 'Tema de colores y contraste, también para trabajar en la manga a pleno sol.' },
-      { id: 'ai-connections', title: 'Conexiones de IA', description: 'Consultá tu rodeo desde Claude o Gemini, con acceso de solo lectura.' },
+      { id: 'ai-connections', title: 'Conexiones de IA', description: 'Consultá tu rodeo y registrá pesajes y consumos desde Claude o Gemini.' },
     ],
   },
 ];

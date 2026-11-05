@@ -3,6 +3,8 @@ import { Alert, Box, Typography, Stack, TextField, Chip, Paper, InputAdornment, 
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import ExcludedFemalesNotice from './ExcludedFemalesNotice';
+import PendingTactoNotice from './PendingTactoNotice';
+import type { PendingTactoFemale } from '@/features/gestation/hooks/useServiceOrderIssuance';
 import StartBatchFemalesTable from './StartBatchFemalesTable';
 import { useStartServiceTableStyles } from './useStartServiceTableStyles';
 import ServiceMethodHeader from './ServiceMethodHeader';
@@ -22,6 +24,7 @@ export interface PlannedSemenProps {
 interface StartBatchFemalesStepProps {
   batchName: string;
   serviceableFemales: Caravan[];
+  owingTacto: ReadonlyMap<number, PendingTactoFemale>;
   pregnantCount: number;
   isControlledService: boolean;
   setIsControlledService: (value: boolean) => void;
@@ -45,6 +48,7 @@ interface StartBatchFemalesStepProps {
 export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
   batchName,
   serviceableFemales,
+  owingTacto,
   pregnantCount,
   isControlledService,
   setIsControlledService,
@@ -66,8 +70,16 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
   );
 
   const listedFemales = useMemo(
-    () => (picksIndividually ? serviceableFemales.filter((c) => c.is_breeding_eligible) : serviceableFemales),
-    [serviceableFemales, picksIndividually]
+    () =>
+      picksIndividually
+        ? serviceableFemales.filter((c) => c.is_breeding_eligible && !owingTacto.has(c.id!))
+        : serviceableFemales,
+    [serviceableFemales, picksIndividually, owingTacto]
+  );
+
+  const femalesOwingTacto = useMemo(
+    () => serviceableFemales.filter((c) => owingTacto.has(c.id!)),
+    [serviceableFemales, owingTacto]
   );
 
   const filteredFemales = useMemo(() => {
@@ -127,6 +139,13 @@ export const StartBatchFemalesStep: React.FC<StartBatchFemalesStepProps> = ({
       <ExcludedFemalesNotice
         excludedFemales={excludedFemales}
         isControlledService={picksIndividually}
+        onSetApart={onSetApart}
+      />
+
+      <PendingTactoNotice
+        females={femalesOwingTacto}
+        owingTacto={owingTacto}
+        picksIndividually={picksIndividually}
         onSetApart={onSetApart}
       />
 

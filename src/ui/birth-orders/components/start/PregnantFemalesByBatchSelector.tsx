@@ -21,6 +21,7 @@ import SheetGridEmptyRow from '@/components/sheet-grid/SheetGridEmptyRow';
 import SheetGridGroupRow from '@/components/sheet-grid/SheetGridGroupRow';
 import { useGridCellStyles } from '@/components/sheet-grid/useGridCellStyles';
 import PregnantFemaleSelectRow from './PregnantFemaleSelectRow';
+import ServiceHeldNotice from './ServiceHeldNotice';
 import type { FemaleBatchGroup } from './usePregnantFemalesByBatch';
 
 type Height = number | string | Partial<Record<'xs' | 'sm' | 'md' | 'lg' | 'xl', number | string>>;
@@ -62,12 +63,19 @@ export const PregnantFemalesByBatchSelector: React.FC<PregnantFemalesByBatchSele
               (dueUntil === '' || (f.dueDate != null && f.dueDate.slice(0, 10) <= dueUntil))
           )
         }))
-        .filter((group) => group.females.length > 0 || (!filtering && group.committed.length > 0)),
+        .filter((group) => group.females.length > 0 || (!filtering && (group.committed.length > 0 || group.heldByService.length > 0))),
     [groups, term, stage, dueUntil, filtering]
   );
   const shownIds = shown.flatMap((g) => g.females.map((f) => f.caravanId));
   const shownChosen = shownIds.filter((id) => chosen.has(id)).length;
   const chosenBatches = groups.filter((g) => g.females.some((f) => chosen.has(f.caravanId))).length;
+  const heldOrders = useMemo(() => {
+    const orders = new Map<number, FemaleBatchGroup['heldByService'][number]>();
+
+    groups.flatMap((g) => g.heldByService).forEach((o) => orders.set(o.orderId, { ...o, count: (orders.get(o.orderId)?.count ?? 0) + o.count }));
+
+    return [...orders.values()];
+  }, [groups]);
 
   const setMany = (ids: number[], on: boolean) => {
     const next = new Set(chosen);
@@ -89,6 +97,7 @@ export const PregnantFemalesByBatchSelector: React.FC<PregnantFemalesByBatchSele
 
   return (
     <Stack spacing={1.5}>
+      <ServiceHeldNotice orders={heldOrders} />
       <Stack direction={{ xs: 'column', xl: 'row' }} spacing={1} alignItems={{ xl: 'center' }}>
         <TextField
           size="small"
@@ -188,6 +197,17 @@ export const PregnantFemalesByBatchSelector: React.FC<PregnantFemalesByBatchSele
               const picked = ids.filter((id) => chosen.has(id)).length;
               const open = term !== '' || !folded.has(group.key);
               const committed = group.committed.reduce((sum, c) => sum + c.count, 0);
+              const held = group.heldByService.reduce((sum, o) => sum + o.count, 0);
+              const notAvailable = [
+                committed > 0 && `${committed} en ${group.committed.length === 1 ? `orden ${group.committed[0].code}` : `${group.committed.length} órdenes abiertas`}`,
+                held > 0 && `${held} con servicio sin cerrar`
+              ]
+                .filter(Boolean)
+                .join(' · ');
+              const notAvailableDetail = [
+                ...group.committed.map((c) => `${c.count} en ${c.code}`),
+                ...group.heldByService.map((o) => `${o.count} en ${o.code}, sin cerrar`)
+              ].join(' · ');
 
               return (
                 <React.Fragment key={group.key}>
@@ -203,10 +223,10 @@ export const PregnantFemalesByBatchSelector: React.FC<PregnantFemalesByBatchSele
                     }}
                     fold={{ open, disabled: ids.length === 0 || term !== '', onToggle: () => toggleFolded(group.key) }}
                     trailing={
-                      committed > 0 && (
-                        <Tooltip title={group.committed.map((c) => `${c.count} en ${c.code}`).join(' · ')}>
+                      notAvailable !== '' && (
+                        <Tooltip title={notAvailableDetail}>
                           <Typography variant="caption" color="text.secondary" sx={{ cursor: 'help', whiteSpace: 'nowrap' }}>
-                            {committed} en {group.committed.length === 1 ? `orden ${group.committed[0].code}` : `${group.committed.length} órdenes abiertas`}
+                            {notAvailable}
                           </Typography>
                         </Tooltip>
                       )

@@ -6,6 +6,7 @@ import InternalDeathView from './InternalDeathView';
 import InternalExitView from './InternalExitView';
 import QuarantineView from './QuarantineView';
 import ReserveBatchView from './ReserveBatchView';
+import ExternalBatchAssignmentView from '@/ui/batches/views/ExternalBatchAssignmentView';
 
 /**
  * AdministrativeBatchesView Component
@@ -15,6 +16,7 @@ import ReserveBatchView from './ReserveBatchView';
  * - Tab 3: Egresos (INTERNAL_EXIT)
  * - Tab 4: Cuarentena (QUARANTINE)
  * - Tab 5: Lote Reserva (RESERVE)
+ * - Tab 6: Asignar a Lote Propio (Hacienda externa a regularizar)
  */
 export default function AdministrativeBatchesView() {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -26,7 +28,8 @@ export default function AdministrativeBatchesView() {
 			rawTab === 'death' ||
 			rawTab === 'exit' ||
 			rawTab === 'quarantine' ||
-			rawTab === 'reserve'
+			rawTab === 'reserve' ||
+			rawTab === 'assignment'
 		) {
 			return rawTab;
 		}
@@ -59,6 +62,10 @@ export default function AdministrativeBatchesView() {
 
 	if (activeTab === 'reserve') {
 		return <ReserveBatchView subHeader={subHeader} />;
+	}
+
+	if (activeTab === 'assignment') {
+		return <ExternalBatchAssignmentView subHeader={subHeader} />;
 	}
 
 	return <InternalConsumptionView subHeader={subHeader} />;

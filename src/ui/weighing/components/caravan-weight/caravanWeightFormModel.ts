@@ -7,6 +7,7 @@ import {
   WeighingTypeCode,
 } from '@/core/weighing/domain/entities/Weighing';
 import { PreviousWeight } from '@/core/weighing/domain/services/weighingSanity';
+import { localToday } from '@/ui/exit-orders/components/exitOrderFormat';
 
 export interface CaravanWeightFormState {
   weight: string;
@@ -21,7 +22,8 @@ export interface CaravanWeightFormState {
 
 export type CaravanWeightFormErrors = Partial<Record<'weight' | 'date' | 'shrinkPct', string>>;
 
-export const today = () => new Date().toISOString().split('T')[0];
+/** The operator's day: the UTC one is already tomorrow from 21:00 in Argentina. */
+export const today = localToday;
 
 export function initialFormState(type?: WeighingType): CaravanWeightFormState {
   return {
@@ -47,6 +49,8 @@ export function validateForm(form: CaravanWeightFormState): CaravanWeightFormErr
 
   if (!form.date) {
     errors.date = 'Indicá la fecha del pesaje.';
+  } else if (form.date > today()) {
+    errors.date = 'La fecha no puede ser futura.';
   }
 
   if (form.shrunkCondition === 'CALCULATED') {

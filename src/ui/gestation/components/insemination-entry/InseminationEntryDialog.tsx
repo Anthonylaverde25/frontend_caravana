@@ -42,7 +42,7 @@ export default function InseminationEntryDialog({ orderId, onClose }: Inseminati
 
   const tags = useMemo(() => new Map((diagnosis?.females ?? []).map((f) => [f.female_caravan_id, f.identification])), [diagnosis]);
   const females = useMemo(() => (order ? femalesOf(order, inseminations, tags) : []), [order, inseminations, tags]);
-  const entry = useInseminationEntryState(females, semen.byId, defaultTankId);
+  const entry = useInseminationEntryState(females, semen.byId, defaultTankId, order?.status === 'SERVICE_ENDED' ? (order.actual_end_date ?? null) : null);
   const submit = useInseminationSubmit(orderId, females, entry);
 
   const loadStraws = useMemo(() => {

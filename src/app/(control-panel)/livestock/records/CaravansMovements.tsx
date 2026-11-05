@@ -8,12 +8,17 @@ import { Button } from '@mui/material';
 import { Link } from 'react-router';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
+export interface CaravansMovementsProps {
+	subHeader?: React.ReactNode;
+	hideBackButton?: boolean;
+}
+
 /**
  * CaravansMovements Component
  * Functional view showing the latest movements across the system.
  * Standardized using ViewLayout.
  */
-function CaravansMovements() {
+function CaravansMovements({ subHeader, hideBackButton = false }: CaravansMovementsProps = {}) {
 	const [selectedCaravan, setSelectedCaravan] = useState<string | null>(null);
 	const { data: movements = [], isLoading } = useAllCaravanMovements();
 
@@ -29,16 +34,19 @@ function CaravansMovements() {
 		<ViewLayout
 			title="Historial de Movimientos"
 			subtitle="Auditoría completa de trazabilidad: visualiza los últimos movimientos, ingresos y traslados registrados."
+			subHeader={subHeader}
 			actions={
-				<Button
-					variant="text"
-					component={Link}
-					to="/herd"
-					startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-left</FuseSvgIcon>}
-					sx={{ color: 'primary.main', fontWeight: 600, textTransform: 'none' }}
-				>
-					Volver a Hacienda Propia
-				</Button>
+				!hideBackButton ? (
+					<Button
+						variant="text"
+						component={Link}
+						to="/herd"
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:arrow-left</FuseSvgIcon>}
+						sx={{ color: 'primary.main', fontWeight: 600, textTransform: 'none' }}
+					>
+						Volver a Hacienda Propia
+					</Button>
+				) : undefined
 			}
 		>
 			<Box sx={{ position: 'relative', minHeight: 400 }}>

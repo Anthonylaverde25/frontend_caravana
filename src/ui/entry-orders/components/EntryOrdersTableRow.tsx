@@ -4,12 +4,13 @@ import { Box, Button, IconButton, LinearProgress, Stack, TableCell, TableRow, To
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { EntryOrderSummary } from '@/features/entry-orders/types';
 import { TransferOrderKindChip } from '@/ui/transfer-orders/components/TransferOrderStatusChip';
-import EntryOrderStatusChip, { useEntryOrderStatusColor } from './EntryOrderStatusChip';
+import EntryOrderStatusChip, { WithoutDteChip, useEntryOrderStatusColor } from './EntryOrderStatusChip';
 import { useReceiptSheetPrint } from './useReceiptSheetPrint';
 import {
   breedsOf,
   destinationCaptionOf,
   destinationOf,
+  dteLabel,
   formatDate,
   formatDateTime,
   originOf,
@@ -43,8 +44,8 @@ export const EntryOrdersTableRow: React.FC<EntryOrdersTableRowProps> = ({ order,
     receptionDtes.length > 1
       ? `Hoja de recepción ING-03: ${receptionDtes.length} DTE en tránsito, elegí cuál en la orden`
       : activeSheet
-        ? `Hoja de recepción ING-03 · ${activeSheet.label} del DTE ${activeSheet.dte_number}`
-        : `Generar hoja de recepción ING-03 del DTE ${receptionDtes[0]?.dte_number ?? ''}`;
+        ? `Hoja de recepción ING-03 · ${activeSheet.label} · ${dteLabel(activeSheet)}`
+        : `Generar hoja de recepción ING-03 · ${receptionDtes[0] ? dteLabel(receptionDtes[0]) : ''}`;
   const stop = (action: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     action();
@@ -90,6 +91,7 @@ export const EntryOrdersTableRow: React.FC<EntryOrdersTableRowProps> = ({ order,
         <Stack direction="row" spacing={0.5} alignItems="center">
           <EntryOrderStatusChip status={order.status} progress={order} />
           {order.kind === 'REGISTERED' && <TransferOrderKindChip />}
+          {order.without_dte && <WithoutDteChip />}
         </Stack>
       </TableCell>
       <TableCell sx={{ ...bodyCell, textAlign: 'center' }}>
@@ -140,9 +142,9 @@ export const EntryOrdersTableRow: React.FC<EntryOrdersTableRowProps> = ({ order,
         ) : (
           <Box>
             <Typography sx={{ ...primaryText, fontWeight: 600 }}>{order.dte_count === 0 ? 'Sin DTE' : `${order.dte_count} DTE`}</Typography>
-            {order.dtes[0] && (
+            {order.dte_count > 0 && (
               <Typography variant="caption" sx={captionText}>
-                {order.dtes.map((d) => d.dte_number).join(', ')}
+                {order.dtes.flatMap((d) => (d.dte_number ? [d.dte_number] : [])).join(', ')}
               </Typography>
             )}
           </Box>

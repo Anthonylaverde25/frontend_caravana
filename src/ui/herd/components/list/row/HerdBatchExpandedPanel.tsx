@@ -8,10 +8,16 @@ interface HerdBatchExpandedPanelProps {
 	batch: Batch;
 	selectedCaravanId?: number | null;
 	onViewCaravan: (caravan: CaravanSummary) => void;
+	onWeighCaravan: (caravan: CaravanSummary) => void;
 }
 
 /** The open batch: its overview aside and its latest caravans, in one surface. */
-export function HerdBatchExpandedPanel({ batch, selectedCaravanId, onViewCaravan }: HerdBatchExpandedPanelProps) {
+export function HerdBatchExpandedPanel({
+	batch,
+	selectedCaravanId,
+	onViewCaravan,
+	onWeighCaravan
+}: HerdBatchExpandedPanelProps) {
 	return (
 		<Box
 			sx={{
@@ -29,6 +35,7 @@ export function HerdBatchExpandedPanel({ batch, selectedCaravanId, onViewCaravan
 					batchId={batch.id}
 					highlightId={selectedCaravanId}
 					onView={onViewCaravan}
+					onWeigh={onWeighCaravan}
 				/>
 			</Box>
 		</Box>

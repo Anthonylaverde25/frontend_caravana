@@ -7,7 +7,7 @@ import { useSnackbar } from 'notistack';
 import FullScreenEntryBar from '@/components/FullScreenEntryBar';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
-import { useOpenBirthOrderMothers } from '@/features/birth-orders/hooks/useBirthOrders';
+import { useMothersInOpenService, useOpenBirthOrderMothers } from '@/features/birth-orders/hooks/useBirthOrders';
 import { filledInputProps, sectionTitleSx } from '@/ui/weaning-orders/components/form/formStyles';
 import PregnantFemalesByBatchSelector from './PregnantFemalesByBatchSelector';
 import { usePregnantFemalesByBatch } from './usePregnantFemalesByBatch';
@@ -42,7 +42,8 @@ export const BirthOrderStartDialog: React.FC<BirthOrderStartDialogProps> = ({ op
   const { data: caravans = [], isLoading } = useCaravans(activeCompanyId);
   const { data: committed = new Map<number, string>() } = useOpenBirthOrderMothers();
   const keep = initial?.orderId ? initial.motherIds : NO_IDS;
-  const groups = usePregnantFemalesByBatch(caravans, committed, keep);
+  const { data: heldByService } = useMothersInOpenService();
+  const groups = usePregnantFemalesByBatch(caravans, committed, keep, heldByService);
   const [motherIds, setMotherIds] = useState<number[]>([]);
   const [header, setHeader] = useState<BirthOrderHeader>(emptyBirthHeader);
   const [appliedBatch, setAppliedBatch] = useState(false);

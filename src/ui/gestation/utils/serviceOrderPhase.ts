@@ -1,3 +1,4 @@
+import { differenceInCalendarDays, format } from 'date-fns';
 import type { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import { formatDay } from './reproductiveVerdict';
 import { hasServiceEnded } from './serviceOrderStatus';
@@ -9,6 +10,7 @@ import { hasServiceEnded } from './serviceOrderStatus';
  * empty goes back to pending.
  */
 export type ServiceOrderPhase =
+  | 'PLANNED'
   | 'DRAFT'
   | 'IN_SERVICE'
   | 'INSEMINATING'
@@ -31,6 +33,7 @@ export interface ServiceOrderPhaseInfo {
 }
 
 export const PHASE_LABELS: Record<ServiceOrderPhase, string> = {
+  PLANNED: 'Planificada',
   DRAFT: 'Borrador',
   IN_SERVICE: 'En servicio',
   INSEMINATING: 'Inseminando',
@@ -43,6 +46,7 @@ export const PHASE_LABELS: Record<ServiceOrderPhase, string> = {
 };
 
 const PHASE_COLORS: Record<ServiceOrderPhase, PhaseColor> = {
+  PLANNED: 'info',
   DRAFT: 'default',
   IN_SERVICE: 'info',
   INSEMINATING: 'info',
@@ -69,8 +73,19 @@ function formatRate(rate: number | null | undefined, kind: 'parcial' | 'final'):
   return rate !== null && rate !== undefined ? ` · preñez ${kind} ${rate.toFixed(1)}%` : '';
 }
 
+/** A planned order says how far its day is: reaching it does not start the order. */
+function plannedDetail(day: string): string {
+  const today = format(new Date(), 'yyyy-MM-dd');
+  if (day === today) return 'Para hoy';
+  if (day > today) return `Inicio ${formatDay(day)}`;
+  const late = differenceInCalendarDays(new Date(`${today}T12:00:00`), new Date(`${day}T12:00:00`));
+  return `Atrasada ${late} ${late === 1 ? 'día' : 'días'}`;
+}
+
 export function getServiceOrderPhase(order: ServiceOrder): ServiceOrderPhaseInfo {
   const status = order.status.toUpperCase();
+
+  if (status === 'PLANNED') return info('PLANNED', plannedDetail(order.planned_start_date), false);
 
   if (status === 'SUCCESS') {
     const rate = formatRate(order.final_pregnancy_rate, 'final').replace(/^ · /, '');

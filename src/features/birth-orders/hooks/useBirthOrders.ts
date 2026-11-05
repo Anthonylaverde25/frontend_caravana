@@ -29,6 +29,26 @@ export function useBirthOrdersWithRoll() {
 }
 
 /** Females held by an open birth order, by caravan id: a new order does not offer them. */
+/** The service order that keeps a pregnant female out of the calving season until it closes. */
+export interface ServiceOrderHold {
+  orderId: number;
+  code: string;
+}
+
+export function useMothersInOpenService() {
+  const { activeCompanyId } = useCompany();
+
+  return useQuery({
+    queryKey: [BIRTH_ORDERS_KEY, activeCompanyId, 'mothers-in-open-service'],
+    queryFn: async (): Promise<Map<number, ServiceOrderHold>> => {
+      const rows = (await axiosInstance.get<{ caravan_id: number; order_id: number; code: string }[]>('/birth-orders/mothers-in-open-service')).data;
+
+      return new Map(rows.map((row) => [row.caravan_id, { orderId: row.order_id, code: row.code }]));
+    },
+    enabled: Boolean(activeCompanyId)
+  });
+}
+
 export function useOpenBirthOrderMothers() {
   const { activeCompanyId } = useCompany();
 

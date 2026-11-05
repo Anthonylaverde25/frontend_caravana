@@ -3,6 +3,7 @@ import { Box, Typography, Alert, Snackbar } from '@mui/material';
 import { Edit as EditIcon } from '@mui/icons-material';
 import axiosInstance from '@/utils/axios';
 import DataTable from 'src/components/data-table/DataTable';
+import { toast } from 'sonner';
 import { TableResult, ImportResult, DocumentContext } from './types';
 
 // Sub-components & Hooks
@@ -85,6 +86,9 @@ const ResultsPanel = ({ data, context, ocrProvider, workdayType, suggestedWorkda
 
       if (response.status === 200 || response.status === 201) {
         setImportResult(response.data.data);
+        (response.data.data as ImportResult).warnings?.forEach(({ row, reason }) =>
+          toast.warning(`Fila ${row}: ${reason}`)
+        );
         setImportStatus('done');
       } else {
         throw new Error(response.data.message || 'Import failed');

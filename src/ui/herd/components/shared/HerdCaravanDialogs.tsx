@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Batch } from '@/core/batches/domain/entities/Batch';
-import type { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { useUpsertCaravan } from '@/features/caravans/hooks/useUpsertCaravan';
 import CaravanDetailDrawer from 'src/components/caravan/CaravanDetailDrawer';
 import CaravanFormDialog from 'src/components/caravan/dialogs/CaravanFormDialog';
@@ -10,6 +9,9 @@ import type { HerdCaravanDialogsState } from '../../hooks/useHerdCaravanDialogs'
 import BreedingEligibilityDialog from './breeding-eligibility/BreedingEligibilityDialog';
 import RegisterDeathDialog from '../death/RegisterDeathDialog';
 import SellCaravansDialog from '@/ui/exit-orders/components/sell/SellCaravansDialog';
+import CastrationDialog from '../castration/CastrationDialog';
+import VoidCastrationDialog from '../castration/VoidCastrationDialog';
+import RegisterAbortionDialog from './abortion/RegisterAbortionDialog';
 
 interface HerdCaravanDialogsProps {
 	dialogs: HerdCaravanDialogsState;
@@ -36,7 +38,9 @@ export function HerdCaravanDialogs({ dialogs, ownBatches }: HerdCaravanDialogsPr
 				caravanIdentification={viewing ? (viewing.identification ?? viewing.label) : null}
 				onWeigh={viewing ? () => dialogs.openWeigh(viewing) : undefined}
 				onEdit={viewing ? () => dialogs.openEdit(viewing) : undefined}
-				onRegisterDeath={viewing && !viewing.is_dead && !viewing.exit ? () => dialogs.openDeath([viewing]) : undefined}
+				onRegisterDeath={
+					viewing && !viewing.is_dead && !viewing.exit ? () => dialogs.openDeath([viewing]) : undefined
+				}
 				onSell={viewing && !viewing.is_dead && !viewing.exit ? () => dialogs.openSell([viewing]) : undefined}
 				// Moving goes from one own batch to another: a caravan in no batch is assigned elsewhere.
 				onMove={
@@ -60,8 +64,7 @@ export function HerdCaravanDialogs({ dialogs, ownBatches }: HerdCaravanDialogsPr
 			<CaravanWeightDialog
 				open={dialogs.weighing !== null}
 				onClose={dialogs.closeWeigh}
-				// The dialog reads id, identification and current_weight, all present in the summary row.
-				caravan={dialogs.weighing as unknown as Caravan | null}
+				caravan={dialogs.weighing}
 			/>
 
 			{moving && (
@@ -78,7 +81,10 @@ export function HerdCaravanDialogs({ dialogs, ownBatches }: HerdCaravanDialogsPr
 				<RegisterDeathDialog
 					open
 					onClose={dialogs.closeDeath}
-					animals={dialogs.dying.caravans.map((c) => ({ id: c.id, label: c.is_tagged ? `#${c.identification}` : c.label }))}
+					animals={dialogs.dying.caravans.map((c) => ({
+						id: c.id,
+						label: c.is_tagged ? `#${c.identification}` : c.label
+					}))}
 					onDone={() => {
 						dialogs.dying?.onDone?.();
 						dialogs.closeView();
@@ -95,6 +101,30 @@ export function HerdCaravanDialogs({ dialogs, ownBatches }: HerdCaravanDialogsPr
 						dialogs.selling?.onDone?.();
 						dialogs.closeView();
 					}}
+				/>
+			)}
+
+			{dialogs.castrating && (
+				<CastrationDialog
+					open
+					onClose={dialogs.closeCastrate}
+					selectedCaravans={dialogs.castrating.caravans}
+				/>
+			)}
+
+			{dialogs.voidingCastration && (
+				<VoidCastrationDialog
+					open
+					onClose={dialogs.closeVoidCastration}
+					caravan={dialogs.voidingCastration}
+				/>
+			)}
+
+			{dialogs.aborting && (
+				<RegisterAbortionDialog
+					open
+					onClose={dialogs.closeAbort}
+					caravan={dialogs.aborting}
 				/>
 			)}
 

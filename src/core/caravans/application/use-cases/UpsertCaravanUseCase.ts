@@ -9,7 +9,7 @@ import { CreateCaravanRequest } from '../../domain/entities/Caravan';
 export class UpsertCaravanUseCase {
   constructor(private readonly caravanRepository: ICaravanRepository) {}
 
-  async execute(data: CreateCaravanRequest): Promise<{ action: string; id: number }> {
+  async execute(data: CreateCaravanRequest): Promise<{ action: string; id: number; warnings?: string[] }> {
     return this.caravanRepository.upsert(data);
   }
 }

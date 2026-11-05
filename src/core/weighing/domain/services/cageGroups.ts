@@ -2,7 +2,7 @@ import { CageGroupInput } from '../entities/Weighing';
 
 /**
  * Live arithmetic of a cage weighing, mirroring App\Core\Services\GroupWeightImputation. It only
- * informs: whether the loads cover the batch is decided by the backend when confirming.
+ * informs: whether the loads cover their category is decided by the backend when confirming.
  */
 export interface CageGroupsSummary {
   heads: number;
@@ -16,18 +16,6 @@ export const groupNet = (g: CageGroupInput) => g.gross_weight - g.tare_weight;
 
 export const groupAverage = (g: CageGroupInput): number | null =>
   g.head_count > 0 && groupNet(g) > 0 ? groupNet(g) / g.head_count : null;
-
-/** The same summary for an average declared with the heads it covers. */
-export function summarizeDeclaredAverage(average: number, heads: number, batchHeads: number): CageGroupsSummary {
-  const valid = average > 0 && heads > 0;
-
-  return {
-    heads: valid ? heads : 0,
-    netWeight: valid ? average * heads : 0,
-    average: valid ? average : null,
-    missingHeads: batchHeads - (valid ? heads : 0),
-  };
-}
 
 export function summarizeCageGroups(groups: CageGroupInput[], batchHeads: number): CageGroupsSummary {
   const valid = groups.filter((g) => g.head_count > 0 && groupNet(g) > 0);

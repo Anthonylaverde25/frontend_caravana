@@ -64,9 +64,9 @@ export const PRESETS: Record<
     secondaryButtonBg: "#10B981",
   },
   "sage-linen": {
-    headerBg: "#F4F7F4",
+    headerBg: "#EEF2EE",
     headerText: "#1E3A2F",
-    asideBg: "#EAEFEA",
+    asideBg: "#EEF2EE",
     asideText: "#132E22",
     primaryButtonBg: "#2D6A4F",
     secondaryButtonBg: "#52B788",
@@ -140,7 +140,8 @@ const DEFAULT_SETTINGS: ContrastSettings = {
   preset: "default",
 };
 
-const LOCAL_STORAGE_KEY = "fuse_header_aside_contrast";
+// v2: the default became the neutral frame; earlier saved presets are dropped once.
+const LOCAL_STORAGE_KEY = "fuse_header_aside_contrast_v2";
 
 interface ContrastThemeContextType {
   settings: ContrastSettings;

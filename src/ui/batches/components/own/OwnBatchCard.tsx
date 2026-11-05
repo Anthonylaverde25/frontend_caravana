@@ -31,8 +31,8 @@ export const OwnBatchCard: React.FC<OwnBatchCardProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  // Only a Cría batch without a running service can start one.
-  const isCria = (batch.activity_code ?? '').toUpperCase() === 'CRIA' && !batch.active_service_order;
+  // Only a Cría batch with every order closed can start a service.
+  const isCria = (batch.activity_code ?? '').toUpperCase() === 'CRIA' && !batch.unclosed_service_order;
 
   return (
     <Paper

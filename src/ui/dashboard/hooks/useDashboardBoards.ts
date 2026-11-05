@@ -11,9 +11,9 @@ import {
 import { SYSTEM_BOARDS, buildTemplateWidgets, newInstanceId } from '../registry/boardTemplates';
 import { getWidgetDefinition } from '../registry/widgetRegistry';
 
-/** v6: updated layout with balanced 4-column KPIs, clean charts and removed sires worklist. */
-const STORAGE_KEY = 'rxna_dashboard_boards_v6';
-const SYSTEM_OVERRIDE_KEY = 'rxna_dashboard_system_overrides_v6';
+/** v8: integrated ops-critical-alerts as a draggable, resizable board widget. */
+const STORAGE_KEY = 'rxna_dashboard_boards_v8';
+const SYSTEM_OVERRIDE_KEY = 'rxna_dashboard_system_overrides_v8';
 
 export interface CreateBoardInput {
 	name: string;

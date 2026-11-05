@@ -8,10 +8,10 @@ import { ICaravanRepository } from '../../domain/repositories/ICaravanRepository
 export class BulkCreateCaravansUseCase {
   constructor(private caravanRepository: ICaravanRepository) {}
 
-  async execute(caravans: CreateCaravanRequest[]): Promise<void> {
+  async execute(caravans: CreateCaravanRequest[]): Promise<{ warnings: string[] }> {
     // Basic validation could be added here if needed across all items
     if (!caravans || caravans.length === 0) {
-      return;
+      return { warnings: [] };
     }
 
     return this.caravanRepository.bulkUpsert(caravans);

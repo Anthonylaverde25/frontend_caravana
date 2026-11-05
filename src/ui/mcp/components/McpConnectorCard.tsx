@@ -12,7 +12,7 @@ export default function McpConnectorCard({ serverUrl }: { serverUrl: string }) {
 				<Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>Agregar como conector (recomendado)</Typography>
 				<Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
 					En Claude (Configuración → Conectores → Agregar conector personalizado) o en Gemini, pegá esta dirección. Se abrirá
-					esta aplicación para que elijas la empresa y autorices el acceso de solo lectura.
+					esta aplicación para que elijas la empresa y autorices el acceso.
 				</Typography>
 				<CopyableValue value={serverUrl} />
 			</Stack>

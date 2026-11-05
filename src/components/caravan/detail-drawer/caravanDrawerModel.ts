@@ -2,6 +2,7 @@ import type { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { isBreedingCandidate } from '@/core/caravans/domain/rules/isBreedingCandidate';
 import type { CaravanMovement } from '@/core/caravans/domain/entities/CaravanMovement';
 import type { CaravanWeightRecord, WeighingMethod } from '@/core/weighing/domain/entities/Weighing';
+import type { CategoryChange } from '@/core/caravans/domain/entities/Castration';
 
 export const GESTATION_MONTHS = 9;
 
@@ -193,11 +194,12 @@ const MOVEMENT_LABELS: Record<CaravanMovement['type'], string> = {
 	DEATH: 'Muerte'
 };
 
-/** Movements, weighings and the current gestation, newest first. */
+/** Movements, weighings, category changes, castration and the current gestation, newest first. */
 export function timeline(
 	caravan: Caravan,
 	movements: CaravanMovement[],
-	weights: CaravanWeightRecord[]
+	weights: CaravanWeightRecord[],
+	categoryChanges: CategoryChange[] = []
 ): TimelineEvent[] {
 	const events: TimelineEvent[] = [
 		...movements.map((m) => ({
@@ -205,6 +207,13 @@ export function timeline(
 			date: m.movementDate,
 			title: MOVEMENT_LABELS[m.type] ?? m.type,
 			detail: m.observations || (m.renspa ? `RENSPA ${m.renspa}` : ''),
+			tone: 'neutral' as const
+		})),
+		...categoryChanges.map((cc) => ({
+			key: `cc-${cc.id}`,
+			date: cc.occurred_on,
+			title: 'Cambio de categoría',
+			detail: `${cc.from_category ? cc.from_category.name : '—'} → ${cc.to_category.name} · ${cc.cause_label}`,
 			tone: 'neutral' as const
 		})),
 		...weights.map((w) => ({
@@ -215,6 +224,18 @@ export function timeline(
 			tone: 'primary' as const
 		}))
 	];
+
+	if (caravan.castration) {
+		events.push({
+			key: `cast-${caravan.castration.id}`,
+			date: caravan.castration.castrated_on,
+			title: 'Castración',
+			detail: caravan.castration.method_label
+				? `${caravan.castration.method_label}${caravan.castration.notes ? ` · ${caravan.castration.notes}` : ''}`
+				: (caravan.castration.notes || 'Registrada'),
+			tone: 'neutral' as const
+		});
+	}
 
 	const gestation = caravan.active_gestation;
 

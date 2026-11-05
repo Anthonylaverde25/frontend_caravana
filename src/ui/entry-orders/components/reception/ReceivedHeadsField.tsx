@@ -66,9 +66,9 @@ export const HeadsComparison: React.FC<HeadsComparisonProps> = ({ expected, rece
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'center' }}>
         <Typography variant="body2" sx={{ fontWeight: 600, flexShrink: 0 }}>
           {difference === 0
-            ? 'Coincide con el DTE: se da por recibido.'
+            ? 'Coincide con lo declarado: se da por recibido.'
             : difference < 0
-              ? `Faltan ${heads(-difference)}: el DTE se cierra con una novedad.`
+              ? `Faltan ${heads(-difference)}: se cierra con una novedad.`
               : `${heads(difference)} de más: se reciben con una novedad.`}
         </Typography>
         {difference !== 0 && (

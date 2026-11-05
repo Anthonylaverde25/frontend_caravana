@@ -9,6 +9,7 @@ import CaravanDrawerHeader, {
 import CaravanSummaryTab from './detail-drawer/CaravanSummaryTab';
 import CaravanWeightsTab from './detail-drawer/CaravanWeightsTab';
 import CaravanHistoryTab from './detail-drawer/CaravanHistoryTab';
+import VoidCastrationDialog from '@/ui/herd/components/castration/VoidCastrationDialog';
 
 type CaravanDetailDrawerProps = CaravanDrawerActions & {
 	open: boolean;
@@ -33,6 +34,7 @@ export function CaravanDetailDrawer({
 	onSell
 }: CaravanDetailDrawerProps) {
 	const [tab, setTab] = useState<CaravanDrawerTab>('summary');
+	const [voiding, setVoiding] = useState(false);
 	const { data: caravan, isLoading } = useCaravanDetail(open ? caravanId : null);
 	// Light and shared by every tab: the summary needs it for the daily gain.
 	const { data: weights = [] } = useCaravanWeights(open && caravanId ? caravanId : undefined);
@@ -99,6 +101,7 @@ export function CaravanDetailDrawer({
 						<CaravanSummaryTab
 							caravan={caravan}
 							weights={weights}
+							onVoidCastration={caravan.castration ? () => setVoiding(true) : undefined}
 						/>
 					) : tab === 'weights' ? (
 						<CaravanWeightsTab
@@ -113,6 +116,13 @@ export function CaravanDetailDrawer({
 					)}
 				</Box>
 			</Box>
+			{voiding && caravan && (
+				<VoidCastrationDialog
+					open
+					onClose={() => setVoiding(false)}
+					caravan={caravan}
+				/>
+			)}
 		</Drawer>
 	);
 }

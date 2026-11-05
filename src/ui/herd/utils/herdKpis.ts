@@ -10,7 +10,7 @@ export interface HerdKpis {
 	serviceCodes: string[];
 	/** Calves at foot inside `heads`: born into their mother's batch, counted apart from the adults. */
 	calves: number;
-	/** Mean weight of the weighed adults (calves at foot left out); null when none was weighed. */
+	/** Mean weight of the weighed adults (calves at foot left out, bulls on service in); null when none was weighed. */
 	averageKg: number | null;
 	weighedHeads: number;
 	/** Mean weight of the weighed calves at foot; null when none was weighed. */
@@ -22,7 +22,8 @@ const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 /**
  * KPIs of the visible batches. The average weight is weighted by the head behind each batch average:
  * a plain mean of batch averages would let 8 bulls weigh as much as 212 steers. Calves at foot come
- * out of it: a breeding batch averaging cows with their 35 kg calves describes neither.
+ * out of it: a breeding batch averaging cows with their 35 kg calves describes neither. Bulls on
+ * service come back in: no batch measures them while they are away, but they still are stock.
  */
 export function computeHerdKpis(batches: Batch[]): HerdKpis {
 	let heads = 0;
@@ -51,6 +52,9 @@ export function computeHerdKpis(batches: Batch[]): HerdKpis {
 			serviceHeads += batchHeads;
 			serviceCodes.push(batch.active_service_order.code);
 		}
+
+		weightSum += batch.bulls_on_service_total_weight;
+		weighedHeads += batch.bulls_on_service_weighed_count;
 
 		if (batch.current_weight && batch.current_weight > 0) {
 			// The batch average stands for its weighed head; without that count, for all its head.

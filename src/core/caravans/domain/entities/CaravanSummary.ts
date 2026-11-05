@@ -1,6 +1,7 @@
 import type { ReproductiveStatus } from '../rules/isBreedingCandidate';
 import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
 import type { DeathInfo, ExitInfo } from './Death';
+import type { CastrationRecord, CastrationStatus } from './Castration';
 
 /**
  * Light caravan row returned by GET /caravans/summary, for paginated inventory tables.
@@ -45,6 +46,11 @@ export interface CaravanSummary {
 	is_reproductive_category: boolean | null;
 	/** The category and the owner's decision together: NOT_APPLICABLE for a calf or a steer. */
 	reproductive_status: ReproductiveStatus;
+	castration_status?: CastrationStatus | null;
+	castration_status_label?: string | null;
+	castration?: CastrationRecord | null;
+	/** The running service that keeps this bull in the batch for now; null for everyone else. */
+	service_order_code_on_stay?: string | null;
 }
 
 export interface CaravanSummaryMeta {

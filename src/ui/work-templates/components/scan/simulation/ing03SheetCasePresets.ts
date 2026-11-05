@@ -12,7 +12,8 @@ import { SimulationPreset } from "./types";
  * seed (EN-20260928-0012 is written in words, 0013 has injured animals). The
  * "Varias categorías" cases (no test image yet) run against EN-20260928-0011, whose males declare
  * their category number (Cat.). The destination cases run against EN-20260928-0014 (each sex to
- * its own batch), 0016 (only the males have a destination) and 0017 (a destination closed since):
+ * its own batch), 0016 (only the males have a destination) and 0017 (a destination closed since);
+ * the case without DTE against 0018:
  *     php artisan tenants:seed --class=EntryOrderTestSeeder
  */
 
@@ -107,5 +108,11 @@ export const ING03_SHEET_CASES: SimulationPreset[] = [
     "EN-20260928-0017 R1: el destino «Recría cerrada (TEST ING)» se cerró después de la compra. Registrar la recepción devuelve DESTINATION_UNAVAILABLE y no se escribe nada; se repara con «Editar distribución» en la orden (otro lote propio) y se vuelve a registrar.",
     {"orden_ingreso": "EN-20260928-0017", "hoja_recepcion": "R1", "dte": "DTE-TEST-ING-015", "fecha_recepcion": "04/10/2026", "observaciones": "", "hoja_numero": 1, "hoja_total": 1},
     [{"id": "1", "caravana": "ING-T-121", "sexo": "M", "cat": "", "raza": "", "pelaje": "", "ec": "3", "peso": "200", "lesion_ojo": "", "lesion_oreja": "", "lesion_aplomo": ""}, {"id": "2", "caravana": "ING-T-122", "sexo": "M", "cat": "", "raza": "", "pelaje": "", "ec": "3", "peso": "200", "lesion_ojo": "", "lesion_oreja": "", "lesion_aplomo": ""}, {"id": "3", "caravana": "ING-T-123", "sexo": "M", "cat": "", "raza": "", "pelaje": "", "ec": "3", "peso": "200", "lesion_ojo": "", "lesion_oreja": "", "lesion_aplomo": ""}, {"id": "4", "caravana": "ING-T-124", "sexo": "M", "cat": "", "raza": "", "pelaje": "", "ec": "3", "peso": "200", "lesion_ojo": "", "lesion_oreja": "", "lesion_aplomo": ""}]
+  ),
+  sheetCase(
+    "🟡 Sin DTE: la hacienda llega sin el documento",
+    "EN-20260928-0018 R1: seis machos que se movieron sin DTE (la hoja dice SIN DTE). Se reciben como siempre y la orden sigue marcada «Sin DTE» hasta cargarlo desde la orden, también si ya quedó completa.",
+    {"orden_ingreso": "EN-20260928-0018", "hoja_recepcion": "R1", "dte": "SIN DTE", "fecha_recepcion": "04/10/2026", "observaciones": "", "hoja_numero": 1, "hoja_total": 1},
+    [{"id": "1", "caravana": "ING-T-131", "sexo": "", "raza": "", "ec": "3", "peso": "178"}, {"id": "2", "caravana": "ING-T-132", "sexo": "", "raza": "", "ec": "3", "peso": "180"}, {"id": "3", "caravana": "ING-T-133", "sexo": "", "raza": "", "ec": "3", "peso": "182"}, {"id": "4", "caravana": "ING-T-134", "sexo": "", "raza": "", "ec": "3", "peso": "184"}, {"id": "5", "caravana": "ING-T-135", "sexo": "", "raza": "", "ec": "3", "peso": "186"}, {"id": "6", "caravana": "ING-T-136", "sexo": "", "raza": "", "ec": "3", "peso": "188"}]
   ),
 ];

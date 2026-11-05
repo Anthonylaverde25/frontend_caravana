@@ -120,18 +120,20 @@ export const resolveIng03 = (
   if (sheet.status === 'REPLACED') {
     headerWarnings.push(`La hoja ${sheet.label} había sido reemplazada por una más nueva. Se puede cargar igual: lo que dice el papel pasó.`);
   }
-  if (metadata.dte && metadata.dte.toUpperCase() !== sheet.dte_number.toUpperCase()) {
+  if (metadata.dte && !sheet.dte_number && !/^sin\s*dte$/i.test(metadata.dte.trim())) {
+    headerWarnings.push(`La hoja dice DTE ${metadata.dte} y esta orden todavía no lo tiene: cargalo desde la orden.`);
+  } else if (metadata.dte && sheet.dte_number && metadata.dte.toUpperCase() !== sheet.dte_number.toUpperCase()) {
     headerWarnings.push(`La hoja dice DTE ${metadata.dte} y la ${sheet.label} es del DTE ${sheet.dte_number}: vale el de la orden.`);
   }
   // Head to write: in transit, or received by count without caravan (also on a closed order).
   const toIdentify = order.accepts_reception ? dte.to_identify_count : dte.uncaravaned_count;
   if (toIdentify === 0) {
-    headerErrors.push(`El DTE ${dte.dte_number} de la orden ${order.code} no tiene cabezas en tránsito ni sin caravana por recibir.`);
+    headerErrors.push(`${dte.dte_number ? `El DTE ${dte.dte_number}` : 'El ingreso sin DTE'} de la orden ${order.code} no tiene cabezas en tránsito ni sin caravana por recibir.`);
   }
 
   if (!metadata.fecha_recepcion) headerErrors.push('Falta la fecha de recepción.');
   else if (metadata.fecha_recepcion > today) headerErrors.push('La fecha de recepción no puede ser futura.');
-  else if (metadata.fecha_recepcion < dte.dte_date) headerErrors.push('La hacienda no pudo llegar antes de que se emitiera su DTE.');
+  else if (dte.dte_date && metadata.fecha_recepcion < dte.dte_date) headerErrors.push('La hacienda no pudo llegar antes de que se emitiera su DTE.');
 
   const averaged = sheet.weighing_mode === 'AVERAGE';
   const average = averaged ? parseWeight(metadata.peso_promedio) : null;
@@ -194,7 +196,7 @@ export const resolveIng03 = (
     );
   } else if (excess > 0) {
     headerWarnings.push(
-      `El DTE ${dte.dte_number} tiene ${toIdentify} ${toIdentify === 1 ? 'cabeza' : 'cabezas'} por recibir y la hoja trae ${counts.received}: ${excess} de más se reciben igual y queda una novedad para el proveedor.`
+      `${dte.dte_number ? `El DTE ${dte.dte_number}` : 'El ingreso sin DTE'} tiene ${toIdentify} ${toIdentify === 1 ? 'cabeza' : 'cabezas'} por recibir y la hoja trae ${counts.received}: ${excess} de más se reciben igual y queda una novedad para el proveedor.`
     );
   }
   if (counts.received === 0 && missing.count === 0) headerErrors.push('La hoja no trae ninguna caravana escrita.');

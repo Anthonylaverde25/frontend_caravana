@@ -3,6 +3,7 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, IconButton, S
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { EntryOrder, EntryOrderDte } from '@/features/entry-orders/types';
 import DiscardChangesDialog from '../DiscardChangesDialog';
+import { dteLabel } from '../entryOrderFormat';
 import ReceivedHeadsField, { HeadsComparison } from './ReceivedHeadsField';
 import HeadsByBatchField from './HeadsByBatchField';
 import ReceptionCaravansPanel from './ReceptionCaravansPanel';
@@ -44,7 +45,7 @@ export const ReceiveDteDialog: React.FC<ReceiveDteDialogProps> = ({ order, dte, 
       <Box sx={{ py: 1.5, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
         <Box>
           <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-            {identifying ? 'Cargar caravanas · DTE' : 'Recibir DTE'} {dte?.dte_number}
+            {identifying ? 'Cargar caravanas' : 'Recibir'} · {dte ? dteLabel(dte) : ''}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {order.code} · {dte?.head_count} declaradas · {dte?.received_count} recibidas ·{' '}

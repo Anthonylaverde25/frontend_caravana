@@ -24,6 +24,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import { calculateWrightInbreeding, classifyInbreedingRisk } from '@/core/caravans/domain/services/pedigreeAnalysis';
 import { searchableTag } from '@/core/caravans/domain/services/animalLabel';
+import { CaravanWeightDialog, type CaravanToWeigh } from '@/ui/weighing/components/caravan-weight/CaravanWeightDialog';
 
 interface ReserveCaravanDataTableProps {
 	caravans: Caravan[];
@@ -42,6 +43,7 @@ export default function ReserveCaravanDataTable({
 	const [selectedSexFilter, setSelectedSexFilter] = useState<'ALL' | 'M' | 'H'>('ALL');
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(15);
+	const [weighing, setWeighing] = useState<CaravanToWeigh | null>(null);
 
 	const headerBg = isDark ? theme.palette.background.default : '#f8f9fa';
 	const zebraBg = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.015)';
@@ -371,6 +373,18 @@ export default function ReserveCaravanDataTable({
 										{/* 10. Acciones */}
 										<TableCell sx={{ ...bodyCellStyle, textAlign: 'center', borderRight: 0 }}>
 											<Stack direction="row" spacing={0.5} justifyContent="center">
+												<Tooltip title="Pesar">
+													<IconButton
+														size="small"
+														color="success"
+														aria-label="Pesar"
+														onClick={() => setWeighing(c)}
+														sx={{ p: 0.5 }}
+													>
+														<FuseSvgIcon size={18}>heroicons-outline:scale</FuseSvgIcon>
+													</IconButton>
+												</Tooltip>
+
 												<Tooltip title="Ver en Árbol Genealógico">
 													<IconButton
 														size="small"
@@ -434,6 +448,12 @@ export default function ReserveCaravanDataTable({
 					}}
 				/>
 			</Paper>
+
+			<CaravanWeightDialog
+				open={weighing !== null}
+				onClose={() => setWeighing(null)}
+				caravan={weighing}
+			/>
 		</Box>
 	);
 }

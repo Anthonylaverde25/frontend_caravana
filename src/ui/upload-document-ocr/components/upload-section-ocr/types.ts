@@ -44,4 +44,6 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   errors: { row: number; reason: string }[];
+  /** Rows saved with something to tell: a sheet saying "empty" never ends a current pregnancy. */
+  warnings?: { row: number; reason: string }[];
 }

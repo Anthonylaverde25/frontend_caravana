@@ -1,5 +1,6 @@
 import type { BreedingExclusionReasonCode } from './BreedingExclusionReason';
 import type { DeathInfo, ExitInfo } from './Death';
+import type { CastrationRecord, CastrationStatus } from './Castration';
 
 export interface SireDTO {
   id: number;
@@ -121,6 +122,9 @@ export interface CaravanDTO {
   breeding_exclusion_reason_label?: string | null;
   /** Whether the category breeds (animal_categories.is_reproductive); null without category. */
   is_reproductive_category?: boolean | null;
+  castration_status?: CastrationStatus | null;
+  castration_status_label?: string | null;
+  castration?: CastrationRecord | null;
 }
 
 /**
@@ -190,6 +194,9 @@ export class Caravan {
     public readonly tagged_at: string | null = null,
     public readonly death: DeathInfo | null = null,
     public readonly exit: ExitInfo | null = null,
+    public readonly castration_status: CastrationStatus | null = null,
+    public readonly castration_status_label: string | null = null,
+    public readonly castration: CastrationRecord | null = null,
   ) {}
 
   public static create(dto: CaravanDTO): Caravan {
@@ -241,6 +248,9 @@ export class Caravan {
       dto.tagged_at ?? null,
       dto.death ?? null,
       dto.exit ?? null,
+      dto.castration_status ?? null,
+      dto.castration_status_label ?? null,
+      dto.castration ?? null,
     );
   }
 

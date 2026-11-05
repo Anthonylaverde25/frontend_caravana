@@ -6,7 +6,7 @@ import { useCancelEntryOrder, useCloseIncompleteEntryOrder, useConfirmEntryOrder
 import TransferOrderReasonDialog from '@/ui/transfer-orders/components/TransferOrderReasonDialog';
 import CreateExternalBatchDialog from '@/ui/batches/components/external/CreateExternalBatchDialog';
 import type { EntryOrderDte, EntryOrderIncident, EntryOrderSummary } from '@/features/entry-orders/types';
-import EntryOrderStatusChip from './EntryOrderStatusChip';
+import EntryOrderStatusChip, { WithoutDteChip } from './EntryOrderStatusChip';
 import EntryTroopSummaryCard from './EntryTroopSummaryCard';
 import EntryOrderDetailActions from './detail/EntryOrderDetailActions';
 import EntryOrderDteList from './detail/EntryOrderDteList';
@@ -32,13 +32,14 @@ type ClosingAction = 'cancel' | 'close' | null;
 /**
  * One entry order in full — the troop, its DTEs with their receptions, the incidents and the
  * history — and what can still be done with it: a draft is edited and confirmed, an order waiting
- * for documents gets a DTE loaded, a DTE with head in transit is received or its head corrected,
- * an incident is resolved. Cancelling is offered while no DTE was loaded; closing incomplete once
- * one was.
+ * for documents gets a DTE loaded or goes on without it, a DTE with head in transit is received or
+ * its head corrected, an incident is resolved. Head that moved without the paper get it later, in any
+ * status. Cancelling is offered while no DTE was loaded; closing incomplete once one was.
  */
 const countsOf = (order: EntryOrderSummary) =>
   !tracksReception(order) ? (order.head_count != null ? `${order.head_count} cabezas` : 'Tropa sin completar') : [
     order.with_dte_count > order.head_count ? `${order.head_count} compradas · ${order.with_dte_count} con DTE` : `${order.with_dte_count} de ${order.head_count} con DTE`,
+    order.without_dte_head_count > 0 ? `${order.without_dte_head_count} sin DTE` : null,
     order.in_transit_count > 0 ? `${order.in_transit_count} en tránsito` : null,
     `${order.received_count} recibidas`,
     order.missing_count > 0 ? `${order.missing_count} no llegarán` : null
@@ -55,6 +56,7 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
   const [closing, setClosing] = useState<ClosingAction>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [dteOrderId, setDteOrderId] = useState<number | null>(null);
+  const [attaching, setAttaching] = useState<EntryOrderDte | null>(null);
   const [receiving, setReceiving] = useState<EntryOrderDte | null>(null);
   const [receivingWithCaravans, setReceivingWithCaravans] = useState<EntryOrderDte | null>(null);
   const [correcting, setCorrecting] = useState<EntryOrderDte | null>(null);
@@ -84,6 +86,7 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'monospace' }}>{order?.code ?? 'Orden de ingreso'}</Typography>
             {order && <EntryOrderStatusChip status={order.status} progress={order} />}
+            {order?.without_dte && <WithoutDteChip />}
           </Stack>
           {order && (
             <Typography variant="caption" color="text.secondary">
@@ -109,7 +112,7 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
                   Borrador incompleto: para confirmar la compra faltan datos de la tropa. "Confirmar compra" abre el formulario para completarlos.
                 </Alert>
               )}
-              {order.status === 'AWAITING_DTE' && order.dte_count === 0 && (
+              {order.status === 'AWAITING_DTE' && order.dtes.length === 0 && (
                 <Alert
                   severity="info"
                   sx={{ borderRadius: '6px' }}
@@ -117,13 +120,20 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
                   {order.batch
                     ? `La compra está confirmada y el lote de tránsito ${order.batch_name} existe, vacío.`
                     : 'La compra está confirmada: sus animales entran directo a sus lotes de destino cuando se reciben.'}{' '}
-                  Cada DTE declara cuántas cabezas vienen; las caravanas se anotan cuando llegan.
+                  Se recomienda cargar el DTE, que declara cuántas cabezas vienen. Si todavía no lo tenés, podés continuar sin él: la orden queda
+                  marcada «Sin DTE» y sigue su curso.
+                </Alert>
+              )}
+              {order.without_dte && (
+                <Alert severity="warning" sx={{ borderRadius: '6px' }}>
+                  {headsOf(order.without_dte_head_count)} sin DTE. La operación sigue su curso, pero es recomendable cargarlo apenas lo tengas: es el
+                  documento oficial del movimiento.
                 </Alert>
               )}
               {order.in_transit_count > 0 && (
                 <Alert severity="warning" sx={{ borderRadius: '6px' }}>
-                  Hay {headsOf(order.in_transit_count)} en tránsito: todavía no son stock. Recibilas desde su DTE cuando llegue la hacienda, anotando
-                  la caravana de cada animal.
+                  Hay {headsOf(order.in_transit_count)} en tránsito: todavía no son stock. Recibilas abajo cuando llegue la hacienda, anotando la
+                  caravana de cada animal.
                 </Alert>
               )}
               {order.closing_reason && (
@@ -139,6 +149,7 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
                 onReceiveWithCaravans={setReceivingWithCaravans}
                 onCorrect={setCorrecting}
                 onPrintSheet={printSheet}
+                onAttachDocument={setAttaching}
               />
               <EntryOrderReceiptSheetList order={order} />
               <EntryOrderIncidentList incidents={order.incidents} onResolve={setResolving} />
@@ -174,12 +185,13 @@ export const EntryOrderDetailDrawer: React.FC<EntryOrderDetailDrawerProps> = ({ 
                     : 'No se cargó ningún DTE. La orden queda anulada con su motivo; los lotes propios de destino no cambian.'
                   : order.in_transit_count > 0
                     ? `${order.in_transit_count === 1 ? 'La cabeza que sigue en tránsito se declara' : `Las ${order.in_transit_count} cabezas que siguen en tránsito se declaran`} como que no llegarán, con este motivo, y se registra una novedad por DTE. No se esperan más DTE ni más hacienda.`
-                    : `Hay ${order.with_dte_count} de ${order.head_count} cabezas con DTE. No se esperan más DTE: la orden queda cerrada con las ${order.pending_dte_count} cabezas faltantes y su motivo.`
+                    : `No se esperan más cabezas: la orden queda cerrada con las ${order.undeclared_head_count} que nunca vinieron y su motivo.`
             }
             confirmLabel={closing !== 'cancel' ? 'Cerrar incompleta' : order.is_editable ? 'Descartar borrador' : 'Anular orden'}
           />
           <CreateExternalBatchDialog open={isEditing} mode="order" draft={order} onClose={() => setIsEditing(false)} />
           <LoadDteDialog orderId={dteOrderId} onClose={() => setDteOrderId(null)} />
+          <LoadDteDialog orderId={attaching ? order.id : null} withoutDocument={attaching} onClose={() => setAttaching(null)} />
           <ReceiveDteDialog order={order} dte={receiving} onClose={() => setReceiving(null)} />
           <ReceiveWithCaravansDialog order={order} dte={receivingWithCaravans} onClose={() => setReceivingWithCaravans(null)} />
           <CorrectDteHeadCountDialog orderId={order.id} dte={correcting} onClose={() => setCorrecting(null)} />

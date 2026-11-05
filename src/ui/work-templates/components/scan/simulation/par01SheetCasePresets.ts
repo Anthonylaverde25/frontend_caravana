@@ -17,6 +17,8 @@ import { SimulationPreset } from "./types";
  *
  * 20 (calves left without their tag) uses PAR-V-28 and 29, which only the failing sheet 09 names.
  *
+ * 21 (repair case: a pregnancy of a service order not closed yet) uses PAR-V-45 and SO-PAR-ABIERTA.
+ *
  * Sheets 11 and 12 have no preset on purpose: they only degrade the photo, and a simulation skips
  * the reading that is being tested. Sheet 13 is the blank print.
  */
@@ -601,6 +603,34 @@ export const PAR01_WHOLE_ORDER: SimulationPreset = {
     }
   ],
 };
+
+/** 21: repair case, no image: the blocker comes from the records, not from the paper. */
+export const PAR01_SERVICE_ORDER_NOT_CLOSED: SimulationPreset = sheetCase(
+  "🔴 21 · Preñez de una orden de servicio sin cerrar",
+  "PAR-V-45 quedó preñada en SO-PAR-ABIERTA, que sigue abierta: la fila queda en rojo hasta cerrar esa orden. Una vez cerrada, la misma planilla se registra.",
+  {
+    "orden_paricion": "",
+    "fecha_recorrida": "28/09/2026",
+    "lote": "Lote Testing Parición (otro rodeo)",
+    "responsable": "Recorredor de prueba",
+    "hoja_numero": 1,
+    "hoja_total": 1
+  },
+  [
+    {
+      "id": "1",
+      "caravana_madre": "PAR-V-45",
+      "resultado": "V",
+      "caravana_cria": "PAR-C-45",
+      "sexo": "H",
+      "peso": "33",
+      "raza": "Angus",
+      "pelaje": "Negro",
+      "fecha_nacimiento": "27/09/2026",
+      "fuera_de_orden": ""
+    }
+  ],
+);
 
 export const PAR01_SHEET_CASES: SimulationPreset[] = [
   PAR01_WHOLE_ORDER,
@@ -2232,4 +2262,5 @@ export const PAR01_SHEET_CASES: SimulationPreset[] = [
       }
     ],
   ),
+  PAR01_SERVICE_ORDER_NOT_CLOSED,
 ];

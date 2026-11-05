@@ -121,6 +121,7 @@ export const StartBatchServiceDialog: React.FC<StartBatchServiceDialogProps> = (
                 <StartBatchFemalesStep
                   batchName={batch.name ?? ''}
                   serviceableFemales={w.serviceableFemales}
+                  owingTacto={w.owingTacto}
                   pregnantCount={w.pregnantCount}
                   isControlledService={w.isControlledService}
                   setIsControlledService={w.setIsControlledService}

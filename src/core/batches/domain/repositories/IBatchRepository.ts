@@ -1,3 +1,4 @@
+import type { BatchCategoryWeightPoint } from '../entities/BatchOverview';
 import { Batch, CreateBatchRequest } from '../entities/Batch';
 import { BatchOverview } from '../entities/BatchOverview';
 
@@ -9,6 +10,7 @@ export interface IBatchRepository {
   /** Management system (pen vs. pasture). Mutable, and not a livestock movement. */
   changeManagement(id: number, isConfined: boolean): Promise<Batch>;
   getWeightHistory(id: number): Promise<any[]>;
+  getCategoryWeightSeries(id: number): Promise<BatchCategoryWeightPoint[]>;
   /** Composition, reproductive state and alerts of the batch. */
   getOverview(id: number): Promise<BatchOverview>;
 }

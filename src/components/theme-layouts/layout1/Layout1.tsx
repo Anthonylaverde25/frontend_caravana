@@ -12,6 +12,7 @@ import NavbarWrapperLayout1 from "./components/NavbarWrapperLayout1";
 import RightSideLayout1 from "./components/RightSideLayout1";
 import ToolbarLayout1 from "./components/ToolbarLayout1";
 import { ContrastFloatingButton } from "@/components/ContrastFloatingButton";
+import { useContrastTheme } from "@/contexts/ContrastThemeContext";
 
 const Root = styled("div")(
   ({ config }: { config: Layout1ConfigDefaultsType }) => ({
@@ -41,6 +42,33 @@ const Root = styled("div")(
   }),
 );
 
+/**
+ * The frame behind the content sheet. Same colour as the toolbar and the
+ * navbar themes (defaultNavbar / defaultDark background.default).
+ */
+const FrameMain = styled("main")(({ theme }) => ({
+  backgroundColor: theme.vars.palette.grey[100],
+  ...theme.applyStyles("dark", {
+    backgroundColor: theme.vars.palette.background.default,
+  }),
+}));
+
+/**
+ * The content sheet: a white page laid on the frame formed by the toolbar and
+ * the navbar. Its top and left edges are the only line between them.
+ */
+const ContentSheet = styled("div")(({ theme }) => ({
+  backgroundColor: theme.vars.palette.background.paper,
+  [theme.breakpoints.up("lg")]: {
+    borderTop: `1px solid ${theme.vars.palette.divider}`,
+    borderLeft: `1px solid ${theme.vars.palette.divider}`,
+    borderTopLeftRadius: 8,
+    // clip (not hidden) rounds the corner without becoming a scroll container,
+    // so sticky headers inside the views keep working.
+    overflow: "clip",
+  },
+}));
+
 type Layout1Props = {
   children?: ReactNode;
 };
@@ -52,6 +80,11 @@ function Layout1(props: Layout1Props) {
   const { children } = props;
   const settings = useFuseLayoutSettings();
   const config = settings.config as Layout1ConfigDefaultsType;
+  const { settings: contrastSettings } = useContrastTheme();
+  const presetFrameBg =
+    contrastSettings.enabled && contrastSettings.headerBg
+      ? contrastSettings.headerBg
+      : undefined;
 
   return (
     <Root id="fuse-layout" config={config} className="flex w-full flex-auto ">
@@ -62,9 +95,10 @@ function Layout1(props: Layout1Props) {
           <NavbarWrapperLayout1 />
         )}
 
-        <main
+        <FrameMain
           id="fuse-main"
           className="relative z-10 flex min-h-svh min-w-0 flex-auto flex-col"
+          style={presetFrameBg ? { backgroundColor: presetFrameBg } : undefined}
         >
           {config.toolbar.display && (
             <ToolbarLayout1
@@ -76,17 +110,17 @@ function Layout1(props: Layout1Props) {
             <Configurator />
           </div>
 
-          <div className="relative z-10 flex min-h-0 flex-auto flex-col">
+          <ContentSheet className="relative z-10 flex min-h-0 flex-auto flex-col">
             <FuseSuspense>
               <Outlet />
             </FuseSuspense>
             {children}
-          </div>
+          </ContentSheet>
 
           {/* {config.footer.display && (
     <FooterLayout1 className={config.footer.style === 'fixed' ? 'sticky bottom-0' : ''} />
 )} */}
-        </main>
+        </FrameMain>
 
         {config.navbar.display && config.navbar.position === "right" && (
           <NavbarWrapperLayout1 />

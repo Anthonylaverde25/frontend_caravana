@@ -23,8 +23,9 @@ export interface RegisterEntryState {
 
 /**
  * Second step of "Registrar ingreso": the troop declared in the dialog, read-only (with "Editar"
- * to go back to it), the DTE that is already in hand — the head it declares, by default as many as
- * animals loaded — and the caravan of each animal that entered. Everything is created in one
+ * to go back to it), the DTE — recommended, never required: with its number left blank the entry is
+ * saved all the same and the order stays marked "Sin DTE" — with the head it declares, by default as
+ * many as animals loaded, and the caravan of each animal that entered. Everything is created in one
  * transaction; if a caravan is rejected, nothing is.
  */
 export const RegisterEntryConfirmView: React.FC = () => {
@@ -50,6 +51,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
   const values = parsed.data;
   const bought = headCountOf(values.categories);
   const received = rows.counts.total;
+  const withoutDte = draft.dteNumber.trim() === '';
   const dteHeads = draft.headCount === '' ? received : draft.heads;
   // Fewer head with DTE than bought wait for another DTE; fewer animals than the DTE, for a later reception.
   const short = received > 0 && (dteHeads < bought || received < dteHeads);
@@ -58,7 +60,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
     const closeReasonOk = !(short && closeNow) || closeReason.trim().length >= 3;
 
     setCloseReasonMissing(!closeReasonOk);
-    if (!draft.validate(received) || !closeReasonOk) return;
+    if (!draft.validate(received, withoutDte) || !closeReasonOk) return;
     if (received === 0) {
       toast.error('Cargá la caravana de al menos un animal que ingresó.');
       return;
@@ -67,7 +69,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
     register.mutate(
       {
         ...toEntryOrderPayload(values),
-        dte: { ...draft.payload(), head_count: dteHeads, entered_at: draft.enteredAt, animals: rows.animals() },
+        dte: { ...draft.payload(withoutDte), head_count: dteHeads, entered_at: draft.enteredAt, animals: rows.animals() },
         close_incomplete_reason: short && closeNow ? closeReason.trim() || null : null
       },
       {
@@ -92,7 +94,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
   return (
     <ViewLayout
       title="Registrar ingreso"
-      subtitle="La hacienda llegó con su DTE: se crean la orden, el lote externo y las caravanas en un solo paso."
+      subtitle="La hacienda ya llegó: se crean la orden, el lote externo y las caravanas en un solo paso."
       actions={
         <Button
           variant="text"
@@ -108,9 +110,13 @@ export const RegisterEntryConfirmView: React.FC = () => {
         <EntryTroopSummaryCard title="Tropa comprada" subtitle={declared.subtitle} items={declared.items} onEdit={() => setIsEditing(true)} />
 
         <Paper elevation={0} sx={{ border: 1, borderColor: 'divider', borderRadius: '8px', p: 2.5 }}>
-          <Typography sx={{ fontWeight: 700, mb: 2 }}>DTE</Typography>
+          <Typography sx={{ fontWeight: 700 }}>DTE (recomendado)</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Es recomendable cargarlo: es el documento oficial del movimiento. Sin DTE el ingreso se registra igual y la orden queda marcada para
+            cargarlo después.
+          </Typography>
           <Stack spacing={2.5}>
-            <DteEntryForm draft={draft} pending={bought} withArrival />
+            <DteEntryForm draft={draft} pending={bought} withArrival optional />
             <ReceptionRowsSection draft={rows} troop={declared.context} expected={dteHeads} />
           </Stack>
         </Paper>
@@ -119,8 +125,8 @@ export const RegisterEntryConfirmView: React.FC = () => {
           <Alert severity="warning" sx={{ borderRadius: '6px' }}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {dteHeads < bought
-                ? `El DTE declara ${dteHeads} de ${bought} cabezas compradas. La orden queda "En espera de DTE", esperando otro documento.`
-                : `Ingresan ${received} de las ${dteHeads} cabezas del DTE. Las otras ${dteHeads - received} quedan en tránsito.`}
+                ? `${withoutDte ? 'Se declaran' : 'El DTE declara'} ${dteHeads} de ${bought} cabezas compradas. La orden queda "En espera de DTE" por las otras ${bought - dteHeads}.`
+                : `Ingresan ${received} de las ${dteHeads} cabezas declaradas. Las otras ${dteHeads - received} quedan en tránsito.`}
             </Typography>
             <FormControlLabel
               control={<Checkbox size="small" checked={closeNow} onChange={(e) => setCloseNow(e.target.checked)} />}
@@ -153,7 +159,7 @@ export const RegisterEntryConfirmView: React.FC = () => {
             disabled={register.isPending}
             sx={{ px: 3, fontWeight: 700, borderRadius: '6px', textTransform: 'none' }}
           >
-            {register.isPending ? 'Registrando…' : `Registrar ingreso (${received})`}
+            {register.isPending ? 'Registrando…' : `Registrar ingreso${withoutDte ? ' sin DTE' : ''} (${received})`}
           </Button>
         </Box>
       </Stack>

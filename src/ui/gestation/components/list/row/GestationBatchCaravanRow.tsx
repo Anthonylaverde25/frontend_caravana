@@ -16,6 +16,7 @@ interface GestationBatchCaravanRowProps {
 	onView: (caravan: CaravanSummary) => void;
 	onEdit: (caravan: CaravanSummary) => void;
 	onWeigh: (caravan: CaravanSummary) => void;
+	onAbort?: (caravan: CaravanSummary) => void;
 }
 
 /**
@@ -28,7 +29,8 @@ export function GestationBatchCaravanRow({
 	cellSx,
 	onView,
 	onEdit,
-	onWeigh
+	onWeigh,
+	onAbort
 }: GestationBatchCaravanRowProps) {
 	const summary = toCaravanSummary(caravan);
 	const stage = caravan.active_gestation?.gestation_stage ?? null;
@@ -138,9 +140,7 @@ export function GestationBatchCaravanRow({
 					label={riskInfo.label}
 					size="small"
 					variant="outlined"
-					color={
-						riskInfo.risk === 'High' ? 'error' : riskInfo.risk === 'Medium' ? 'warning' : 'success'
-					}
+					color={riskInfo.risk === 'High' ? 'error' : riskInfo.risk === 'Medium' ? 'warning' : 'success'}
 					sx={compactChipSx}
 				/>
 			</TableCell>
@@ -167,6 +167,18 @@ export function GestationBatchCaravanRow({
 						<FuseSvgIcon size={18}>heroicons-outline:scale</FuseSvgIcon>
 					</IconButton>
 				</Tooltip>
+				{onAbort && (
+					<Tooltip title="Registrar aborto">
+						<IconButton
+							size="small"
+							color="warning"
+							onClick={() => onAbort(summary)}
+							sx={{ height: 28, width: 28 }}
+						>
+							<FuseSvgIcon size={18}>heroicons-outline:exclamation-triangle</FuseSvgIcon>
+						</IconButton>
+					</Tooltip>
+				)}
 			</TableCell>
 		</TableRow>
 	);

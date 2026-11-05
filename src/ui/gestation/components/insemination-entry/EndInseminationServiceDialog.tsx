@@ -29,7 +29,7 @@ export default function EndInseminationServiceDialog({ order, onClose }: EndInse
       { orderId: order.id, endDate, reasons: notInseminated.payload(), observations },
       {
         onSuccess: () => {
-          enqueueSnackbar(`Servicio terminado: el lote ${order.batch_name ?? ''} queda libre para otro servicio.`, { variant: 'success' });
+          enqueueSnackbar(`Servicio terminado: la orden sigue en la bandeja hasta cerrarla con su tacto.`, { variant: 'success' });
           onClose();
         },
         onError: (error: any) => enqueueSnackbar(error?.response?.data?.message ?? 'No se pudo terminar el servicio.', { variant: 'error' }),
@@ -47,7 +47,7 @@ export default function EndInseminationServiceDialog({ order, onClose }: EndInse
       <DialogContent sx={{ p: 3 }}>
         <Stack spacing={2} sx={{ pt: 2.5 }}>
           <Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5 }}>
-            Libera el lote para otro servicio y el tacto sigue en la bandeja. No hace falta si vas a cerrar la orden: el cierre termina el servicio.
+            El tacto sigue en la bandeja; el lote no puede iniciar otra orden hasta cerrar esta. No hace falta si vas a cerrar la orden: el cierre termina el servicio.
           </Alert>
           <TextField label="Fecha de fin" type="date" fullWidth variant="filled" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} InputProps={{ sx: { bgcolor: 'action.hover' } }} />
           {notInseminated.females.length > 0 && (

@@ -35,7 +35,7 @@ const today = (): string => new Date().toISOString().slice(0, 10);
  * left empty did not calve yet and are not sent.
  */
 export default function RegisterBirthsDialog({ batchId, onClose, onDone }: RegisterBirthsDialogProps) {
-  const { females, batchName, batchCount, isLoading } = useRegisterBirthsFemales(batchId);
+  const { females, batchName, batchCount, heldByService, isLoading } = useRegisterBirthsFemales(batchId);
   const roll = useBirthRollState(females);
   const [roundDate, setRoundDate] = useState(today);
   const [header, setHeader] = useState(emptyRegisterHeader);
@@ -86,7 +86,7 @@ export default function RegisterBirthsDialog({ batchId, onClose, onDone }: Regis
           }}
         >
           <Stack spacing={2.5}>
-            <RegisterBirthsContextCard batchId={batchId} batchName={batchName} batchCount={batchCount} females={females} />
+            <RegisterBirthsContextCard batchId={batchId} batchName={batchName} batchCount={batchCount} females={females} heldByService={heldByService} />
             <RegisterBirthsRoundCard
               roundDate={roundDate}
               maxDate={today()}
@@ -109,7 +109,11 @@ export default function RegisterBirthsDialog({ batchId, onClose, onDone }: Regis
             <Typography sx={{ ...sectionTitleSx, mb: 1.5 }}>3. Partos</Typography>
             {females.length === 0 ? (
               <Typography color="text.secondary" sx={{ py: 6, textAlign: 'center', fontStyle: 'italic' }}>
-                {batchId ? 'Este lote no tiene vientres preñados.' : 'No hay vientres preñados.'}
+                {heldByService.length > 0
+                  ? 'Todos los vientres preñados esperan el cierre de su orden de servicio.'
+                  : batchId
+                    ? 'Este lote no tiene vientres preñados.'
+                    : 'No hay vientres preñados.'}
               </Typography>
             ) : (
               <Stack spacing={1.5}>

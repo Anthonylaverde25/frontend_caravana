@@ -1,3 +1,4 @@
+import { formatKg, hasMixedWeights } from '@/ui/herd/utils/herdFormat';
 import { useMemo, useState } from 'react';
 import {
 	Box,
@@ -307,9 +308,11 @@ export function BatchesTable({ filter = 'all', onCreateBatch }: BatchesTableProp
 																color: 'success.main'
 															}}
 														>
-															{batch.current_weight
-																? `${batch.current_weight} kg/cab`
-																: 'SIN PESO'}
+															{hasMixedWeights(batch)
+																? `${formatKg(batch.total_weight)} · ${batch.weighed_category_count} categorías`
+																: batch.current_weight
+																	? `${batch.current_weight} kg/cab`
+																	: 'SIN PESO'}
 														</TableCell>
 														<TableCell sx={{ ...bodyCellStyle, fontSize: '0.78rem' }}>
 															{batch.batch_type_name || '-'}

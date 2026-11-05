@@ -12,6 +12,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { ServiceOrder } from '@/features/gestation/hooks/useServiceOrders';
 import ServiceOrdersStatusChip from './ServiceOrdersStatusChip';
 import ServiceOrdersPhaseDetail from './ServiceOrdersPhaseDetail';
+import PlannedOrderRowActions from './dialogs/planned/PlannedOrderRowActions';
 import { getServiceOrderPhase, PHASE_LABELS } from '../../utils/serviceOrderPhase';
 import { formatDate } from '../../../herd/utils/herdFormat';
 
@@ -49,10 +50,13 @@ export function ServiceOrdersTableRow({
 	onOpenInTray,
 	isTransitioning
 }: ServiceOrdersTableRowProps) {
+	// A registered order was born ended: what it tells is the bulls that served, not the ones still there.
 	const activeMales =
-		order.male_details && order.male_details.length > 0
-			? order.male_details.filter((d) => d.status === 'ACTIVE').length
-			: (order.active_male_caravan_ids?.length ?? order.male_caravan_ids.length);
+		order.kind === 'REGISTERED'
+			? (order.all_male_caravan_ids?.length ?? 0)
+			: order.male_details && order.male_details.length > 0
+				? order.male_details.filter((d) => d.status === 'ACTIVE').length
+				: (order.active_male_caravan_ids?.length ?? order.male_caravan_ids.length);
 	const { phase, isOpen } = getServiceOrderPhase(order);
 	const isReadyToClose = phase === 'READY_TO_CLOSE';
 
@@ -148,6 +152,9 @@ export function ServiceOrdersTableRow({
 			<TableCell sx={cellSx}>
 				<Stack spacing={0.5} alignItems="flex-start">
 					<ServiceOrdersStatusChip order={order} />
+					{order.kind === 'REGISTERED' && (
+						<Chip label="Registrada" size="small" variant="outlined" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 600 }} />
+					)}
 					<ServiceOrdersPhaseDetail order={order} />
 				</Stack>
 			</TableCell>
@@ -192,6 +199,9 @@ export function ServiceOrdersTableRow({
 							<FuseSvgIcon size={18}>heroicons-outline:chat-bubble-left-right</FuseSvgIcon>
 						</IconButton>
 					</Tooltip>
+
+					{/* PLANNED -> Start / Edit / Cancel */}
+					{order.status === 'PLANNED' && <PlannedOrderRowActions order={order} />}
 
 					{/* DRAFT -> Approve / Reject */}
 					{order.status === 'DRAFT' && (

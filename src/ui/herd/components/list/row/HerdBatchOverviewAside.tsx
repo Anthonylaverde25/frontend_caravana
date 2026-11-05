@@ -3,7 +3,7 @@ import type { Batch } from '@/core/batches/domain/entities/Batch';
 import { useBatchOverview } from '@/features/batches/hooks/useBatchOverview';
 import { useCaravansSummary } from '@/features/caravans/hooks/useCaravansSummary';
 import BatchHeadCount from 'src/ui/batches/components/BatchHeadCount';
-import { formatDate, formatKg, RECENT_COUNT } from '../../../utils/herdFormat';
+import { formatDate, formatKg, hasMixedWeights, RECENT_COUNT } from '../../../utils/herdFormat';
 import NotApplicable from '../../shared/NotApplicable';
 
 interface HerdBatchOverviewAsideProps {
@@ -32,7 +32,8 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /**
- * What the expanded batch adds to its header: sex composition, last weighing and last arrival.
+ * What the expanded batch adds to its header: sex composition, weight (by category in a mixed
+ * batch), last weighing and last arrival.
  * Mounted only while expanded, so a closed batch costs no overview request.
  */
 export function HerdBatchOverviewAside({ batch }: HerdBatchOverviewAsideProps) {
@@ -128,7 +129,23 @@ export function HerdBatchOverviewAside({ batch }: HerdBatchOverviewAsideProps) {
 				<Fact label="Cabezas">
 					<BatchHeadCount batch={batch} />
 				</Fact>
-				<Fact label="Peso promedio">{formatKg(batch.current_weight)}</Fact>
+				{hasMixedWeights(batch) ? (
+					<>
+						{overview?.category_composition
+							.filter((category) => category.average_weight !== null)
+							.map((category) => (
+								<Fact
+									key={category.category_id ?? 'none'}
+									label={category.name ?? 'Sin categoría'}
+								>
+									{formatKg(category.average_weight)}
+								</Fact>
+							))}
+						<Fact label="Kg totales">{formatKg(batch.total_weight)}</Fact>
+					</>
+				) : (
+					<Fact label="Peso promedio">{formatKg(batch.current_weight)}</Fact>
+				)}
 				<Fact label="Último pesaje">{formatDate(overview?.last_weighing_date)}</Fact>
 				<Fact label="Último ingreso">{lastArrival ? formatDate(lastArrival) : <NotApplicable />}</Fact>
 			</Box>

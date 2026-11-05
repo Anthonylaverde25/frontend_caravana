@@ -4,6 +4,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { toast } from 'sonner';
 import { useCorrectDteHeadCount } from '@/features/entry-orders/hooks/useEntryOrderMutations';
 import { entryOrderApiError, entryOrderErrorMessage, type EntryOrderDte } from '@/features/entry-orders/types';
+import { dteLabel } from '../entryOrderFormat';
 
 interface CorrectDteHeadCountDialogProps {
   orderId: number;
@@ -43,7 +44,7 @@ export const CorrectDteHeadCountDialog: React.FC<CorrectDteHeadCountDialogProps>
       return;
     }
     if (heads === dte.head_count) {
-      setError({ field: 'head_count', message: `El DTE ya declara ${dte.head_count} cabezas.` });
+      setError({ field: 'head_count', message: `Ya declara ${dte.head_count} cabezas.` });
       return;
     }
     if (reason.trim().length < 3) {
@@ -69,7 +70,7 @@ export const CorrectDteHeadCountDialog: React.FC<CorrectDteHeadCountDialogProps>
       <Box sx={{ p: 2, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
         <Box>
           <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: 'text.primary' }}>
-            Corregir cabezas del DTE {dte.dte_number}
+            Corregir cabezas · {dteLabel(dte)}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Declara {dte.head_count} · recibidas {dte.received_count} · no llegan {dte.missing_head_count} · en tránsito {dte.pending_count}

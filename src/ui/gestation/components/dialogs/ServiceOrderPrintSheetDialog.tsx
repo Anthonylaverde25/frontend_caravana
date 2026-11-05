@@ -97,6 +97,8 @@ const ServiceOrderPrintSheetDialog: React.FC<ServiceOrderPrintSheetDialogProps> 
   const getStatusLabel = (status?: string) => {
     if (!status) return '';
     switch (status.toUpperCase()) {
+      case 'PLANNED':
+        return 'PLANIFICADA';
       case 'DRAFT':
         return 'BORRADOR';
       case 'APPROVED':

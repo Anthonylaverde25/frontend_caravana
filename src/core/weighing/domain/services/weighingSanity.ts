@@ -4,7 +4,8 @@ import { WeighingTypeCode } from '../entities/Weighing';
  * Soft checks for a weight typed by hand. They never block: a strange weight is usually a typo or
  * a misread scale, but it can be real, and the person entering it decides.
  *
- * Kept in step with App\Core\Services\WeighingSanityPolicy: same limits and same daily rates.
+ * Shares its physical limits and daily rates with App\Core\Services\WeighingSanityPolicy. The birth
+ * limit lives only here, because the backend policy does not weigh births yet.
  */
 export const WEIGHT_SANITY = {
   MIN_PHYSICAL_KG: 15,

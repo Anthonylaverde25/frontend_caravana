@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -11,6 +11,8 @@ import { isQueueOrder } from '../utils/servicesQueue';
 import ServicesHubSubheader, { type ServicesHubTabKey } from '../components/services-hub/ServicesHubSubheader';
 import ServicesHubQueueTab from '../components/services-hub/ServicesHubQueueTab';
 import ServicesHubHistoryTab from '../components/services-hub/ServicesHubHistoryTab';
+import CreateServiceOrderWizardDialog from '../components/service-orders/dialogs/create-order-v2/CreateServiceOrderWizardDialog';
+import type { OrderSheetMode } from '../components/service-orders/dialogs/create-order-v2/types';
 
 /** Earlier tab names of this view: gracefully map to the new layout. */
 const LEGACY_TABS: Record<string, ServicesHubTabKey> = { tacto: 'conventional', orders: 'history', active: 'conventional' };
@@ -24,6 +26,7 @@ export default function ServicesHubView() {
 	const { tab: urlTab } = useParams<{ tab?: string }>();
 	const [searchParams] = useSearchParams();
 	const { activeCompanyId } = useCompany();
+	const [orderSheetMode, setOrderSheetMode] = useState<OrderSheetMode | null>(null);
 
 	// Shared TanStack Query data
 	const { data: orders = [], isLoading: isLoadingOrders } = useServiceOrders();
@@ -94,22 +97,33 @@ export default function ServicesHubView() {
 				/>
 			}
 			actions={
-				<Button
-					variant="contained"
-					color="primary"
-					startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
-					onClick={() => navigate('/gestation/bull-rotation?action=create')}
-					sx={{
-						bgcolor: 'primary.main',
-						borderRadius: '6px',
-						px: 3,
-						fontWeight: 700,
-						textTransform: 'none',
-						color: '#fff'
-					}}
-				>
-					Nueva Orden de Servicio
-				</Button>
+				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+					<Button
+						variant="contained"
+						color="primary"
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
+						onClick={() => setOrderSheetMode('issue')}
+						sx={{
+							bgcolor: 'primary.main',
+							borderRadius: '6px',
+							px: 2.5,
+							fontWeight: 700,
+							textTransform: 'none',
+							color: '#fff'
+						}}
+					>
+						Nueva Orden de Servicio
+					</Button>
+					<Button
+						variant="outlined"
+						color="primary"
+						startIcon={<FuseSvgIcon size={20}>heroicons-outline:clipboard-document-check</FuseSvgIcon>}
+						onClick={() => setOrderSheetMode('register')}
+						sx={{ borderRadius: '6px', px: 2.5, fontWeight: 700, textTransform: 'none' }}
+					>
+						Registrar orden
+					</Button>
+				</Box>
 			}
 		>
 			{activeTab === 'conventional' ? (
@@ -136,6 +150,12 @@ export default function ServicesHubView() {
 					isLoading={isLoadingOrders}
 				/>
 			)}
+
+			<CreateServiceOrderWizardDialog
+				open={orderSheetMode !== null}
+				mode={orderSheetMode ?? 'issue'}
+				onClose={() => setOrderSheetMode(null)}
+			/>
 		</ViewLayout>
 	);
 }

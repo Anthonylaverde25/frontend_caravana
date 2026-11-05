@@ -10,6 +10,10 @@ import { StockMalesMatrixWidget } from '../widgets/stock/StockMalesMatrixWidget'
 import { LabWorklistWidget } from '../widgets/genetics/LiveWorklistWidgets';
 import { DteStatusWidget } from '../widgets/dte/DteStatusWidget';
 import { DteKpiWidget } from '../widgets/dte/DteKpiWidget';
+import { OperationalPendingKpiWidget } from '../widgets/operations/OperationalPendingKpiWidget';
+import { OperationalOrdersWidget } from '../widgets/operations/OperationalOrdersWidget';
+import { CategoryWeightAreaPiecesWidget } from '../widgets/weights/CategoryWeightAreaPiecesWidget';
+import { CriticalAlertsWidget } from '../components/alerts/CriticalAlertsAside';
 
 export const WIDGET_CATEGORY_LABELS: Record<WidgetCategory, string> = {
 	STOCK: 'Existencias',
@@ -104,7 +108,40 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
 		component: StockMalesMatrixWidget
 	},
 
-	// ── Operaciones & DTe (Live API · /entry-orders) ──────
+	// ── Operaciones & DTe (Live API · /entry-orders & /dashboard/operational-kpis) ──────
+	{
+		id: 'ops-critical-alerts',
+		name: 'Centro de Atención y Novedades',
+		description: 'Novedades y alertas operativas de manga, laboratorio, guías DTe y lotes.',
+		category: 'GENETICS_OPERATIONS',
+		sizes: ['M' as const, 'L' as const],
+		defaultSize: 'M' as const,
+		minCols: 1,
+		maxCols: 4,
+		source: 'API · /entry-orders, /diagnostic-protocols, /caravans',
+		dataStatus: 'LIVE',
+		component: CriticalAlertsWidget
+	},
+	{
+		id: 'ops-pending-orders-kpi',
+		name: 'Órdenes operativas',
+		description: 'Tareas de campo y manga pendientes (entradas, traslados, destetes y partos).',
+		category: 'GENETICS_OPERATIONS',
+		...KPI_SIZES,
+		source: 'API · /dashboard/operational-kpis',
+		dataStatus: 'LIVE',
+		component: OperationalPendingKpiWidget
+	},
+	{
+		id: 'ops-orders-worklist',
+		name: 'Bandeja de órdenes operativas',
+		description: 'Control de tareas operativas pendientes con filtros por tipo y acceso a ejecución.',
+		category: 'GENETICS_OPERATIONS',
+		...TABLE_SIZES,
+		source: 'API · /dashboard/operational-kpis',
+		dataStatus: 'LIVE',
+		component: OperationalOrdersWidget
+	},
 	{
 		id: 'ops-dte-kpi',
 		name: 'Hacienda en tránsito (DTe)',
@@ -124,6 +161,21 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
 		source: 'API · /entry-orders',
 		dataStatus: 'LIVE',
 		component: DteStatusWidget
+	},
+
+	// ── Pesos y Recría (Live API · /caravans) ─────────────
+	{
+		id: 'weights-category-area-pieces',
+		name: 'Kilogramos por Categoría (Area Pieces)',
+		description: 'Curva de peso promedio y biomasa por categoría zootécnica segmentada por umbrales de peso con Apache ECharts.',
+		category: 'WEIGHTS',
+		sizes: ['M' as const, 'L' as const],
+		defaultSize: 'L' as const,
+		minCols: 2,
+		maxCols: 4,
+		source: 'API · /caravans · current_weight',
+		dataStatus: 'LIVE',
+		component: CategoryWeightAreaPiecesWidget
 	},
 
 	// ── Sanidad & Laboratorio (Live API · /diagnostic-protocols)

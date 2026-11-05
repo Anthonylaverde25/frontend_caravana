@@ -23,3 +23,30 @@ export function describeVisuals(response: AssistantResponse): string {
 		.map(([type, count]) => `${count} ${NOUNS[type]![count === 1 ? 0 : 1]}`)
 		.join(' · ');
 }
+
+const BLOCK_ORDER_PRIORITY: Record<AssistantBlock['type'], number> = {
+	text: 10,
+	kpis: 20,
+	chart: 30,
+	timeline: 40,
+	table: 50,
+	action: 60
+};
+
+/**
+ * Ensures blocks strictly follow the user's canonical presentation hierarchy:
+ * 1. Agent textual analysis (text) - at the top
+ * 2. Key performance indicator cards (kpis) - always below text and above tables
+ * 3. Charts and timelines (chart, timeline)
+ * 4. Detailed data tables (table) - always below KPIs
+ * 5. Actions / navigation buttons (action) - at the bottom
+ *
+ * Uses stable sorting to preserve the relative order of blocks within the same category.
+ */
+export function canonicalizeBlocks(blocks: AssistantBlock[]): AssistantBlock[] {
+	return [...blocks].sort((a, b) => {
+		const orderA = BLOCK_ORDER_PRIORITY[a.type] ?? 99;
+		const orderB = BLOCK_ORDER_PRIORITY[b.type] ?? 99;
+		return orderA - orderB;
+	});
+}

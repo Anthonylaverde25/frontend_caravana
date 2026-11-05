@@ -34,7 +34,7 @@ export const FullReceptionSidebar: React.FC<FullReceptionSidebarProps> = ({ orde
   return (
     <Stack spacing={2.5}>
       <Paper variant="outlined" sx={{ p: 2, borderRadius: '8px' }}>
-        <Typography sx={sectionTitleSx}>1. Recepción del DTE</Typography>
+        <Typography sx={sectionTitleSx}>1. Recepción{dte.dte_number ? ' del DTE' : ' sin DTE'}</Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
           {dte.head_count} declaradas · {dte.received_count} recibidas · {expected} en tránsito
         </Typography>

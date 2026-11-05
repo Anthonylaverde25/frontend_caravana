@@ -3,6 +3,7 @@ import { Alert, Box, Paper, Stack, Typography } from '@mui/material';
 import { useBatch } from '@/features/batches/hooks/useBatch';
 import { sectionTitleSx } from '@/ui/weaning-orders/components/form/formStyles';
 import type { BirthRollFemale } from '../grid/birthRollTypes';
+import ServiceHeldNotice, { type ServiceHeldOrder } from '../start/ServiceHeldNotice';
 import BirthWindowBar from './BirthWindowBar';
 
 interface RegisterBirthsContextCardProps {
@@ -11,13 +12,15 @@ interface RegisterBirthsContextCardProps {
   batchName: string | null;
   batchCount: number;
   females: BirthRollFemale[];
+  /** Pregnant females left out: their service order is not closed yet. */
+  heldByService: ServiceHeldOrder[];
 }
 
 /**
  * "1. Vientres preñados", read-only and laid out as "1. Orden" of "Cargar tacto": which batch, the
  * expected calving and the females an open order already holds (their calving is registered there).
  */
-export const RegisterBirthsContextCard: React.FC<RegisterBirthsContextCardProps> = ({ batchId, batchName, batchCount, females }) => {
+export const RegisterBirthsContextCard: React.FC<RegisterBirthsContextCardProps> = ({ batchId, batchName, batchCount, females, heldByService }) => {
   const { data: batch } = useBatch(batchId ?? undefined);
   const inOrders = females.filter((f) => f.openOrderCode);
   const orders = [...new Set(inOrders.map((f) => f.openOrderCode))];
@@ -39,6 +42,8 @@ export const RegisterBirthsContextCard: React.FC<RegisterBirthsContextCardProps>
         </Stack>
 
         <BirthWindowBar females={females} />
+
+        <ServiceHeldNotice orders={heldByService} />
 
         {inOrders.length > 0 ? (
           <Alert severity="info" sx={{ fontSize: '0.8rem', py: 0.5, borderRadius: '6px' }}>

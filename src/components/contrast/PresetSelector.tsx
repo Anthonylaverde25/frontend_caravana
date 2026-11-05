@@ -137,10 +137,10 @@ export const PRESET_CATEGORIES: PresetCategory[] = [
 export const DEFAULT_PRESET_ITEM: PresetItemData = {
   id: "default",
   label: "Predeterminado del Sistema",
-  subtitle: "Restablece el tema predeterminado original",
+  subtitle: "Marco gris neutro con la hoja de contenido en blanco",
   icon: "lucide:rotate-ccw",
-  headerColor: "#FFFFFF",
-  asideColor: "#1E293B",
+  headerColor: "#F3F4F6",
+  asideColor: "#F3F4F6",
   btnColor: "#0E3D26",
 };
 

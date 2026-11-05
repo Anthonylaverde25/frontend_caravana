@@ -32,6 +32,11 @@ export const PAR01_GUIDES: Record<string, IssueGuide> = {
     title: 'La caravana no es de una hembra',
     solution: 'La caravana de la madre es de un macho. Revisá la lectura: probablemente es otra caravana.'
   },
+  SERVICE_ORDER_NOT_CLOSED: {
+    category: 'order',
+    title: 'Preñez de una orden de servicio sin cerrar',
+    solution: 'Primero se cierra el servicio, después viene la parición. Cerrá esa orden desde la Bandeja de tacto (con su diagnóstico; las que no se tactaron se declaran "Sin diagnóstico") y volvé a confirmar.'
+  },
   ANIMAL_IN_OPEN_ORDER: {
     category: 'order',
     title: 'Vientre en otra orden de parición',

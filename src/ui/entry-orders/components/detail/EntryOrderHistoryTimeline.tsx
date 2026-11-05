@@ -8,6 +8,7 @@ const describe = (entry: EntryOrderHistoryEntry): string => {
   const to = ENTRY_ORDER_STATUS_LABELS[entry.to_status];
   const meta = entry.metadata as {
     dte_number?: string | null;
+    without_dte?: boolean;
     head_count?: number;
     pending_dte?: number;
     action?: string;
@@ -28,11 +29,19 @@ const describe = (entry: EntryOrderHistoryEntry): string => {
   if (meta?.action === 'receipt_sheet_issued') {
     const weighing = [meta.weighing_mode_label, meta.reference_mode_label].filter(Boolean).map((label) => ` · ${label!.toLowerCase()}`).join('');
 
-    return `Hoja de recepción ${meta.receipt_sheet} emitida: DTE ${meta.dte_number}, ${meta.expected_head_count ?? 0} cabeza(s) en tránsito${weighing}`;
+    return `Hoja de recepción ${meta.receipt_sheet} emitida: ${meta.dte_number ? `DTE ${meta.dte_number}` : 'sin DTE'}, ${meta.expected_head_count ?? 0} cabeza(s) en tránsito${weighing}`;
   }
 
   if (meta?.action === 'dte_head_count_corrected') {
-    return `DTE ${meta.dte_number} corregido: de ${meta.from} a ${meta.to} cabezas → ${to}`;
+    return `${meta.dte_number ? `DTE ${meta.dte_number}` : 'Ingreso sin DTE'} corregido: de ${meta.from} a ${meta.to} cabezas → ${to}`;
+  }
+
+  if (meta?.action === 'dte_document_attached') {
+    return `DTE ${meta.dte_number} cargado después: declara ${meta.head_count ?? 0} cabeza(s) → ${to}`;
+  }
+
+  if (meta?.without_dte) {
+    return `Continúa sin DTE: ${meta.head_count ?? 0} cabeza(s) → ${to}`;
   }
 
   if (meta?.action === 'receipt_sheet_weighing_changed') {
@@ -55,7 +64,7 @@ const describe = (entry: EntryOrderHistoryEntry): string => {
           ? 'en manga'
           : meta.dte_number
             ? `del DTE ${meta.dte_number}`
-            : 'a mano';
+            : 'sin DTE';
     const missing = meta.missing ? ` · ${meta.missing} no llegarán` : '';
 
     return `Recepción ${where}: ${meta.received ?? 0} recibida(s)${missing} → ${to}`;

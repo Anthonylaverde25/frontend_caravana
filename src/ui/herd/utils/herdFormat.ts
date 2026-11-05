@@ -37,6 +37,21 @@ export function formatKg(value: number | null | undefined, digits = 1): string {
 	return `${value.toLocaleString('es-AR', { maximumFractionDigits: digits })} kg`;
 }
 
+/**
+ * Whether the weights of a batch span several categories. Then its average describes no animal (a
+ * cow at 450 kg and a calf at 108 kg make 279 kg), so the views show each category and the total mass.
+ */
+export const hasMixedWeights = (batch: { weighed_category_count?: number | null }) =>
+	(batch.weighed_category_count ?? 0) > 1;
+
+/** "2 toros en servicio": bulls passing through, which is what keeps them out of the batch figures. */
+export const bullsOnServiceLabel = (count: number) =>
+	count === 1 ? '1 toro en servicio' : `${count} toros en servicio`;
+
+/** The head of a batch with bulls on service: stock is one number, its herd and the bulls two parts. */
+export const headBreakdownHint = (batch: { head_count: number; bulls_on_service_count: number }) =>
+	`${batch.head_count - batch.bulls_on_service_count} del lote + ${bullsOnServiceLabel(batch.bulls_on_service_count)}`;
+
 export function formatDate(value: string | null | undefined): string {
 	if (!value) return EMPTY_VALUE;
 

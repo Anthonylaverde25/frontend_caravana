@@ -22,6 +22,7 @@ interface ServiceOrdersToolbarProps {
 }
 
 const PHASE_FILTER_ORDER: ServiceOrderPhase[] = [
+	'PLANNED',
 	'IN_SERVICE',
 	'INSEMINATING',
 	'DIAGNOSING',

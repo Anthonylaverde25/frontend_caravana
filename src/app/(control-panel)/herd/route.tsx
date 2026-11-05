@@ -1,26 +1,26 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router';
 import { FuseRouteItemType } from '@fuse/utils/FuseUtils';
 
-const HerdView = lazy(() => import('src/ui/herd/views/HerdView'));
+const HerdHubView = lazy(() => import('src/ui/herd/views/HerdHubView'));
 const HerdBatchView = lazy(() => import('src/ui/herd/views/HerdBatchView'));
-const MovementsView = lazy(() => import('../livestock/records/CaravansMovements'));
 const BulkWeightView = lazy(() => import('../livestock/records/BulkWeightView'));
 const WeightControlSheetView = lazy(() => import('../livestock/records/WeightControlSheetView'));
 
 /**
- * Own herd: batches and their caravans in one view, plus the screens that work on a batch
- * (bulk weighing, control sheet) and the movement history. /caravans and /batches/own redirect here.
+ * Own herd: consolidated Hub with Lotes & Caravanas, Planilla de Producción, and Movement History,
+ * plus batch operational screens (bulk weighing, control sheet).
  */
 const route: FuseRouteItemType = {
 	path: 'herd',
 	children: [
 		{
 			index: true,
-			element: <HerdView />
+			element: <HerdHubView />
 		},
 		{
 			path: 'movements',
-			element: <MovementsView />
+			element: <Navigate to="/herd?tab=movements" replace />
 		},
 		{
 			// A batch id, or "unassigned" for the caravans in no batch.

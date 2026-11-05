@@ -29,6 +29,8 @@ function activeBulls(order: ServiceOrder): number {
 /** What each tile of the phase strip says under its count, over the orders it counts. */
 function stageCaption(stage: QueueStage, orders: ServiceOrder[]): string {
   switch (stage) {
+    case 'PLANNED':
+      return 'todavía no empezaron';
     case 'DRAFT':
       return 'emitidas sin aprobar';
     case 'IN_SERVICE':
@@ -86,7 +88,7 @@ export function useServicesQueue(
     return {
       sections: groupQueueOrders(visible),
       tiles,
-      allTile: { count: base.length, caption: `órdenes abiertas · ${openFemales} vientres` } satisfies StageTile,
+      allTile: { count: base.length, caption: `órdenes · ${openFemales} vientres` } satisfies StageTile,
       visibleCount: visible.length,
       totalCount: orders.filter(isQueueOrder).length,
     };

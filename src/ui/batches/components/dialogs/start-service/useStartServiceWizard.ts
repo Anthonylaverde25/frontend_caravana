@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isBreedingCandidate } from '@/core/caravans/domain/rules/isBreedingCandidate';
 import { Caravan } from '@/core/caravans/domain/entities/Caravan';
 import type { StartBatchServicePayload } from '@/features/batches/hooks/useStartBatchService';
+import { PendingTactoFemale, usePendingTactoFemales } from '@/features/gestation/hooks/useServiceOrderIssuance';
 
 export type ServiceMethod = 'NATURAL' | 'AI';
 
@@ -11,6 +12,7 @@ const AI_STEPS = ['Vientres y semen', 'Fecha y observaciones'];
 const isFemale = (c: Caravan) => c.sex === 'H' || (c.sex as string) === 'F' || (c.sex as string) === 'HEMBRA';
 const isMale = (c: Caravan) => c.sex === 'M' || (c.sex as string) === 'MACHO';
 const today = () => new Date().toISOString().split('T')[0];
+const NOBODY: ReadonlyMap<number, PendingTactoFemale> = new Map();
 
 /**
  * State of "Iniciar servicio" (semen S-B, DB12): the method picks the steps. A natural service keeps
@@ -33,6 +35,7 @@ export function useStartServiceWizard(open: boolean, batchId: number | undefined
   });
   const [serviceType, setServiceType] = useState<'single' | 'multi' | 'rotation'>('multi');
   const [observations, setObservations] = useState('');
+  const { data: owingTacto = NOBODY } = usePendingTactoFemales(open);
 
   const isAi = method === 'AI';
   const picksIndividually = isAi || isControlledService;
@@ -52,10 +55,11 @@ export function useStartServiceWizard(open: boolean, batchId: number | undefined
     }
   }, [open, batchId]);
 
-  // Every serviceable female starts selected; picking one by one leaves out the excluded ones.
+  // Every serviceable female starts selected; picking one by one leaves out the excluded ones and
+  // those still owing a tacto to another order.
   useEffect(() => {
-    setSelectedFemaleIds(serviceableFemales.filter((c) => c.is_breeding_eligible).map((c) => c.id!));
-  }, [serviceableFemales]);
+    setSelectedFemaleIds(serviceableFemales.filter((c) => c.is_breeding_eligible && !owingTacto.has(c.id!)).map((c) => c.id!));
+  }, [serviceableFemales, owingTacto]);
 
   useEffect(() => {
     if (selectedMaleIds.length === 1) setServiceType('single');
@@ -114,7 +118,7 @@ export function useStartServiceWizard(open: boolean, batchId: number | undefined
     femaleSearch, setFemaleSearch, maleSearch, setMaleSearch,
     plannedStartDate, setPlannedStartDate, plannedEndDate, setPlannedEndDate,
     serviceType, setServiceType, observations, setObservations,
-    serviceableFemales, availableMales, pregnantCount: batchFemales.length - serviceableFemales.length,
+    serviceableFemales, owingTacto, availableMales, pregnantCount: batchFemales.length - serviceableFemales.length,
     exposedCount, stepError, payload,
   };
 }

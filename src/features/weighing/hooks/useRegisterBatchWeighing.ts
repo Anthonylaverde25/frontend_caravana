@@ -5,7 +5,7 @@ import { ApiWeighingOrderRepository } from '@/core/weighing/infrastructure/repos
 
 const repository = new ApiWeighingOrderRepository();
 
-/** Registers a cage weighing of a whole batch; every view that shows weights is refreshed. */
+/** Registers a weighing of a batch; every view that shows weights is refreshed. */
 export function useRegisterBatchWeighing() {
   const queryClient = useQueryClient();
 
@@ -15,7 +15,12 @@ export function useRegisterBatchWeighing() {
       ['batches', 'batch', 'batch-weight-history', 'caravans', 'caravans-summary', 'caravan-weights', 'batch-weighing-orders'].forEach(
         (key) => queryClient.invalidateQueries({ queryKey: [key] })
       );
-      toast.success(`Pesaje ${order.code} registrado: ${order.total_heads} cabezas a ${order.average_weight?.toLocaleString('es-AR')} kg/cab`);
+      // Across several categories a single average would be the very figure this weighing avoids.
+      const detail =
+        order.category_averages.length > 1
+          ? `${order.category_averages.length} categorías`
+          : `${order.average_weight?.toLocaleString('es-AR')} kg/cab`;
+      toast.success(`Pesaje ${order.code} registrado: ${order.total_heads} cabezas · ${detail}`);
     },
   });
 }

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Box, Button, alpha } from '@mui/material';
+import { Box, Button, alpha, useTheme } from '@mui/material';
 import { ENTRY_ORDER_STATUS_LABELS, EntryOrderStatus } from '@/features/entry-orders/types';
 import { useTransferOrderTableStyles } from '@/ui/transfer-orders/components/transferOrderFormat';
 import { useEntryOrderStatusColor } from './EntryOrderStatusChip';
 
-/** A status, every order, or the ones with incidents still open (whatever their status). */
-export type EntryOrderStatusFilterValue = EntryOrderStatus | 'ALL' | 'WITH_INCIDENTS';
+/** A status, every order, or the ones with incidents still open or head without DTE (whatever their status). */
+export type EntryOrderStatusFilterValue = EntryOrderStatus | 'ALL' | 'WITH_INCIDENTS' | 'WITHOUT_DTE';
 
 const ORDER: EntryOrderStatusFilterValue[] = [
   'ALL',
@@ -16,11 +16,12 @@ const ORDER: EntryOrderStatusFilterValue[] = [
   'COMPLETED',
   'CLOSED_INCOMPLETE',
   'CANCELLED',
-  'WITH_INCIDENTS'
+  'WITH_INCIDENTS',
+  'WITHOUT_DTE'
 ];
 
 const labelOf = (id: EntryOrderStatusFilterValue): string =>
-  id === 'ALL' ? 'Todas' : id === 'WITH_INCIDENTS' ? 'Con novedades abiertas' : ENTRY_ORDER_STATUS_LABELS[id];
+  id === 'ALL' ? 'Todas' : id === 'WITH_INCIDENTS' ? 'Con novedades abiertas' : id === 'WITHOUT_DTE' ? 'Sin DTE' : ENTRY_ORDER_STATUS_LABELS[id];
 
 interface EntryOrdersStatusFilterProps {
   value: EntryOrderStatusFilterValue;
@@ -31,10 +32,11 @@ interface EntryOrdersStatusFilterProps {
 /**
  * Segmented pills, one per state, with "En espera de DTE", "En tránsito" and "Recibida · por
  * identificar" first: they are the piles somebody has to act on — a document, a truck, caravans
- * to write. The last one gathers the orders
- * with something to settle with the provider.
+ * to write. The last two gather the orders with something to settle with the provider and the ones
+ * whose head moved without the paper.
  */
 export const EntryOrdersStatusFilter: React.FC<EntryOrdersStatusFilterProps> = ({ value, onChange, counts }) => {
+  const theme = useTheme();
   const colors = useEntryOrderStatusColor();
   const { isDark, border } = useTransferOrderTableStyles();
   const neutral = isDark ? '#60a5fa' : '#0a6ed1';
@@ -56,7 +58,8 @@ export const EntryOrdersStatusFilter: React.FC<EntryOrdersStatusFilterProps> = (
     >
       {ORDER.map((id) => {
         const isSelected = value === id;
-        const color = id === 'ALL' ? neutral : id === 'WITH_INCIDENTS' ? colors.CLOSED_INCOMPLETE : colors[id];
+        const color =
+          id === 'ALL' ? neutral : id === 'WITH_INCIDENTS' ? colors.CLOSED_INCOMPLETE : id === 'WITHOUT_DTE' ? theme.palette.warning.main : colors[id];
 
         return (
           <Button

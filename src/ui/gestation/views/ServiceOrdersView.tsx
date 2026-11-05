@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { Box, Button, Paper, TablePagination, Typography } from '@mui/material';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { Box, Paper, TablePagination, Typography } from '@mui/material';
 import ViewLayout from 'src/components/ViewLayout';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useBatches } from '@/features/batches/hooks/useBatches';
@@ -121,25 +120,7 @@ export function ServiceOrdersView() {
 	return (
 		<ViewLayout
 			title="Órdenes de servicio"
-			subtitle="Registro de los servicios de cada lote de Cría: emití, aprobá y consultá cómo terminó cada orden. Las órdenes abiertas se trabajan en la bandeja de tacto."
-			actions={
-				<Button
-					variant="contained"
-					color="primary"
-					startIcon={<FuseSvgIcon size={20}>heroicons-outline:plus-circle</FuseSvgIcon>}
-					onClick={() => navigate('/gestation/bull-rotation?action=create')}
-					sx={{
-						bgcolor: 'primary.main',
-						borderRadius: '6px',
-						px: 3,
-						fontWeight: 700,
-						textTransform: 'none',
-						color: '#fff'
-					}}
-				>
-					Nueva Orden de Servicio
-				</Button>
-			}
+			subtitle="Registro de los servicios de cada lote de Cría: aprobá y consultá cómo terminó cada orden. Las órdenes nuevas se emiten en Servicios y las abiertas se trabajan en la bandeja de tacto."
 		>
 			<Box
 				component="main"

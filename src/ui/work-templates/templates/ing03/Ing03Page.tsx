@@ -48,7 +48,7 @@ export const Ing03Page: React.FC<Ing03PageProps> = ({
   const landscape = orientation === 'landscape';
   const layout = ing03LayoutOf(order, sheet);
   const columns = ing03ColumnsOf(layout);
-  const identity = `${order.code} · DTE ${sheet.dte_number} · ${sheet.label} · Hoja ${pageNumber} de ${sheet.page_count}`;
+  const identity = `${order.code} · ${sheet.dte_number ? `DTE ${sheet.dte_number}` : 'Sin DTE'} · ${sheet.label} · Hoja ${pageNumber} de ${sheet.page_count}`;
   const instructions = ing03InstructionsOf(layout);
 
   const grid = <Ing03Grid columns={columns} lines={lines} expected={sheet.expected_head_count} landscape={landscape} />;

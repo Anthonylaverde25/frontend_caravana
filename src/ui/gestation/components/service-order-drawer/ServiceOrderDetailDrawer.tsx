@@ -98,6 +98,8 @@ export const ServiceOrderDetailDrawer: React.FC<ServiceOrderDetailDrawerProps> =
 
   // Females still sharing the paddock with the bulls (open exposure).
   const exposedCount = useMemo(() => {
+    // A planned order exposes nobody yet: it counts the females it has today.
+    if (currentOrder?.status === 'PLANNED') return currentOrder.female_caravan_ids.length;
     const exposures = currentOrder?.female_exposures;
     if (!exposures || exposures.length === 0) return femaleCaravans.length;
     return exposures.filter((e) => e.exposed_from !== null && e.exposed_until === null).length;

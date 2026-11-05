@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiCaravanRepository } from '@/core/caravans/infrastructure/repositories/ApiCaravanRepository';
 import { BulkCreateCaravansUseCase } from '@/core/caravans/application/use-cases/BulkCreateCaravansUseCase';
@@ -11,7 +12,10 @@ export function useBulkCreateCaravans() {
 
   return useMutation({
     mutationFn: (caravans: CreateCaravanRequest[]) => bulkCreateCaravansUseCase.execute(caravans),
-    onSuccess: () => {
+    onSuccess: ({ warnings }) => {
+      // A load never ends a pregnancy: what it could not do is said here.
+      warnings.forEach((warning) => toast.warning(warning));
+
       // Invalidate caravans, movements and all batch related data to reflect the mass update
       queryClient.invalidateQueries({ queryKey: ['caravans'] });
       queryClient.invalidateQueries({ queryKey: ['movements'] });

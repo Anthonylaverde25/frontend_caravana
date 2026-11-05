@@ -3,12 +3,11 @@ import { WidgetRenderProps } from '../../types/dashboard.types';
 import { KpiCard } from '../../components/primitives/KpiCard';
 import { StatusPill } from '../../components/primitives/StatusPill';
 import { StackedBar } from '../../components/primitives/StackedBar';
-import { DASHBOARD_COLORS } from '../../theme/dashboardTokens';
-import { formatNumber, formatPercent } from '../../theme/formatters';
+import { formatNumber } from '../../theme/formatters';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCaravans } from '@/features/caravans/hooks/useCaravans';
 
-/** Active caravans in the currently active company/hacienda. */
+/** Active caravans in the currently active company/hacienda (Minimalist executive design). */
 export function StockTotalWidget({ instance }: WidgetRenderProps) {
 	const { activeCompanyId } = useCompany();
 	const { data: caravans = [], isLoading } = useCaravans(activeCompanyId, 'all');
@@ -42,20 +41,50 @@ export function StockTotalWidget({ instance }: WidgetRenderProps) {
 	const malePct = totalHeads > 0 ? Math.round((males / totalHeads) * 100) : 0;
 
 	const segments = [
-		{ label: 'Hembras', value: females, color: '#059669' },
-		{ label: 'Machos', value: males, color: '#2563EB' },
-		...(undefinedSex > 0 ? [{ label: 'S/D', value: undefinedSex, color: '#9CA3AF' }] : [])
+		{ label: 'Hembras', value: females, color: '#10B981' },
+		{ label: 'Machos', value: males, color: '#3B82F6' },
+		...(undefinedSex > 0 ? [{ label: 'S/D', value: undefinedSex, color: '#94A3B8' }] : [])
 	];
 
 	return (
 		<KpiCard
 			label={instance.title ?? 'Existencias del rodeo'}
+			status={
+				totalHeads > 0 ? (
+					<Box
+						sx={{
+							fontSize: '0.6875rem',
+							fontWeight: 600,
+							color: unassigned > 0 ? 'warning.main' : 'text.secondary',
+							bgcolor: unassigned > 0
+								? (theme) => (theme.palette.mode === 'dark' ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)')
+								: (theme) => (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+							px: 0.875,
+							py: 0.25,
+							borderRadius: '4px',
+							display: 'inline-flex',
+							alignItems: 'center',
+							gap: 0.5
+						}}
+					>
+						<Box
+							sx={{
+								width: 5,
+								height: 5,
+								borderRadius: '50%',
+								bgcolor: unassigned > 0 ? 'warning.main' : 'success.main'
+							}}
+						/>
+						{unassigned > 0 ? `${unassigned} sin lote` : `${inBatch} en lote`}
+					</Box>
+				) : null
+			}
 			value={formatNumber(totalHeads)}
 			unit="cabezas"
 			visual={
 				totalHeads > 0 ? (
 					<StackedBar
-						height={7}
+						height={4}
 						showLegend={false}
 						segments={segments}
 					/>
@@ -63,43 +92,58 @@ export function StockTotalWidget({ instance }: WidgetRenderProps) {
 			}
 			context={
 				totalHeads > 0 ? (
-					<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25, pt: 0.25 }}>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								Hembras
-							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(females)}{' '}
-								<Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 400, color: 'text.secondary' }}>
-									({femalePct}%)
-								</Box>
-							</Typography>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.875, pt: 0.25 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+							<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981', flexShrink: 0 }} />
+								<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+									Hembras
+								</Typography>
+								<Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+									{formatNumber(females)}{' '}
+									<Box component="span" sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.secondary' }}>
+										({femalePct}%)
+									</Box>
+								</Typography>
+							</Box>
+
+							<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#3B82F6', flexShrink: 0 }} />
+								<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+									Machos
+								</Typography>
+								<Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+									{formatNumber(males)}{' '}
+									<Box component="span" sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.secondary' }}>
+										({malePct}%)
+									</Box>
+								</Typography>
+							</Box>
 						</Box>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								Machos
+
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'space-between',
+								pt: 0.75,
+								borderTop: '1px solid',
+								borderColor: (theme) =>
+									theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+							}}
+						>
+							<Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+								Asignación a lotes
 							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(males)}{' '}
-								<Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 400, color: 'text.secondary' }}>
-									({malePct}%)
-								</Box>
-							</Typography>
-						</Box>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								En lote
-							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(inBatch)}
-							</Typography>
-						</Box>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								Sin lote
-							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: unassigned > 0 ? 'warning.main' : 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(unassigned)}
+							<Typography
+								sx={{
+									fontSize: '0.75rem',
+									fontWeight: 600,
+									color: unassigned > 0 ? 'warning.main' : 'text.primary',
+									fontVariantNumeric: 'tabular-nums'
+								}}
+							>
+								{formatNumber(inBatch)} en lote {unassigned > 0 ? `· ${unassigned} sin lote` : `(100%)`}
 							</Typography>
 						</Box>
 					</Box>
@@ -166,7 +210,7 @@ export function StockFemalesKpiWidget({ instance }: WidgetRenderProps) {
 			visual={
 				femalesCount > 0 ? (
 					<StackedBar
-						height={7}
+						height={4}
 						showLegend={false}
 						segments={segments}
 					/>
@@ -174,34 +218,50 @@ export function StockFemalesKpiWidget({ instance }: WidgetRenderProps) {
 			}
 			context={
 				femalesCount > 0 ? (
-					<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25, pt: 0.25 }}>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								Vacas adultas
-							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(adultCows)}{' '}
-								<Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 400, color: 'text.secondary' }}>
-									({cowPct}%)
-								</Box>
-							</Typography>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.875, pt: 0.25 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+							<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#059669', flexShrink: 0 }} />
+								<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+									Vacas adultas
+								</Typography>
+								<Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+									{formatNumber(adultCows)}{' '}
+									<Box component="span" sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.secondary' }}>
+										({cowPct}%)
+									</Box>
+								</Typography>
+							</Box>
+
+							<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#34D399', flexShrink: 0 }} />
+								<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+									Reposición
+								</Typography>
+								<Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+									{formatNumber(replacements)}{' '}
+									<Box component="span" sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.secondary' }}>
+										({repPct}%)
+									</Box>
+								</Typography>
+							</Box>
 						</Box>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								Reposición
-							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(replacements)}{' '}
-								<Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 400, color: 'text.secondary' }}>
-									({repPct}%)
-								</Box>
-							</Typography>
-						</Box>
-						<Box sx={{ gridColumn: 'span 2' }}>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
+
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'space-between',
+								pt: 0.75,
+								borderTop: '1px solid',
+								borderColor: (theme) =>
+									theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+							}}
+						>
+							<Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
 								Impacto en rodeo general
 							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
+							<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
 								{pctOfHerd}% del total
 							</Typography>
 						</Box>
@@ -269,7 +329,7 @@ export function StockMalesKpiWidget({ instance }: WidgetRenderProps) {
 			visual={
 				malesCount > 0 ? (
 					<StackedBar
-						height={7}
+						height={4}
 						showLegend={false}
 						segments={segments}
 					/>
@@ -277,34 +337,50 @@ export function StockMalesKpiWidget({ instance }: WidgetRenderProps) {
 			}
 			context={
 				malesCount > 0 ? (
-					<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25, pt: 0.25 }}>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								Recría / Invernada
-							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(steersAndGrowing)}{' '}
-								<Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 400, color: 'text.secondary' }}>
-									({steerPct}%)
-								</Box>
-							</Typography>
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.875, pt: 0.25 }}>
+						<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+							<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#2563EB', flexShrink: 0 }} />
+								<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+									Recría / Invernada
+								</Typography>
+								<Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+									{formatNumber(steersAndGrowing)}{' '}
+									<Box component="span" sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.secondary' }}>
+										({steerPct}%)
+									</Box>
+								</Typography>
+							</Box>
+
+							<Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#60A5FA', flexShrink: 0 }} />
+								<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500 }}>
+									Toros
+								</Typography>
+								<Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+									{formatNumber(sires)}{' '}
+									<Box component="span" sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.secondary' }}>
+										({sirePct}%)
+									</Box>
+								</Typography>
+							</Box>
 						</Box>
-						<Box>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
-								Toros
-							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(sires)}{' '}
-								<Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 400, color: 'text.secondary' }}>
-									({sirePct}%)
-								</Box>
-							</Typography>
-						</Box>
-						<Box sx={{ gridColumn: 'span 2' }}>
-							<Typography sx={{ fontSize: '0.71875rem', color: 'text.secondary', fontWeight: 500 }}>
+
+						<Box
+							sx={{
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'space-between',
+								pt: 0.75,
+								borderTop: '1px solid',
+								borderColor: (theme) =>
+									theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+							}}
+						>
+							<Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
 								Impacto en rodeo general
 							</Typography>
-							<Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: '#2563EB', fontVariantNumeric: 'tabular-nums' }}>
+							<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#2563EB', fontVariantNumeric: 'tabular-nums' }}>
 								{pctOfHerd}% del total
 							</Typography>
 						</Box>
@@ -318,7 +394,7 @@ export function StockMalesKpiWidget({ instance }: WidgetRenderProps) {
 	);
 }
 
-/** Breed composition widget redesigned with dominant breed focus and tabular bars. */
+/** Breed composition widget redesigned with dominant breed focus and minimal progress tracks. */
 export function StockByBreedWidget({ instance }: WidgetRenderProps) {
 	const { activeCompanyId } = useCompany();
 	const { data: caravans = [], isLoading } = useCaravans(activeCompanyId, 'all');
@@ -357,39 +433,107 @@ export function StockByBreedWidget({ instance }: WidgetRenderProps) {
 	const dominant = sortedBreeds[0] ?? { label: 'Sin especificar', value: 0, pct: 0 };
 	const topBreeds = sortedBreeds.slice(0, 3);
 
-	const colors = [DASHBOARD_COLORS.accent, DASHBOARD_COLORS.accentMid, '#64748B'];
-
 	return (
 		<KpiCard
 			label={instance.title ?? 'Raza predominante'}
-			value={dominant.label}
-			unit={`${dominant.pct}%`}
-			visual={
-				topBreeds.length > 0 ? (
-					<StackedBar
-						height={7}
-						showLegend={false}
-						segments={topBreeds.map((row, i) => ({
-							label: row.label,
-							value: row.value,
-							color: colors[i % colors.length]
-						}))}
-					/>
-				) : null
-			}
-			context={
-				<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, pt: 0.25 }}>
-					{topBreeds.map((b) => (
-						<Box key={b.label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-							<Typography sx={{ fontSize: '0.78125rem', color: 'text.secondary' }}>
-								{b.label}
+			value={
+				totalHeads > 0 ? (
+					<Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}>
+						<Box sx={{ minWidth: 0, flex: 1 }}>
+							<Typography
+								sx={{
+									fontSize: { xs: '1.25rem', sm: '1.4rem' },
+									fontWeight: 700,
+									letterSpacing: '-0.02em',
+									color: 'text.primary',
+									overflow: 'hidden',
+									textOverflow: 'ellipsis',
+									whiteSpace: 'nowrap',
+									lineHeight: 1.2
+								}}
+							>
+								{dominant.label}
 							</Typography>
-							<Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
-								{formatNumber(b.value)} <Box component="span" sx={{ fontSize: '0.71875rem', fontWeight: 400, color: 'text.secondary' }}>({b.pct}%)</Box>
+							<Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500 }}>
+								Raza predominante
 							</Typography>
 						</Box>
-					))}
-				</Box>
+						<Typography
+							sx={{
+								fontSize: { xs: '1.75rem', sm: '2rem' },
+								fontWeight: 700,
+								letterSpacing: '-0.03em',
+								lineHeight: 1,
+								fontVariantNumeric: 'tabular-nums',
+								color: 'primary.main',
+								flexShrink: 0
+							}}
+						>
+							{dominant.pct}%
+						</Typography>
+					</Box>
+				) : (
+					'—'
+				)
+			}
+			context={
+				totalHeads > 0 ? (
+					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.875, pt: 0.5 }}>
+						{topBreeds.map((b, index) => (
+							<Box key={b.label}>
+								<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.375 }}>
+									<Typography
+										sx={{
+											fontSize: '0.75rem',
+											color: 'text.primary',
+											fontWeight: index === 0 ? 600 : 500,
+											overflow: 'hidden',
+											textOverflow: 'ellipsis',
+											whiteSpace: 'nowrap',
+											maxWidth: '65%'
+										}}
+									>
+										{b.label}
+									</Typography>
+									<Typography
+										sx={{
+											fontSize: '0.75rem',
+											fontWeight: 600,
+											color: 'text.primary',
+											fontVariantNumeric: 'tabular-nums'
+										}}
+									>
+										{formatNumber(b.value)}{' '}
+										<Box component="span" sx={{ fontSize: '0.6875rem', fontWeight: 400, color: 'text.secondary' }}>
+											({b.pct}%)
+										</Box>
+									</Typography>
+								</Box>
+								<Box
+									sx={{
+										width: '100%',
+										height: 3,
+										bgcolor: (theme) =>
+											theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+										borderRadius: 999,
+										overflow: 'hidden'
+									}}
+								>
+									<Box
+										sx={{
+											width: `${b.pct}%`,
+											height: '100%',
+											bgcolor: index === 0 ? 'primary.main' : 'text.disabled',
+											borderRadius: 999
+										}}
+									/>
+								</Box>
+							</Box>
+						))}
+					</Box>
+				) : (
+					'Sin razas registradas.'
+				)
 			}
 			footnote={<span>Distribución genética sobre {formatNumber(totalHeads)} cabezas</span>}
 		/>

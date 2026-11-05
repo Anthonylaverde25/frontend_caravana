@@ -111,7 +111,7 @@ export default function BatchDetailsToolbar({
 
       {/* Action buttons */}
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-        {onStartService && isCria && !activeService && (
+        {onStartService && isCria && !batch.unclosed_service_order && (
           <Button
             variant="contained"
             size="small"
@@ -131,7 +131,7 @@ export default function BatchDetailsToolbar({
           </Button>
         )}
 
-        {isCria && !activeService && (
+        {isCria && !batch.unclosed_service_order && (
           <Button
             variant="outlined"
             size="small"

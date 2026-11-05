@@ -1,7 +1,7 @@
 import { Box, ButtonBase, Chip, Stack, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { Batch } from '@/core/batches/domain/entities/Batch';
-import { formatKg } from '../../../utils/herdFormat';
+import { bullsOnServiceLabel, formatKg, hasMixedWeights } from '../../../utils/herdFormat';
 
 interface HerdBatchRowHeaderProps {
 	batch: Batch;
@@ -113,7 +113,11 @@ export function HerdBatchRowHeader({ batch, expanded, onToggle }: HerdBatchRowHe
 							color: batch.current_weight ? 'text.secondary' : 'warning.dark'
 						}}
 					>
-						{batch.current_weight ? `${formatKg(batch.current_weight)}/cab` : 'SIN PESO'}
+						{hasMixedWeights(batch)
+							? `${formatKg(batch.total_weight)} · ${batch.weighed_category_count} categorías`
+							: batch.current_weight
+								? `${formatKg(batch.current_weight)}/cab`
+								: 'SIN PESO'}
 					</Typography>
 
 					{batch.head_count === 0 && (
@@ -144,6 +148,15 @@ export function HerdBatchRowHeader({ batch, expanded, onToggle }: HerdBatchRowHe
 					{inTransit > 0 && (
 						<Chip
 							label={`+${inTransit} en tránsito`}
+							size="small"
+							color="info"
+							variant="outlined"
+							sx={compactChipSx}
+						/>
+					)}
+					{batch.bulls_on_service_count > 0 && (
+						<Chip
+							label={bullsOnServiceLabel(batch.bulls_on_service_count)}
 							size="small"
 							color="info"
 							variant="outlined"

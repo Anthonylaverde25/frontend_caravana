@@ -9,7 +9,7 @@ import FullReceptionSidebar from './FullReceptionSidebar';
 import ReceptionRowsSection from './ReceptionRowsSection';
 import { useDteReception } from './useDteReception';
 import { troopContextOf } from './useReceptionRows';
-import { destinationOf } from '../entryOrderFormat';
+import { destinationOf, dteLabel } from '../entryOrderFormat';
 
 /** The slide-up of the Material UI full-screen dialog. */
 const SlideUp = forwardRef(function SlideUp(props: TransitionProps & { children: React.ReactElement }, ref: React.Ref<unknown>) {
@@ -50,7 +50,7 @@ export const ReceiveWithCaravansDialog: React.FC<ReceiveWithCaravansDialogProps>
   return (
     <Dialog fullScreen open={dte != null} onClose={requestClose} TransitionComponent={SlideUp} PaperProps={{ sx: { borderRadius: 0, bgcolor: 'background.default' } }}>
       <FullScreenEntryBar
-        title={`Recibir y registrar caravanas · DTE ${dte?.dte_number ?? ''}`}
+        title={`Recibir y registrar caravanas · ${dte ? dteLabel(dte) : ''}`}
         subtitle={`${order.code} · ${destinationOf(order)} · confirmá las cabezas que llegaron y cargá la caravana de cada animal.`}
         primaryLabel={reception.isPending ? 'Registrando…' : `Registrar recepción · ${reception.caravans} caravana(s)`}
         primaryIcon="heroicons-outline:check"

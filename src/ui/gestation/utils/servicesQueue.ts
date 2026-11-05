@@ -6,20 +6,21 @@ import { groupOrdersForTray, trayTimeLabel } from './diagnosisTray';
 import { formatDay } from './reproductiveVerdict';
 
 /**
- * Work queue of /gestation/services: every order with work left (emitted to approve, in service or
- * waiting for its diagnosis). Once closed or rejected it leaves the queue for the history, so an
+ * Work queue of /gestation/services: every order with work left (planned to start, emitted to
+ * approve, in service or waiting for its diagnosis). Once closed or rejected it leaves the queue for the history, so an
  * order is never listed in both.
  */
-export const QUEUE_PHASES = ['READY_TO_CLOSE', 'DIAGNOSING', 'BULLS_WITHDRAWN', 'INSEMINATING', 'IN_SERVICE', 'DRAFT'] as const satisfies readonly ServiceOrderPhase[];
+export const QUEUE_PHASES = ['READY_TO_CLOSE', 'DIAGNOSING', 'BULLS_WITHDRAWN', 'INSEMINATING', 'IN_SERVICE', 'DRAFT', 'PLANNED'] as const satisfies readonly ServiceOrderPhase[];
 
 export type QueuePhase = (typeof QUEUE_PHASES)[number];
 
 /** Tiles of the phase strip, in the order the work happens; "Tacto" joins pending and in progress. */
-export const QUEUE_STAGES = ['DRAFT', 'IN_SERVICE', 'INSEMINATING', 'TACTO', 'READY_TO_CLOSE'] as const;
+export const QUEUE_STAGES = ['PLANNED', 'DRAFT', 'IN_SERVICE', 'INSEMINATING', 'TACTO', 'READY_TO_CLOSE'] as const;
 
 export type QueueStage = (typeof QUEUE_STAGES)[number];
 
 export const STAGE_OF: Record<QueuePhase, QueueStage> = {
+  PLANNED: 'PLANNED',
   DRAFT: 'DRAFT',
   IN_SERVICE: 'IN_SERVICE',
   INSEMINATING: 'INSEMINATING',
@@ -29,6 +30,7 @@ export const STAGE_OF: Record<QueuePhase, QueueStage> = {
 };
 
 export const STAGE_LABELS: Record<QueueStage, string> = {
+  PLANNED: 'Planificadas',
   DRAFT: 'Por aprobar',
   IN_SERVICE: 'En servicio',
   INSEMINATING: 'Inseminando',
@@ -44,9 +46,11 @@ export const QUEUE_PHASE_COLOR: Record<QueuePhase, 'success' | 'primary' | 'warn
   INSEMINATING: 'info',
   IN_SERVICE: 'info',
   DRAFT: 'grey',
+  PLANNED: 'grey',
 };
 
 export const STAGE_COLOR: Record<QueueStage, (typeof QUEUE_PHASE_COLOR)[QueuePhase]> = {
+  PLANNED: 'grey',
   DRAFT: 'grey',
   IN_SERVICE: 'info',
   INSEMINATING: 'info',
@@ -61,6 +65,7 @@ const QUEUE_SUBTITLES: Record<QueuePhase, string> = {
   INSEMINATING: 'Inseminación artificial en curso.',
   IN_SERVICE: 'Toros en el lote: se puede tactar desde el primer día.',
   DRAFT: 'Emitidas: esperan la aprobación para empezar el servicio.',
+  PLANNED: 'Todavía no empezaron: llegado el día, se inician con la fecha real.',
 };
 
 export interface QueueSection {
@@ -70,8 +75,15 @@ export interface QueueSection {
   orders: ServiceOrder[];
 }
 
+const isPlanned = (order: ServiceOrder) => order.status.toUpperCase() === 'PLANNED';
+
+/** Waiting to start, by approval or by its day: no animal moved yet. */
+export function isNotStarted(order: ServiceOrder): boolean {
+  return isPlanned(order) || order.status.toUpperCase() === 'DRAFT';
+}
+
 export function isQueueOrder(order: ServiceOrder): boolean {
-  return order.status.toUpperCase() === 'DRAFT' || isOpenStatus(order.status);
+  return isNotStarted(order) || isOpenStatus(order.status);
 }
 
 export function queuePhaseOf(order: ServiceOrder): QueuePhase {
@@ -85,14 +97,20 @@ export function groupQueueOrders(orders: ServiceOrder[]): QueueSection[] {
     subtitle: QUEUE_SUBTITLES[section.phase],
   }));
   const drafts = orders.filter((o) => o.status.toUpperCase() === 'DRAFT').sort((a, b) => a.id - b.id);
-  if (drafts.length === 0) return open;
-  return [...open, { phase: 'DRAFT', title: STAGE_LABELS.DRAFT, subtitle: QUEUE_SUBTITLES.DRAFT, orders: drafts }];
+  const planned = orders.filter(isPlanned).sort((a, b) => a.planned_start_date.localeCompare(b.planned_start_date));
+
+  return [
+    ...open,
+    ...(drafts.length > 0 ? [{ phase: 'DRAFT' as const, title: STAGE_LABELS.DRAFT, subtitle: QUEUE_SUBTITLES.DRAFT, orders: drafts }] : []),
+    ...(planned.length > 0 ? [{ phase: 'PLANNED' as const, title: STAGE_LABELS.PLANNED, subtitle: QUEUE_SUBTITLES.PLANNED, orders: planned }] : []),
+  ];
 }
 
 /** The one action that moves the order forward today; every other action goes to the ⋮ menu. */
-export type NextStep = 'APPROVE' | 'INSEMINATE' | 'WITHDRAW_BULLS' | 'TACTO' | 'CLOSE';
+export type NextStep = 'START' | 'APPROVE' | 'INSEMINATE' | 'WITHDRAW_BULLS' | 'TACTO' | 'CLOSE';
 
 export function getNextStep(order: ServiceOrder): NextStep {
+  if (isPlanned(order)) return 'START';
   if (order.status.toUpperCase() === 'DRAFT') return 'APPROVE';
   const phase = queuePhaseOf(order);
   if (phase === 'READY_TO_CLOSE') return 'CLOSE';
@@ -118,6 +136,10 @@ export function queueProgress(order: ServiceOrder): QueueProgress {
   const total = summary?.total ?? order.female_caravan_ids.length;
   const provisional = summary?.provisional_empty ?? 0;
   const scanned = (summary?.evaluated ?? 0) + provisional;
+
+  if (phase === 'PLANNED') {
+    return { title: 'Sin iniciar', percent: null, tone: 'info', caption: `Inicio previsto ${formatDay(order.planned_start_date)}` };
+  }
 
   if (phase === 'DRAFT') {
     return { title: 'Sin aprobar', percent: null, tone: 'info', caption: `Inicio planificado ${formatDay(order.planned_start_date)}` };
@@ -177,6 +199,11 @@ export function serviceMethodLabel(order: ServiceOrder): string {
  */
 export function queueDeadline(order: ServiceOrder): { title: string; caption: string } {
   const start = `servicio desde ${formatDay(order.actual_start_date || order.planned_start_date)}`;
+  if (isPlanned(order)) {
+    // The phase says "Para hoy" or "Atrasada"; while the day is ahead, it only repeats the title.
+    const detail = getServiceOrderPhase(order).detail ?? '';
+    return { title: `Inicio ${formatDay(order.planned_start_date)}`, caption: detail.startsWith('Inicio') ? 'planificada' : detail };
+  }
   if (queuePhaseOf(order) === 'DRAFT') return { title: `Inicio ${formatDay(order.planned_start_date)}`, caption: 'esperando aprobación' };
   const temporal = computeServiceOrderTemporalStatus(order);
   const end = temporal.effectivePlannedEndDate;

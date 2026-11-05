@@ -64,6 +64,7 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 	const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
 	const [selectedDetailCaravanId, setSelectedDetailCaravanId] = useState<number | null>(null);
 	const [selectedDetailIdentification, setSelectedDetailIdentification] = useState<string | null>(null);
+	const [detailCaravan, setDetailCaravan] = useState<CaravanItem | null>(null);
 
 	const [transferDialogOpen, setTransferDialogOpen] = useState(false);
 	const [caravansToTransfer, setCaravansToTransfer] = useState<any[]>([]);
@@ -226,6 +227,7 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 	const handleOpenViewCaravan = useCallback((caravan: CaravanItem) => {
 		setSelectedDetailCaravanId(caravan.id);
 		setSelectedDetailIdentification(caravan.identification);
+		setDetailCaravan(caravan);
 		setDetailDrawerOpen(true);
 	}, []);
 
@@ -428,9 +430,11 @@ const CaravanDataTable = forwardRef<CaravanDataTableRef, CaravanDataTableProps>(
 					setDetailDrawerOpen(false);
 					setSelectedDetailCaravanId(null);
 					setSelectedDetailIdentification(null);
+					setDetailCaravan(null);
 				}}
 				caravanId={selectedDetailCaravanId}
 				caravanIdentification={selectedDetailIdentification}
+				onWeigh={detailCaravan ? () => handleOpenWeightCaravan(detailCaravan) : undefined}
 			/>
 		</Box>
 	);

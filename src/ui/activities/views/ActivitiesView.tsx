@@ -42,6 +42,10 @@ const itemVariants = {
 	show: { y: 0, opacity: 1 },
 };
 
+export interface ActivitiesViewProps {
+	subHeader?: React.ReactNode;
+}
+
 /**
  * ActivitiesView Component
  * Production board showing livestock batches across different production stages.
@@ -51,7 +55,7 @@ const itemVariants = {
  * pair, and a batch that migrated stage could not be split into several specialised
  * child batches nor keep the individual traceability of each animal.
  */
-export default function ActivitiesView() {
+export default function ActivitiesView({ subHeader }: ActivitiesViewProps = {}) {
 	const navigate = useNavigate();
 	const { activeCompanyId } = useCompany();
 	const { data: activities, isLoading } = useActivities(activeCompanyId);
@@ -152,6 +156,7 @@ export default function ActivitiesView() {
 		<ViewLayout
 			title="Planilla de Producción"
 			subtitle="Control de existencias y movimientos por etapa productiva."
+			subHeader={subHeader}
 			actions={
 				<Stack
 					direction="row"

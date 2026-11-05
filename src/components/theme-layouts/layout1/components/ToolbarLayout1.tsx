@@ -48,14 +48,13 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
       <ToolbarTheme>
         <AppBar
           id="fuse-toolbar"
-          className={clsx('relative z-20 flex shadow-sm', className)}
+          className={clsx('relative z-20 flex', className)}
+          elevation={0}
           sx={(theme) => {
-            const isHeaderDark =
-              isContrastActive && contrastSettings.headerBg
-                ? isColorDark(contrastSettings.headerBg)
-                : theme.palette.mode === 'dark';
-
+            // No border or shadow: the toolbar and the navbar read as one frame,
+            // and the content sheet (Layout1) draws the only dividing line.
             return {
+              boxShadow: 'none',
               backgroundColor:
                 isContrastActive && contrastSettings.headerBg
                   ? contrastSettings.headerBg
@@ -72,12 +71,7 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
                   '& .MuiTypography-root:not(.company-renspa)': {
                     color: `${contrastSettings.headerText}`
                   }
-                }),
-              borderBottom: `1px solid ${
-                isHeaderDark
-                  ? 'rgba(255, 255, 255, 0.12)'
-                  : 'rgba(0, 0, 0, 0.1)'
-              }`
+                })
             };
           }}
         >

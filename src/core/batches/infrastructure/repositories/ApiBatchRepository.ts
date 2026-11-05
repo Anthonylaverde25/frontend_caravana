@@ -1,6 +1,6 @@
 import axiosInstance from '@/utils/axios';
 import { Batch, CreateBatchRequest } from '../../domain/entities/Batch';
-import { BatchOverview } from '../../domain/entities/BatchOverview';
+import type { BatchCategoryWeightPoint, BatchOverview } from '../../domain/entities/BatchOverview';
 import { IBatchRepository } from '../../domain/repositories/IBatchRepository';
 import { BatchMapper } from '../mappers/BatchMapper';
 
@@ -47,8 +47,13 @@ export class ApiBatchRepository implements IBatchRepository {
     return response.data;
   }
 
-  async getOverview(id: number): Promise<BatchOverview> {
-    const response = await axiosInstance.get<BatchOverview>(`/batches/${id}/overview`);
+  async getCategoryWeightSeries(id: number): Promise<BatchCategoryWeightPoint[]> {
+    const response = await axiosInstance.get<BatchCategoryWeightPoint[]>(`/batches/${id}/weights/by-category`);
     return response.data;
+  }
+
+  async getOverview(id: number): Promise<BatchOverview> {
+    const response = await axiosInstance.get<any>(`/batches/${id}/overview`);
+    return response.data?.data ?? response.data;
   }
 }

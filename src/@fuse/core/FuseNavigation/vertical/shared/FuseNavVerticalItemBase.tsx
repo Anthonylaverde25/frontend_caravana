@@ -168,7 +168,7 @@ function FuseNavVerticalItemBase(props: FuseNavVerticalBaseProps) {
             item.active && "active",
             !isContracted && item.subtitle && "items-start",
             className,
-            isGroup && "my-4",
+            isGroup && "fuse-nav-group my-4",
             dense && "p-1",
           )}
           sx={{

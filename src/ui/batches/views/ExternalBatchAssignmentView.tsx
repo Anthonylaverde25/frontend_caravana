@@ -46,7 +46,11 @@ import OwnBatchPickerDialog from 'src/ui/batches/components/external/OwnBatchPic
 import { searchableTag } from '@/core/caravans/domain/services/animalLabel';
 import { ANY_SUPPLIER } from '@/core/partners/domain/entities/PartnerRole';
 
-export default function ExternalBatchAssignmentView() {
+export interface ExternalBatchAssignmentViewProps {
+  subHeader?: React.ReactNode;
+}
+
+export default function ExternalBatchAssignmentView({ subHeader }: ExternalBatchAssignmentViewProps = {}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const headerBg = isDark ? '#1e293b' : '#f8fafc';
@@ -309,6 +313,7 @@ export default function ExternalBatchAssignmentView() {
     <ViewLayout
       title="Asignación de Hacienda Externa a Lotes Propios (Rodeo por regularizar)"
       subtitle="Visualiza y traslada las caravanas adquiridas desde sus lotes de procedencia hacia tus lotes operativos propios."
+      subHeader={subHeader}
     >
       <Box sx={{ p: { xs: 2, md: 3 }, pb: { xs: 2, md: 3 } }}>
         {successMessage && (
